@@ -1,6 +1,7 @@
 <?php
 use App\Http\controllers\ProductController;
 use App\Http\controllers\AuthController;
+use App\Http\controllers\PatientHistoryController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-//Route::apiresource('products',ProductController::class);
+//Route::apiresource('PatientHistory',PatientHistoryController::class);
 
 //Public routes
 //Route::get('/products/search/{name}',[ProductController::class,'search']);
@@ -29,6 +30,16 @@ Route::post('/login','AuthController@login');
 
 //protected routes
 Route::group(['middleware' => ['auth:sanctum']], function () {
+    //PatientHistory
+    Route::get('/PatientHistory','PatientHistoryController@index');
+    Route::post('/PatientHistory','PatientHistoryController@store');
+    Route::get('/PatientHistory/{id}','PatientHistoryController@show');
+    Route::put('/PatientHistory/{id}','PatientHistoryController@update');
+    Route::delete('/PatientHistory/{id}','PatientHistoryController@destroy');
+
+
+
+
     Route::get('/products/search/{name}','ProductController@search');
     Route::post('/logout','AuthController@logout');
 });

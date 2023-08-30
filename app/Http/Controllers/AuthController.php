@@ -19,7 +19,7 @@ class AuthController extends Controller
             'specialty' => 'required|string',
             'workingplace' => 'required|string',
             'phone' => 'required|string',
-            'Job' => 'required|string',
+            'job' => 'required|string',
             'highestdegree' => 'required|string'
         ]);
 
@@ -32,14 +32,15 @@ class AuthController extends Controller
             'specialty' => $fields['specialty'],
             'workingplace' => $fields['workingplace'],
             'phone' => $fields['phone'],
-            'Job' => $fields['Job'],
+            'job' => $fields['job'],
             'highestdegree' => $fields['highestdegree']
         ]);
 
         $token = $user->createToken('apptoken')->plainTextToken;
 
         $response = [
-            'user' => $user,
+            'value' => true,
+            'data' => $user,
             'token' => $token
         ];
 
@@ -64,7 +65,8 @@ class AuthController extends Controller
         $token = $user->createToken('apptoken')->plainTextToken;
 
         $response = [
-            'user' => $user,
+            'value' => true,
+            'data' => $user,
             'token' => $token
         ];
 
@@ -75,6 +77,7 @@ class AuthController extends Controller
         auth()->user()->tokens()->delete();
 
         return [
+            'value' => true,
             'message' => 'Logged out'
         ];
     }

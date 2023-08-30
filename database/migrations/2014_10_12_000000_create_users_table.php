@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('specialty');
             $table->string('workingplace');
             $table->string('phone');
-            $table->string('Job');
+            $table->string('job');
             $table->string('highestdegree');
             $table->string('password');
             $table->rememberToken();

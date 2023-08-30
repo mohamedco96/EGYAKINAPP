@@ -26,7 +26,7 @@ class User extends Authenticatable
         'specialty',
         'workingplace',
         'phone',
-        'Job',
+        'job',
         'highestdegree'
     ];
 

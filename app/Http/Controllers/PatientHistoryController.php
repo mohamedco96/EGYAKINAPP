@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\PatientHistory;
+use App\Models\Section;
 use App\Http\Requests\StorePatientHistoryRequest;
 use App\Http\Requests\UpdatePatientHistoryRequest;
+use Illuminate\Support\Facades\DB;
 
 class PatientHistoryController extends Controller
 {
@@ -58,13 +60,19 @@ class PatientHistoryController extends Controller
         ]);
 
         $Patient = PatientHistory::create($request->all());
+        
 
         if($Patient!=null){
+            $section = Section::create([
+                'user_id' => $request['user_id'],
+                'patient_id' => $Patient['id'],
+                'section_1' => true,
+            ]);
             $response = [
                 'value' => true,
                 'data' => $Patient
             ];
-            return response($response, 201);
+            return $Patient;
         }else {
             $response = [
                 'value' => false
@@ -127,6 +135,8 @@ class PatientHistoryController extends Controller
 
         if($Patient!=null){
             PatientHistory::destroy($id);
+            DB::table('sections')->where('patient_id', '=', $id)->delete();
+           // Product::where('name','like','%'.$name.'%')->get();
             $response = [
                 'value' => true,
                 'message' => 'Patient Deleted Successfully'

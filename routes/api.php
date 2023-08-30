@@ -2,6 +2,7 @@
 use App\Http\controllers\ProductController;
 use App\Http\controllers\AuthController;
 use App\Http\controllers\PatientHistoryController;
+use App\Http\controllers\SectionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -30,6 +31,7 @@ Route::post('/login','AuthController@login');
 
 //protected routes
 Route::group(['middleware' => ['auth:sanctum']], function () {
+
     //PatientHistory
     Route::get('/PatientHistory','PatientHistoryController@index');
     Route::post('/PatientHistory','PatientHistoryController@store');
@@ -37,6 +39,10 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/PatientHistory/{id}','PatientHistoryController@update');
     Route::delete('/PatientHistory/{id}','PatientHistoryController@destroy');
 
+    //Section
+    Route::get('/Section','SectionController@index');
+    Route::get('/Section/{id}','SectionController@show');
+    Route::delete('/Section/{id}','SectionController@destroy');   
 
 
 

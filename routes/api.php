@@ -44,7 +44,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/Section/{id}','SectionController@show');
     Route::delete('/Section/{id}','SectionController@destroy');   
 
-
+    Route::get('/Patient/search/{name}','PatientHistoryController@search');
 
     Route::get('/products/search/{name}','ProductController@search');
     Route::post('/logout','AuthController@logout');

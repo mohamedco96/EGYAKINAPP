@@ -96,7 +96,8 @@ class PatientHistoryController extends Controller
             return response($response, 201);
         }else {
             $response = [
-                'value' => false
+                'value' => false,
+                'message' => 'No Patient was found'
             ];
             return response($response, 404);
         }
@@ -140,6 +141,32 @@ class PatientHistoryController extends Controller
             $response = [
                 'value' => true,
                 'message' => 'Patient Deleted Successfully'
+            ];
+            return response($response, 201);
+        }else {
+            $response = [
+                'value' => false,
+                'message' => 'No Patient was found'
+            ];
+            return response($response, 404);
+        }
+    }
+
+         /**
+     * Search for product by name
+     * @param str $name
+     * @return \Illuminate\Http\Response
+     */
+    public function search($name)
+    {
+        $Patient = PatientHistory::where('name','like','%'.$name.'%')
+                                ->orWhere('hospital','like','%'.$name.'%')
+                                ->get();
+
+        if($Patient!=null){
+            $response = [
+                'value' => true,
+                'data' => $Patient
             ];
             return response($response, 201);
         }else {

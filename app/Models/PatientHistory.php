@@ -37,4 +37,13 @@ class PatientHistory extends Model
         'HTN',
         'HTN_duration'
     ];
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function userr()
+    {
+        return $this->hasOne(User::class);
+    }
 }

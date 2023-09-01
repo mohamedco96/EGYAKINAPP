@@ -25,6 +25,8 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register','AuthController@register');
 Route::post('/login','AuthController@login');
 
+Route::get('/userPatient','PatientHistoryController@userPatient');
+
 //Route::post('/register',[AuthController::class,'register']);
 //Route::post('/login',[AuthController::class,'login']);
 

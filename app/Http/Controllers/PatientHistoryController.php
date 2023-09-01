@@ -4,12 +4,23 @@ namespace App\Http\Controllers;
 
 use App\Models\PatientHistory;
 use App\Models\Section;
+use App\Models\User;
 use App\Http\Requests\StorePatientHistoryRequest;
 use App\Http\Requests\UpdatePatientHistoryRequest;
 use Illuminate\Support\Facades\DB;
 
 class PatientHistoryController extends Controller
 {
+
+    public function userPatient(){
+        //$user = User::find(2);
+        //$patients = $user->patients;
+
+        $patient = PatientHistory::find(17);
+        $user = $patient->userr;
+        return $user;
+    }
+
     /**
      * Display a listing of the resource.
      */

@@ -38,6 +38,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/PatientHistory/{id}','PatientHistoryController@show');
     Route::put('/PatientHistory/{id}','PatientHistoryController@update');
     Route::delete('/PatientHistory/{id}','PatientHistoryController@destroy');
+    Route::get('/getsomerows','PatientHistoryController@getsomerows');
 
     //Section
     Route::get('/Section','SectionController@index');
@@ -48,6 +49,14 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::get('/products/search/{name}','ProductController@search');
     Route::post('/logout','AuthController@logout');
+});
+
+Route::fallback(function(){
+    $response = [
+        'value' => false,
+        'message' => 'Page does not exist'
+    ];
+    return response($response, 404);
 });
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {

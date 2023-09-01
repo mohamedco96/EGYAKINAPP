@@ -46,8 +46,7 @@ class AuthController extends Controller
 
         return response($response, 201);
     }
-
-
+    
     public function login(Request $request) {
         $fields = $request->validate([
             'email' => 'required|string',
@@ -58,8 +57,16 @@ class AuthController extends Controller
 
         if (!$user || !Hash::check($fields['password'], $user->password)) {
             return response([
+                'value' => false,
                 'message' => 'wrong data'
-            ],401);
+            ],404);
+
+            $response = [
+                'value' => false,
+                'message' => 'wrong data'
+            ];
+    
+            return response($response, 404);
         }
 
         $token = $user->createToken('apptoken')->plainTextToken;

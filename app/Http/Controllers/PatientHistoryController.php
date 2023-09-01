@@ -15,7 +15,30 @@ class PatientHistoryController extends Controller
      */
     public function index()
     {
-        $Patient = PatientHistory::all();
+        $Patient = PatientHistory::latest()->get();
+
+        if($Patient!=null){
+            $response = [
+                'value' => true,
+                'data' => $Patient
+            ];
+            return response($response, 201);
+        }else {
+            $response = [
+                'value' => false
+            ];
+            return response($response, 404);
+        }
+        
+    }
+
+        /**
+     * Display a listing of the resource.
+     */
+    public function getsomerows()
+    {
+        $Patient = PatientHistory::all(['id','name','email']);
+        //PatientHistory::where(['id','1'])->get(['name','email']);
 
         if($Patient!=null){
             $response = [
@@ -37,27 +60,8 @@ class PatientHistoryController extends Controller
    // @return \Illuminate\Http\Response
     public function store(StorePatientHistoryRequest $request)
     {
-        $request->validate([
-            'user_id' => 'required|string|exists:App\Models\User,id',
-            'name' => 'required|string',
-            'hospital' => 'required|string',
-            'collected_data_from' => 'required|string',
-            'NID' => 'string|size:14',
-            'phone' => 'string|size:11',
-            'email' => 'email|string',
-            'age' => 'required|string',
-            'gender' => 'required|string',
-            'occupation' => 'required|string',
-            'residency' => 'required|string',
-            'governorate' => 'required|string',
-            'marital_status' => 'required|string',
-            'educational_level' => 'required|string',
-            'special_habits_of_the_patient' => 'required|string',
-            'DM' => 'required|string',
-            'DM_duration' => 'interger',
-            'HTN' => 'required|string',
-            'HTN_duration' => 'interger'
-        ]);
+       // $request->validate([
+       // ]);
 
         $Patient = PatientHistory::create($request->all());
         

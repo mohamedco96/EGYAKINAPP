@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register','AuthController@register');
 Route::post('/login','AuthController@login');
 
-Route::get('/userPatient','PatientHistoryController@userPatient');
+Route::get('/userPatient','AuthController@userPatient');
 
 //Route::post('/register',[AuthController::class,'register']);
 //Route::post('/login',[AuthController::class,'login']);
@@ -33,6 +33,11 @@ Route::get('/userPatient','PatientHistoryController@userPatient');
 
 //protected routes
 Route::group(['middleware' => ['auth:sanctum']], function () {
+
+    //Users
+    Route::get('/users','AuthController@index');
+    Route::get('/users/{id}','AuthController@show');
+    Route::post('/logout','AuthController@logout');
 
     //PatientHistory
     Route::get('/PatientHistory','PatientHistoryController@index');
@@ -45,12 +50,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     //Section
     Route::get('/Section','SectionController@index');
     Route::get('/Section/{id}','SectionController@show');
-    Route::delete('/Section/{id}','SectionController@destroy');   
+    Route::delete('/Section/{id}','SectionController@destroy');
 
     Route::get('/Patient/search/{name}','PatientHistoryController@search');
 
     Route::get('/products/search/{name}','ProductController@search');
-    Route::post('/logout','AuthController@logout');
 });
 
 Route::fallback(function(){

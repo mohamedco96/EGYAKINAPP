@@ -12,15 +12,6 @@ use Illuminate\Support\Facades\DB;
 class PatientHistoryController extends Controller
 {
 
-    public function userPatient(){
-        //$user = User::find(2);
-        //$patients = $user->patients;
-
-        $patient = PatientHistory::find(17);
-        $user = $patient->userr;
-        return $user;
-    }
-
     /**
      * Display a listing of the resource.
      */
@@ -40,7 +31,7 @@ class PatientHistoryController extends Controller
             ];
             return response($response, 404);
         }
-        
+
     }
 
         /**
@@ -63,7 +54,7 @@ class PatientHistoryController extends Controller
             ];
             return response($response, 404);
         }
-        
+
     }
 
 
@@ -75,7 +66,7 @@ class PatientHistoryController extends Controller
        // ]);
 
         $Patient = PatientHistory::create($request->all());
-        
+
 
         if($Patient!=null){
             $section = Section::create([

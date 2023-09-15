@@ -2,19 +2,19 @@
 
 namespace Database\Seeders;
 
-use App\Models\PatientHistory;
+use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
-class PatientHistorySeeder extends Seeder
+class UserSeeder extends Seeder
 {
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        PatientHistory::factory()
-            ->count(200)
+        User::factory()
+            ->count(50)
             ->create();
     }
 }

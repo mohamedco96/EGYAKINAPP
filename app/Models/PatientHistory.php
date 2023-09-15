@@ -41,9 +41,4 @@ class PatientHistory extends Model
     {
         return $this->belongsTo(User::class);
     }
-
-    public function userr()
-    {
-        return $this->hasOne(User::class);
-    }
 }

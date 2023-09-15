@@ -46,7 +46,7 @@ class AuthController extends Controller
 
         return response($response, 201);
     }
-    
+
     public function login(Request $request) {
         $fields = $request->validate([
             'email' => 'required|string',
@@ -56,36 +56,88 @@ class AuthController extends Controller
         $user = User::where('email', $fields['email'])->first();
 
         if (!$user || !Hash::check($fields['password'], $user->password)) {
-            return response([
-                'value' => false,
-                'message' => 'wrong data'
-            ],404);
-
             $response = [
                 'value' => false,
                 'message' => 'wrong data'
             ];
-    
             return response($response, 404);
+        } else{
+            $token = $user->createToken('apptoken')->plainTextToken;
+            $response = [
+                'value' => true,
+                'data' => $user,
+                'token' => $token
+            ];
+            return response($response, 201);
         }
-
-        $token = $user->createToken('apptoken')->plainTextToken;
-
-        $response = [
-            'value' => true,
-            'data' => $user,
-            'token' => $token
-        ];
-
-        return response($response, 201);
     }
 
     public function logout(Request $request) {
         auth()->user()->tokens()->delete();
-
         return [
             'value' => true,
             'message' => 'Logged out'
         ];
     }
+
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
+    {
+        $user = User::all();
+
+        if($user!=null){
+            $response = [
+                'value' => true,
+                'data' => $user
+            ];
+            return response($response, 201);
+        }else {
+            $response = [
+                'value' => false,
+                'message' => 'No user was found'
+            ];
+            return response($response, 404);
+        }
+
+    }
+
+
+    /**
+     * Display the specified resource.
+     */
+    public function show($id)
+    {
+        $user = User::find($id);
+        $patientCount = $user->patients->count();
+
+        if($user!=null){
+            if($patientCount!=null){
+                $count = $patientCount;
+            }else{
+                $count = 0;
+            }
+
+            $response = [
+                'value' => true,
+                'patientCount' => $count,
+                'data' => $user
+            ];
+            return response($response, 201);
+        }else {
+            $response = [
+                'value' => false,
+                'message' => 'No user was found'
+            ];
+            return response($response, 404);
+        }
+    }
+
+    public function userPatient(){
+        $user = User::find(1);
+        $patientCount = $user->patients->count();
+        return $patientCount;
+    }
+
 }

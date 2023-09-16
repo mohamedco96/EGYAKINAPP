@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -17,7 +19,7 @@ class PatientHistory extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'user_id',
+        'owner_id',
         'name',
         'hospital',
         'collected_data_from',
@@ -35,10 +37,26 @@ class PatientHistory extends Model
         'DM',
         'DM_duration',
         'HTN',
-        'HTN_duration'
+        'HTN_duration',
+        'created_at'
     ];
-    public function user()
+    public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function treatments(): HasMany
+    {
+        return $this->hasMany(Treatment::class);
+    }
+
+    public function setHabitsAttribute($value)
+    {
+        $this->attributes['special_habits_of_the_patient'] = json_encode($value);
+    }
+
+    public function getHabitsAttribute($value)
+    {
+        return $this->attributes['special_habits_of_the_patient'] = json_decode($value);
     }
 }

@@ -18,7 +18,7 @@ class PatientHistoryFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => fake()->numberBetween(1,50),
+            'owner_id' => fake()->numberBetween(1,50),
             'name' => fake()->name(),
             'hospital' => fake()->words(2, true),
             'collected_data_from' => fake()->sentence(),

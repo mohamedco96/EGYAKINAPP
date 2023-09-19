@@ -70,7 +70,7 @@ class PatientHistoryController extends Controller
 
         if($Patient!=null){
             $section = Section::create([
-                'user_id' => $request['user_id'],
+                'user_id' => $request['owner_id'],
                 'patient_id' => $Patient['id'],
                 'section_1' => true,
             ]);

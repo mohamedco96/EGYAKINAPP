@@ -22,7 +22,7 @@ class UpdatePatientHistoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => 'string|exists:App\Models\User,id',
+            'owner_id' => 'string|exists:App\Models\User,id',
             'NID' => 'string|size:14',
             'phone' => 'string|size:11',
             'email' => 'email|string',

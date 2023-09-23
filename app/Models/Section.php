@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -17,7 +18,7 @@ class Section extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'user_id',
+        'owner_id',
         'patient_id',
         'section_1',
         'section_2',
@@ -47,4 +48,14 @@ class Section extends Model
         'submit_status' => 'boolean',
         'outcome_status' => 'boolean'
     ];
+
+    public function PatientSection(): BelongsTo
+    {
+        return $this->belongsTo(PatientHistory::class);
+    }
+
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 }

@@ -40,19 +40,21 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/logout','AuthController@logout');
 
     //PatientHistory
-    Route::get('/PatientHistory','PatientHistoryController@index');
-    Route::post('/PatientHistory','PatientHistoryController@store');
-    Route::get('/PatientHistory/{id}','PatientHistoryController@show');
-    Route::put('/PatientHistory/{id}','PatientHistoryController@update');
-    Route::delete('/PatientHistory/{id}','PatientHistoryController@destroy');
-    Route::get('/getsomerows','PatientHistoryController@getsomerows');
+    Route::get('/patientHistory','PatientHistoryController@index');
+    Route::post('/patientHistory','PatientHistoryController@store');
+    Route::get('/patientHistory/{id}','PatientHistoryController@show');
+    Route::put('/patientHistory/{id}','PatientHistoryController@update');
+    Route::delete('/patientHistory/{id}','PatientHistoryController@destroy');
+    Route::get('/allPatients','PatientHistoryController@doctorPatientGetAll');
+    Route::get('/currentPatients','PatientHistoryController@doctorPatientGet');
+
 
     //Section
-    Route::get('/Section','SectionController@index');
-    Route::get('/Section/{id}','SectionController@show');
-    Route::delete('/Section/{id}','SectionController@destroy');
+    Route::get('/section','SectionController@index');
+    Route::get('/section/{id}','SectionController@show');
+    Route::delete('/section/{id}','SectionController@destroy');
 
-    Route::get('/Patient/search/{name}','PatientHistoryController@search');
+    Route::get('/patient/search/{name}','PatientHistoryController@search');
 
     Route::get('/products/search/{name}','ProductController@search');
 });

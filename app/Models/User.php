@@ -50,9 +50,13 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-    public function patients(): HasMany
+    public function patients(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(PatientHistory::class);
+        return $this->hasMany(PatientHistory::class,'owner_id');
     }
 
+    public function sections(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Section::class);
+    }
 }

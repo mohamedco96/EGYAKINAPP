@@ -38,9 +38,7 @@ class StorePatientHistoryRequest extends FormRequest
             'educational_level' => 'required|string',
             'special_habits_of_the_patient' => 'required|string',
             'DM' => 'required|string',
-            'DM_duration' => 'interger',
             'HTN' => 'required|string',
-            'HTN_duration' => 'interger'
         ];
     }
 }

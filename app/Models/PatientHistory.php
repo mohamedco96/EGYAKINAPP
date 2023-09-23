@@ -38,7 +38,8 @@ class PatientHistory extends Model
         'DM_duration',
         'HTN',
         'HTN_duration',
-        'created_at'
+        'created_at',
+        'updated_at'
     ];
     public function owner(): BelongsTo
     {
@@ -50,13 +51,9 @@ class PatientHistory extends Model
         return $this->hasMany(Treatment::class);
     }
 
-    public function setHabitsAttribute($value)
+    public function sections(): HasMany
     {
-        $this->attributes['special_habits_of_the_patient'] = json_encode($value);
+        return $this->hasMany(Section::class);
     }
 
-    public function getHabitsAttribute($value)
-    {
-        return $this->attributes['special_habits_of_the_patient'] = json_decode($value);
-    }
 }

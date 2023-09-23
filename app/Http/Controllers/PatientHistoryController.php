@@ -7,6 +7,7 @@ use App\Models\Section;
 use App\Models\User;
 use App\Http\Requests\StorePatientHistoryRequest;
 use App\Http\Requests\UpdatePatientHistoryRequest;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class PatientHistoryController extends Controller
@@ -17,7 +18,7 @@ class PatientHistoryController extends Controller
      */
     public function index()
     {
-        $Patient = PatientHistory::latest()->get();
+        $Patient = PatientHistory::latest()->paginate(10);
 
         if($Patient!=null){
             $response = [
@@ -37,11 +38,11 @@ class PatientHistoryController extends Controller
         /**
      * Display a listing of the resource.
      */
-    public function getsomerows()
+    public function doctorPatientGetAll()
     {
-        $Patient = PatientHistory::all(['id','name','email']);
-        //PatientHistory::where(['id','1'])->get(['name','email']);
-
+        $Patient = PatientHistory::with('owner:id,name,lname')
+                                    ->latest()
+                                    ->paginate(10,['id','owner_id','name','hospital','created_at','updated_at']);
         if($Patient!=null){
             $response = [
                 'value' => true,
@@ -50,27 +51,45 @@ class PatientHistoryController extends Controller
             return response($response, 201);
         }else {
             $response = [
-                'value' => false
+                'value' => false,
+                'message' => 'No Patient was found'
             ];
             return response($response, 404);
         }
 
     }
 
+    public function doctorPatientGet()
+    {
+        // Retrieve the authenticated user
+        $user = Auth::user();
+        $Patient = $user->patients()
+                            ->latest()
+                            ->paginate(10,['id','owner_id','name','hospital','created_at','updated_at']);
+        if($Patient!=null){
+            $response = [
+                'value' => true,
+                'data' => $Patient
+            ];
+            return response($response, 201);
+        }else {
+            $response = [
+                'value' => false,
+                'message' => 'No Patient was found'
+            ];
+            return response($response, 404);
+        }
+    }
 
     //@param \Illuminate\Http\Request $request
    // @return \Illuminate\Http\Response
     public function store(StorePatientHistoryRequest $request)
     {
-       // $request->validate([
-       // ]);
-
         $Patient = PatientHistory::create($request->all());
-
 
         if($Patient!=null){
             $section = Section::create([
-                'user_id' => $request['owner_id'],
+                'owner_id' => $request['owner_id'],
                 'patient_id' => $Patient['id'],
                 'section_1' => true,
             ]);
@@ -81,7 +100,8 @@ class PatientHistoryController extends Controller
             return $Patient;
         }else {
             $response = [
-                'value' => false
+                'value' => false,
+                'message' => 'No Patient was found'
             ];
             return response($response, 404);
         }

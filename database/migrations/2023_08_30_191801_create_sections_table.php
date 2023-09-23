@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('sections', function (Blueprint $table) {
             $table->id();
-            $table->bigInteger('user_id')->unsigned()->index();
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->bigInteger('owner_id')->unsigned()->index();
+            $table->foreign('owner_id')->references('id')->on('users')->onDelete('cascade');
             $table->bigInteger('patient_id')->unsigned()->index()->nullable();
             $table->foreign('patient_id')->references('id')->on('patient_histories')->onDelete('cascade');
             $table->boolean('section_1')->default(false);

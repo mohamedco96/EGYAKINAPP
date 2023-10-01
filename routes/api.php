@@ -48,6 +48,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/allPatients','PatientHistoryController@doctorPatientGetAll');
     Route::get('/currentPatients','PatientHistoryController@doctorPatientGet');
 
+    //PatientHistory
+    Route::get('/complaint','ComplaintController@index');
+    Route::post('/complaint','ComplaintController@store');
+    Route::get('/complaint/{id}','ComplaintController@show');
+    Route::put('/complaint/{id}','ComplaintController@update');
+    Route::delete('/complaint/{id}','ComplaintController@destroy');
 
     //Section
     Route::get('/section','SectionController@index');

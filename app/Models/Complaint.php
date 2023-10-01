@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-class Section extends Model
+class Complaint extends Model
 {
     use HasApiTokens, HasFactory, Notifiable;
 
@@ -20,16 +21,13 @@ class Section extends Model
     protected $fillable = [
         'owner_id',
         'patient_id',
-        'section_1',
-        'section_2',
-        'section_3',
-        'section_4',
-        'section_5',
-        'section_6',
-        'section_7',
-        'submit_status',
-        'outcome_status',
-        'doc_id'
+        'where_was_th_patient_seen_for_the_first_time',
+        'place_of_admission',
+        'date_of_admission',
+        'main_omplaint',
+        'other',
+        'created_at',
+        'updated_at'
     ];
 
     /**
@@ -38,15 +36,7 @@ class Section extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'section_1' => 'boolean',
-        'section_2' => 'boolean',
-        'section_3' => 'boolean',
-        'section_4' => 'boolean',
-        'section_5' => 'boolean',
-        'section_6' => 'boolean',
-        'section_7' => 'boolean',
-        'submit_status' => 'boolean',
-        'outcome_status' => 'boolean'
+        'date_of_admission' => 'date'
     ];
 
     public function owner(): BelongsTo

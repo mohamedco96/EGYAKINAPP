@@ -34,7 +34,11 @@ class SectionResource extends Resource
                     ->searchable()
                     ->preload()
                     ->label('Doctor Name'),
-                Forms\Components\TextInput::make('patient_id')->label('Patient ID'),
+                Forms\Components\Select::make('patient_id')
+                    ->relationship('patient', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->label('Patient Name'),
                 Forms\Components\Radio::make('section_1')
                     ->label('Section 1 status')
                     ->boolean(),
@@ -76,7 +80,7 @@ class SectionResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('id')->searchable(),
                 Tables\Columns\TextColumn::make('owner.name')->label('Doctor Name')->searchable(),
-                Tables\Columns\TextColumn::make('patient_id')->searchable(),
+                Tables\Columns\TextColumn::make('patient.name')->label('Patient Name')->searchable(),
                 Tables\Columns\TextColumn::make('section_1'),
                 Tables\Columns\TextColumn::make('section_2'),
                 Tables\Columns\TextColumn::make('section_3'),

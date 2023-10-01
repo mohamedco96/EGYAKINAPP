@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Complaint;
 use App\Models\PatientHistory;
 use App\Models\Section;
 use App\Models\User;
@@ -88,16 +89,20 @@ class PatientHistoryController extends Controller
         $Patient = PatientHistory::create($request->all());
 
         if($Patient!=null){
-            $section = Section::create([
+            Section::create([
                 'owner_id' => $request['owner_id'],
                 'patient_id' => $Patient['id'],
                 'section_1' => true,
+            ]);
+            Complaint::create([
+                'owner_id' => $request['owner_id'],
+                'patient_id' => $Patient['id'],
             ]);
             $response = [
                 'value' => true,
                 'data' => $Patient
             ];
-            return $Patient;
+            return response($response, 200);
         }else {
             $response = [
                 'value' => false,
@@ -163,7 +168,9 @@ class PatientHistoryController extends Controller
         if($Patient!=null){
             PatientHistory::destroy($id);
             DB::table('sections')->where('patient_id', '=', $id)->delete();
-           // Product::where('name','like','%'.$name.'%')->get();
+            DB::table('complaints')->where('patient_id', '=', $id)->delete();
+
+            // Product::where('name','like','%'.$name.'%')->get();
             $response = [
                 'value' => true,
                 'message' => 'Patient Deleted Successfully'

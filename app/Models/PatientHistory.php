@@ -51,9 +51,13 @@ class PatientHistory extends Model
         return $this->hasMany(Treatment::class);
     }
 
-    public function sections(): HasMany
+    public function sections(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasMany(Section::class);
+        return $this->hasOne(Section::class);
     }
 
+    public function complaint(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Complaint::class);
+    }
 }

@@ -1,0 +1,101 @@
+<?php
+
+namespace App\Filament\Resources;
+
+use App\Filament\Resources\ComplaintResource\Pages;
+use App\Filament\Resources\ComplaintResource\RelationManagers;
+use App\Models\Complaint;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
+
+class ComplaintResource extends Resource
+{
+    protected static ?string $model = Complaint::class;
+
+    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationLabel = 'Complaint';
+    protected static ?string $navigationGroup = 'Patients';
+    protected static ?int $navigationSort = 5;
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
+    }
+
+    public static function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Select::make('owner_id')
+                    ->relationship('owner', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->label('Doctor Name'),
+                Forms\Components\Select::make('patient_id')
+                    ->relationship('patient', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->label('Patient Name'),
+                Forms\Components\TextInput::make('where_was_th_patient_seen_for_the_first_time')
+                   ->label('Where was the patient seen for the first time'),
+                Forms\Components\TextInput::make('place_of_admission'),
+                Forms\Components\DateTimePicker::make('date_of_admission'),
+                Forms\Components\TextInput::make('main_omplaint'),
+                Forms\Components\TextInput::make('other'),
+
+
+
+            ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->searchable(),
+                Tables\Columns\TextColumn::make('owner.name')->label('Doctor Name')->searchable(),
+                Tables\Columns\TextColumn::make('patient.name')->label('Patient Name')->searchable(),
+                Tables\Columns\TextColumn::make('where_was_th_patient_seen_for_the_first_time'),
+                Tables\Columns\TextColumn::make('place_of_admission'),
+                Tables\Columns\TextColumn::make('date_of_admission'),
+                Tables\Columns\TextColumn::make('main_omplaint'),
+                Tables\Columns\TextColumn::make('other'),
+                Tables\Columns\TextColumn::make('created_at'),
+                Tables\Columns\TextColumn::make('updated_at'),
+            ])
+            ->filters([
+                //
+            ])
+            ->actions([
+                Tables\Actions\EditAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ])
+            ->emptyStateActions([
+                Tables\Actions\CreateAction::make(),
+            ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListComplaints::route('/'),
+            'create' => Pages\CreateComplaint::route('/create'),
+            'edit' => Pages\EditComplaint::route('/{record}/edit'),
+        ];
+    }
+}

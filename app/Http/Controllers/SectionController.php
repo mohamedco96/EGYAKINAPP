@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Section;
 use App\Http\Requests\StoreSectionRequest;
 use App\Http\Requests\UpdateSectionRequest;
+use Illuminate\Support\Facades\DB;
 
 class SectionController extends Controller
 {
@@ -27,7 +28,7 @@ class SectionController extends Controller
             ];
             return response($response, 404);
         }
-        
+
     }
 
 
@@ -43,7 +44,7 @@ class SectionController extends Controller
      */
     public function show($id)
     {
-        $section = Section::find($id);
+        $section = Section::where('patient_id', $id)->first();
 
         if($section!=null){
             $response = [
@@ -72,10 +73,10 @@ class SectionController extends Controller
      */
     public function destroy($id)
     {
-        $section = Section::find($id);
+        $section = Section::where('patient_id', $id)->first();
 
         if($section!=null){
-            Section::destroy($id);
+            DB::table('sections')->where('patient_id', $id)->delete();
             $response = [
                 'value' => true,
                 'message' => 'section Deleted Successfully'

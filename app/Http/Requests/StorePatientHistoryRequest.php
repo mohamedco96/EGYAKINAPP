@@ -36,7 +36,7 @@ class StorePatientHistoryRequest extends FormRequest
             'governorate' => 'required|string',
             'marital_status' => 'required|string',
             'educational_level' => 'required|string',
-            'special_habits_of_the_patient' => 'required|string',
+            'special_habits_of_the_patient' => 'required|array',
             'DM' => 'required|string',
             'HTN' => 'required|string',
         ];

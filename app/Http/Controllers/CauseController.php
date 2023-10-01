@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Complaint;
-use App\Http\Requests\StoreComplaintRequest;
-use App\Http\Requests\UpdateComplaintRequest;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Cause;
+use App\Http\Requests\StoreCauseRequest;
+use App\Http\Requests\UpdateCauseRequest;
 use Illuminate\Support\Facades\DB;
 
-class ComplaintController extends Controller
+class CauseController extends Controller
 {
 
     /**
@@ -16,13 +15,13 @@ class ComplaintController extends Controller
      */
     public function index()
     {
-        //$complaint = Complaint::latest()->paginate(10);
-        $complaint = Complaint::latest()->get();
+        //$Cause = Cause::latest()->paginate(10);
+        $Cause = Cause::latest()->get();
 
-        if($complaint!=null){
+        if($Cause!=null){
             $response = [
                 'value' => true,
-                'data' => $complaint
+                'data' => $Cause
             ];
             return response($response, 201);
         }else {
@@ -35,20 +34,20 @@ class ComplaintController extends Controller
 
     //@param \Illuminate\Http\Request $request
     // @return \Illuminate\Http\Response
-    public function store(StoreComplaintRequest $request)
+    public function store(StoreCauseRequest $request)
     {
-        $complaint = Complaint::create($request->all());
+        $Cause = Cause::create($request->all());
 
-        if($complaint!=null){
+        if($Cause!=null){
             $response = [
                 'value' => true,
-                'data' => $complaint
+                'data' => $Cause
             ];
             return response($response, 200);
         }else {
             $response = [
                 'value' => false,
-                'message' => 'No Complaint was found'
+                'message' => 'No Cause was found'
             ];
             return response($response, 404);
         }
@@ -59,18 +58,18 @@ class ComplaintController extends Controller
      */
     public function show($id)
     {
-        $complaint = Complaint::where('patient_id', $id)->first();
+        $Cause = Cause::where('patient_id', $id)->first();
 
-        if($complaint!=null){
+        if($Cause!=null){
             $response = [
                 'value' => true,
-                'data' => $complaint
+                'data' => $Cause
             ];
             return response($response, 201);
         }else {
             $response = [
                 'value' => false,
-                'message' => 'No Complaint was found'
+                'message' => 'No Cause was found'
             ];
             return response($response, 404);
         }
@@ -79,22 +78,22 @@ class ComplaintController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateComplaintRequest $request, $id)
+    public function update(UpdateCauseRequest $request, $id)
     {
-        $complaint = Complaint::where('patient_id', $id)->first();
+        $Cause = Cause::where('patient_id', $id)->first();
 
-        if($complaint!=null){
-            $complaint->update($request->all());
+        if($Cause!=null){
+            $Cause->update($request->all());
             $response = [
                 'value' => true,
-                'data' => $complaint,
-                'message' => 'Complaint Updated Successfully'
+                'data' => $Cause,
+                'message' => 'Cause Updated Successfully'
             ];
             return response($response, 201);
         }else {
             $response = [
                 'value' => false,
-                'message' => 'No Complaint was found'
+                'message' => 'No Cause was found'
             ];
             return response($response, 404);
         }
@@ -105,19 +104,20 @@ class ComplaintController extends Controller
      */
     public function destroy($id)
     {
-        $complaint = Complaint::where('patient_id', $id)->first();
+        $Cause = Cause::where('patient_id', $id)->first();
 
-        if($complaint!=null){
-            DB::table('complaints')->where('patient_id', $id)->delete();
+        if($Cause!=null){
+            DB::table('causes')->where('patient_id', $id)->delete();
+
             $response = [
                 'value' => true,
-                'message' => 'Complaint Deleted Successfully'
+                'message' => 'Cause Deleted Successfully'
             ];
             return response($response, 201);
         }else {
             $response = [
                 'value' => false,
-                'message' => 'No Complaint was found'
+                'message' => 'No Cause was found'
             ];
             return response($response, 404);
         }

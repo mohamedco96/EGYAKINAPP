@@ -14,7 +14,9 @@ class PatientTypeOverview extends BaseWidget
         return [
             Stat::make('Doctors', User::count()),
             Stat::make('Patients', PatientHistory::count()),
-           // Stat::make('Rabbits', PatientHistory::query()->where('type', 'rabbit')->count()),
+            //Stat::make('Complaints', PatientHistory::count()),
+           // Stat::make('Sections', PatientHistory::count()),
+            // Stat::make('Rabbits', PatientHistory::query()->where('type', 'rabbit')->count()),
         ];
     }
 }

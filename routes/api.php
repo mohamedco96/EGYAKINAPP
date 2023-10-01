@@ -47,14 +47,21 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::delete('/patientHistory/{id}','PatientHistoryController@destroy');
     Route::get('/allPatients','PatientHistoryController@doctorPatientGetAll');
     Route::get('/currentPatients','PatientHistoryController@doctorPatientGet');
+    Route::get('/patient/search/{name}','PatientHistoryController@search');
 
-    //PatientHistory
+    //complaint
     Route::get('/complaint','ComplaintController@index');
     Route::post('/complaint','ComplaintController@store');
     Route::get('/complaint/{id}','ComplaintController@show');
     Route::put('/complaint/{id}','ComplaintController@update');
     Route::delete('/complaint/{id}','ComplaintController@destroy');
-    Route::get('/patient/search/{name}','PatientHistoryController@search');
+
+    //Cause of AKI
+    Route::get('/cause','CauseController@index');
+    Route::post('/cause','CauseController@store');
+    Route::get('/cause/{id}','CauseController@show');
+    Route::put('/cause/{id}','CauseController@update');
+    Route::delete('/cause/{id}','CauseController@destroy');
 
     //Section
     Route::get('/section','SectionController@index');

@@ -19,7 +19,6 @@ use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 class ComplaintResource extends Resource
 {
     protected static ?string $model = Complaint::class;
-
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationLabel = 'Complaint';
     protected static ?string $navigationGroup = 'Patients';
@@ -28,7 +27,6 @@ class ComplaintResource extends Resource
     {
         return static::getModel()::count();
     }
-
     public static function form(Form $form): Form
     {
         return $form
@@ -49,9 +47,6 @@ class ComplaintResource extends Resource
                 Forms\Components\DateTimePicker::make('date_of_admission'),
                 Forms\Components\TextInput::make('main_omplaint'),
                 Forms\Components\TextInput::make('other'),
-
-
-
             ]);
     }
 

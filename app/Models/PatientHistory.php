@@ -41,22 +41,26 @@ class PatientHistory extends Model
         'created_at',
         'updated_at'
     ];
+    protected $casts = [
+        'special_habits_of_the_patient' => 'array',
+    ];
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
-
     public function treatments(): HasMany
     {
         return $this->hasMany(Treatment::class);
     }
-
     public function sections(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Section::class,'patient_id');
     }
-
     public function complaint(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Complaint::class);
+    }
+    public function Cause(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Complaint::class);
     }

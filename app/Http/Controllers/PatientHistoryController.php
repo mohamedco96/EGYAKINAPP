@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Cause;
 use App\Models\Complaint;
 use App\Models\PatientHistory;
 use App\Models\Section;
@@ -113,6 +114,10 @@ class PatientHistoryController extends Controller
                 'owner_id' => $request['owner_id'],
                 'patient_id' => $Patient['id'],
             ]);
+            Cause::create([
+                'owner_id' => $request['owner_id'],
+                'patient_id' => $Patient['id'],
+            ]);
             $response = [
                 'value' => true,
                 'data' => $Patient
@@ -184,7 +189,7 @@ class PatientHistoryController extends Controller
             PatientHistory::destroy($id);
             DB::table('sections')->where('patient_id', '=', $id)->delete();
             DB::table('complaints')->where('patient_id', '=', $id)->delete();
-
+            DB::table('causes')->where('patient_id', '=', $id)->delete();
             // Product::where('name','like','%'.$name.'%')->get();
             $response = [
                 'value' => true,

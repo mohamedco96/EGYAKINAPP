@@ -54,13 +54,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/complaint/{id}','ComplaintController@show');
     Route::put('/complaint/{id}','ComplaintController@update');
     Route::delete('/complaint/{id}','ComplaintController@destroy');
+    Route::get('/patient/search/{name}','PatientHistoryController@search');
 
     //Section
     Route::get('/section','SectionController@index');
     Route::get('/section/{id}','SectionController@show');
     Route::delete('/section/{id}','SectionController@destroy');
-
-    Route::get('/patient/search/{name}','PatientHistoryController@search');
 
     Route::get('/products/search/{name}','ProductController@search');
 });

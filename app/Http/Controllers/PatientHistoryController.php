@@ -19,7 +19,11 @@ class PatientHistoryController extends Controller
      */
     public function index()
     {
-        $Patient = PatientHistory::latest()->paginate(10);
+        $Patient = PatientHistory::latest()
+                            ->with('owner:id,name,lname')
+                            ->with('sections')
+                            ->get();
+                            //->paginate(10);
 
         if($Patient!=null){
             $response = [
@@ -42,8 +46,10 @@ class PatientHistoryController extends Controller
     public function doctorPatientGetAll()
     {
         $Patient = PatientHistory::with('owner:id,name,lname')
+                                    ->with('sections')
                                     ->latest()
-                                    ->paginate(10,['id','owner_id','name','hospital','created_at','updated_at']);
+                                    ->get(['id','owner_id','name','hospital','created_at','updated_at']);
+                                   // ->paginate(10,['id','owner_id','name','hospital','created_at','updated_at']);
         if($Patient!=null){
             $response = [
                 'value' => true,
@@ -62,15 +68,24 @@ class PatientHistoryController extends Controller
 
     public function doctorPatientGet()
     {
-        // Retrieve the authenticated user
-        $user = Auth::user();
-        $Patient = $user->patients()
+        /*$Patient = $user->patients()
                             ->latest()
-                            ->paginate(10,['id','owner_id','name','hospital','created_at','updated_at']);
+                            ->paginate(10,['id','owner_id','name','hospital','created_at','updated_at']);*/
+
+        $user = Auth::user();
+        /** @var TYPE_NAME $Patient */
+        $Patient = $user->patients()
+                        //->with('sections:patient_id,submit_status,outcome_status')
+                        ->with('owner:id,name,lname')
+                        ->with('sections')
+                        ->latest()
+                        ->get(['id','owner_id','name','hospital','created_at','updated_at']);
+
         if($Patient!=null){
             $response = [
                 'value' => true,
-                'data' => $Patient
+                'data' => $Patient,
+                //'sections' => $sections
             ];
             return response($response, 201);
         }else {
@@ -194,7 +209,7 @@ class PatientHistoryController extends Controller
     {
         $Patient = PatientHistory::where('name','like','%'.$name.'%')
                                 ->orWhere('hospital','like','%'.$name.'%')
-                                ->get();
+                                ->get(['id','owner_id','name','hospital','created_at','updated_at']);
 
         if($Patient!=null){
             $response = [

@@ -53,7 +53,7 @@ class PatientHistory extends Model
 
     public function sections(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(Section::class);
+        return $this->hasOne(Section::class,'patient_id');
     }
 
     public function complaint(): \Illuminate\Database\Eloquent\Relations\HasOne

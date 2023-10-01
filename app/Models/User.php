@@ -54,9 +54,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(PatientHistory::class,'owner_id');
     }
-
-    public function sections(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function sections(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasMany(Section::class);
+        return $this->hasOne(Section::class,'patient_id');
     }
+
 }

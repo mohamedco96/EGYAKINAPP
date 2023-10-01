@@ -147,6 +147,7 @@ class PatientResource extends Resource
                 Tables\Columns\TextColumn::make('HTN')->label('HTN'),
                 Tables\Columns\TextColumn::make('HTN_duration')->label('HTN Duration'),
                 Tables\Columns\TextColumn::make('created_at')->label('Created At'),
+                Tables\Columns\TextColumn::make('updated_at')->label('Updated At'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('owner')
@@ -177,8 +178,7 @@ class PatientResource extends Resource
             ])->filtersTriggerAction(
                 fn (Action $action) => $action
                     ->button()
-                    ->label('Filter'),
-            )
+                    ->label('Filter'),)
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

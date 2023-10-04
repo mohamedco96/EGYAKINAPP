@@ -213,8 +213,11 @@ class PatientHistoryController extends Controller
     public function search($name)
     {
         $Patient = PatientHistory::where('name','like','%'.$name.'%')
-                                ->orWhere('hospital','like','%'.$name.'%')
-                                ->get(['id','owner_id','name','hospital','created_at','updated_at']);
+                                    ->orWhere('hospital','like','%'.$name.'%')
+                                    ->with('owner:id,name,lname')
+                                    ->with('sections')
+                                    ->latest()
+                                    ->get(['id','owner_id','name','hospital','created_at','updated_at']);
 
         if($Patient!=null){
             $response = [

@@ -94,14 +94,16 @@ class PatientResource extends Resource
                         'College' => 'College',
                         'Post-graduate' => 'Post-graduate',
                     ])->required(),
-                Forms\Components\TextInput::make('special_habits_of_the_patient'),
-                /*Forms\Components\CheckboxList::make('special_habits_of_the_patient')
+                Forms\Components\Select::make('special_habits_of_the_patient')
+                    ->label('Special Habits of The patient')
+                    ->multiple()
                     ->options([
                         'NO' => 'NO',
-                        'Cigarette smoker' => 'Cigarette smoker',
-                        'Shisha smoker' => 'Shisha smoker',
+                        'Cigarette smoker' =>'Cigarette smoker',
+                        'Shisha smoker' =>'Shisha smoker',
                         'Drug addict' => 'Drug addict',
-                    ]),*/
+                        'Others' => 'Others'
+                    ]),
                 Forms\Components\Select::make('DM')->label('DM')
                     ->options([
                         'Yes' => 'Yes',
@@ -132,10 +134,10 @@ class PatientResource extends Resource
                 Tables\Columns\TextColumn::make('hospital')->searchable(),
                 Tables\Columns\TextColumn::make('collected_data_from'),
                 Tables\Columns\TextColumn::make('NID')->label('National ID')->searchable(),
-                Tables\Columns\TextColumn::make('phone'),
-                Tables\Columns\TextColumn::make('email'),
+                Tables\Columns\TextColumn::make('phone')->searchable(),
+                Tables\Columns\TextColumn::make('email')->searchable(),
                 Tables\Columns\TextColumn::make('age'),
-                Tables\Columns\TextColumn::make('gender'),
+                Tables\Columns\TextColumn::make('gender')->searchable(),
                 Tables\Columns\TextColumn::make('occupation'),
                 Tables\Columns\TextColumn::make('residency'),
                 Tables\Columns\TextColumn::make('governorate'),

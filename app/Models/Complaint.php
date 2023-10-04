@@ -36,9 +36,10 @@ class Complaint extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'date_of_admission' => 'date'
-    ];
+        'date_of_admission' => 'date',
+        'main_omplaint' => 'array',
 
+    ];
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class);

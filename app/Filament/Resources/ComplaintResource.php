@@ -41,11 +41,32 @@ class ComplaintResource extends Resource
                     ->searchable()
                     ->preload()
                     ->label('Patient Name'),
-                Forms\Components\TextInput::make('where_was_th_patient_seen_for_the_first_time')
-                   ->label('Where was the patient seen for the first time'),
+                Forms\Components\Select::make('where_was_th_patient_seen_for_the_first_time')
+                    ->label('Where was the patient seen for the first time')
+                    ->options([
+                        'OPC' => 'OPC',
+                        'ER' => 'ER',
+                        'Admitted' => 'Admitted',
+                    ]),
                 Forms\Components\TextInput::make('place_of_admission'),
                 Forms\Components\DateTimePicker::make('date_of_admission'),
-                Forms\Components\TextInput::make('main_omplaint'),
+                Forms\Components\Select::make('main_omplaint')
+                    ->label('The main complaint (you can choose more than one answer)')
+                    ->multiple()
+                    ->options([
+                        'Oliguria/Anuria' => 'Oliguria/Anuria',
+                        'Change in color of urine' =>'Change in color of urine',
+                        'Burning micturation' =>'Burning micturation',
+                        'Puffiness of face/edema LL/Anasarca' =>'Puffiness of face/edema LL/Anasarca',
+                        'Fatigue/tiredness' =>'Fatigue/tiredness',
+                        'Confusion' =>'Confusion',
+                        'Chest pain/pressure' =>'Chest pain/pressure',
+                        'Shortness of beath' =>'Shortness of beath',
+                        'Nausea/Vomiting' =>'Nausea/Vomiting',
+                        'Seizures' =>'Seizures',
+                        'Accidentally discovered' =>'Accidentally discovered',
+                        'Other' =>'Other',
+                    ]),
                 Forms\Components\TextInput::make('other'),
             ]);
     }
@@ -57,7 +78,7 @@ class ComplaintResource extends Resource
                 Tables\Columns\TextColumn::make('id')->searchable(),
                 Tables\Columns\TextColumn::make('owner.name')->label('Doctor Name')->searchable(),
                 Tables\Columns\TextColumn::make('patient.name')->label('Patient Name')->searchable(),
-                Tables\Columns\TextColumn::make('where_was_th_patient_seen_for_the_first_time'),
+                Tables\Columns\TextColumn::make('where_was_th_patient_seen_for_the_first_time')->searchable(),
                 Tables\Columns\TextColumn::make('place_of_admission'),
                 Tables\Columns\TextColumn::make('date_of_admission'),
                 Tables\Columns\TextColumn::make('main_omplaint'),

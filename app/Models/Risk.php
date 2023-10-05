@@ -38,10 +38,6 @@ class Risk extends Model
         'updated_at'
     ];
 
-    protected $casts = [
-        'pre-renal_causes' => 'array',
-    ];
-
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class);

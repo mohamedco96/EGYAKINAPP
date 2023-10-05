@@ -79,6 +79,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/risk/{id}','RiskController@update');
     Route::delete('/risk/{id}','RiskController@destroy');
 
+    //Assessment of the patient
+    Route::get('/assessment','AssessmentController@index');
+    Route::post('/assessment','AssessmentController@store');
+    Route::get('/assessment/{id}','AssessmentController@show');
+    Route::put('/assessment/{id}','AssessmentController@update');
+    Route::delete('/assessment/{id}','AssessmentController@destroy');
+
     //Section
     Route::get('/section','SectionController@index');
     Route::get('/section/{id}','SectionController@show');

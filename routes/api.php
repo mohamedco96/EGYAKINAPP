@@ -51,6 +51,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/currentPatients','PatientHistoryController@doctorPatientGet');
     Route::get('/patient/search/{name}','PatientHistoryController@search');
 
+    //Questions
+    Route::get('/questions','QuestionsController@index');
+    Route::post('/questions','QuestionsController@store');
+    Route::get('/questions/{id}','QuestionsController@show');
+    Route::put('/questions/{id}','QuestionsController@update');
+    Route::delete('/questions/{id}','QuestionsController@destroy');
+
     //complaint
     Route::get('/complaint','ComplaintController@index');
     Route::post('/complaint','ComplaintController@store');
@@ -70,7 +77,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/section/{id}','SectionController@show');
     Route::delete('/section/{id}','SectionController@destroy');
 
-    Route::get('/products/search/{name}','ProductController@search');
 });
 
 Route::fallback(function(){

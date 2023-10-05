@@ -191,6 +191,8 @@ class AuthController extends Controller
             DB::table('sections')->where('owner_id', '=', $id)->delete();
             DB::table('complaints')->where('owner_id', '=', $id)->delete();
             DB::table('causes')->where('owner_id', '=', $id)->delete();
+            DB::table('risks')->where('owner_id', '=', $id)->delete();
+            DB::table('assessments')->where('owner_id', '=', $id)->delete();
 
             $response = [
                 'value' => true,

@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Assessment;
 use App\Models\Cause;
 use App\Models\Complaint;
 use App\Models\PatientHistory;
+use App\Models\Risk;
 use App\Models\Section;
 use App\Models\User;
 use App\Http\Requests\StorePatientHistoryRequest;
@@ -118,6 +120,14 @@ class PatientHistoryController extends Controller
                 'owner_id' => $request['owner_id'],
                 'patient_id' => $Patient['id'],
             ]);
+            Risk::create([
+                'owner_id' => $request['owner_id'],
+                'patient_id' => $Patient['id'],
+            ]);
+            Assessment::create([
+                'owner_id' => $request['owner_id'],
+                'patient_id' => $Patient['id'],
+            ]);
             $response = [
                 'value' => true,
                 'data' => $Patient
@@ -190,7 +200,8 @@ class PatientHistoryController extends Controller
             DB::table('sections')->where('patient_id', '=', $id)->delete();
             DB::table('complaints')->where('patient_id', '=', $id)->delete();
             DB::table('causes')->where('patient_id', '=', $id)->delete();
-            // Product::where('name','like','%'.$name.'%')->get();
+            DB::table('risks')->where('patient_id', '=', $id)->delete();
+            DB::table('assessments')->where('patient_id', '=', $id)->delete();
             $response = [
                 'value' => true,
                 'message' => 'Patient Deleted Successfully'

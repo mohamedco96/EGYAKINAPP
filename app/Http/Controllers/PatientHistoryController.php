@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Assessment;
 use App\Models\Cause;
 use App\Models\Complaint;
+use App\Models\Examination;
 use App\Models\PatientHistory;
 use App\Models\Risk;
 use App\Models\Section;
@@ -128,6 +129,10 @@ class PatientHistoryController extends Controller
                 'owner_id' => $request['owner_id'],
                 'patient_id' => $Patient['id'],
             ]);
+            Examination::create([
+                'owner_id' => $request['owner_id'],
+                'patient_id' => $Patient['id'],
+            ]);
             $response = [
                 'value' => true,
                 'data' => $Patient
@@ -202,6 +207,8 @@ class PatientHistoryController extends Controller
             DB::table('causes')->where('patient_id', '=', $id)->delete();
             DB::table('risks')->where('patient_id', '=', $id)->delete();
             DB::table('assessments')->where('patient_id', '=', $id)->delete();
+            DB::table('examinations')->where('patient_id', '=', $id)->delete();
+
             $response = [
                 'value' => true,
                 'message' => 'Patient Deleted Successfully'

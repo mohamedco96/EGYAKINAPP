@@ -86,6 +86,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/assessment/{id}','AssessmentController@update');
     Route::delete('/assessment/{id}','AssessmentController@destroy');
 
+    //Medical examinations
+    Route::get('/examination','ExaminationController@index');
+    Route::post('/examination','ExaminationController@store');
+    Route::get('/examination/{id}','ExaminationController@show');
+    Route::put('/examination/{id}','ExaminationController@update');
+    Route::delete('/examination/{id}','ExaminationController@destroy');
+
     //Section
     Route::get('/section','SectionController@index');
     Route::get('/section/{id}','SectionController@show');

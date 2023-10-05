@@ -72,6 +72,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/cause/{id}','CauseController@update');
     Route::delete('/cause/{id}','CauseController@destroy');
 
+    //Risk factors for AKI
+    Route::get('/risk','RiskController@index');
+    Route::post('/risk','RiskController@store');
+    Route::get('/risk/{id}','RiskController@show');
+    Route::put('/risk/{id}','RiskController@update');
+    Route::delete('/risk/{id}','RiskController@destroy');
+
     //Section
     Route::get('/section','SectionController@index');
     Route::get('/section/{id}','SectionController@show');

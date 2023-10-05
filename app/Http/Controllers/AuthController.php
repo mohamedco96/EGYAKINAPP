@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
@@ -81,6 +82,42 @@ class AuthController extends Controller
     }
 
     /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, $id)
+    {
+        $user = User::find($id);
+
+        $fields = $request->validate([
+            'name' => 'string',
+            'lname' => 'string',
+            'email' => 'string|email',
+            'password' => 'string',
+            'age' => 'integer',
+            'specialty' => 'string',
+            'workingplace' => 'string',
+            'phone' => 'string',
+            'job' => 'string',
+            'highestdegree' => 'string'
+        ]);
+
+        if($user!=null){
+            $user->update($request->all());
+            $response = [
+                'value' => true,
+                'data' => $user,
+                'message' => 'User Updated Successfully'
+            ];
+            return response($response, 201);
+        }else {
+            $response = [
+                'value' => false,
+                'message' => 'No User was found'
+            ];
+            return response($response, 404);
+        }
+    }
+    /**
      * Display a listing of the resource.
      */
     public function index()
@@ -110,9 +147,9 @@ class AuthController extends Controller
     public function show($id)
     {
         $user = User::find($id);
-        $patientCount = $user->patients->count();
 
         if($user!=null){
+            $patientCount = $user->patients->count();
             if($patientCount!=null){
                 $count = $patientCount;
             }else{
@@ -139,5 +176,35 @@ class AuthController extends Controller
         $patientCount = $user->patients->count();
         return $patientCount;
     }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy($id)
+    {
+        $user = User::find($id);
+
+        if($user!=null){
+            User::destroy($id);
+
+            DB::table('patient_histories')->where('owner_id', '=', $id)->delete();
+            DB::table('sections')->where('owner_id', '=', $id)->delete();
+            DB::table('complaints')->where('owner_id', '=', $id)->delete();
+            DB::table('causes')->where('owner_id', '=', $id)->delete();
+
+            $response = [
+                'value' => true,
+                'message' => 'User Deleted Successfully'
+            ];
+            return response($response, 201);
+        }else {
+            $response = [
+                'value' => false,
+                'message' => 'No User was found'
+            ];
+            return response($response, 404);
+        }
+    }
+
 
 }

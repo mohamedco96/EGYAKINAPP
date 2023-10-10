@@ -58,4 +58,26 @@ class Section extends Model
     {
         return $this->belongsTo(PatientHistory::class);
     }
+
+    public function complaint(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Complaint::class,'patient_id');
+    }
+    public function cause(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Cause::class,'patient_id');
+    }
+    public function risk(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Risk::class,'patient_id');
+    }
+    public function assessment(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Assessment::class,'patient_id');
+    }
+    public function examination(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Examination::class,'patient_id');
+    }
+
 }

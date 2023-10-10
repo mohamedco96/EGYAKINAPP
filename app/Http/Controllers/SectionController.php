@@ -44,7 +44,14 @@ class SectionController extends Controller
      */
     public function show($id)
     {
-        $section = Section::where('patient_id', $id)->first();
+        $section = Section::where('patient_id', $id)
+            ->with('patient')
+            ->with('complaint')
+            ->with('cause')
+            ->with('risk')
+            ->with('assessment')
+            ->with('examination')
+            ->get();
 
         if($section!=null){
             $response = [

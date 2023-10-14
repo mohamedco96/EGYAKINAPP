@@ -61,5 +61,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(Section::class,'patient_id');
     }
+    public function score(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Score::class,'owner_id');
+    }
 
 }

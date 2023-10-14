@@ -156,9 +156,17 @@ class AuthController extends Controller
                 $count = 0;
             }
 
+            $scoreValue  = $user->score->score;
+            if($scoreValue !=null){
+                $score = $scoreValue;
+            }else{
+                $score = 0;
+            }
+
             $response = [
                 'value' => true,
-                'patientCount' => $count,
+                'patient_count' => $count,
+                'score_value' => $score,
                 'data' => $user
             ];
             return response($response, 201);

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Assessment, Cause, Complaint, Examination, PatientHistory, Risk, Section, User};
+use App\Models\{Assessment, Cause, Complaint, Examination, PatientHistory, Risk, Section, User, Score, ScoreHistory};
 use App\Http\Requests\StorePatientHistoryRequest;
 use App\Http\Requests\UpdatePatientHistoryRequest;
 use Illuminate\Support\Facades\Auth;
@@ -138,6 +138,29 @@ class PatientHistoryController extends Controller
                 $this->assessment->create($relatedData);
                 $this->examination->create($relatedData);
     
+                //scoring system
+                $doctorId = auth()->user()->id; // Assuming you have authentication in place
+                $score = Score::where('owner_id', $doctorId)->first();
+                
+                $incrementAmount = 10; // Example increment amount
+                $action = 'Add new Patient'; // Example action
+                
+                if ($score) {
+                    $score->increment('score', $incrementAmount); // Increase the score
+                } else {
+                    Score::create([
+                        'owner_id' => $doctorId,
+                        'score' => $incrementAmount,
+                    ]);
+                }
+        
+                ScoreHistory::create([
+                    'owner_id' => $doctorId,
+                    'score' => $incrementAmount,
+                    'action' => $action,
+                    'timestamp' => now(),
+                ]);
+
                 return $patient;
             });
     

@@ -29,4 +29,9 @@ class Questions extends Model
         'values' => 'array',
         'mandatory' => 'boolean',
     ];
+
+    public function patient(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(PatientHistory::class,'section_id');
+    }
 }

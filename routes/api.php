@@ -55,6 +55,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/questions','QuestionsController@index');
     Route::post('/questions','QuestionsController@store');
     Route::get('/questions/{id}','QuestionsController@show');
+    Route::get('/questions/{id}/{patient_id}','QuestionsController@ShowQuestitionsAnswars');
     Route::put('/questions/{id}','QuestionsController@update');
     Route::delete('/questions/{id}','QuestionsController@destroy');
 
@@ -95,7 +96,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     //Section
     Route::get('/section','SectionController@index');
-    Route::get('/section/{id}','SectionController@show');
+    Route::get('/section/{patient_id}','SectionController@show');
     Route::delete('/section/{id}','SectionController@destroy');
 
 });

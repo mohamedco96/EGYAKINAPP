@@ -20,6 +20,7 @@ class PatientHistory extends Model
      */
     protected $fillable = [
         'owner_id',
+        'section_id',
         'name',
         'hospital',
         'collected_data_from',
@@ -63,5 +64,10 @@ class PatientHistory extends Model
     public function Cause(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Complaint::class);
+    }
+
+    public function questions(): BelongsTo
+    {
+        return $this->belongsTo(Questions::class);
     }
 }

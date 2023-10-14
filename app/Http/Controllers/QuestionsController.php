@@ -74,6 +74,30 @@ class QuestionsController extends Controller
         }
     }
 
+    public function ShowQuestitionsAnswars($id,$patient_id)
+    {
+        $Questions = Questions::where('section_id', $id)
+        ->where('id', '1')
+        ->with(['patient' => function ($query) use ($patient_id) {
+            $query->where('id', $patient_id);
+            $query->select('name', 'section_id');
+        }])
+        ->get(['id', 'question', 'values', 'type', 'mandatory', 'updated_at']);
+
+        if($Questions!=null){
+            $response = [
+                'value' => true,
+                'data' => $Questions
+            ];
+            return response($response, 200);
+        }else {
+            $response = [
+                'value' => false,
+                'message' => 'No Questions was found'
+            ];
+            return response($response, 404);
+        }
+    }
     /**
      * Update the specified resource in storage.
      */

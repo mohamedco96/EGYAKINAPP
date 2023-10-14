@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->bigInteger('owner_id')->unsigned()->index();
             $table->foreign('owner_id')->references('id')->on('users')->onDelete('cascade');
+            $table->bigInteger('section_id')->unsigned()->index()->default(1);
             $table->string('name');
             $table->string('hospital');
             $table->string('collected_data_from');

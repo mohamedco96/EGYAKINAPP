@@ -76,7 +76,7 @@ class QuestionsController extends Controller
 
     public function ShowQuestitionsAnswars($id,$patient_id)
     {
-        $Questions = Questions::where('section_id', $id)
+        $Q1 = Questions::where('section_id', $id)
         ->where('id', '1')
         ->with(['patient' => function ($query) use ($patient_id) {
             $query->where('id', $patient_id);
@@ -84,10 +84,20 @@ class QuestionsController extends Controller
         }])
         ->get(['id', 'question', 'values', 'type', 'mandatory', 'updated_at']);
 
-        if($Questions!=null){
+        $Q2 = Questions::where('section_id', $id)
+        ->where('id', '2')
+        ->with(['patient' => function ($query2) use ($patient_id) {
+            $query2->where('id', $patient_id);
+            $query2->select('hospital', 'section_id');
+        }])
+        ->get(['id', 'question', 'values', 'type', 'mandatory', 'updated_at']);
+
+        $list = [$Q1,$Q2];
+
+        if($list!=null){
             $response = [
                 'value' => true,
-                'data' => $Questions
+                'data' => $list
             ];
             return response($response, 200);
         }else {

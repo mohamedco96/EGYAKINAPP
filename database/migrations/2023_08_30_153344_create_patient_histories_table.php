@@ -34,6 +34,7 @@ return new class extends Migration
             $table->string('DM_duration')->nullable();
             $table->string('HTN');
             $table->string('HTN_duration')->nullable();
+            $table->longText('other')->nullable();
             $table->timestamps();
         });
     }

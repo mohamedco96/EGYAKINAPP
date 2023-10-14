@@ -67,7 +67,7 @@ class ComplaintResource extends Resource
                         'Accidentally discovered' =>'Accidentally discovered',
                         'Other' =>'Other',
                     ]),
-                Forms\Components\TextInput::make('other'),
+                Forms\Components\RichEditor::make('other'),
             ]);
     }
 

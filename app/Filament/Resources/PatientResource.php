@@ -118,7 +118,7 @@ class PatientResource extends Resource
                         'Recently discovered' => 'Recently discovered',
                     ])->required(),
                 Forms\Components\TextInput::make('HTN_duration')->label('HTN Duration'),
-
+                Forms\Components\RichEditor::make('other'),
                 //Forms\Components\DatePicker::make('age')->required()->maxDate(now()),
 
             ]);
@@ -148,6 +148,7 @@ class PatientResource extends Resource
                 Tables\Columns\TextColumn::make('DM_duration')->label('DM Duration'),
                 Tables\Columns\TextColumn::make('HTN')->label('HTN'),
                 Tables\Columns\TextColumn::make('HTN_duration')->label('HTN Duration'),
+                Tables\Columns\TextColumn::make('other'),
                 Tables\Columns\TextColumn::make('created_at')->label('Created At'),
                 Tables\Columns\TextColumn::make('updated_at')->label('Updated At'),
             ])

@@ -91,7 +91,7 @@ class SectionController extends Controller
                 $section['section_name'] = 'Assessment of the patient';
                 break;
             case 6:
-                $section['section_name'] = 'Medical examinations';
+                $section['section_name'] = 'Laboratory and radiology results'; //Medical examinations
                 break;
         }
     

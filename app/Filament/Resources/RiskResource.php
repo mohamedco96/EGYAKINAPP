@@ -112,6 +112,7 @@ class RiskResource extends Resource
                         'No' => 'No',
                     ]),
                 Forms\Components\TextInput::make('other-risk-factors')->label('Other risk factors?'),
+                Forms\Components\RichEditor::make('other'),
             ]);
     }
 
@@ -136,6 +137,9 @@ class RiskResource extends Resource
                 Tables\Columns\TextColumn::make('trauma_history')->label('History of trauma?'),
                 Tables\Columns\TextColumn::make('autoimmune-disease_history')->label('History of autoimmune disease?'),
                 Tables\Columns\TextColumn::make('other-risk-factors')->label('Other risk factors?'),
+                Tables\Columns\TextColumn::make('other'),
+                Tables\Columns\TextColumn::make('created_at')->label('Created At'),
+                Tables\Columns\TextColumn::make('updated_at')->label('Updated At'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('Patient Name')

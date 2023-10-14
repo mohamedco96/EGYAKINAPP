@@ -31,6 +31,7 @@ return new class extends Migration
             $table->string('trauma_history')->nullable();
             $table->string('autoimmune-disease_history')->nullable();
             $table->string('other-risk-factors')->nullable();
+            $table->longText('other')->nullable();
             $table->timestamps();
         });
     }

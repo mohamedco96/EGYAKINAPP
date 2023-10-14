@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('renal_others')->nullable();
             $table->string('post-renal_causes')->nullable();
             $table->string('post-renal_others')->nullable();
+            $table->longText('other')->nullable();
             $table->timestamps();
         });
     }

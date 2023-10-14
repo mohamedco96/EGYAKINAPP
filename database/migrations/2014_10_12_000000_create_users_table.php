@@ -20,7 +20,7 @@ return new class extends Migration
             $table->integer('age')->nullable();
             $table->string('specialty');
             $table->string('workingplace');
-            $table->string('phone');
+            $table->bigInteger('phone');
             $table->string('job');
             $table->string('highestdegree');
             $table->string('password');

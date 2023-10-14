@@ -2,14 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Assessment;
-use App\Models\Cause;
-use App\Models\Complaint;
-use App\Models\Examination;
-use App\Models\PatientHistory;
-use App\Models\Risk;
-use App\Models\Section;
-use App\Models\User;
+use App\Models\{Assessment, Cause, Complaint, Examination, PatientHistory, Risk, Section, User};
 use App\Http\Requests\StorePatientHistoryRequest;
 use App\Http\Requests\UpdatePatientHistoryRequest;
 use Illuminate\Support\Facades\Auth;
@@ -17,7 +10,31 @@ use Illuminate\Support\Facades\DB;
 
 class PatientHistoryController extends Controller
 {
+    protected $patientHistory;
+    protected $section;
+    protected $complaint;
+    protected $cause;
+    protected $risk;
+    protected $assessment;
+    protected $examination;
 
+    public function __construct(
+        PatientHistory $patientHistory,
+        Section $section,
+        Complaint $complaint,
+        Cause $cause,
+        Risk $risk,
+        Assessment $assessment,
+        Examination $examination
+    ) {
+        $this->patientHistory = $patientHistory;
+        $this->section = $section;
+        $this->complaint = $complaint;
+        $this->cause = $cause;
+        $this->risk = $risk;
+        $this->assessment = $assessment;
+        $this->examination = $examination;
+    }
     /**
      * Display a listing of the resource.
      */
@@ -105,45 +122,38 @@ class PatientHistoryController extends Controller
    // @return \Illuminate\Http\Response
     public function store(StorePatientHistoryRequest $request)
     {
-        $Patient = PatientHistory::create($request->all());
-
-        if($Patient!=null){
-            Section::create([
-                'owner_id' => $request['owner_id'],
-                'patient_id' => $Patient['id'],
-                'section_1' => true,
-            ]);
-            Complaint::create([
-                'owner_id' => $request['owner_id'],
-                'patient_id' => $Patient['id'],
-            ]);
-            Cause::create([
-                'owner_id' => $request['owner_id'],
-                'patient_id' => $Patient['id'],
-            ]);
-            Risk::create([
-                'owner_id' => $request['owner_id'],
-                'patient_id' => $Patient['id'],
-            ]);
-            Assessment::create([
-                'owner_id' => $request['owner_id'],
-                'patient_id' => $Patient['id'],
-            ]);
-            Examination::create([
-                'owner_id' => $request['owner_id'],
-                'patient_id' => $Patient['id'],
-            ]);
+        try {
+            $patient = DB::transaction(function () use ($request) {
+                $patient = $this->patientHistory->create($request->all());
+    
+                $relatedData = [
+                    'owner_id' => $request['owner_id'],
+                    'patient_id' => $patient->id,
+                ];
+    
+                $this->section->create(array_merge($relatedData, ['section_1' => true]));
+                $this->complaint->create($relatedData);
+                $this->cause->create($relatedData);
+                $this->risk->create($relatedData);
+                $this->assessment->create($relatedData);
+                $this->examination->create($relatedData);
+    
+                return $patient;
+            });
+    
             $response = [
                 'value' => true,
-                'data' => $Patient
+                'data' => $patient,
             ];
+    
             return response($response, 200);
-        }else {
+        } catch (\Exception $e) {
             $response = [
                 'value' => false,
-                'message' => 'No Patient was found'
+                'message' => 'Error: ' . $e->getMessage(),
             ];
-            return response($response, 404);
+    
+            return response($response, 500);
         }
     }
 

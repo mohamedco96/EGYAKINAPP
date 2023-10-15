@@ -17,10 +17,10 @@ return new class extends Migration
             $table->string('lname');
             $table->string('email');
             $table->timestamp('email_verified_at')->nullable();
-            $table->integer('age')->nullable();
+            $table->string('age')->nullable();
             $table->string('specialty');
             $table->string('workingplace');
-            $table->bigInteger('phone');
+            $table->string('phone');
             $table->string('job');
             $table->string('highestdegree');
             $table->string('password');

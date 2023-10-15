@@ -19,10 +19,10 @@ return new class extends Migration
             $table->string('name');
             $table->string('hospital');
             $table->string('collected_data_from');
-            $table->bigInteger('NID')->nullable();
-            $table->bigInteger('phone')->nullable();
+            $table->string('NID')->nullable();
+            $table->string('phone')->nullable();
             $table->string('email')->nullable();
-            $table->integer('age');
+            $table->string('age');
             $table->string('gender');
             $table->string('occupation');
             $table->string('residency');
@@ -31,9 +31,9 @@ return new class extends Migration
             $table->string('educational_level');
             $table->string('special_habits_of_the_patient');
             $table->string('DM');
-            $table->integer('DM_duration')->nullable();
+            $table->string('DM_duration')->nullable();
             $table->string('HTN');
-            $table->integer('HTN_duration')->nullable();
+            $table->string('HTN_duration')->nullable();
             $table->longText('other')->nullable();
             $table->timestamps();
         });

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('questions', function (Blueprint $table) {
             $table->id();
             $table->bigInteger('section_id')->unsigned()->index();
-            $table->Text('section_name');
+            $table->string('section_name');
             $table->Text('question');
             $table->Text('values')->nullable();
             $table->string('type');

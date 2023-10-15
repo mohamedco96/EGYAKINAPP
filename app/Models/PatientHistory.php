@@ -65,9 +65,12 @@ class PatientHistory extends Model
     {
         return $this->hasOne(Complaint::class);
     }
-
     public function questions(): BelongsTo
     {
         return $this->belongsTo(Questions::class);
+    }
+    public function comments()
+    {
+        return $this->hasMany(Comment::class);
     }
 }

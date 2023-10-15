@@ -99,6 +99,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/section/{patient_id}','SectionController@show');
     Route::delete('/section/{id}','SectionController@destroy');
 
+    //Comment
+    Route::get('/comment','CommentController@index');
+    Route::post('/comment','CommentController@store');
+    Route::get('/comment/{id}','CommentController@show');
+    Route::put('/comment/{id}','CommentController@update');
+    Route::delete('/comment/{id}','CommentController@destroy');
+
 });
 
 Route::fallback(function(){

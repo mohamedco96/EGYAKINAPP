@@ -13,7 +13,7 @@ class ScoreHistoryPolicy
      */
     public function viewAny(User $user): bool
     {
-        //
+        return true;
     }
 
     /**
@@ -21,7 +21,7 @@ class ScoreHistoryPolicy
      */
     public function view(User $user, ScoreHistory $scoreHistory): bool
     {
-        //
+        return true;
     }
 
     /**
@@ -29,7 +29,7 @@ class ScoreHistoryPolicy
      */
     public function create(User $user): bool
     {
-        //
+        return true;
     }
 
     /**
@@ -37,7 +37,7 @@ class ScoreHistoryPolicy
      */
     public function update(User $user, ScoreHistory $scoreHistory): bool
     {
-        //
+        return true;
     }
 
     /**
@@ -45,7 +45,7 @@ class ScoreHistoryPolicy
      */
     public function delete(User $user, ScoreHistory $scoreHistory): bool
     {
-        //
+        return true;
     }
 
     /**
@@ -53,7 +53,7 @@ class ScoreHistoryPolicy
      */
     public function restore(User $user, ScoreHistory $scoreHistory): bool
     {
-        //
+        return true;
     }
 
     /**
@@ -61,6 +61,6 @@ class ScoreHistoryPolicy
      */
     public function forceDelete(User $user, ScoreHistory $scoreHistory): bool
     {
-        //
+        return true;
     }
 }

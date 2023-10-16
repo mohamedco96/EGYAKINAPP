@@ -53,9 +53,9 @@ class User extends Authenticatable
     {
         return str_ends_with($this->email, '@egyakin.com');
     }
-    public function patients(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function patients(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasMany(PatientHistory::class,'doctor_id');
+        return $this->hasOne(PatientHistory::class,'doctor_id');
     }
     public function sections(): \Illuminate\Database\Eloquent\Relations\HasOne
     {

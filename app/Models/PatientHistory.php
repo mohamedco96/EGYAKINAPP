@@ -46,9 +46,9 @@ class PatientHistory extends Model
     protected $casts = [
         'special_habits_of_the_patient' => 'array',
     ];
-    public function owner(): BelongsTo
+    public function doctor(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class,'doctor_id');
     }
     public function treatments(): HasMany
     {

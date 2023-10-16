@@ -45,7 +45,7 @@ class PatientHistoryController extends Controller
     public function index()
     {
         $Patient = PatientHistory::latest()
-                            ->with('owner:id,name,lname')
+                            ->with('doctor:id,name,lname')
                             ->with(['sections' => function ($query){
                                 $query->select('patient_id','submit_status', 'outcome_status');
                             }])
@@ -73,12 +73,12 @@ class PatientHistoryController extends Controller
      */
     public function doctorPatientGetAll()
     {
-        $Patient = PatientHistory::with('owner:id,name,lname')
+        $Patient = PatientHistory::with('doctor:id,name,lname')
                                     ->with(['sections' => function ($query){
                                         $query->select('patient_id','submit_status', 'outcome_status');
                                     }])
                                     ->latest()
-                                    ->get(['id','doctor_id','name','hospital','created_at','updated_at']);
+                                    ->get(['id','doctor_id','name','hospital','updated_at']);
                                    // ->paginate(10,['id','doctor_id','name','hospital','created_at','updated_at']);
         if($Patient->isNotEmpty()){
             $response = [
@@ -106,12 +106,12 @@ class PatientHistoryController extends Controller
         /** @var TYPE_NAME $Patient */
         $Patient = $user->patients()
                         //->with('sections:patient_id,submit_status,outcome_status')
-                        ->with('owner:id,name,lname')
+                        ->with('doctor:id,name,lname')
                         ->with(['sections' => function ($query){
                             $query->select('patient_id','submit_status', 'outcome_status');
                         }])
                         ->latest()
-                        ->get(['id','doctor_id','name','hospital','created_at','updated_at']);
+                        ->get(['id','doctor_id','name','hospital','updated_at']);
 
         if($Patient->isNotEmpty()){
             $response = [
@@ -281,12 +281,12 @@ class PatientHistoryController extends Controller
     {
         $Patient = PatientHistory::where('name','like','%'.$name.'%')
                                     ->orWhere('hospital','like','%'.$name.'%')
-                                    ->with('owner:id,name,lname')
+                                    ->with('doctor:id,name,lname')
                                     ->with(['sections' => function ($query){
                                         $query->select('patient_id','submit_status', 'outcome_status');
                                     }])
                                     ->latest()
-                                    ->get(['id','doctor_id','name','hospital','created_at','updated_at']);
+                                    ->get(['id','doctor_id','name','hospital','updated_at']);
 
         if($Patient!=null){
             $response = [

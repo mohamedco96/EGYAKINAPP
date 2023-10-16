@@ -15,7 +15,6 @@ class CommentController extends Controller
      */
     public function index()
     {
-        //$Comment = Comment::latest()->paginate(10);
         $Comment = Comment::with('doctor:id,name,lname')->latest()->get();
 
         if($Comment->isNotEmpty()){

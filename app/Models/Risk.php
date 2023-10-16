@@ -34,6 +34,7 @@ class Risk extends Model
         'trauma_history',
         'autoimmune-disease_history',
         'other-risk-factors',
+        'other',
         'created_at',
         'updated_at'
     ];

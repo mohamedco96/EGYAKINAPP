@@ -27,6 +27,7 @@ class Cause extends Model
         'renal_others',
         'post-renal_causes',
         'post-renal_others',
+        'other',
         'created_at',
         'updated_at'
     ];

@@ -24,6 +24,9 @@ class Outcome extends Model
         'outcome_of_the_patient',
         'creatinine_on_discharge',
         'final_status',
+        'other',
+        'created_at',
+        'updated_at'
     ];
 
     /**

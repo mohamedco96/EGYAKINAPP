@@ -39,6 +39,7 @@ class PatientHistory extends Model
         'DM_duration',
         'HTN',
         'HTN_duration',
+        'other',
         'created_at',
         'updated_at'
     ];

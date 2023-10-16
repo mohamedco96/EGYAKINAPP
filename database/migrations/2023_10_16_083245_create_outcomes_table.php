@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('outcome_of_the_patient')->nullable();
             $table->string('creatinine_on_discharge')->nullable();
             $table->string('final_status')->nullable();
+            $table->longText('other')->nullable();
             $table->timestamps();
         });
     }

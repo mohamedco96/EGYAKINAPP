@@ -24,6 +24,7 @@ class Examination extends Model
         'basal_creatinine',
         'renal_US',
         'specify_renal-US',
+        'other',
         'created_at',
         'updated_at'
     ];

@@ -22,6 +22,9 @@ class Decision extends Model
         'owner_id',
         'patient_id',
         'medical_decision',
+        'other',
+        'created_at',
+        'updated_at'
     ];
 
     /**

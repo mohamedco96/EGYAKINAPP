@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Assessment, Cause, Complaint, Examination, PatientHistory, Risk, Section, User, Score, ScoreHistory};
+use App\Models\{Assessment, Cause, Complaint, Examination, PatientHistory, Risk, Section, User, Score, ScoreHistory,Decision,Outcome};
 use App\Http\Requests\StorePatientHistoryRequest;
 use App\Http\Requests\UpdatePatientHistoryRequest;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +25,9 @@ class PatientHistoryController extends Controller
         Cause $cause,
         Risk $risk,
         Assessment $assessment,
-        Examination $examination
+        Examination $examination,
+        Decision $decision,
+        Outcome $outcome
     ) {
         $this->patientHistory = $patientHistory;
         $this->section = $section;
@@ -34,6 +36,8 @@ class PatientHistoryController extends Controller
         $this->risk = $risk;
         $this->assessment = $assessment;
         $this->examination = $examination;
+        $this->decision = $decision;
+        $this->outcome = $outcome;
     }
     /**
      * Display a listing of the resource.
@@ -42,11 +46,13 @@ class PatientHistoryController extends Controller
     {
         $Patient = PatientHistory::latest()
                             ->with('owner:id,name,lname')
-                            ->with('sections')
+                            ->with(['sections' => function ($query){
+                                $query->select('patient_id','submit_status', 'outcome_status');
+                            }])
                             ->get();
                             //->paginate(10);
 
-        if($Patient!=null){
+        if($Patient->isNotEmpty()){
             $response = [
                 'value' => true,
                 'data' => $Patient
@@ -54,7 +60,8 @@ class PatientHistoryController extends Controller
             return response($response, 201);
         }else {
             $response = [
-                'value' => false
+                'value' => false,
+                'message' => 'No Patient was found'
             ];
             return response($response, 404);
         }
@@ -67,11 +74,13 @@ class PatientHistoryController extends Controller
     public function doctorPatientGetAll()
     {
         $Patient = PatientHistory::with('owner:id,name,lname')
-                                    ->with('sections')
+                                    ->with(['sections' => function ($query){
+                                        $query->select('patient_id','submit_status', 'outcome_status');
+                                    }])
                                     ->latest()
                                     ->get(['id','owner_id','name','hospital','created_at','updated_at']);
                                    // ->paginate(10,['id','owner_id','name','hospital','created_at','updated_at']);
-        if($Patient!=null){
+        if($Patient->isNotEmpty()){
             $response = [
                 'value' => true,
                 'data' => $Patient
@@ -98,11 +107,13 @@ class PatientHistoryController extends Controller
         $Patient = $user->patients()
                         //->with('sections:patient_id,submit_status,outcome_status')
                         ->with('owner:id,name,lname')
-                        ->with('sections')
+                        ->with(['sections' => function ($query){
+                            $query->select('patient_id','submit_status', 'outcome_status');
+                        }])
                         ->latest()
                         ->get(['id','owner_id','name','hospital','created_at','updated_at']);
 
-        if($Patient!=null){
+        if($Patient->isNotEmpty()){
             $response = [
                 'value' => true,
                 'data' => $Patient,
@@ -137,7 +148,9 @@ class PatientHistoryController extends Controller
                 $this->risk->create($relatedData);
                 $this->assessment->create($relatedData);
                 $this->examination->create($relatedData);
-    
+                $this->decision->create($relatedData);
+                $this->outcome->create($relatedData);
+
                 //scoring system
                 $doctorId = auth()->user()->id; // Assuming you have authentication in place
                 $score = Score::where('owner_id', $doctorId)->first();
@@ -241,6 +254,9 @@ class PatientHistoryController extends Controller
             DB::table('risks')->where('patient_id', '=', $id)->delete();
             DB::table('assessments')->where('patient_id', '=', $id)->delete();
             DB::table('examinations')->where('patient_id', '=', $id)->delete();
+            DB::table('comments')->where('patient_id', '=', $id)->delete();
+            DB::table('decisions')->where('patient_id', '=', $id)->delete();
+            DB::table('outcomes')->where('patient_id', '=', $id)->delete();
 
             $response = [
                 'value' => true,

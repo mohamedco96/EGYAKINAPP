@@ -36,7 +36,7 @@ class PatientResource extends Resource
             ->schema([
                 Forms\Components\TextInput::make('name')->required()->maxLength(255)->label('Patient Name in Arabic'),
                 Forms\Components\TextInput::make('hospital')->required()->maxLength(255)->label('Hospital Name in Arabic'),
-                Forms\Components\Select::make('owner_id')
+                Forms\Components\Select::make('doctor_id')
                     ->relationship('owner', 'name')
                     ->searchable()
                     ->preload()

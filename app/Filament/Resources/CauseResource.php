@@ -31,7 +31,7 @@ class CauseResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('owner_id')
+                Forms\Components\Select::make('doctor_id')
                     ->relationship('owner', 'name')
                     ->searchable()
                     ->preload()

@@ -19,7 +19,7 @@ class Outcome extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'owner_id',
+        'doctor_id',
         'patient_id',
         'outcome_of_the_patient',
         'creatinine_on_discharge',

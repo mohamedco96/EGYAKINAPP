@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('complaints', function (Blueprint $table) {
             $table->id();
-            $table->bigInteger('owner_id')->unsigned()->index();
-            $table->foreign('owner_id')->references('id')->on('users')->onDelete('cascade');
+            $table->bigInteger('doctor_id')->unsigned()->index();
+            $table->foreign('doctor_id')->references('id')->on('users')->onDelete('cascade');
             $table->bigInteger('patient_id')->unsigned()->index()->nullable();
             $table->foreign('patient_id')->references('id')->on('patient_histories')->onDelete('cascade');
             $table->string('where_was_th_patient_seen_for_the_first_time')->nullable();

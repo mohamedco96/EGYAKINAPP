@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('scores', function (Blueprint $table) {
             $table->id();
-            $table->bigInteger('owner_id')->unsigned()->index();
-            $table->foreign('owner_id')->references('id')->on('users')->onDelete('cascade');
+            $table->bigInteger('doctor_id')->unsigned()->index();
+            $table->foreign('doctor_id')->references('id')->on('users')->onDelete('cascade');
             $table->string('score');
             $table->timestamps();
         });

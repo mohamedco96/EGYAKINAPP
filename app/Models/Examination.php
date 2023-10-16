@@ -18,7 +18,7 @@ class Examination extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'owner_id',
+        'doctor_id',
         'patient_id',
         'current_creatinine',
         'basal_creatinine',

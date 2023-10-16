@@ -13,7 +13,7 @@ class Comment extends Model
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $fillable = ['user_id', 'patient_id', 'content'];
+    protected $fillable = ['owner_id', 'patient_id', 'content'];
 
     public function owner()
     {

@@ -19,7 +19,7 @@ class Complaint extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'owner_id',
+        'doctor_id',
         'patient_id',
         'where_was_th_patient_seen_for_the_first_time',
         'place_of_admission',

@@ -18,7 +18,7 @@ class Cause extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'owner_id',
+        'doctor_id',
         'patient_id',
         'cause_of_AKI',
         'pre-renal_causes',

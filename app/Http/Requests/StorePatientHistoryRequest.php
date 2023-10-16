@@ -22,7 +22,7 @@ class StorePatientHistoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'owner_id' => 'required|string|exists:App\Models\User,id',
+            'doctor_id' => 'required|string|exists:App\Models\User,id',
             'name' => 'required|string',
             'hospital' => 'required|string',
             'collected_data_from' => 'required|string',

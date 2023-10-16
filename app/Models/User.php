@@ -55,7 +55,7 @@ class User extends Authenticatable
     }
     public function patients(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(PatientHistory::class,'owner_id');
+        return $this->hasMany(PatientHistory::class,'doctor_id');
     }
     public function sections(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
@@ -63,7 +63,7 @@ class User extends Authenticatable
     }
     public function score(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(Score::class,'owner_id');
+        return $this->hasOne(Score::class,'doctor_id');
     }
 
     public function comments()

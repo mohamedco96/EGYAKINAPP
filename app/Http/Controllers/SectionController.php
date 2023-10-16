@@ -10,6 +10,7 @@ use App\Models\PatientHistory;
 use App\Models\Questions;
 use App\Models\Risk;
 use App\Models\Section;
+use App\Models\Decision;
 use App\Http\Requests\StoreSectionRequest;
 use App\Http\Requests\UpdateSectionRequest;
 use Illuminate\Support\Facades\DB;
@@ -54,7 +55,7 @@ class SectionController extends Controller
         $submit_status = Section::where('patient_id', $patient_id)->get(['submit_status'])->first();
 
         $sections = Section::where('patient_id', $patient_id)
-        ->select('section_1', 'section_2', 'section_3', 'section_4', 'section_5', 'section_6')
+        ->select('section_1', 'section_2', 'section_3', 'section_4', 'section_5', 'section_6','section_7')
         ->first();
     
     $updated_at = [
@@ -64,10 +65,11 @@ class SectionController extends Controller
         'updated_at4' => Risk::where('patient_id', $patient_id)->value('updated_at'),
         'updated_at5' => Assessment::where('patient_id', $patient_id)->value('updated_at'),
         'updated_at6' => Examination::where('patient_id', $patient_id)->value('updated_at'),
+        'updated_at7' => Decision::where('patient_id', $patient_id)->value('updated_at'),
     ];
     
     $data = [];
-    for ($i = 1; $i <= 6; $i++) {
+    for ($i = 1; $i <= 7; $i++) {
         $section = [
             'section_id' => $i,
             'section_status' => $sections->{'section_'.$i},
@@ -92,6 +94,9 @@ class SectionController extends Controller
                 break;
             case 6:
                 $section['section_name'] = 'Laboratory and radiology results'; //Medical examinations
+                break;
+            case 7:
+                $section['section_name'] = 'Medical decision'; //Medical examinations
                 break;
         }
     

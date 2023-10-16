@@ -19,7 +19,7 @@ class PatientHistory extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'owner_id',
+        'doctor_id',
         'section_id',
         'name',
         'hospital',

@@ -18,7 +18,7 @@ class Assessment extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'owner_id',
+        'doctor_id',
         'patient_id',
         'heart-rate/minute',
         'respiratory-rate/minute',

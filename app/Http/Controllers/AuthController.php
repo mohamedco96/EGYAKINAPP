@@ -195,13 +195,13 @@ class AuthController extends Controller
         if($user!=null){
             User::destroy($id);
 
-            DB::table('patient_histories')->where('owner_id', '=', $id)->delete();
-            DB::table('sections')->where('owner_id', '=', $id)->delete();
-            DB::table('complaints')->where('owner_id', '=', $id)->delete();
-            DB::table('causes')->where('owner_id', '=', $id)->delete();
-            DB::table('risks')->where('owner_id', '=', $id)->delete();
-            DB::table('assessments')->where('owner_id', '=', $id)->delete();
-            DB::table('examinations')->where('owner_id', '=', $id)->delete();
+            DB::table('patient_histories')->where('doctor_id', '=', $id)->delete();
+            DB::table('sections')->where('doctor_id', '=', $id)->delete();
+            DB::table('complaints')->where('doctor_id', '=', $id)->delete();
+            DB::table('causes')->where('doctor_id', '=', $id)->delete();
+            DB::table('risks')->where('doctor_id', '=', $id)->delete();
+            DB::table('assessments')->where('doctor_id', '=', $id)->delete();
+            DB::table('examinations')->where('doctor_id', '=', $id)->delete();
 
             $response = [
                 'value' => true,

@@ -31,7 +31,7 @@ class AssessmentResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('owner_id')
+                Forms\Components\Select::make('doctor_id')
                     ->relationship('owner', 'name')
                     ->searchable()
                     ->preload()
@@ -128,7 +128,7 @@ class AssessmentResource extends Resource
                         'Other' =>'Other',
                     ]),
                 Forms\Components\TextInput::make('abdominal_examination_clarify')->label('If the response to the previous question is others, clarify?'),
-                Forms\Components\RichEditor::make('other')->label('Other important findings in examination'),
+                Forms\Components\TextInput::make('other')->label('Other important findings in examination'),
             ]);
     }
 

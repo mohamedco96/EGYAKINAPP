@@ -78,8 +78,8 @@ class PatientHistoryController extends Controller
                                         $query->select('patient_id','submit_status', 'outcome_status');
                                     }])
                                     ->latest()
-                                    ->get(['id','owner_id','name','hospital','created_at','updated_at']);
-                                   // ->paginate(10,['id','owner_id','name','hospital','created_at','updated_at']);
+                                    ->get(['id','doctor_id','name','hospital','created_at','updated_at']);
+                                   // ->paginate(10,['id','doctor_id','name','hospital','created_at','updated_at']);
         if($Patient->isNotEmpty()){
             $response = [
                 'value' => true,
@@ -100,7 +100,7 @@ class PatientHistoryController extends Controller
     {
         /*$Patient = $user->patients()
                             ->latest()
-                            ->paginate(10,['id','owner_id','name','hospital','created_at','updated_at']);*/
+                            ->paginate(10,['id','doctor_id','name','hospital','created_at','updated_at']);*/
 
         $user = Auth::user();
         /** @var TYPE_NAME $Patient */
@@ -111,7 +111,7 @@ class PatientHistoryController extends Controller
                             $query->select('patient_id','submit_status', 'outcome_status');
                         }])
                         ->latest()
-                        ->get(['id','owner_id','name','hospital','created_at','updated_at']);
+                        ->get(['id','doctor_id','name','hospital','created_at','updated_at']);
 
         if($Patient->isNotEmpty()){
             $response = [
@@ -138,7 +138,7 @@ class PatientHistoryController extends Controller
                 $patient = $this->patientHistory->create($request->all());
     
                 $relatedData = [
-                    'owner_id' => $request['owner_id'],
+                    'doctor_id' => $request['doctor_id'],
                     'patient_id' => $patient->id,
                 ];
     
@@ -153,7 +153,7 @@ class PatientHistoryController extends Controller
 
                 //scoring system
                 $doctorId = auth()->user()->id; // Assuming you have authentication in place
-                $score = Score::where('owner_id', $doctorId)->first();
+                $score = Score::where('doctor_id', $doctorId)->first();
                 
                 $incrementAmount = 10; // Example increment amount
                 $action = 'Add new Patient'; // Example action
@@ -162,13 +162,13 @@ class PatientHistoryController extends Controller
                     $score->increment('score', $incrementAmount); // Increase the score
                 } else {
                     Score::create([
-                        'owner_id' => $doctorId,
+                        'doctor_id' => $doctorId,
                         'score' => $incrementAmount,
                     ]);
                 }
         
                 ScoreHistory::create([
-                    'owner_id' => $doctorId,
+                    'doctor_id' => $doctorId,
                     'score' => $incrementAmount,
                     'action' => $action,
                     'timestamp' => now(),
@@ -284,7 +284,7 @@ class PatientHistoryController extends Controller
                                     ->with('owner:id,name,lname')
                                     ->with('sections')
                                     ->latest()
-                                    ->get(['id','owner_id','name','hospital','created_at','updated_at']);
+                                    ->get(['id','doctor_id','name','hospital','created_at','updated_at']);
 
         if($Patient!=null){
             $response = [

@@ -59,12 +59,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/questions/{id}','QuestionsController@update');
     Route::delete('/questions/{id}','QuestionsController@destroy');
 
-    //Decision
-    Route::get('/Decision','DecisionController@index');
-    Route::post('/Decision','DecisionController@store');
-    Route::get('/Decision/{id}','DecisionController@show');
-    Route::put('/Decision/{id}','DecisionController@update');
-    Route::delete('/Decision/{id}','DecisionController@destroy');
+    //complaint
+    Route::get('/complaint','ComplaintController@index');
+    Route::post('/complaint','ComplaintController@store');
+    Route::get('/complaint/{id}','ComplaintController@show');
+    Route::put('/complaint/{id}','ComplaintController@update');
+    Route::delete('/complaint/{id}','ComplaintController@destroy');
 
     //Cause of AKI
     Route::get('/cause','CauseController@index');
@@ -112,6 +112,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/decision/{id}','DecisionController@show');
     Route::put('/decision/{id}','DecisionController@update');
     Route::delete('/decision/{id}','DecisionController@destroy');
+
+    //Outcome
+    Route::get('/outcome','OutcomeController@index');
+    Route::post('/outcome','OutcomeController@store');
+    Route::get('/outcome/{id}','OutcomeController@show');
+    Route::put('/outcome/{id}','OutcomeController@update');
+    Route::delete('/outcome/{id}','OutcomeController@destroy');
 });
 
 Route::fallback(function(){

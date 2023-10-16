@@ -11,13 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('decisions', function (Blueprint $table) {
+        Schema::create('outcomes', function (Blueprint $table) {
             $table->id();
             $table->bigInteger('owner_id')->unsigned()->index();
             $table->foreign('owner_id')->references('id')->on('users')->onDelete('cascade');
             $table->bigInteger('patient_id')->unsigned()->index()->nullable();
             $table->foreign('patient_id')->references('id')->on('patient_histories')->onDelete('cascade');
-            $table->string('medical_decision')->nullable();
+            $table->string('outcome_of_the_patient')->nullable();
+            $table->string('creatinine_on_discharge')->nullable();
+            $table->string('final_status')->nullable();
             $table->timestamps();
         });
     }
@@ -27,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('decisions');
+        Schema::dropIfExists('outcomes');
     }
 };

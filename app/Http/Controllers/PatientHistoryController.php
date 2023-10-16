@@ -282,7 +282,9 @@ class PatientHistoryController extends Controller
         $Patient = PatientHistory::where('name','like','%'.$name.'%')
                                     ->orWhere('hospital','like','%'.$name.'%')
                                     ->with('owner:id,name,lname')
-                                    ->with('sections')
+                                    ->with(['sections' => function ($query){
+                                        $query->select('patient_id','submit_status', 'outcome_status');
+                                    }])
                                     ->latest()
                                     ->get(['id','doctor_id','name','hospital','created_at','updated_at']);
 

@@ -39,7 +39,7 @@ class Risk extends Model
         'updated_at'
     ];
 
-    public function owner(): BelongsTo
+    public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }

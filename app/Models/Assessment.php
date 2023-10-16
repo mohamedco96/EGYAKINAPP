@@ -54,7 +54,7 @@ class Assessment extends Model
         'chest_examination' => 'array',
         'abdominal_examination' => 'array',
     ];
-    public function owner(): BelongsTo
+    public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }

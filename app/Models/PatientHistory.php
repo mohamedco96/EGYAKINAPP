@@ -48,7 +48,7 @@ class PatientHistory extends Model
     ];
     public function doctor(): BelongsTo
     {
-        return $this->belongsTo(User::class,'doctor_id');
+        return $this->belongsTo(User::class);
     }
     public function treatments(): HasMany
     {

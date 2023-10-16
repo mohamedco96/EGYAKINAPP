@@ -16,7 +16,7 @@ class CommentController extends Controller
     public function index()
     {
         //$Comment = Comment::latest()->paginate(10);
-        $Comment = Comment::with('owner:id,name,lname')->latest()->get();
+        $Comment = Comment::with('doctor:id,name,lname')->latest()->get();
 
         if($Comment->isNotEmpty()){
             $response = [
@@ -60,7 +60,7 @@ class CommentController extends Controller
     public function show($id)
     {
         $Comment = Comment::where('patient_id', $id)
-        ->with('owner:id,name,lname')->latest()->get();
+        ->with('doctor:id,name,lname')->latest()->get();
 
         if($Comment->isNotEmpty()){
             $response = [

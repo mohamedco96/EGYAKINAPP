@@ -39,7 +39,7 @@ class Outcome extends Model
         'main_omplaint' => 'array',
 
     ];
-    public function owner(): BelongsTo
+    public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }

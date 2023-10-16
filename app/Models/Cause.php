@@ -36,7 +36,7 @@ class Cause extends Model
         'pre-renal_causes' => 'array',
     ];
 
-    public function owner(): BelongsTo
+    public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }

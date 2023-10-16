@@ -13,9 +13,9 @@ class Comment extends Model
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $fillable = ['owner_id', 'patient_id', 'content'];
+    protected $fillable = ['doctor_id', 'patient_id', 'content'];
 
-    public function owner()
+    public function doctor()
     {
         return $this->belongsTo(User::class);
     }

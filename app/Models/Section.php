@@ -49,7 +49,7 @@ class Section extends Model
         'outcome_status' => 'boolean'
     ];
 
-    public function owner(): BelongsTo
+    public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }

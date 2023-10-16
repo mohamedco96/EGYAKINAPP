@@ -13,7 +13,7 @@ class Score extends Model
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    public function owner(): BelongsTo
+    public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }

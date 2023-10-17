@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('lname')->nullable();
             $table->string('email');
             $table->timestamp('email_verified_at')->nullable();
-            $table->integer('age')->nullable();
+            $table->string('age')->nullable();
             $table->string('specialty')->nullable();
             $table->string('workingplace')->nullable();
             $table->string('phone')->nullable();

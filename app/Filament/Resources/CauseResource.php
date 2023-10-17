@@ -21,7 +21,7 @@ class CauseResource extends Resource
     protected static ?string $model = Cause::class;
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationLabel = 'Cause';
-    protected static ?string $navigationGroup = 'Patients';
+    protected static ?string $navigationGroup = 'Patient Sections';
     protected static ?int $navigationSort = 6;
     public static function getNavigationBadge(): ?string
     {
@@ -32,7 +32,7 @@ class CauseResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('doctor_id')
-                    ->relationship('owner', 'name')
+                    ->relationship('doctor', 'name')
                     ->searchable()
                     ->preload()
                     ->label('Doctor Name'),
@@ -75,7 +75,7 @@ class CauseResource extends Resource
                 Forms\Components\TextInput::make('renal_others')->label('If the cause of intrinsic renal AKI is others, what is the cause?'),
                 Forms\Components\TextInput::make('post-renal_causes')->label('Post-renal causes of AKI in this patient include'),
                 Forms\Components\TextInput::make('post-renal_others')->label('If the cause of post-renal AKI is others, what is the cause?'),
-                Forms\Components\RichEditor::make('other'),
+                Forms\Components\TextInput::make('other'),
             ]);
     }
 
@@ -84,7 +84,7 @@ class CauseResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')->searchable(),
-                Tables\Columns\TextColumn::make('owner.name')->label('Doctor Name')->searchable(),
+                Tables\Columns\TextColumn::make('doctor.name')->label('Doctor Name')->searchable(),
                 Tables\Columns\TextColumn::make('patient.name')->label('Patient Name')->searchable(),
                 Tables\Columns\TextColumn::make('cause_of_AKI')->label('Cause of AKI'),
                 Tables\Columns\TextColumn::make('pre-renal_causes')->label('Pre-renal causes of AKI in this patient include'),

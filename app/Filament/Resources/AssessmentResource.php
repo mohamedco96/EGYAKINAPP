@@ -21,7 +21,7 @@ class AssessmentResource extends Resource
     protected static ?string $model = Assessment::class;
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationLabel = 'Assessment of the patient';
-    protected static ?string $navigationGroup = 'Patients';
+    protected static ?string $navigationGroup = 'Patient Sections';
     protected static ?int $navigationSort = 8;
     public static function getNavigationBadge(): ?string
     {
@@ -32,7 +32,7 @@ class AssessmentResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('doctor_id')
-                    ->relationship('owner', 'name')
+                    ->relationship('doctor', 'name')
                     ->searchable()
                     ->preload()
                     ->label('Doctor Name'),
@@ -137,7 +137,7 @@ class AssessmentResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')->searchable(),
-                Tables\Columns\TextColumn::make('owner.name')->label('Doctor Name')->searchable(),
+                Tables\Columns\TextColumn::make('doctor.name')->label('Doctor Name')->searchable(),
                 Tables\Columns\TextColumn::make('patient.name')->label('Patient Name')->searchable(),
                 Tables\Columns\TextColumn::make('heart-rate/minute')->label('Heart rate/minute'),
                 Tables\Columns\TextColumn::make('respiratory-rate/minute')->label('Respiratory rate/minute'),

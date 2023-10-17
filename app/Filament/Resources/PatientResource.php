@@ -24,7 +24,7 @@ class PatientResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-s-users';
     protected static ?string $navigationLabel = 'Patient History';
-    protected static ?string $navigationGroup = 'Patients';
+    protected static ?string $navigationGroup = 'Patient Sections';
     protected static ?int $navigationSort = 3;
     public static function getNavigationBadge(): ?string
     {
@@ -37,7 +37,7 @@ class PatientResource extends Resource
                 Forms\Components\TextInput::make('name')->required()->maxLength(255)->label('Patient Name in Arabic'),
                 Forms\Components\TextInput::make('hospital')->required()->maxLength(255)->label('Hospital Name in Arabic'),
                 Forms\Components\Select::make('doctor_id')
-                    ->relationship('owner', 'name')
+                    ->relationship('doctor', 'name')
                     ->searchable()
                     ->preload()
                     ->label('Doctor Name')
@@ -118,7 +118,7 @@ class PatientResource extends Resource
                         'Recently discovered' => 'Recently discovered',
                     ])->required(),
                 Forms\Components\TextInput::make('HTN_duration')->label('HTN Duration'),
-                Forms\Components\RichEditor::make('other'),
+                Forms\Components\TextInput::make('other'),
                 //Forms\Components\DatePicker::make('age')->required()->maxDate(now()),
 
             ]);
@@ -130,7 +130,7 @@ class PatientResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('id')->searchable(),
                 Tables\Columns\TextColumn::make('name')->searchable(),
-                Tables\Columns\TextColumn::make('owner.name')->label('Doctor Name')->searchable(),
+                Tables\Columns\TextColumn::make('doctor.name')->label('Doctor Name')->searchable(),
                 Tables\Columns\TextColumn::make('hospital')->searchable(),
                 Tables\Columns\TextColumn::make('collected_data_from'),
                 Tables\Columns\TextColumn::make('NID')->label('National ID')->searchable(),
@@ -153,8 +153,8 @@ class PatientResource extends Resource
                 Tables\Columns\TextColumn::make('updated_at')->label('Updated At'),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('owner')
-                    ->relationship('owner', 'name'),
+                Tables\Filters\SelectFilter::make('doctor')
+                    ->relationship('doctor', 'name'),
 
                 Tables\Filters\Filter::make('created_at')
                     ->form([

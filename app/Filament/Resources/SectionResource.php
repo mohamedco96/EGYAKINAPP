@@ -22,7 +22,7 @@ class SectionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationLabel = 'Sections';
-    protected static ?string $navigationGroup = 'Patients';
+    protected static ?string $navigationGroup = 'Other';
     protected static ?int $navigationSort = 4;
     public static function getNavigationBadge(): ?string
     {
@@ -33,7 +33,7 @@ class SectionResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('doctor_id')
-                    ->relationship('owner', 'name')
+                    ->relationship('doctor', 'name')
                     ->searchable()
                     ->preload()
                     ->label('Doctor Name'),
@@ -70,7 +70,7 @@ class SectionResource extends Resource
                     ->label('Outcome status')
                     ->boolean(),
                 Forms\Components\Select::make('doc_id')
-                    ->relationship('owner', 'name')
+                    ->relationship('doctor', 'name')
                     ->searchable()
                     ->preload()
                     ->label('Doctor that do Outcome'),
@@ -82,7 +82,7 @@ class SectionResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')->searchable(),
-                Tables\Columns\TextColumn::make('owner.name')->label('Doctor Name')->searchable(),
+                Tables\Columns\TextColumn::make('doctor.name')->label('Doctor Name')->searchable(),
                 Tables\Columns\TextColumn::make('patient.name')->label('Patient Name')->searchable(),
                 Tables\Columns\TextColumn::make('section_1'),
                 Tables\Columns\TextColumn::make('section_2'),

@@ -20,8 +20,8 @@ class ExaminationResource extends Resource
 {
     protected static ?string $model = Examination::class;
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-    protected static ?string $navigationLabel = 'Medical examinations';
-    protected static ?string $navigationGroup = 'Patients';
+    protected static ?string $navigationLabel = 'Laboratory and radiology results';
+    protected static ?string $navigationGroup = 'Patient Sections';
     protected static ?int $navigationSort = 9;
     public static function getNavigationBadge(): ?string
     {
@@ -32,7 +32,7 @@ class ExaminationResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('doctor_id')
-                    ->relationship('owner', 'name')
+                    ->relationship('doctor', 'name')
                     ->searchable()
                     ->preload()
                     ->label('Doctor Name'),
@@ -49,7 +49,7 @@ class ExaminationResource extends Resource
                         'Abnormal' => 'Abnormal',
                     ]),
                 Forms\Components\TextInput::make('specify_renal-US')->label('If renal US is abnormal, specify'),
-                Forms\Components\RichEditor::make('other'),
+                Forms\Components\TextInput::make('other'),
             ]);
     }
 
@@ -58,7 +58,7 @@ class ExaminationResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')->searchable(),
-                Tables\Columns\TextColumn::make('owner.name')->label('Doctor Name')->searchable(),
+                Tables\Columns\TextColumn::make('doctor.name')->label('Doctor Name')->searchable(),
                 Tables\Columns\TextColumn::make('patient.name')->label('Patient Name')->searchable(),
                 Tables\Columns\TextColumn::make('current_creatinine')->label('Current creatinine'),
                 Tables\Columns\TextColumn::make('basal_creatinine')->label('Basal creatinine, if available'),

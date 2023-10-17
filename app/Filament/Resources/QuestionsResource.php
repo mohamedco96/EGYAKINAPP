@@ -18,7 +18,7 @@ class QuestionsResource extends Resource
     protected static ?string $model = Questions::class;
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationLabel = 'Questions';
-    protected static ?string $navigationGroup = 'Patients';
+    protected static ?string $navigationGroup = 'Other';
     protected static ?int $navigationSort = 6;
     public static function getNavigationBadge(): ?string
     {

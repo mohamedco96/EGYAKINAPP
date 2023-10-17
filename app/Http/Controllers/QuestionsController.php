@@ -78,10 +78,10 @@ class QuestionsController extends Controller
     public function ShowQuestitionsAnswars($id,$patient_id)
     {
         $data = [];
-        for ($i = 1; $i <= 7; $i++) {
+        for ($i = 1; $i <= 19; $i++) {
             $questions = Questions::where('section_id', $id)
             ->where('id', $i)
-            ->select('id', 'question', 'values', 'type', 'mandatory', 'updated_at')
+            ->select('id', 'question', 'values', 'type', 'keyboard_type','mandatory', 'updated_at')
             ->first();
 
             $answers = PatientHistory::where('id', $patient_id)
@@ -94,6 +94,7 @@ class QuestionsController extends Controller
                 'question' => $questions->{'question'},
                 'values' => $questions->{'values'},
                 'type' => $questions->{'type'},
+                'keyboard_type' => $questions->{'keyboard_type'},
                 'mandatory' => $questions->{'mandatory'},
                 'updated_at' => $questions->{'updated_at'},
             ];
@@ -119,6 +120,42 @@ class QuestionsController extends Controller
                     break;
                 case 7:
                     $question['answer'] = $answers->{'age'};
+                    break;
+                case 8:
+                    $question['answer'] = $answers->{'gender'};
+                    break;
+                case 9:
+                    $question['answer'] = $answers->{'occupation'};
+                    break;
+                case 10:
+                    $question['answer'] = $answers->{'residency'};
+                    break;
+                case 11:
+                    $question['answer'] = $answers->{'governorate'};
+                    break;
+                case 12:
+                    $question['answer'] = $answers->{'marital_status'};
+                    break;
+                case 13:
+                    $question['answer'] = $answers->{'educational_level'}; 
+                    break;
+                case 14:
+                    $question['answer'] = $answers->{'special_habits_of_the_patient'};
+                    break;
+                case 15:
+                    $question['answer'] = $answers->{'DM'};
+                    break;
+                case 16:
+                    $question['answer'] = $answers->{'DM_duration'};
+                    break;
+                case 17:
+                    $question['answer'] = $answers->{'HTN'};
+                    break;
+                case 18:
+                    $question['answer'] = $answers->{'HTN_duration'}; 
+                    break;
+                case 19:
+                    $question['answer'] = $answers->{'other'};
                     break;
             }
             

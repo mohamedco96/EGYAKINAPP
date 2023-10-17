@@ -18,6 +18,7 @@ return new class extends Migration
             $table->Text('question');
             $table->Text('values')->nullable();
             $table->string('type');
+            $table->string('keyboard_type')->nullable();
             $table->boolean('mandatory')->default(false);
             $table->timestamps();
         });

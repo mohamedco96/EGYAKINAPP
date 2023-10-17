@@ -22,6 +22,7 @@ class Questions extends Model
         'question',
         'values',
         'type',
+        'keyboard_type',
         'mandatory'
     ];
 

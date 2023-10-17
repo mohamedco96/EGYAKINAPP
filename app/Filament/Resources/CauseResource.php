@@ -98,6 +98,8 @@ class CauseResource extends Resource
                 Tables\Columns\TextColumn::make('updated_at')->label('Updated At'),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('Doctor Name')
+                ->relationship('doctor', 'name'),
                 Tables\Filters\SelectFilter::make('Patient Name')
                     ->relationship('patient', 'name'),
                 Tables\Filters\Filter::make('created_at')

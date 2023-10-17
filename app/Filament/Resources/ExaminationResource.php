@@ -69,6 +69,8 @@ class ExaminationResource extends Resource
                 Tables\Columns\TextColumn::make('updated_at'),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('Doctor Name')
+                ->relationship('doctor', 'name'),
                 Tables\Filters\SelectFilter::make('Patient Name')
                     ->relationship('patient', 'name'),
                 Tables\Filters\Filter::make('created_at')

@@ -153,9 +153,8 @@ class PatientResource extends Resource
                 Tables\Columns\TextColumn::make('updated_at')->label('Updated At'),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('doctor')
-                    ->relationship('doctor', 'name'),
-
+                Tables\Filters\SelectFilter::make('Doctor Name')
+                ->relationship('doctor', 'name'),
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         DatePicker::make('created_from'),

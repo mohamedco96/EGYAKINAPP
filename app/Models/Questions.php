@@ -30,7 +30,7 @@ class Questions extends Model
         'mandatory' => 'boolean',
     ];
 
-    public function patient(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function doctor_answers(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(PatientHistory::class,'section_id');
     }

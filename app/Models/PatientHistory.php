@@ -68,7 +68,7 @@ class PatientHistory extends Model
     }
     public function questions(): BelongsTo
     {
-        return $this->belongsTo(Questions::class);
+        return $this->belongsTo(Questions::class,'section_id');
     }
     public function comments()
     {

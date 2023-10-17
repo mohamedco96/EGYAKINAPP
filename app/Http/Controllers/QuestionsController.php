@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Questions;
+use App\Models\PatientHistory;
 use App\Http\Requests\StoreQuestionsRequest;
 use App\Http\Requests\UpdateQuestionsRequest;
 use Illuminate\Support\Facades\DB;
@@ -76,37 +77,59 @@ class QuestionsController extends Controller
 
     public function ShowQuestitionsAnswars($id,$patient_id)
     {
-        $Q1 = Questions::where('section_id', $id)
-        ->where('id', '1')
-        ->with(['patient' => function ($query) use ($patient_id) {
-            $query->where('id', $patient_id);
-            $query->select('name', 'section_id');
-        }])
-        ->get(['id', 'question', 'values', 'type', 'mandatory', 'updated_at']);
+        $data = [];
+        for ($i = 1; $i <= 7; $i++) {
+            $questions = Questions::where('section_id', $id)
+            ->where('id', $i)
+            ->select('id', 'question', 'values', 'type', 'mandatory', 'updated_at')
+            ->first();
 
-        $Q2 = Questions::where('section_id', $id)
-        ->where('id', '2')
-        ->with(['patient' => function ($query2) use ($patient_id) {
-            $query2->where('id', $patient_id);
-            $query2->select('hospital', 'section_id');
-        }])
-        ->get(['id', 'question', 'values', 'type', 'mandatory', 'updated_at']);
-
-        $list = [$Q1,$Q2];
-
-        if($list!=null){
-            $response = [
-                'value' => true,
-                'data' => $list
+            $answers = PatientHistory::where('id', $patient_id)
+            ->select('id','name','hospital','collected_data_from','NID','phone','email','age','gender','occupation',
+            'residency','governorate','marital_status','educational_level','special_habits_of_the_patient','DM',
+            'DM_duration','HTN','HTN_duration','other',)
+            ->first();
+            $question = [
+                'id' => $questions->{'id'},
+                'question' => $questions->{'question'},
+                'values' => $questions->{'values'},
+                'type' => $questions->{'type'},
+                'mandatory' => $questions->{'mandatory'},
+                'updated_at' => $questions->{'updated_at'},
             ];
-            return response($response, 200);
-        }else {
-            $response = [
-                'value' => false,
-                'message' => 'No Questions was found'
-            ];
-            return response($response, 404);
+
+            switch ($i) {
+                case 1:
+                    $question['answer'] = $answers->{'name'};
+                    break;
+                case 2:
+                    $question['answer'] = $answers->{'hospital'};
+                    break;
+                case 3:
+                    $question['answer'] = $answers->{'collected_data_from'};
+                    break;
+                case 4:
+                    $question['answer'] = $answers->{'NID'};
+                    break;
+                case 5:
+                    $question['answer'] = $answers->{'phone'};
+                    break;
+                case 6:
+                    $question['answer'] = $answers->{'email'}; 
+                    break;
+                case 7:
+                    $question['answer'] = $answers->{'age'};
+                    break;
+            }
+            
+            $data[] = $question;
         }
+
+        $response = [
+            'value' => true,
+            'data' => $data,
+        ];
+        return response($response, 200);
     }
     /**
      * Update the specified resource in storage.

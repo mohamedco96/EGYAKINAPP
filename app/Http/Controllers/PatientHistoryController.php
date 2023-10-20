@@ -226,7 +226,7 @@ class PatientHistoryController extends Controller
 
         if($Patient!=null){
            // $Patient->update($request->all());
-            //$questionMap =$request->input('1');
+            $questionMap =$request->all();
             if ($request->has('1')) {
                 PatientHistory::where('id', $id)->update(['name' => $request->input('1')]);
             }
@@ -304,6 +304,7 @@ class PatientHistoryController extends Controller
             }
             $response = [
                 'value' => true,
+                'map' => $questionMap,
                 'message' => 'Patient Updated Successfully'
             ];
             return response()->json($response, 201);

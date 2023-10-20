@@ -98,6 +98,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/section','SectionController@index');
     Route::get('/section/{patient_id}','SectionController@show');
     Route::delete('/section/{id}','SectionController@destroy');
+    Route::put('/section/{patient_id}','SectionController@updateFinalSubmit');
 
     //Comment
     Route::get('/comment','CommentController@index');

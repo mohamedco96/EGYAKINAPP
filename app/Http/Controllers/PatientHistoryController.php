@@ -221,11 +221,12 @@ class PatientHistoryController extends Controller
     public function update(UpdatePatientHistoryRequest $request, $id)
     {
         $Patient = PatientHistory::find($id);
-
+        $value = $request->input('2');
         if($Patient!=null){
-            $Patient->update($request->all());
+            //$Patient->update($request->all());
             $response = [
                 'value' => true,
+                'test' => $value,
                 'data' => $Patient,
                 'message' => 'Patient Updated Successfully'
             ];

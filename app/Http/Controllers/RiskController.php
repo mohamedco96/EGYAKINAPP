@@ -84,6 +84,33 @@ class RiskController extends Controller
 
         if($Risk!=null){
             $Risk->update($request->all());
+
+            
+            DB::table('sections')->where('patient_id', $id)->update(['section_4' => true]);
+
+            //scoring system
+            $doctorId = auth()->user()->id; // Assuming you have authentication in place
+            $score = Score::where('doctor_id', $doctorId)->first();
+            
+            $incrementAmount = 5; // Example increment amount
+            $action = 'Update Risk factors for AKI Section'; // Example action
+            
+            if ($score) {
+                $score->increment('score', $incrementAmount); // Increase the score
+            } else {
+                Score::create([
+                    'doctor_id' => $doctorId,
+                    'score' => $incrementAmount,
+                ]);
+            }
+    
+            ScoreHistory::create([
+                'doctor_id' => $doctorId,
+                'score' => $incrementAmount,
+                'action' => $action,
+                'timestamp' => now(),
+            ]);
+
             $response = [
                 'value' => true,
                 'data' => $Risk,

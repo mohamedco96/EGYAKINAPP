@@ -155,6 +155,56 @@ class SectionController extends Controller
 
     }
 
+        /**
+     * Update the specified resource in storage.
+     */
+    public function updateFinalSubmit(UpdatePatientHistoryRequest $request, $patient_id)
+    {
+        $patient = Section::where('patient_id', $patient_id)->first();
+
+        if($patient!=null){
+
+            DB::table('sections')->where('patient_id', $patient_id)->update(['submit_status' => true]);
+
+            //scoring system
+            $doctorId = auth()->user()->id; // Assuming you have authentication in place
+            $score = Score::where('doctor_id', $doctorId)->first();
+            
+            $incrementAmount = 10; // Example increment amount
+            $action = 'Final Submit'; // Example action
+            
+            if ($score) {
+                $score->increment('score', $incrementAmount); // Increase the score
+            } else {
+                Score::create([
+                    'doctor_id' => $doctorId,
+                    'score' => $incrementAmount,
+                ]);
+            }
+    
+            ScoreHistory::create([
+                'doctor_id' => $doctorId,
+                'score' => $incrementAmount,
+                'action' => $action,
+                'timestamp' => now(),
+            ]);
+
+
+            $response = [
+                'value' => true,
+                'data' => $Examination,
+                'message' => 'Examination Updated Successfully'
+            ];
+            return response($response, 201);
+        }else {
+            $response = [
+                'value' => false,
+                'message' => 'No Examination was found'
+            ];
+            return response($response, 404);
+        }
+    }
+
     /**
      * Remove the specified resource from storage.
      */

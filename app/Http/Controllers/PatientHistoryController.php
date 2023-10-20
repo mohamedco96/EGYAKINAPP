@@ -7,6 +7,8 @@ use App\Http\Requests\StorePatientHistoryRequest;
 use App\Http\Requests\UpdatePatientHistoryRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class PatientHistoryController extends Controller
 {
@@ -221,22 +223,96 @@ class PatientHistoryController extends Controller
     public function update(UpdatePatientHistoryRequest $request, $id)
     {
         $Patient = PatientHistory::find($id);
-        $value = $request->input('2');
+
         if($Patient!=null){
-            //$Patient->update($request->all());
+           // $Patient->update($request->all());
+            //$questionMap =$request->input('1');
+            if ($request->has('1')) {
+                PatientHistory::where('id', $id)->update(['name' => $request->input('1')]);
+            }
+            
+            if ($request->has('2')) {
+                PatientHistory::where('id', $id)->update(['hospital' => $request->input('2')]);
+            }
+
+            if ($request->has('3')) {
+                PatientHistory::where('id', $id)->update(['collected_data_from' => $request->input('3')]);
+            }
+            
+            if ($request->has('4')) {
+                PatientHistory::where('id', $id)->update(['NID' => $request->input('4')]);
+            }
+            
+            if ($request->has('5')) {
+                PatientHistory::where('id', $id)->update(['phone' => $request->input('5')]);
+            }
+            
+            if ($request->has('6')) {
+                PatientHistory::where('id', $id)->update(['email' => $request->input('6')]);
+            }
+            
+            if ($request->has('7')) {
+                PatientHistory::where('id', $id)->update(['age' => $request->input('7')]);
+            }
+            
+            if ($request->has('8')) {
+                PatientHistory::where('id', $id)->update(['gender' => $request->input('8')]);
+            }
+            
+            if ($request->has('9')) {
+                PatientHistory::where('id', $id)->update(['occupation' => $request->input('9')]);
+            }
+            
+            if ($request->has('10')) {
+                PatientHistory::where('id', $id)->update(['residency' => $request->input('10')]);
+            }
+            
+            if ($request->has('11')) {
+                PatientHistory::where('id', $id)->update(['governorate' => $request->input('11')]);
+            }
+            
+            if ($request->has('12')) {
+                PatientHistory::where('id', $id)->update(['marital_status' => $request->input('12')]);
+            }
+            
+            if ($request->has('13')) {
+                PatientHistory::where('id', $id)->update(['educational_level' => $request->input('13')]);
+            }
+            
+            if ($request->has('14')) {
+                PatientHistory::where('id', $id)->update(['special_habits_of_the_patient' => $request->input('14')]);
+            }
+            
+            if ($request->has('15')) {
+                PatientHistory::where('id', $id)->update(['DM' => $request->input('15')]);
+            }
+            
+            if ($request->has('16')) {
+                PatientHistory::where('id', $id)->update(['DM_duration' => $request->input('16')]);
+            }
+            
+            if ($request->has('17')) {
+                PatientHistory::where('id', $id)->update(['HTN' => $request->input('17')]);
+            }
+            
+            if ($request->has('18')) {
+                PatientHistory::where('id', $id)->update(['HTN_duration' => $request->input('18')]);
+            }
+            
+            if ($request->has('19')) {
+                PatientHistory::where('id', $id)->update(['other' => $request->input('19')]);
+            }
             $response = [
                 'value' => true,
-                'test' => $value,
-                'data' => $Patient,
                 'message' => 'Patient Updated Successfully'
             ];
-            return response($response, 201);
+            return response()->json($response, 201);
         }else {
             $response = [
                 'value' => false,
                 'message' => 'No Patient was found'
             ];
-            return response($response, 404);
+            return response()->json($response, 404);
         }
     }
 

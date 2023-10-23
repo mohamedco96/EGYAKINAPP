@@ -122,12 +122,11 @@ class PatientHistoryController extends Controller
             $count = 0;
         }
 
-        $scoreValue  = $user->score->score;
-        if($scoreValue !=null){
-            $score = $scoreValue;
-        }else{
-            $score = 0;
+        $score = 0;
+        if ($user->score && $user->score->score !== null) {
+            $score = $user->score->score;
         }
+
         if($Patient->isNotEmpty()){
             $response = [
                 'value' => true,

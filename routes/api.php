@@ -54,8 +54,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     //Questions
     Route::get('/questions','QuestionsController@index');
     Route::post('/questions','QuestionsController@store');
-    Route::get('/questions/{id}','QuestionsController@show');
-    Route::get('/questions/{id}/{patient_id}','QuestionsController@ShowQuestitionsAnswars');
+    Route::get('/questions/{section_id}','QuestionsController@show');
+    Route::get('/questions/{section_id}/{patient_id}','QuestionsController@ShowQuestitionsAnswars');
     Route::put('/questions/{id}','QuestionsController@update');
     Route::delete('/questions/{id}','QuestionsController@destroy');
 

@@ -46,11 +46,11 @@ class PatientHistoryController extends Controller
      */
     public function index()
     {
-        $Patient = PatientHistory::latest()
-                            ->with('doctor:id,name,lname')
+        $Patient = PatientHistory::with('doctor:id,name,lname')
                             ->with(['sections' => function ($query){
                                 $query->select('patient_id','submit_status', 'outcome_status');
                             }])
+                            ->latest('updated_at')
                             ->get();
                             //->paginate(10);
 
@@ -79,7 +79,7 @@ class PatientHistoryController extends Controller
                                     ->with(['sections' => function ($query){
                                         $query->select('patient_id','submit_status', 'outcome_status');
                                     }])
-                                    ->latest()
+                                    ->latest('updated_at')
                                     ->get(['id','doctor_id','name','hospital','updated_at']);
                                    // ->paginate(10,['id','doctor_id','name','hospital','created_at','updated_at']);
         if($Patient->isNotEmpty()){
@@ -112,7 +112,7 @@ class PatientHistoryController extends Controller
                         ->with(['sections' => function ($query){
                             $query->select('patient_id','submit_status', 'outcome_status');
                         }])
-                        ->latest()
+                        ->latest('updated_at')
                         ->get(['id','doctor_id','name','hospital','updated_at']);
 
         if($Patient->isNotEmpty()){
@@ -363,7 +363,7 @@ class PatientHistoryController extends Controller
                                     ->with(['sections' => function ($query){
                                         $query->select('patient_id','submit_status', 'outcome_status');
                                     }])
-                                    ->latest()
+                                    ->latest('updated_at')
                                     ->get(['id','doctor_id','name','hospital','updated_at']);
 
         if($Patient!=null){

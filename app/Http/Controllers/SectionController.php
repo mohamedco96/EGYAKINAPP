@@ -2,19 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Assessment;
-use App\Models\Cause;
-use App\Models\Complaint;
-use App\Models\Examination;
-use App\Models\PatientHistory;
 use App\Models\Questions;
-use App\Models\Risk;
-use App\Models\Section;
-use App\Models\Decision;
+use App\Models\{Assessment, Cause, Complaint, Examination, PatientHistory, Risk, Section, User, Score, ScoreHistory,Decision,Outcome};
 use App\Http\Requests\StoreSectionRequest;
 use App\Http\Requests\UpdateSectionRequest;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 class SectionController extends Controller
 {
      /**
@@ -150,9 +144,123 @@ class SectionController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdatePatientHistoryRequest $request, $id)
+    public function update(UpdateSectionRequest $request,$section_id,$patient_id)
     {
+        //$Patient = PatientHistory::find($patient_id);
+        $questionMap =$request->all();
+        switch ($section_id) {
+            case 1:
+                if ($request->has('1')) {
+                    PatientHistory::where('id', $patient_id)->update(['name' => $request->input('1')]);
+                }
+                
+                if ($request->has('2')) {
+                    PatientHistory::where('id', $patient_id)->update(['hospital' => $request->input('2')]);
+                }
+    
+                if ($request->has('3')) {
+                    PatientHistory::where('id', $patient_id)->update(['collected_data_from' => $request->input('3')]);
+                }
+                
+                if ($request->has('4')) {
+                    PatientHistory::where('id', $patient_id)->update(['NID' => $request->input('4')]);
+                }
+                
+                if ($request->has('5')) {
+                    PatientHistory::where('id', $patient_id)->update(['phone' => $request->input('5')]);
+                }
+                
+                if ($request->has('6')) {
+                    PatientHistory::where('id', $patient_id)->update(['email' => $request->input('6')]);
+                }
+                
+                if ($request->has('7')) {
+                    PatientHistory::where('id', $patient_id)->update(['age' => $request->input('7')]);
+                }
+                
+                if ($request->has('8')) {
+                    PatientHistory::where('id', $patient_id)->update(['gender' => $request->input('8')]);
+                }
+                
+                if ($request->has('9')) {
+                    PatientHistory::where('id', $patient_id)->update(['occupation' => $request->input('9')]);
+                }
+                
+                if ($request->has('10')) {
+                    PatientHistory::where('id', $patient_id)->update(['residency' => $request->input('10')]);
+                }
+                
+                if ($request->has('11')) {
+                    PatientHistory::where('id', $patient_id)->update(['governorate' => $request->input('11')]);
+                }
+                
+                if ($request->has('12')) {
+                    PatientHistory::where('id', $patient_id)->update(['marital_status' => $request->input('12')]);
+                }
+                
+                if ($request->has('13')) {
+                    PatientHistory::where('id', $patient_id)->update(['educational_level' => $request->input('13')]);
+                }
+                
+                if ($request->has('14')) {
+                    PatientHistory::where('id', $patient_id)->update(['special_habits_of_the_patient' => $request->input('14')]);
+                }
+                
+                if ($request->has('15')) {
+                    PatientHistory::where('id', $patient_id)->update(['DM' => $request->input('15')]);
+                }
+                
+                if ($request->has('16')) {
+                    PatientHistory::where('id', $patient_id)->update(['DM_duration' => $request->input('16')]);
+                }
+                
+                if ($request->has('17')) {
+                    PatientHistory::where('id', $patient_id)->update(['HTN' => $request->input('17')]);
+                }
+                
+                if ($request->has('18')) {
+                    PatientHistory::where('id', $patient_id)->update(['HTN_duration' => $request->input('18')]);
+                }
+                
+                if ($request->has('19')) {
+                    PatientHistory::where('id', $patient_id)->update(['other' => $request->input('19')]);
+                }
+                $response = [
+                    'value' => true,
+                    'map' => $questionMap,
+                    'message' => 'Patient Updated Successfully'
+                ];
+            break;
+            case 2:
+                if ($request->has('20')) {
+                    Complaint::where('patient_id', $patient_id)->update(['where_was_th_patient_seen_for_the_first_time' => $request->input('20')]);
+                }
+                
+                if ($request->has('21')) {
+                    Complaint::where('patient_id', $patient_id)->update(['place_of_admission' => $request->input('21')]);
+                }
+    
+                if ($request->has('22')) {
+                    Complaint::where('patient_id', $patient_id)->update(['date_of_admission' => $request->input('22')]);
+                }
+                
+                if ($request->has('23')) {
+                    Complaint::where('patient_id', $patient_id)->update(['main_omplaint' => $request->input('23')]);
+                }
+                
+                if ($request->has('24')) {
+                    Complaint::where('patient_id', $patient_id)->update(['other' => $request->input('24')]);
+                }
 
+                $response = [
+                    'value' => true,
+                    'map' => $questionMap,
+                    'message' => 'Complaint Updated Successfully'
+                ];
+            break;
+        } 
+
+        return response()->json($response, 201);
     }
 
         /**

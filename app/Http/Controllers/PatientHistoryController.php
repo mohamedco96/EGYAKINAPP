@@ -115,9 +115,24 @@ class PatientHistoryController extends Controller
                         ->latest('updated_at')
                         ->get(['id','doctor_id','name','hospital','updated_at']);
 
+        $patientCount = $user->patients->count();
+        if($patientCount!=null){
+            $count = $patientCount;
+        }else{
+            $count = 0;
+        }
+
+        $scoreValue  = $user->score->score;
+        if($scoreValue !=null){
+            $score = $scoreValue;
+        }else{
+            $score = 0;
+        }
         if($Patient->isNotEmpty()){
             $response = [
                 'value' => true,
+                'patient_count' => $count,
+                'score_value' => $score,
                 'data' => $Patient,
                 //'sections' => $sections
             ];

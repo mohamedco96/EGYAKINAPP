@@ -115,11 +115,9 @@ class PatientHistoryController extends Controller
                         ->latest('updated_at')
                         ->get(['id','doctor_id','name','hospital','updated_at']);
 
-        $patientCount = $user->patients->count();
-        if($patientCount!=null){
-            $count = $patientCount;
-        }else{
-            $count = 0;
+        $count = 0;
+        if ($user->patients && $user->patients->count() !== null) {
+            $count = $user->patients->count();
         }
 
         $score = 0;

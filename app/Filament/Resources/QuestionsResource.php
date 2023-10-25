@@ -66,7 +66,14 @@ class QuestionsResource extends Resource
                         'string' => 'String',
                         'select' => 'Select',
                         'multiple' => 'Multiple Select',
+                        'date' => 'Date',
                     ])->required(),
+                Forms\Components\Select::make('keyboard_type')
+                ->options([
+                    'text' => 'Text',
+                    'number' => 'Number',
+                    'email' => 'Email',
+                ]),
                 Forms\Components\Radio::make('mandatory')
                     ->required()
                     ->boolean(),
@@ -83,6 +90,7 @@ class QuestionsResource extends Resource
                 Tables\Columns\TextColumn::make('question'),
                 Tables\Columns\TextColumn::make('values'),
                 Tables\Columns\TextColumn::make('type'),
+                Tables\Columns\TextColumn::make('keyboard_type'),
                 Tables\Columns\TextColumn::make('mandatory'),
                 Tables\Columns\TextColumn::make('created_at')->label('Created At'),
                 Tables\Columns\TextColumn::make('updated_at')->label('Updated At'),

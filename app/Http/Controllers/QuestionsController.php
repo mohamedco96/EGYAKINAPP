@@ -61,7 +61,7 @@ class QuestionsController extends Controller
     {
         $data = [];
         for ($i = 1; $i <= 19; $i++) {
-            $questions = Questions::where('section_id', $section_id)
+            $questions = Questions::where('section_id', $id)
             ->where('id', $i)
             ->select('id', 'question', 'values', 'type', 'keyboard_type','mandatory', 'updated_at')
             ->first();
@@ -219,6 +219,60 @@ class QuestionsController extends Controller
                     $data[] = $question;
                 }
                 break;
+            case 3:
+                $data = [];
+                for ($i = 25; $i <= 32; $i++) {
+                    $questions = Questions::where('section_id', $section_id)
+                    ->where('id', $i)
+                    ->select('id', 'question', 'values', 'type', 'keyboard_type','mandatory', 'updated_at')
+                    ->first();
+        
+                    $answers = Cause::where('patient_id', $patient_id)
+                    ->select('id',
+                    'cause_of_AKI','pre-renal_causes','pre-renal_others','renal_causes','renal_others','post-renal_causes','post-renal_others','other'
+                    )
+                    ->first();
+        
+                    $question = [
+                        'id' => $questions->{'id'},
+                        'question' => $questions->{'question'},
+                        'values' => $questions->{'values'},
+                        'type' => $questions->{'type'},
+                        'keyboard_type' => $questions->{'keyboard_type'},
+                        'mandatory' => $questions->{'mandatory'},
+                        'updated_at' => $questions->{'updated_at'},
+                    ];
+        
+                    switch ($i) {
+                        case 25:
+                            $question['answer'] = $answers->{'cause_of_AKI'};
+                            break;
+                        case 26:
+                            $question['answer'] = $answers->{'pre-renal_causes'};
+                            break;
+                        case 27:
+                            $question['answer'] = $answers->{'pre-renal_others'};
+                            break;
+                        case 28:
+                            $question['answer'] = $answers->{'renal_causes'};
+                            break;
+                        case 29:
+                            $question['answer'] = $answers->{'renal_others'};
+                            break;
+                        case 30:
+                            $question['answer'] = $answers->{'post-renal_causes'};
+                            break;
+                        case 31:
+                            $question['answer'] = $answers->{'post-renal_others'};
+                            break;
+                        case 32:
+                            $question['answer'] = $answers->{'other'};
+                            break;
+                    }
+                    
+                    $data[] = $question;
+                }
+                break;               
             }
         $response = [
             'value' => true,

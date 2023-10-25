@@ -258,6 +258,44 @@ class SectionController extends Controller
                     'message' => 'Complaint Updated Successfully'
                 ];
             break;
+            case 3:
+                if ($request->has('25')) {
+                    Cause::where('patient_id', $patient_id)->update(['cause_of_AKI' => $request->input('25')]);
+                }
+                
+                if ($request->has('26')) {
+                    Cause::where('patient_id', $patient_id)->update(['pre-renal_causes' => $request->input('26')]);
+                }
+    
+                if ($request->has('27')) {
+                    Cause::where('patient_id', $patient_id)->update(['pre-renal_others' => $request->input('27')]);
+                }
+                
+                if ($request->has('28')) {
+                    Cause::where('patient_id', $patient_id)->update(['renal_causes' => $request->input('28')]);
+                }
+                
+                if ($request->has('29')) {
+                    Cause::where('patient_id', $patient_id)->update(['renal_others' => $request->input('29')]);
+                }
+                if ($request->has('30')) {
+                    Cause::where('patient_id', $patient_id)->update(['post-renal_causes' => $request->input('30')]);
+                }
+                
+                if ($request->has('31')) {
+                    Cause::where('patient_id', $patient_id)->update(['post-renal_others' => $request->input('31')]);
+                }
+                
+                if ($request->has('32')) {
+                    Cause::where('patient_id', $patient_id)->update(['other' => $request->input('32')]);
+                }
+
+                $response = [
+                    'value' => true,
+                    'map' => $questionMap,
+                    'message' => 'Cause Updated Successfully'
+                ];
+            break;
         } 
 
         return response()->json($response, 201);

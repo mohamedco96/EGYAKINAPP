@@ -21,7 +21,7 @@ class StorePatientHistoryRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        return [/*
             'doctor_id' => 'required|string|exists:App\Models\User,id',
             'name' => 'required|string',
             'hospital' => 'required|string',
@@ -38,7 +38,7 @@ class StorePatientHistoryRequest extends FormRequest
             'educational_level' => 'required|string',
             'special_habits_of_the_patient' => 'required|array',
             'DM' => 'required|string',
-            'HTN' => 'required|string',
+            'HTN' => 'required|string',*/
         ];
     }
 }

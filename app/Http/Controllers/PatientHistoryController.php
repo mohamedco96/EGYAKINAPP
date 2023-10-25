@@ -149,10 +149,130 @@ class PatientHistoryController extends Controller
     {
         try {
             $patient = DB::transaction(function () use ($request) {
-                $patient = $this->patientHistory->create($request->all());
-    
+                
+                $doctor_id = Auth::id();
+                $questionMap =$request->all();
+                if ($request->has('1')) {
+                    $name = $request->input('1');
+                }else{
+                    $name = null;
+                }
+                if ($request->has('2')) {
+                    $hospital = $request->input('2');
+                }else{
+                    $hospital = null;
+                }
+                if ($request->has('3')) {
+                    $collected_data_from = $request->input('3');
+                }else{
+                    $collected_data_from = null;
+                }
+                if ($request->has('4')) {
+                    $NID = $request->input('4');
+                }else{
+                    $NID = null;
+                }
+                if ($request->has('5')) {
+                    $phone = $request->input('5');
+                }else{
+                    $phone = null;
+                }
+                if ($request->has('6')) {
+                    $email = $request->input('6');
+                }else{
+                    $email = null;
+                }
+                if ($request->has('7')) {
+                    $age = $request->input('7');
+                }else{
+                    $age = null;
+                }
+                if ($request->has('8')) {
+                    $gender = $request->input('8');
+                }else{
+                    $gender = null;
+                }
+                if ($request->has('9')) {
+                    $occupation = $request->input('9');
+                }else{
+                    $occupation = null;
+                }
+                if ($request->has('10')) {
+                    $residency = $request->input('10');
+                }else{
+                    $residency = null;
+                }
+                if ($request->has('11')) {
+                    $governorate = $request->input('11');
+                }else{
+                    $governorate = null;
+                }               
+                if ($request->has('12')) {
+                    $marital_status = $request->input('12');
+                }else{
+                    $marital_status = null;
+                }
+                if ($request->has('13')) {
+                    $educational_level = $request->input('13');
+                }else{
+                    $educational_level = null;
+                }
+                if ($request->has('14')) {
+                    $special_habits_of_the_patient = $request->input('14');
+                }else{
+                    $special_habits_of_the_patient = null;
+                }
+                if ($request->has('15')) {
+                    $DM = $request->input('15');
+                }else{
+                    $DM = null;
+                }
+                if ($request->has('16')) {
+                    $DM_duration = $request->input('16');
+                }else{
+                    $DM_duration = null;
+                }
+                if ($request->has('17')) {
+                    $HTN = $request->input('17');
+                }else{
+                    $HTN = null;
+                }
+                if ($request->has('18')) {
+                    $HTN_duration = $request->input('18');
+                }else{
+                    $HTN_duration = null;
+                }              
+                if ($request->has('19')) {
+                    $other = $request->input('19');
+                }else{
+                    $other = null;
+                }
+
+                $patient = $this->patientHistory->create([
+                    'doctor_id'  => $doctor_id,
+                    'name'  => $name,
+                    'hospital'  => $hospital,
+                    'collected_data_from'  => $collected_data_from,
+                    'NID'  => $NID,
+                    'phone'  => $phone,
+                    'email'  => $email,
+                    'age'  => $age,
+                    'gender'  => $gender,
+                    'occupation'  => $occupation,
+                    'residency'  => $residency,
+                    'governorate'  => $governorate,
+                    'marital_status'  => $marital_status,
+                    'educational_level'  => $educational_level,
+                    'special_habits_of_the_patient'  => $special_habits_of_the_patient,
+                    'DM'  => $DM,
+                    'DM_duration'  => $DM_duration,
+                    'HTN'  => $HTN,
+                    'HTN_duration'  => $HTN_duration,
+                    'other'  => $other                
+                ]);
+
                 $relatedData = [
-                    'doctor_id' => $request['doctor_id'],
+                    'doctor_id' => $userId = auth()->user()->id,
                     'patient_id' => $patient->id,
                 ];
     

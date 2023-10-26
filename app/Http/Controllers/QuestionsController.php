@@ -61,7 +61,7 @@ class QuestionsController extends Controller
     {
         $data = [];
         for ($i = 1; $i <= 19; $i++) {
-            $questions = Questions::where('section_id', $id)
+            $questions = Questions::where('section_id', $section_id)
             ->where('id', $i)
             ->select('id', 'question', 'values', 'type', 'keyboard_type','mandatory', 'updated_at')
             ->first();

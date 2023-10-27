@@ -313,7 +313,10 @@ class PatientHistoryController extends Controller
     
             $response = [
                 'value' => true,
-                'data' => $patient,
+                'doctor_id' => Auth::id(),
+                'id' => $patient->id,
+                'name' => $patient->name,
+                'message' => 'Patient Created Successfully'
             ];
     
             return response($response, 200);

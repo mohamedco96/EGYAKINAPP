@@ -252,6 +252,31 @@ class SectionController extends Controller
                     Complaint::where('patient_id', $patient_id)->update(['other' => $request->input('24')]);
                 }
 
+                DB::table('sections')->where('patient_id', $patient_id)->update(['section_2' => true]);
+
+                //scoring system
+                $doctorId = auth()->user()->id; // Assuming you have authentication in place
+                $score = Score::where('doctor_id', $doctorId)->first();
+                
+                $incrementAmount = 5; // Example increment amount
+                $action = 'Update Complaint Section'; // Example action
+                
+                if ($score) {
+                    $score->increment('score', $incrementAmount); // Increase the score
+                } else {
+                    Score::create([
+                        'doctor_id' => $doctorId,
+                        'score' => $incrementAmount,
+                    ]);
+                }
+        
+                ScoreHistory::create([
+                    'doctor_id' => $doctorId,
+                    'score' => $incrementAmount,
+                    'action' => $action,
+                    'timestamp' => now(),
+                ]);
+
                 $response = [
                     'value' => true,
                     'map' => $questionMap,
@@ -290,6 +315,31 @@ class SectionController extends Controller
                     Cause::where('patient_id', $patient_id)->update(['other' => $request->input('32')]);
                 }
 
+                DB::table('sections')->where('patient_id', $id)->update(['section_3' => true]);
+
+                //scoring system
+                $doctorId = auth()->user()->id; // Assuming you have authentication in place
+                $score = Score::where('doctor_id', $doctorId)->first();
+                
+                $incrementAmount = 5; // Example increment amount
+                $action = 'Update Cause of AKI Section'; // Example action
+                
+                if ($score) {
+                    $score->increment('score', $incrementAmount); // Increase the score
+                } else {
+                    Score::create([
+                        'doctor_id' => $doctorId,
+                        'score' => $incrementAmount,
+                    ]);
+                }
+        
+                ScoreHistory::create([
+                    'doctor_id' => $doctorId,
+                    'score' => $incrementAmount,
+                    'action' => $action,
+                    'timestamp' => now(),
+                ]);
+    
                 $response = [
                     'value' => true,
                     'map' => $questionMap,

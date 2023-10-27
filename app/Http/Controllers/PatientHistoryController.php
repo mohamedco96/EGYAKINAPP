@@ -283,7 +283,7 @@ class PatientHistoryController extends Controller
                 $this->assessment->create($relatedData);
                 $this->examination->create($relatedData);
                 $this->decision->create($relatedData);
-                $this->outcome->create($relatedData);
+                //$this->outcome->create($relatedData);
 
                 //scoring system
                 $doctorId = auth()->user()->id; // Assuming you have authentication in place

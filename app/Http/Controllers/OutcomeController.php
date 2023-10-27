@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Outcome;
+use App\Models\Score;
+use App\Models\ScoreHistory;
 use App\Http\Requests\StoreOutcomeRequest;
 use App\Http\Requests\UpdateOutcomeRequest;
 use Illuminate\Support\Facades\Auth;
@@ -37,7 +39,39 @@ class OutcomeController extends Controller
     // @return \Illuminate\Http\Response
     public function store(StoreOutcomeRequest $request)
     {
-        $Outcome = Outcome::create($request->all());
+        $Outcome = Outcome::create([
+            'doctor_id' => Auth::id(),
+            'patient_id' => $request->patient_id,
+            'outcome_of_the_patient' => $request->outcome_of_the_patient,
+            'creatinine_on_discharge' => $request->creatinine_on_discharge,
+            'final_status' => $request->final_status,
+            'other' => $request->other
+        ]);
+
+        DB::table('sections')->where('patient_id', $request->patient_id)->update(['outcome_status' => true]);
+
+        //scoring system
+        $doctorId = Auth::id(); // Assuming you have authentication in place
+        $score = Score::where('doctor_id', $doctorId)->first();
+        
+        $incrementAmount = 5; // Example increment amount
+        $action = 'Add Outcome'; // Example action
+        
+        if ($score) {
+            $score->increment('score', $incrementAmount); // Increase the score
+        } else {
+            Score::create([
+                'doctor_id' => $doctorId,
+                'score' => $incrementAmount,
+            ]);
+        }
+
+        ScoreHistory::create([
+            'doctor_id' => $doctorId,
+            'score' => $incrementAmount,
+            'action' => $action,
+            'timestamp' => now(),
+        ]);
 
         if($Outcome!=null){
             $response = [
@@ -57,9 +91,17 @@ class OutcomeController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show($id)
+    public function show($patient_id)
     {
-        $Outcome = Outcome::where('patient_id', $id)->first();
+        $Outcome = Outcome::where('patient_id', $patient_id)
+        ->select('doctor_id','outcome_of_the_patient', 'creatinine_on_discharge', 'final_status', 'other', 'updated_at')
+        ->with('doctor:id,name,lname')            
+        ->first();
+
+        $data = [
+            'first_name' => $Outcome->name,
+            'last_name' => $Outcome->lname,
+        ];
 
         if($Outcome!=null){
             $response = [

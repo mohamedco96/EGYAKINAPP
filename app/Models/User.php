@@ -71,4 +71,8 @@ class User extends Authenticatable
         return $this->hasMany(Comment::class);
     }
 
+    public function outcome(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Outcome::class,'doctor_id');
+    }
 }

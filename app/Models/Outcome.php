@@ -35,9 +35,6 @@ class Outcome extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'date_of_admission' => 'date',
-        'main_omplaint' => 'array',
-
     ];
     public function doctor(): BelongsTo
     {

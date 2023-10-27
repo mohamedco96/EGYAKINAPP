@@ -36,12 +36,16 @@ class CommentController extends Controller
     // @return \Illuminate\Http\Response
     public function store(StoreCommentRequest $request)
     {
-        $Comment = Comment::create($request->all());
+        $Comment = Comment::create([
+            'doctor_id' => Auth::id(),
+            'patient_id' => $request->patient_id,
+            'content' => $request->content
+        ]);
 
         if($Comment!=null){
             $response = [
                 'value' => true,
-                'data' => $Comment
+                'message' => 'Comment Created Successfully'
             ];
             return response($response, 200);
         }else {
@@ -56,10 +60,11 @@ class CommentController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show($id)
+    public function show($patient_id)
     {
-        $Comment = Comment::where('patient_id', $id)
-        ->with('doctor:id,name,lname')->latest()->get();
+        $Comment = Comment::where('patient_id', $patient_id)
+        ->select('doctor_id','content','updated_at')
+        ->with('doctor:id,name,lname')->latest('updated_at')->get();
 
         if($Comment->isNotEmpty()){
             $response = [

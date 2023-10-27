@@ -104,9 +104,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     //Comment
     Route::get('/comment','CommentController@index');
     Route::post('/comment','CommentController@store');
-    Route::get('/comment/{id}','CommentController@show');
-    Route::put('/comment/{id}','CommentController@update');
-    Route::delete('/comment/{id}','CommentController@destroy');
+    Route::get('/comment/{patient_id}','CommentController@show');
+    Route::put('/comment/{patient_id}','CommentController@update');
+    Route::delete('/comment/{patient_id}','CommentController@destroy');
 
     //Decision
     Route::get('/decision','DecisionController@index');

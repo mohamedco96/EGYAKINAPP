@@ -76,7 +76,7 @@ class OutcomeController extends Controller
         if($Outcome!=null){
             $response = [
                 'value' => true,
-                'data' => $Outcome
+                'message' => 'Outcome Created Successfully'
             ];
             return response($response, 200);
         }else {

@@ -310,12 +310,14 @@ class PatientHistoryController extends Controller
 
                 return $patient;
             });
-    
+
+            $submit_status = Section::where('patient_id', $patient->id)->get(['submit_status'])->first();
             $response = [
                 'value' => true,
                 'doctor_id' => Auth::id(),
                 'id' => $patient->id,
                 'name' => $patient->name,
+                'submit_status' => $submit_status->submit_status,
                 'message' => 'Patient Created Successfully'
             ];
     

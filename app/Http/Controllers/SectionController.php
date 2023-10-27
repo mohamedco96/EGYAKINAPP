@@ -315,7 +315,7 @@ class SectionController extends Controller
                     Cause::where('patient_id', $patient_id)->update(['other' => $request->input('32')]);
                 }
 
-                DB::table('sections')->where('patient_id', $id)->update(['section_3' => true]);
+                DB::table('sections')->where('patient_id', $patient_id)->update(['section_3' => true]);
 
                 //scoring system
                 $doctorId = auth()->user()->id; // Assuming you have authentication in place

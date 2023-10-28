@@ -518,7 +518,7 @@ class SectionController extends Controller
     
                 $response = [
                     'value' => true,
-                    'message' => 'Risk Updated Successfully'
+                    'message' => 'Assessment Updated Successfully'
                 ];
             break;
             case 6:
@@ -566,7 +566,7 @@ class SectionController extends Controller
                 $response = [
                     'value' => true,
                     'map' => $questionMap,
-                    'message' => 'Cause Updated Successfully'
+                    'message' => 'Examination Updated Successfully'
                 ];
             break;
             case 7:
@@ -602,7 +602,7 @@ class SectionController extends Controller
                 $response = [
                     'value' => true,
                     'map' => $questionMap,
-                    'message' => 'Cause Updated Successfully'
+                    'message' => 'Decision Updated Successfully'
                 ];
             break;
         } 

@@ -90,7 +90,7 @@ class SectionController extends Controller
                 $section['section_name'] = 'Laboratory and radiology results'; //Medical examinations
                 break;
             case 7:
-                $section['section_name'] = 'Medical decision'; //Medical examinations
+                $section['section_name'] = 'Medical decision';
                 break;
         }
     
@@ -323,6 +323,265 @@ class SectionController extends Controller
                 
                 $incrementAmount = 5; // Example increment amount
                 $action = 'Update Cause of AKI Section'; // Example action
+                
+                if ($score) {
+                    $score->increment('score', $incrementAmount); // Increase the score
+                } else {
+                    Score::create([
+                        'doctor_id' => $doctorId,
+                        'score' => $incrementAmount,
+                    ]);
+                }
+        
+                ScoreHistory::create([
+                    'doctor_id' => $doctorId,
+                    'score' => $incrementAmount,
+                    'action' => $action,
+                    'timestamp' => now(),
+                ]);
+    
+                $response = [
+                    'value' => true,
+                    'map' => $questionMap,
+                    'message' => 'Cause Updated Successfully'
+                ];
+            break;
+            case 4:
+                if ($request->has('33')) {
+                    Risk::where('patient_id', $patient_id)->update(['CKD_history' => $request->input('33')]);
+                }
+                if ($request->has('34')) {
+                    Risk::where('patient_id', $patient_id)->update(['AK_history' => $request->input('34')]);
+                }
+                if ($request->has('35')) {
+                    Risk::where('patient_id', $patient_id)->update(['cardiac-failure_history' => $request->input('35')]);
+                }
+                if ($request->has('36')) {
+                    Risk::where('patient_id', $patient_id)->update(['LCF_history' => $request->input('36')]);
+                }
+                if ($request->has('37')) {
+                    Risk::where('patient_id', $patient_id)->update(['neurological-impairment_disability_history' => $request->input('37')]);
+                }
+                if ($request->has('38')) {
+                    Risk::where('patient_id', $patient_id)->update(['sepsis_history' => $request->input('38')]);
+                }
+                if ($request->has('39')) {
+                    Risk::where('patient_id', $patient_id)->update(['contrast_media' => $request->input('39')]);
+                }
+                if ($request->has('40')) {
+                    Risk::where('patient_id', $patient_id)->update(['drugs-with-potential-nephrotoxicity' => $request->input('40')]);
+                }
+                if ($request->has('41')) {
+                    Risk::where('patient_id', $patient_id)->update(['drug_name' => $request->input('41')]);
+                }
+                if ($request->has('42')) {
+                    Risk::where('patient_id', $patient_id)->update(['hypovolemia_history' => $request->input('42')]);
+                }
+                if ($request->has('43')) {
+                    Risk::where('patient_id', $patient_id)->update(['malignancy_history' => $request->input('43')]);
+                }
+                if ($request->has('44')) {
+                    Risk::where('patient_id', $patient_id)->update(['trauma_history' => $request->input('44')]);
+                }
+                if ($request->has('45')) {
+                    Risk::where('patient_id', $patient_id)->update(['autoimmune-disease_history' => $request->input('45')]);
+                }
+                if ($request->has('46')) {
+                    Risk::where('patient_id', $patient_id)->update(['other-risk-factors' => $request->input('46')]);
+                }
+                
+                DB::table('sections')->where('patient_id', $patient_id)->update(['section_4' => true]);
+
+                //scoring system
+                $doctorId = auth()->user()->id; // Assuming you have authentication in place
+                $score = Score::where('doctor_id', $doctorId)->first();
+                
+                $incrementAmount = 5; // Example increment amount
+                $action = 'Update Risk Section'; // Example action
+                
+                if ($score) {
+                    $score->increment('score', $incrementAmount); // Increase the score
+                } else {
+                    Score::create([
+                        'doctor_id' => $doctorId,
+                        'score' => $incrementAmount,
+                    ]);
+                }
+        
+                ScoreHistory::create([
+                    'doctor_id' => $doctorId,
+                    'score' => $incrementAmount,
+                    'action' => $action,
+                    'timestamp' => now(),
+                ]);
+    
+                $response = [
+                    'value' => true,
+                    'message' => 'Risk Updated Successfully'
+                ];
+            break;
+            case 5:
+                if ($request->has('47')) {
+                    Assessment::where('patient_id', $patient_id)->update(['heart-rate/minute' => $request->input('47')]);
+                }
+                if ($request->has('48')) {
+                    Assessment::where('patient_id', $patient_id)->update(['respiratory-rate/minute' => $request->input('48')]);
+                }
+                if ($request->has('49')) {
+                    Assessment::where('patient_id', $patient_id)->update(['SBP' => $request->input('49')]);
+                }
+                if ($request->has('50')) {
+                    Assessment::where('patient_id', $patient_id)->update(['DBP' => $request->input('50')]);
+                }
+                if ($request->has('51')) {
+                    Assessment::where('patient_id', $patient_id)->update(['GCS' => $request->input('51')]);
+                }
+                if ($request->has('52')) {
+                    Assessment::where('patient_id', $patient_id)->update(['oxygen_saturation' => $request->input('52')]);
+                }
+                if ($request->has('53')) {
+                    Assessment::where('patient_id', $patient_id)->update(['temperature' => $request->input('53')]);
+                }
+                if ($request->has('54')) {
+                    Assessment::where('patient_id', $patient_id)->update(['UOP' => $request->input('54')]);
+                }
+                if ($request->has('55')) {
+                    Assessment::where('patient_id', $patient_id)->update(['AVPU' => $request->input('55')]);
+                }
+                if ($request->has('56')) {
+                    Assessment::where('patient_id', $patient_id)->update(['skin_examination' => $request->input('56')]);
+                }
+                if ($request->has('57')) {
+                    Assessment::where('patient_id', $patient_id)->update(['skin_examination_clarify' => $request->input('57')]);
+                }
+                if ($request->has('58')) {
+                    Assessment::where('patient_id', $patient_id)->update(['eye_examination' => $request->input('58')]);
+                }
+                if ($request->has('59')) {
+                    Assessment::where('patient_id', $patient_id)->update(['eye_examination_clarify' => $request->input('59')]);
+                }
+                if ($request->has('60')) {
+                    Assessment::where('patient_id', $patient_id)->update(['ear_examination' => $request->input('60')]);
+                }
+                if ($request->has('61')) {
+                    Assessment::where('patient_id', $patient_id)->update(['ear_examination_clarify' => $request->input('61')]);
+                }
+                if ($request->has('62')) {
+                    Assessment::where('patient_id', $patient_id)->update(['cardiac_examination' => $request->input('62')]);
+                }
+                if ($request->has('63')) {
+                    Assessment::where('patient_id', $patient_id)->update(['cardiac_examination_clarify' => $request->input('63')]);
+                }
+                if ($request->has('64')) {
+                    Assessment::where('patient_id', $patient_id)->update(['internal_jugular_vein' => $request->input('64')]);
+                }
+                if ($request->has('65')) {
+                    Assessment::where('patient_id', $patient_id)->update(['chest_examination' => $request->input('65')]);
+                }
+                if ($request->has('66')) {
+                    Assessment::where('patient_id', $patient_id)->update(['chest_examination_clarify' => $request->input('66')]);
+                }
+                if ($request->has('67')) {
+                    Assessment::where('patient_id', $patient_id)->update(['abdominal_examination' => $request->input('67')]);
+                }
+                if ($request->has('68')) {
+                    Assessment::where('patient_id', $patient_id)->update(['abdominal_examination_clarify' => $request->input('68')]);
+                }
+                if ($request->has('69')) {
+                    Assessment::where('patient_id', $patient_id)->update(['other' => $request->input('69')]);
+                }
+                               
+                DB::table('sections')->where('patient_id', $patient_id)->update(['section_5' => true]);
+
+                //scoring system
+                $doctorId = auth()->user()->id; // Assuming you have authentication in place
+                $score = Score::where('doctor_id', $doctorId)->first();
+                
+                $incrementAmount = 5; // Example increment amount
+                $action = 'Update Assessment Section'; // Example action
+                
+                if ($score) {
+                    $score->increment('score', $incrementAmount); // Increase the score
+                } else {
+                    Score::create([
+                        'doctor_id' => $doctorId,
+                        'score' => $incrementAmount,
+                    ]);
+                }
+        
+                ScoreHistory::create([
+                    'doctor_id' => $doctorId,
+                    'score' => $incrementAmount,
+                    'action' => $action,
+                    'timestamp' => now(),
+                ]);
+    
+                $response = [
+                    'value' => true,
+                    'message' => 'Risk Updated Successfully'
+                ];
+            break;
+            case 6:
+                if ($request->has('70')) {
+                    Examination::where('patient_id', $patient_id)->update(['current_creatinine' => $request->input('70')]);
+                }
+                
+                if ($request->has('71')) {
+                    Examination::where('patient_id', $patient_id)->update(['basal_creatinine' => $request->input('71')]);
+                }
+    
+                if ($request->has('72')) {
+                    Examination::where('patient_id', $patient_id)->update(['renal_US' => $request->input('72')]);
+                }
+                
+                if ($request->has('73')) {
+                    Examination::where('patient_id', $patient_id)->update(['specify_renal-US' => $request->input('73')]);
+                }
+                
+                DB::table('sections')->where('patient_id', $patient_id)->update(['section_6' => true]);
+
+                //scoring system
+                $doctorId = auth()->user()->id; // Assuming you have authentication in place
+                $score = Score::where('doctor_id', $doctorId)->first();
+                
+                $incrementAmount = 5; // Example increment amount
+                $action = 'Update Examination Section'; // Example action
+                
+                if ($score) {
+                    $score->increment('score', $incrementAmount); // Increase the score
+                } else {
+                    Score::create([
+                        'doctor_id' => $doctorId,
+                        'score' => $incrementAmount,
+                    ]);
+                }
+        
+                ScoreHistory::create([
+                    'doctor_id' => $doctorId,
+                    'score' => $incrementAmount,
+                    'action' => $action,
+                    'timestamp' => now(),
+                ]);
+    
+                $response = [
+                    'value' => true,
+                    'map' => $questionMap,
+                    'message' => 'Cause Updated Successfully'
+                ];
+            break;
+            case 7:
+                if ($request->has('74')) {
+                    Decision::where('patient_id', $patient_id)->update(['medical_decision' => $request->input('74')]);
+                }
+ 
+                DB::table('sections')->where('patient_id', $patient_id)->update(['section_7' => true]);
+
+                //scoring system
+                $doctorId = auth()->user()->id; // Assuming you have authentication in place
+                $score = Score::where('doctor_id', $doctorId)->first();
+                
+                $incrementAmount = 5; // Example increment amount
+                $action = 'Update Decision Section'; // Example action
                 
                 if ($score) {
                     $score->increment('score', $incrementAmount); // Increase the score

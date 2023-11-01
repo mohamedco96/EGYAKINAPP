@@ -613,7 +613,7 @@ class SectionController extends Controller
         /**
      * Update the specified resource in storage.
      */
-    public function updateFinalSubmit(UpdatePatientHistoryRequest $request, $patient_id)
+    public function updateFinalSubmit(UpdateSectionRequest $request, $patient_id)
     {
         $patient = Section::where('patient_id', $patient_id)->first();
 
@@ -647,14 +647,13 @@ class SectionController extends Controller
 
             $response = [
                 'value' => true,
-                'data' => $Examination,
-                'message' => 'Examination Updated Successfully'
+                'message' => 'Final Submit Updated Successfully'
             ];
             return response($response, 201);
         }else {
             $response = [
                 'value' => false,
-                'message' => 'No Examination was found'
+                'message' => 'Final Submit was found'
             ];
             return response($response, 404);
         }

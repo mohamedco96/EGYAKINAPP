@@ -9,11 +9,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-class Comment extends Model
+class Likes extends Model
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $fillable = ['doctor_id', 'patient_id', 'content'];
+    protected $fillable = ['doctor_id', 'patient_id', 'liked', 'comment_id'];
+
+        /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'liked' => 'boolean'
+    ];
 
     public function doctor()
     {
@@ -25,9 +34,8 @@ class Comment extends Model
         return $this->belongsTo(PatientHistory::class);
     }
 
-    public function likes()
+    public function comment()
     {
-        return $this->hasMany(Likes::class);
+        return $this->belongsTo(Comment::class);
     }
-
 }

@@ -75,4 +75,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(Outcome::class,'doctor_id');
     }
+
+    public function likess()
+    {
+        return $this->hasMany(Likes::class);
+    }
 }

@@ -107,6 +107,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/comment/{patient_id}','CommentController@show');
     Route::put('/comment/{patient_id}','CommentController@update');
     Route::delete('/comment/{patient_id}','CommentController@destroy');
+    Route::post('/like','LikesController@like');
+    Route::post('/unlike','LikesController@unlike');
+
 
     //Decision
     Route::get('/decision','DecisionController@index');

@@ -61,9 +61,9 @@ class ContactController extends Controller
      */
     public function show($id)
     {
-        $Contact = Contact::where('id', $id)
-        ->select('id','doctor_id','message','updated_at')
-        ->with('doctor:id,name,lname')->latest('updated_at')->get();
+        $Contact = Contact::where('doctor_id', $id)
+        ->select('id','message','updated_at')
+        ->latest('updated_at')->get();
 
         if($Contact->isNotEmpty()){
             $response = [

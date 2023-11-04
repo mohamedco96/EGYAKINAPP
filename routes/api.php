@@ -110,6 +110,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/like','LikesController@like');
     Route::post('/unlike','LikesController@unlike');
 
+    //contact
+    Route::get('/contact','ContactController@index');
+    Route::post('/contact','ContactController@store');
+    Route::get('/contact/{id}','ContactController@show');
+    Route::put('/contact/{id}','ContactController@update');
+    Route::delete('/contact/{id}','ContactController@destroy');
+
 
     //Decision
     Route::get('/decision','DecisionController@index');

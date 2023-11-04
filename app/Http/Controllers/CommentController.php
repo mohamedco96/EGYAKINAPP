@@ -113,7 +113,7 @@ class CommentController extends Controller
         $Comment = Comment::where('id', $id)->first();
 
         if($Comment!=null){
-            DB::table('Comments')->where('id', $id)->delete();
+            DB::table('comments')->where('id', $id)->delete();
             $response = [
                 'value' => true,
                 'message' => 'Comment Deleted Successfully'

@@ -64,7 +64,7 @@ class CommentController extends Controller
     {
         $Comment = Comment::where('patient_id', $patient_id)
         ->select('id','doctor_id','content','updated_at')
-        ->with('doctor:id,name,lname')->latest('updated_at')->get();
+        ->with('doctor:id,name,lname')->get();
 
         if($Comment->isNotEmpty()){
             $response = [

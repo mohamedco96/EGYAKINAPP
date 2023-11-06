@@ -80,4 +80,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Likes::class);
     }
+
+    public function posts()
+    {
+        return $this->hasMany(Posts::class);
+    }
+
+    public function postcomments()
+    {
+        return $this->hasMany(PostComments::class,'doctor_id');
+    }
 }

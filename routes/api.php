@@ -131,6 +131,20 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/outcome/{patient_id}','OutcomeController@show');
     Route::put('/outcome/{patient_id}','OutcomeController@update');
     Route::delete('/outcome/{patient_id}','OutcomeController@destroy');
+
+    //Post
+    Route::get('/post','PostsController@index');
+    Route::post('/post','PostsController@store');
+    Route::get('/post/{id}','PostsController@show');
+    Route::put('/post/{id}','PostsController@update');
+    Route::delete('/post/{id}','PostsController@destroy');
+
+    //PostComments
+    Route::get('/Postcomments','PostCommentsController@index');
+    Route::post('/Postcomments','PostCommentsController@store');
+    Route::get('/Postcomments/{id}','PostCommentsController@show');
+    Route::put('/Postcomments/{id}','PostCommentsController@update');
+    Route::delete('/Postcomments/{id}','PostCommentsController@destroy');
 });
 
 Route::fallback(function(){

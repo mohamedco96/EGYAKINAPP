@@ -6,6 +6,8 @@ use App\Models\Posts;
 use App\Http\Requests\StorePostsRequest;
 use App\Http\Requests\UpdatePostsRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+
 
 class PostsController extends Controller
 {
@@ -55,6 +57,7 @@ class PostsController extends Controller
         if ($request->hasFile('image')) {
             $image = $request->file('image');
             $imagePath = $image->store('images', 'public');
+            $imagePath = Storage::disk('public')->url($imagePath);
         }
 
         // Create the post

@@ -100,7 +100,7 @@ class PostsController extends Controller
         $post = Posts::where('id', $id)
         ->select('id','title', 'image', 'content', 'hidden', 'doctor_id' ,'updated_at')
         ->with('doctor:id,name,lname')  
-        ->with('postcomments:id,content,doctor_id,post_id')           
+        //->with('postcomments:id,content,doctor_id,post_id')           
         ->get();
 
         if($post!=null){

@@ -7,6 +7,7 @@ use App\Models\Posts;
 use App\Http\Requests\StorePostCommentsRequest;
 use App\Http\Requests\UpdatePostCommentsRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class PostCommentsController extends Controller
 {
@@ -63,9 +64,27 @@ class PostCommentsController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(PostComments $postComments)
+    public function show($id)
     {
-        //
+        $postcomment = PostComments::where('post_id', $id)
+        ->select('id','content', 'doctor_id','updated_at')
+        ->with('doctor:id,name,lname')  
+        //->with('postcomments:id,content,doctor_id,post_id')           
+        ->get();
+
+        if($postcomment!=null){
+            $response = [
+                'value' => true,
+                'data' => $postcomment
+            ];
+            return response($response, 200);
+        }else {
+            $response = [
+                'value' => false,
+                'message' => 'No post comment was found'
+            ];
+            return response($response, 404);
+        }
     }
 
     /**
@@ -87,8 +106,23 @@ class PostCommentsController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(PostComments $postComments)
+    public function destroy($id)
     {
-        //
+        $postcomment = PostComments::where('id', $id)->first();
+
+        if($postcomment!=null){
+            DB::table('post_comments')->where('id', $id)->delete();
+            $response = [
+                'value' => true,
+                'message' => 'Post comment Deleted Successfully'
+            ];
+            return response($response, 201);
+        }else {
+            $response = [
+                'value' => false,
+                'message' => 'No Post comment was found'
+            ];
+            return response($response, 404);
+        }
     }
 }

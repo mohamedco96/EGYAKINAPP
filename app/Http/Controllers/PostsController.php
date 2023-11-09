@@ -58,6 +58,8 @@ class PostsController extends Controller
             $image = $request->file('image');
             $imagePath = $image->store('images', 'public');
             $imagePath = Storage::disk('public')->url($imagePath);
+                       //$image_path = Storage::disk('public')->putFile('images/', $request->file('image'));
+
         }
 
         // Create the post

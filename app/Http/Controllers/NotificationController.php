@@ -42,16 +42,18 @@ class NotificationController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show($id)
+    public function show()
     {
-        $Notification = Notification::where('doctor_id', $id)
+        $doctorId = auth()->user()->id;
+
+        $Notification = Notification::where('doctor_id', $doctorId)
         ->select('id','read','type','patient_id','doctor_id','updated_at')
         ->with('doctor:id,name,lname,workingplace')
         ->with('patient:id,name,hospital,governorate')
         ->latest()
         ->get();
 
-        $unreadCount = Notification::where('doctor_id', $id)->where('read', false)->count();
+        $unreadCount = Notification::where('doctor_id', $doctorId)->where('read', false)->count();
 
         if($Notification!=null){
             $response = [
@@ -72,9 +74,27 @@ class NotificationController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateNotificationRequest $request, $id)
+    public function update()
     {
+        $doctorId = auth()->user()->id;
 
+        $Notification = Notification::where('doctor_id', $doctorId)->get();
+
+        if($Notification!=null){
+            $Notification = Notification::where('doctor_id', $doctorId)->update(['read' => true]);
+            $response = [
+                'value' => true,
+                'data' => $Notification,
+                'message' => 'Notification Updated Successfully'
+            ];
+            return response($response, 201);
+        }else {
+            $response = [
+                'value' => false,
+                'message' => 'No Notification was found'
+            ];
+            return response($response, 404);
+        }
     }
 
     /**

@@ -147,10 +147,10 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::delete('/Postcomments/{id}','PostCommentsController@destroy');
 
     //Notification
-    Route::get('/notification','NotificationController@index');
+    //Route::get('/notification','NotificationController@index');
     Route::post('/notification','NotificationController@store');
-    Route::get('/notification/{id}','NotificationController@show');
-    Route::put('/notification/{id}','NotificationController@update');
+    Route::get('/notification','NotificationController@show');
+    Route::put('/notification','NotificationController@update');
     Route::delete('/notification/{id}','NotificationController@destroy');
 });
 

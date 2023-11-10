@@ -47,7 +47,7 @@ class NotificationController extends Controller
         $doctorId = auth()->user()->id;
 
         $Notification = Notification::where('doctor_id', $doctorId)
-        ->select('id','read','type','patient_id','doctor_id','updated_at')
+        ->select('id','read','type','patient_id','doctor_id','created_at')
         ->with('doctor:id,name,lname,workingplace')
         ->with('patient:id,name,hospital,governorate')
         ->latest()

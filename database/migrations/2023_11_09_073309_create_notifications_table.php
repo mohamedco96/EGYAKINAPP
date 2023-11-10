@@ -13,6 +13,13 @@ return new class extends Migration
     {
         Schema::create('notifications', function (Blueprint $table) {
             $table->id();
+            $table->text('content');
+            $table->boolean('read')->default(false);
+            $table->bigInteger('patient_id')->unsigned()->index()->nullable();
+            $table->foreign('patient_id')->references('id')->on('patient_histories')->onDelete('cascade');
+            $table->bigInteger('doctor_id')->unsigned()->index();
+            $table->foreign('doctor_id')->references('id')->on('users')->onDelete('cascade');
+            $table->text('type')->nullable();
             $table->timestamps();
         });
     }

@@ -90,4 +90,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(PostComments::class,'doctor_id');
     }
+
+    public function notification()
+    {
+        return $this->hasMany(Notification::class,'doctor_id');
+    }
 }

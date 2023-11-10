@@ -15,7 +15,7 @@ class CommentController extends Controller
      */
     public function index()
     {
-        $Comment = Comment::with('doctor:id,name,lname')->latest()->get();
+        $Comment = Comment::with('doctor:id,name,lname,workingplace')->latest()->get();
 
         if($Comment->isNotEmpty()){
             $response = [
@@ -64,7 +64,7 @@ class CommentController extends Controller
     {
         $Comment = Comment::where('patient_id', $patient_id)
         ->select('id','doctor_id','content','updated_at')
-        ->with('doctor:id,name,lname')->get();
+        ->with('doctor:id,name,lname,workingplace')->get();
 
         if($Comment->isNotEmpty()){
             $response = [

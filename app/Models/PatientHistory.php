@@ -74,4 +74,9 @@ class PatientHistory extends Model
     {
         return $this->hasMany(Comment::class);
     }
+
+    public function notification()
+    {
+        return $this->hasMany(Notification::class,'doctor_id');
+    }
 }

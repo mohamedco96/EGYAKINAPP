@@ -68,7 +68,7 @@ class PostCommentsController extends Controller
     {
         $postcomment = PostComments::where('post_id', $id)
         ->select('id','content', 'doctor_id','updated_at')
-        ->with('doctor:id,name,lname')  
+        ->with('doctor:id,name,lname,workingplace')  
         //->with('postcomments:id,content,doctor_id,post_id')           
         ->get();
 

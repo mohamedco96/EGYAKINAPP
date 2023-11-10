@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Assessment, Cause, Complaint, Examination, PatientHistory, Risk, Section, User, Score, ScoreHistory,Decision,Outcome};
+use App\Models\{Assessment, Cause, Complaint, Examination, PatientHistory, Risk, Section, User,
+     Score, ScoreHistory,Decision,Outcome,Notification};
 use App\Http\Requests\StorePatientHistoryRequest;
 use App\Http\Requests\UpdatePatientHistoryRequest;
 use Illuminate\Support\Facades\Auth;
@@ -312,6 +313,22 @@ class PatientHistoryController extends Controller
             });
 
             $submit_status = Section::where('patient_id', $patient->id)->get(['submit_status'])->first();
+
+            $doctorId = auth()->user()->id;
+            $doctorIds = User::whereNotIn('id', [$doctorId])->pluck('id');
+
+            foreach ($doctorIds as $doctorId) {
+                Notification::create([
+                    'content' => 'New Patient was created',
+                    'read' => false,
+                    'type' => 'New Patient',
+                    'patient_id' => $patient->id,
+                    'doctor_id' => $doctorId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
             $response = [
                 'value' => true,
                 'doctor_id' => Auth::id(),
@@ -321,7 +338,7 @@ class PatientHistoryController extends Controller
                 'message' => 'Patient Created Successfully'
             ];
     
-            return response($response, 200);
+            return response($response, 200);        
         } catch (\Exception $e) {
             $response = [
                 'value' => false,

@@ -51,9 +51,12 @@ class NotificationController extends Controller
         ->latest()
         ->get();
 
+        $unreadCount = Notification::where('doctor_id', $id)->where('read', false)->count();
+
         if($Notification!=null){
             $response = [
                 'value' => true,
+                'unreadCount' => $unreadCount,
                 'data' => $Notification
             ];
             return response($response, 201);

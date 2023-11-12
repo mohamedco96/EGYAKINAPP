@@ -505,7 +505,7 @@ class PatientHistoryController extends Controller
             ];
             return response($response, 404);
         }
-    }
+    } 
 
          /**
      * Search for product by name

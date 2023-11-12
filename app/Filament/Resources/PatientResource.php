@@ -104,6 +104,7 @@ class PatientResource extends Resource
                         'Drug addict' => 'Drug addict',
                         'Others' => 'Others'
                     ]),
+                Forms\Components\TextInput::make('other_habits_of_the_patient'),
                 Forms\Components\Select::make('DM')->label('DM')
                     ->options([
                         'Yes' => 'Yes',
@@ -144,6 +145,7 @@ class PatientResource extends Resource
                 Tables\Columns\TextColumn::make('marital_status'),
                 Tables\Columns\TextColumn::make('educational_level'),
                 Tables\Columns\TextColumn::make('special_habits_of_the_patient'),
+                Tables\Columns\TextColumn::make('other_habits_of_the_patient'),
                 Tables\Columns\TextColumn::make('DM')->label('DM'),
                 Tables\Columns\TextColumn::make('DM_duration')->label('DM Duration'),
                 Tables\Columns\TextColumn::make('HTN')->label('HTN'),

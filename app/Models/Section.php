@@ -29,7 +29,7 @@ class Section extends Model
         'section_7',
         'submit_status',
         'outcome_status',
-        'doc_id'
+        'doc_id',
     ];
 
     /**
@@ -46,7 +46,7 @@ class Section extends Model
         'section_6' => 'boolean',
         'section_7' => 'boolean',
         'submit_status' => 'boolean',
-        'outcome_status' => 'boolean'
+        'outcome_status' => 'boolean',
     ];
 
     public function doctor(): BelongsTo
@@ -61,23 +61,26 @@ class Section extends Model
 
     public function complaint(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(Complaint::class,'patient_id');
-    }
-    public function cause(): \Illuminate\Database\Eloquent\Relations\HasOne
-    {
-        return $this->hasOne(Cause::class,'patient_id');
-    }
-    public function risk(): \Illuminate\Database\Eloquent\Relations\HasOne
-    {
-        return $this->hasOne(Risk::class,'patient_id');
-    }
-    public function assessment(): \Illuminate\Database\Eloquent\Relations\HasOne
-    {
-        return $this->hasOne(Assessment::class,'patient_id');
-    }
-    public function examination(): \Illuminate\Database\Eloquent\Relations\HasOne
-    {
-        return $this->hasOne(Examination::class,'patient_id');
+        return $this->hasOne(Complaint::class, 'patient_id');
     }
 
+    public function cause(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Cause::class, 'patient_id');
+    }
+
+    public function risk(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Risk::class, 'patient_id');
+    }
+
+    public function assessment(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Assessment::class, 'patient_id');
+    }
+
+    public function examination(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Examination::class, 'patient_id');
+    }
 }

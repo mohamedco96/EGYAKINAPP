@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\CauseResource\Pages;
-use App\Filament\Resources\CauseResource\RelationManagers;
 use App\Models\Cause;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
@@ -13,20 +12,25 @@ use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class CauseResource extends Resource
 {
     protected static ?string $model = Cause::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+
     protected static ?string $navigationLabel = 'Cause';
+
     protected static ?string $navigationGroup = 'Patient Sections';
+
     protected static ?int $navigationSort = 6;
+
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::count();
     }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -52,23 +56,23 @@ class CauseResource extends Resource
                     ->multiple()
                     ->options([
                         'Volume depletion due to hemorrhage' => 'Volume depletion due to hemorrhage',
-                        'Volume depletion due to vomiting' =>'Volume depletion due to vomiting',
-                        'Volume depletion due to diarrhea' =>'Volume depletion due to diarrhea',
-                        'Volume depletion due to burns' =>'Volume depletion due to burns',
-                        'Volume depletion due to inappropriate diuresis' =>'Volume depletion due to inappropriate diuresis',
-                        'Edematous state due to HF' =>'Edematous state due to HF',
-                        'Edematous state due to LCF' =>'Edematous state due to LCF',
-                        'Edematous state due to Nephrotic syndrome' =>'Edematous state due to Nephrotic syndrome',
-                        'Edematous state due to other causes' =>'Edematous state due to other causes',
-                        'Hypotension due to septic shock' =>'Hypotension due to septic shock',
-                        'Hypotension due to cardiogenic shock' =>'Hypotension due to cardiogenic shock',
-                        'Hypotension due to anaphylactic shock' =>'Hypotension due to anaphylactic shock',
-                        'Renal hypoperfusion due to NSAIDs use' =>'Renal hypoperfusion due to NSAIDs use',
-                        'Renal hypoperfusion due to ACEi/ARBs use' =>'Renal hypoperfusion due to ACEi/ARBs use',
-                        'Renal hypoperfusion due to abdominal aortic aneurysm' =>'Renal hypoperfusion due to abdominal aortic aneurysm',
-                        'Renal hypoperfusion due to renal artery stenosis/occlusion' =>'Renal hypoperfusion due to renal artery stenosis/occlusion',
-                        'Renal hypoperfusion due to hepatorenal syndrome' =>'Renal hypoperfusion due to hepatorenal syndrome',
-                        'other causes' =>'other causes',
+                        'Volume depletion due to vomiting' => 'Volume depletion due to vomiting',
+                        'Volume depletion due to diarrhea' => 'Volume depletion due to diarrhea',
+                        'Volume depletion due to burns' => 'Volume depletion due to burns',
+                        'Volume depletion due to inappropriate diuresis' => 'Volume depletion due to inappropriate diuresis',
+                        'Edematous state due to HF' => 'Edematous state due to HF',
+                        'Edematous state due to LCF' => 'Edematous state due to LCF',
+                        'Edematous state due to Nephrotic syndrome' => 'Edematous state due to Nephrotic syndrome',
+                        'Edematous state due to other causes' => 'Edematous state due to other causes',
+                        'Hypotension due to septic shock' => 'Hypotension due to septic shock',
+                        'Hypotension due to cardiogenic shock' => 'Hypotension due to cardiogenic shock',
+                        'Hypotension due to anaphylactic shock' => 'Hypotension due to anaphylactic shock',
+                        'Renal hypoperfusion due to NSAIDs use' => 'Renal hypoperfusion due to NSAIDs use',
+                        'Renal hypoperfusion due to ACEi/ARBs use' => 'Renal hypoperfusion due to ACEi/ARBs use',
+                        'Renal hypoperfusion due to abdominal aortic aneurysm' => 'Renal hypoperfusion due to abdominal aortic aneurysm',
+                        'Renal hypoperfusion due to renal artery stenosis/occlusion' => 'Renal hypoperfusion due to renal artery stenosis/occlusion',
+                        'Renal hypoperfusion due to hepatorenal syndrome' => 'Renal hypoperfusion due to hepatorenal syndrome',
+                        'other causes' => 'other causes',
                     ]),
                 Forms\Components\TextInput::make('pre-renal_others')->label('If the cause of pre-renal AKI is others, what is the cause?'),
                 Forms\Components\TextInput::make('renal_causes')->label('Intrinsic renal causes of AKI in this patient include'),
@@ -99,7 +103,7 @@ class CauseResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('Doctor Name')
-                ->relationship('doctor', 'name'),
+                    ->relationship('doctor', 'name'),
                 Tables\Filters\SelectFilter::make('Patient Name')
                     ->relationship('patient', 'name'),
                 Tables\Filters\Filter::make('created_at')
@@ -117,11 +121,11 @@ class CauseResource extends Resource
                                 $data['created_until'],
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
-                    })
+                    }),
             ])->filtersTriggerAction(
                 fn (Action $action) => $action
                     ->button()
-                    ->label('Filter'),)
+                    ->label('Filter'), )
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
@@ -129,7 +133,7 @@ class CauseResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                    ExportBulkAction::make()
+                    ExportBulkAction::make(),
                 ]),
             ])
             ->emptyStateActions([

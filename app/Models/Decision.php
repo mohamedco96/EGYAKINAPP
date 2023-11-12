@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -24,7 +23,7 @@ class Decision extends Model
         'medical_decision',
         'other',
         'created_at',
-        'updated_at'
+        'updated_at',
     ];
 
     /**
@@ -37,6 +36,7 @@ class Decision extends Model
         'main_omplaint' => 'array',
 
     ];
+
     public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class);

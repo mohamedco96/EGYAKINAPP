@@ -26,7 +26,7 @@ class Examination extends Model
         'specify_renal-US',
         'other',
         'created_at',
-        'updated_at'
+        'updated_at',
     ];
 
     public function doctor(): BelongsTo

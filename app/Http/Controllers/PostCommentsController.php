@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PostComments;
-use App\Models\Posts;
 use App\Http\Requests\StorePostCommentsRequest;
 use App\Http\Requests\UpdatePostCommentsRequest;
+use App\Models\PostComments;
+use App\Models\Posts;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -46,17 +46,19 @@ class PostCommentsController extends Controller
         $user->postcomments()->save($comment);
         $post->postcomments()->save($comment);
 
-        if($post!=null){
+        if ($post != null) {
             $response = [
                 'value' => true,
-                'message' => 'C0mment Created Successfully'
+                'message' => 'C0mment Created Successfully',
             ];
+
             return response($response, 200);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No post was found'
+                'message' => 'No post was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -67,22 +69,24 @@ class PostCommentsController extends Controller
     public function show($id)
     {
         $postcomment = PostComments::where('post_id', $id)
-        ->select('id','content', 'doctor_id','updated_at')
-        ->with('doctor:id,name,lname,workingplace')  
-        //->with('postcomments:id,content,doctor_id,post_id')           
-        ->get();
+            ->select('id', 'content', 'doctor_id', 'updated_at')
+            ->with('doctor:id,name,lname,workingplace')
+        //->with('postcomments:id,content,doctor_id,post_id')
+            ->get();
 
-        if($postcomment!=null){
+        if ($postcomment != null) {
             $response = [
                 'value' => true,
-                'data' => $postcomment
+                'data' => $postcomment,
             ];
+
             return response($response, 200);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No post comment was found'
+                'message' => 'No post comment was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -110,18 +114,20 @@ class PostCommentsController extends Controller
     {
         $postcomment = PostComments::where('id', $id)->first();
 
-        if($postcomment!=null){
+        if ($postcomment != null) {
             DB::table('post_comments')->where('id', $id)->delete();
             $response = [
                 'value' => true,
-                'message' => 'Post comment Deleted Successfully'
+                'message' => 'Post comment Deleted Successfully',
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Post comment was found'
+                'message' => 'No Post comment was found',
             ];
+
             return response($response, 404);
         }
     }

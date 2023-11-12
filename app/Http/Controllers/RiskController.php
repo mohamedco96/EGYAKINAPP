@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Risk;
 use App\Http\Requests\StoreRiskRequest;
 use App\Http\Requests\UpdateRiskRequest;
+use App\Models\Risk;
 use Illuminate\Support\Facades\DB;
 
 class RiskController extends Controller
 {
-
     /**
      * Display a listing of the resource.
      */
@@ -18,16 +17,18 @@ class RiskController extends Controller
         //$Risk = Risk::latest()->paginate(10);
         $Risk = Risk::latest()->get();
 
-        if($Risk!=null){
+        if ($Risk != null) {
             $response = [
                 'value' => true,
-                'data' => $Risk
+                'data' => $Risk,
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
-                'value' => false
+                'value' => false,
             ];
+
             return response($response, 404);
         }
     }
@@ -38,17 +39,19 @@ class RiskController extends Controller
     {
         $Risk = Risk::create($request->all());
 
-        if($Risk!=null){
+        if ($Risk != null) {
             $response = [
                 'value' => true,
-                'data' => $Risk
+                'data' => $Risk,
             ];
+
             return response($response, 200);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Risk was found'
+                'message' => 'No Risk was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -60,17 +63,19 @@ class RiskController extends Controller
     {
         $Risk = Risk::where('patient_id', $id)->first();
 
-        if($Risk!=null){
+        if ($Risk != null) {
             $response = [
                 'value' => true,
-                'data' => $Risk
+                'data' => $Risk,
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Risk was found'
+                'message' => 'No Risk was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -82,19 +87,18 @@ class RiskController extends Controller
     {
         $Risk = Risk::where('patient_id', $id)->first();
 
-        if($Risk!=null){
+        if ($Risk != null) {
             $Risk->update($request->all());
 
-            
             DB::table('sections')->where('patient_id', $id)->update(['section_4' => true]);
 
             //scoring system
             $doctorId = auth()->user()->id; // Assuming you have authentication in place
             $score = Score::where('doctor_id', $doctorId)->first();
-            
+
             $incrementAmount = 5; // Example increment amount
             $action = 'Update Risk factors for AKI Section'; // Example action
-            
+
             if ($score) {
                 $score->increment('score', $incrementAmount); // Increase the score
             } else {
@@ -103,7 +107,7 @@ class RiskController extends Controller
                     'score' => $incrementAmount,
                 ]);
             }
-    
+
             ScoreHistory::create([
                 'doctor_id' => $doctorId,
                 'score' => $incrementAmount,
@@ -114,14 +118,16 @@ class RiskController extends Controller
             $response = [
                 'value' => true,
                 'data' => $Risk,
-                'message' => 'Risk Updated Successfully'
+                'message' => 'Risk Updated Successfully',
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Risk was found'
+                'message' => 'No Risk was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -133,19 +139,21 @@ class RiskController extends Controller
     {
         $Risk = Risk::where('patient_id', $id)->first();
 
-        if($Risk!=null){
+        if ($Risk != null) {
             DB::table('risks')->where('patient_id', $id)->delete();
 
             $response = [
                 'value' => true,
-                'message' => 'Risk Deleted Successfully'
+                'message' => 'Risk Deleted Successfully',
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Risk was found'
+                'message' => 'No Risk was found',
             ];
+
             return response($response, 404);
         }
     }

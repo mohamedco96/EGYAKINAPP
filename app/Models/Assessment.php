@@ -44,7 +44,7 @@ class Assessment extends Model
         'abdominal_examination_clarify',
         'other',
         'created_at',
-        'updated_at'
+        'updated_at',
     ];
 
     protected $casts = [
@@ -54,6 +54,7 @@ class Assessment extends Model
         'chest_examination' => 'array',
         'abdominal_examination' => 'array',
     ];
+
     public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class);

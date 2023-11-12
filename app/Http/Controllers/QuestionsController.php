@@ -2,15 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Questions;
-use App\Models\{Assessment, Cause, Complaint, Examination, PatientHistory, Risk, Section, User, Score, ScoreHistory,Decision,Outcome};
 use App\Http\Requests\StoreQuestionsRequest;
 use App\Http\Requests\UpdateQuestionsRequest;
+use App\Models\Assessment;
+use App\Models\Cause;
+use App\Models\Complaint;
+use App\Models\Decision;
+use App\Models\Examination;
+use App\Models\Outcome;
+use App\Models\PatientHistory;
+use App\Models\Questions;
+use App\Models\Risk;
 use Illuminate\Support\Facades\DB;
 
 class QuestionsController extends Controller
 {
-
     /**
      * Display a listing of the resource.
      */
@@ -19,16 +25,18 @@ class QuestionsController extends Controller
         //$Questions = Questions::latest()->paginate(10);
         $Questions = Questions::get();
 
-        if($Questions!=null){
+        if ($Questions != null) {
             $response = [
                 'value' => true,
-                'data' => $Questions
+                'data' => $Questions,
             ];
+
             return response($response, 200);
-        }else {
+        } else {
             $response = [
-                'value' => false
+                'value' => false,
             ];
+
             return response($response, 404);
         }
     }
@@ -39,17 +47,19 @@ class QuestionsController extends Controller
     {
         $Questions = Questions::create($request->all());
 
-        if($Questions!=null){
+        if ($Questions != null) {
             $response = [
                 'value' => true,
-                'data' => $Questions
+                'data' => $Questions,
             ];
+
             return response($response, 200);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Questions was found'
+                'message' => 'No Questions was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -66,9 +76,9 @@ class QuestionsController extends Controller
                 continue;
             }
             $questions = Questions::where('section_id', $section_id)
-            ->where('id', $i)
-            ->select('id', 'question', 'values', 'type', 'keyboard_type','mandatory', 'updated_at')
-            ->first();
+                ->where('id', $i)
+                ->select('id', 'question', 'values', 'type', 'keyboard_type', 'mandatory', 'updated_at')
+                ->first();
 
             $question = [
                 'id' => $questions->{'id'},
@@ -79,17 +89,18 @@ class QuestionsController extends Controller
                 'mandatory' => $questions->{'mandatory'},
                 'updated_at' => $questions->{'updated_at'},
             ];
-         
+
             $data[] = $question;
         }
         $response = [
             'value' => true,
             'data' => $data,
         ];
+
         return response($response, 200);
     }
 
-    public function ShowQuestitionsAnswars($section_id,$patient_id)
+    public function ShowQuestitionsAnswars($section_id, $patient_id)
     {
         switch ($section_id) {
             case 1:
@@ -100,16 +111,16 @@ class QuestionsController extends Controller
                         continue;
                     }
                     $questions = Questions::where('section_id', $section_id)
-                    ->where('id', $i)
-                    ->select('id', 'question', 'values', 'type', 'keyboard_type','mandatory', 'updated_at')
-                    ->first();
-        
+                        ->where('id', $i)
+                        ->select('id', 'question', 'values', 'type', 'keyboard_type', 'mandatory', 'updated_at')
+                        ->first();
+
                     $answers = PatientHistory::where('id', $patient_id)
-                    ->select('id','name','hospital','collected_data_from','NID','phone','email','age','gender','occupation',
-                    'residency','governorate','marital_status','educational_level','special_habits_of_the_patient','other_habits_of_the_patient','DM',
-                    'DM_duration','HTN','HTN_duration','other',)
-                    ->first();
-        
+                        ->select('id', 'name', 'hospital', 'collected_data_from', 'NID', 'phone', 'email', 'age', 'gender', 'occupation',
+                            'residency', 'governorate', 'marital_status', 'educational_level', 'special_habits_of_the_patient', 'other_habits_of_the_patient', 'DM',
+                            'DM_duration', 'HTN', 'HTN_duration', 'other', )
+                        ->first();
+
                     $question = [
                         'id' => $questions->{'id'},
                         'question' => $questions->{'question'},
@@ -119,7 +130,7 @@ class QuestionsController extends Controller
                         'mandatory' => $questions->{'mandatory'},
                         'updated_at' => $questions->{'updated_at'},
                     ];
-        
+
                     switch ($i) {
                         case 1:
                             $question['answer'] = $answers->{'name'};
@@ -137,7 +148,7 @@ class QuestionsController extends Controller
                             $question['answer'] = $answers->{'phone'};
                             break;
                         case 6:
-                            $question['answer'] = $answers->{'email'}; 
+                            $question['answer'] = $answers->{'email'};
                             break;
                         case 7:
                             $question['answer'] = $answers->{'age'};
@@ -158,12 +169,12 @@ class QuestionsController extends Controller
                             $question['answer'] = $answers->{'marital_status'};
                             break;
                         case 13:
-                            $question['answer'] = $answers->{'educational_level'}; 
+                            $question['answer'] = $answers->{'educational_level'};
                             break;
                         case 14:
                             $question['answer'] = [
-                                "answer" =>  $answers->{'special_habits_of_the_patient'},
-                                "other_field" => $answers->{'other_habits_of_the_patient'}
+                                'answer' => $answers->{'special_habits_of_the_patient'},
+                                'other_field' => $answers->{'other_habits_of_the_patient'},
                             ];
                             break;
                         case 16:
@@ -176,13 +187,13 @@ class QuestionsController extends Controller
                             $question['answer'] = $answers->{'HTN'};
                             break;
                         case 19:
-                            $question['answer'] = $answers->{'HTN_duration'}; 
+                            $question['answer'] = $answers->{'HTN_duration'};
                             break;
                         case 20:
                             $question['answer'] = $answers->{'other'};
                             break;
                     }
-                    
+
                     $data[] = $question;
                 }
                 break;
@@ -193,15 +204,15 @@ class QuestionsController extends Controller
                         continue;
                     }
                     $questions = Questions::where('section_id', $section_id)
-                    ->where('id', $i)
-                    ->select('id', 'question', 'values', 'type', 'keyboard_type','mandatory', 'updated_at')
-                    ->first();
-        
+                        ->where('id', $i)
+                        ->select('id', 'question', 'values', 'type', 'keyboard_type', 'mandatory', 'updated_at')
+                        ->first();
+
                     $answers = Complaint::where('patient_id', $patient_id)
-                    ->select('id','where_was_th_patient_seen_for_the_first_time','place_of_admission',
-                    'date_of_admission','main_omplaint','other')
-                    ->first();
-        
+                        ->select('id', 'where_was_th_patient_seen_for_the_first_time', 'place_of_admission',
+                            'date_of_admission', 'main_omplaint', 'other')
+                        ->first();
+
                     $question = [
                         'id' => $questions->{'id'},
                         'question' => $questions->{'question'},
@@ -211,7 +222,7 @@ class QuestionsController extends Controller
                         'mandatory' => $questions->{'mandatory'},
                         'updated_at' => $questions->{'updated_at'},
                     ];
-        
+
                     switch ($i) {
                         case 21:
                             $question['answer'] = $answers->{'where_was_th_patient_seen_for_the_first_time'};
@@ -224,32 +235,32 @@ class QuestionsController extends Controller
                             break;
                         case 24:
                             $question['answer'] = [
-                                "answer" =>  $answers->{'main_omplaint'},
-                                "other_field" => $answers->{'other'}
+                                'answer' => $answers->{'main_omplaint'},
+                                'other_field' => $answers->{'other'},
                             ];
                             break;
                     }
-                    
+
                     $data[] = $question;
                 }
                 break;
             case 3:
                 $data = [];
                 for ($i = 26; $i <= 33; $i++) {
-                    if ($i === 28 ||$i === 30) {
+                    if ($i === 28 || $i === 30) {
                         continue;
                     }
                     $questions = Questions::where('section_id', $section_id)
-                    ->where('id', $i)
-                    ->select('id', 'question', 'values', 'type', 'keyboard_type','mandatory', 'updated_at')
-                    ->first();
-        
+                        ->where('id', $i)
+                        ->select('id', 'question', 'values', 'type', 'keyboard_type', 'mandatory', 'updated_at')
+                        ->first();
+
                     $answers = Cause::where('patient_id', $patient_id)
-                    ->select('id',
-                    'cause_of_AKI','pre-renal_causes','pre-renal_others','renal_causes','renal_others','post-renal_causes','post-renal_others','other'
-                    )
-                    ->first();
-        
+                        ->select('id',
+                            'cause_of_AKI', 'pre-renal_causes', 'pre-renal_others', 'renal_causes', 'renal_others', 'post-renal_causes', 'post-renal_others', 'other'
+                        )
+                        ->first();
+
                     $question = [
                         'id' => $questions->{'id'},
                         'question' => $questions->{'question'},
@@ -259,21 +270,21 @@ class QuestionsController extends Controller
                         'mandatory' => $questions->{'mandatory'},
                         'updated_at' => $questions->{'updated_at'},
                     ];
-        
+
                     switch ($i) {
                         case 26:
                             $question['answer'] = $answers->{'cause_of_AKI'};
                             break;
                         case 27:
                             $question['answer'] = [
-                                "answer" =>  $answers->{'pre-renal_causes'},
-                                "other_field" => $answers->{'pre-renal_others'}
+                                'answer' => $answers->{'pre-renal_causes'},
+                                'other_field' => $answers->{'pre-renal_others'},
                             ];
                             break;
                         case 29:
                             $question['answer'] = [
-                                "answer" =>  $answers->{'renal_causes'},
-                                "other_field" => $answers->{'renal_others'}
+                                'answer' => $answers->{'renal_causes'},
+                                'other_field' => $answers->{'renal_others'},
                             ];
                             break;
                         case 31:
@@ -286,26 +297,26 @@ class QuestionsController extends Controller
                             $question['answer'] = $answers->{'other'};
                             break;
                     }
-                    
+
                     $data[] = $question;
                 }
-                break;    
+                break;
             case 4:
                 $data = [];
                 for ($i = 34; $i <= 47; $i++) {
                     $questions = Questions::where('section_id', $section_id)
-                    ->where('id', $i)
-                    ->select('id', 'question', 'values', 'type', 'keyboard_type','mandatory', 'updated_at')
-                    ->first();
-        
+                        ->where('id', $i)
+                        ->select('id', 'question', 'values', 'type', 'keyboard_type', 'mandatory', 'updated_at')
+                        ->first();
+
                     $answers = Risk::where('patient_id', $patient_id)
-                    ->select(
-                        'id','CKD_history','AK_history','cardiac-failure_history','LCF_history','neurological-impairment_disability_history',
-                        'sepsis_history','contrast_media','drugs-with-potential-nephrotoxicity','drug_name','hypovolemia_history',
-                        'malignancy_history','trauma_history','autoimmune-disease_history','other-risk-factors','other'
-                    )
-                    ->first();
-        
+                        ->select(
+                            'id', 'CKD_history', 'AK_history', 'cardiac-failure_history', 'LCF_history', 'neurological-impairment_disability_history',
+                            'sepsis_history', 'contrast_media', 'drugs-with-potential-nephrotoxicity', 'drug_name', 'hypovolemia_history',
+                            'malignancy_history', 'trauma_history', 'autoimmune-disease_history', 'other-risk-factors', 'other'
+                        )
+                        ->first();
+
                     $question = [
                         'id' => $questions->{'id'},
                         'question' => $questions->{'question'},
@@ -315,7 +326,7 @@ class QuestionsController extends Controller
                         'mandatory' => $questions->{'mandatory'},
                         'updated_at' => $questions->{'updated_at'},
                     ];
-        
+
                     switch ($i) {
                         case 34:
                             $question['answer'] = $answers->{'CKD_history'};
@@ -340,7 +351,7 @@ class QuestionsController extends Controller
                             break;
                         case 41:
                             $question['answer'] = $answers->{'drugs-with-potential-nephrotoxicity'};
-                        break;
+                            break;
                         case 42:
                             $question['answer'] = $answers->{'drug_name'};
                             break;
@@ -359,32 +370,32 @@ class QuestionsController extends Controller
                         case 47:
                             $question['answer'] = $answers->{'other-risk-factors'};
                             break;
-                            
+
                     }
-                    
+
                     $data[] = $question;
                 }
                 break;
             case 5:
                 $data = [];
                 for ($i = 48; $i <= 70; $i++) {
-                    if ($i === 58 || $i === 60 || $i === 64 || $i === 67|| $i === 69) {
+                    if ($i === 58 || $i === 60 || $i === 64 || $i === 67 || $i === 69) {
                         continue;
                     }
                     $questions = Questions::where('section_id', $section_id)
-                    ->where('id', $i)
-                    ->select('id', 'question', 'values', 'type', 'keyboard_type','mandatory', 'updated_at')
-                    ->first();
-        
+                        ->where('id', $i)
+                        ->select('id', 'question', 'values', 'type', 'keyboard_type', 'mandatory', 'updated_at')
+                        ->first();
+
                     $answers = Assessment::where('patient_id', $patient_id)
-                    ->select(
-                        'id','heart-rate/minute','respiratory-rate/minute','SBP','DBP','GCS','oxygen_saturation','temperature','UOP','AVPU',
-                        'skin_examination','skin_examination_clarify','eye_examination','eye_examination_clarify','ear_examination',
-                        'ear_examination_clarify','cardiac_examination','cardiac_examination_clarify','internal_jugular_vein','chest_examination',
-                        'chest_examination_clarify','abdominal_examination','abdominal_examination_clarify'
-                    )
-                    ->first();
-        
+                        ->select(
+                            'id', 'heart-rate/minute', 'respiratory-rate/minute', 'SBP', 'DBP', 'GCS', 'oxygen_saturation', 'temperature', 'UOP', 'AVPU',
+                            'skin_examination', 'skin_examination_clarify', 'eye_examination', 'eye_examination_clarify', 'ear_examination',
+                            'ear_examination_clarify', 'cardiac_examination', 'cardiac_examination_clarify', 'internal_jugular_vein', 'chest_examination',
+                            'chest_examination_clarify', 'abdominal_examination', 'abdominal_examination_clarify'
+                        )
+                        ->first();
+
                     $question = [
                         'id' => $questions->{'id'},
                         'question' => $questions->{'question'},
@@ -394,7 +405,7 @@ class QuestionsController extends Controller
                         'mandatory' => $questions->{'mandatory'},
                         'updated_at' => $questions->{'updated_at'},
                     ];
-        
+
                     switch ($i) {
                         case 48:
                             $question['answer'] = $answers->{'heart-rate/minute'};
@@ -419,20 +430,20 @@ class QuestionsController extends Controller
                             break;
                         case 55:
                             $question['answer'] = $answers->{'UOP'};
-                        break;
+                            break;
                         case 56:
                             $question['answer'] = $answers->{'AVPU'};
                             break;
                         case 57:
                             $question['answer'] = [
-                                "answer" =>  $answers->{'skin_examination'},
-                                "other_field" => $answers->{'skin_examination_clarify'}
+                                'answer' => $answers->{'skin_examination'},
+                                'other_field' => $answers->{'skin_examination_clarify'},
                             ];
                             break;
                         case 59:
                             $question['answer'] = [
-                                "answer" =>  $answers->{'eye_examination'},
-                                "other_field" => $answers->{'eye_examination_clarify'}
+                                'answer' => $answers->{'eye_examination'},
+                                'other_field' => $answers->{'eye_examination_clarify'},
                             ];
                             break;
                         case 61:
@@ -443,8 +454,8 @@ class QuestionsController extends Controller
                             break;
                         case 63:
                             $question['answer'] = [
-                                "answer" =>  $answers->{'cardiac_examination'},
-                                "other_field" => $answers->{'cardiac_examination_clarify'}
+                                'answer' => $answers->{'cardiac_examination'},
+                                'other_field' => $answers->{'cardiac_examination_clarify'},
                             ];
                             break;
                         case 65:
@@ -452,39 +463,39 @@ class QuestionsController extends Controller
                             break;
                         case 66:
                             $question['answer'] = [
-                                "answer" =>  $answers->{'chest_examination'},
-                                "other_field" => $answers->{'chest_examination_clarify'}
+                                'answer' => $answers->{'chest_examination'},
+                                'other_field' => $answers->{'chest_examination_clarify'},
                             ];
                             break;
                         case 68:
                             $question['answer'] = [
-                                "answer" =>  $answers->{'abdominal_examination'},
-                                "other_field" => $answers->{'abdominal_examination_clarify'}
+                                'answer' => $answers->{'abdominal_examination'},
+                                'other_field' => $answers->{'abdominal_examination_clarify'},
                             ];
                             break;
                         case 70:
                             $question['answer'] = $answers->{'other'};
                             break;
-                            
+
                     }
-                    
+
                     $data[] = $question;
                 }
-             break;
+                break;
             case 6:
                 $data = [];
                 for ($i = 71; $i <= 74; $i++) {
                     $questions = Questions::where('section_id', $section_id)
-                    ->where('id', $i)
-                    ->select('id', 'question', 'values', 'type', 'keyboard_type','mandatory', 'updated_at')
-                    ->first();
-        
+                        ->where('id', $i)
+                        ->select('id', 'question', 'values', 'type', 'keyboard_type', 'mandatory', 'updated_at')
+                        ->first();
+
                     $answers = Examination::where('patient_id', $patient_id)
-                    ->select(
-                        'id','current_creatinine','basal_creatinine','renal_US','specify_renal-US'
-                    )
-                    ->first();
-        
+                        ->select(
+                            'id', 'current_creatinine', 'basal_creatinine', 'renal_US', 'specify_renal-US'
+                        )
+                        ->first();
+
                     $question = [
                         'id' => $questions->{'id'},
                         'question' => $questions->{'question'},
@@ -494,7 +505,7 @@ class QuestionsController extends Controller
                         'mandatory' => $questions->{'mandatory'},
                         'updated_at' => $questions->{'updated_at'},
                     ];
-        
+
                     switch ($i) {
                         case 71:
                             $question['answer'] = $answers->{'current_creatinine'};
@@ -509,24 +520,24 @@ class QuestionsController extends Controller
                             $question['answer'] = $answers->{'specify_renal-US'};
                             break;
                     }
-                    
+
                     $data[] = $question;
                 }
-               break;
+                break;
             case 7:
                 $data = [];
                 for ($i = 75; $i <= 75; $i++) {
                     $questions = Questions::where('section_id', $section_id)
-                    ->where('id', $i)
-                    ->select('id', 'question', 'values', 'type', 'keyboard_type','mandatory', 'updated_at')
-                    ->first();
-        
+                        ->where('id', $i)
+                        ->select('id', 'question', 'values', 'type', 'keyboard_type', 'mandatory', 'updated_at')
+                        ->first();
+
                     $answers = Decision::where('patient_id', $patient_id)
-                    ->select(
-                        'id','medical_decision'
-                    )
-                    ->first();
-        
+                        ->select(
+                            'id', 'medical_decision'
+                        )
+                        ->first();
+
                     $question = [
                         'id' => $questions->{'id'},
                         'question' => $questions->{'question'},
@@ -536,30 +547,30 @@ class QuestionsController extends Controller
                         'mandatory' => $questions->{'mandatory'},
                         'updated_at' => $questions->{'updated_at'},
                     ];
-        
+
                     switch ($i) {
                         case 75:
                             $question['answer'] = $answers->{'medical_decision'};
                             break;
                     }
-                    
+
                     $data[] = $question;
                 }
-              break;
+                break;
             case 8:
                 $data = [];
                 for ($i = 76; $i <= 79; $i++) {
                     $questions = Questions::where('section_id', $section_id)
-                    ->where('id', $i)
-                    ->select('id', 'question', 'values', 'type', 'keyboard_type','mandatory', 'updated_at')
-                    ->first();
-        
+                        ->where('id', $i)
+                        ->select('id', 'question', 'values', 'type', 'keyboard_type', 'mandatory', 'updated_at')
+                        ->first();
+
                     $answers = Outcome::where('patient_id', $patient_id)
-                    ->select(
-                        'id','outcome_of_the_patient','creatinine_on_discharge','final_status','other'
-                    )
-                    ->first();
-        
+                        ->select(
+                            'id', 'outcome_of_the_patient', 'creatinine_on_discharge', 'final_status', 'other'
+                        )
+                        ->first();
+
                     $question = [
                         'id' => $questions->{'id'},
                         'question' => $questions->{'question'},
@@ -569,7 +580,7 @@ class QuestionsController extends Controller
                         'mandatory' => $questions->{'mandatory'},
                         'updated_at' => $questions->{'updated_at'},
                     ];
-        
+
                     switch ($i) {
                         case 76:
                             $question['answer'] = $answers->{'outcome_of_the_patient'};
@@ -584,17 +595,19 @@ class QuestionsController extends Controller
                             $question['answer'] = $answers->{'other'};
                             break;
                     }
-                    
+
                     $data[] = $question;
                 }
-             break;
+                break;
         }
         $response = [
             'value' => true,
             'data' => $data,
         ];
+
         return response($response, 200);
     }
+
     /**
      * Update the specified resource in storage.
      */
@@ -602,19 +615,21 @@ class QuestionsController extends Controller
     {
         $Questions = Questions::find($id)->first();
 
-        if($Questions!=null){
+        if ($Questions != null) {
             $Questions->update($request->all());
             $response = [
                 'value' => true,
                 'data' => $Questions,
-                'message' => 'Questions Updated Successfully'
+                'message' => 'Questions Updated Successfully',
             ];
+
             return response($response, 200);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Questions was found'
+                'message' => 'No Questions was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -626,18 +641,20 @@ class QuestionsController extends Controller
     {
         $Questions = Questions::find($id)->first();
 
-        if($Questions!=null){
+        if ($Questions != null) {
             DB::table('questions')->where('section_id', $id)->delete();
             $response = [
                 'value' => true,
-                'message' => 'Questions Deleted Successfully'
+                'message' => 'Questions Deleted Successfully',
             ];
+
             return response($response, 200);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Questions was found'
+                'message' => 'No Questions was found',
             ];
+
             return response($response, 404);
         }
     }

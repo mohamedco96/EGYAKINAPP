@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Likes;
-use App\Models\PatientHistory;
 use App\Http\Requests\StoreLikesRequest;
 use App\Http\Requests\UpdateLikesRequest;
+use App\Models\Likes;
+use App\Models\PatientHistory;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class LikesController extends Controller
 {
@@ -34,122 +33,124 @@ class LikesController extends Controller
     {
         $patient = PatientHistory::where('id', $request->patient_id)->first();
         $liked = Likes::where('patient_id', $request->patient_id)
-                        ->Where('doctor_id', Auth::id())
-                        ->Where('comment_id', $request->comment_id)
-                        ->Where('liked', true)
-                        ->first();
+            ->Where('doctor_id', Auth::id())
+            ->Where('comment_id', $request->comment_id)
+            ->Where('liked', true)
+            ->first();
 
         $unliked = Likes::where('patient_id', $request->patient_id)
-                        ->Where('doctor_id', Auth::id())
-                        ->Where('comment_id', $request->comment_id)
-                        ->Where('liked', false)
-                        ->first();
+            ->Where('doctor_id', Auth::id())
+            ->Where('comment_id', $request->comment_id)
+            ->Where('liked', false)
+            ->first();
 
-        if($patient!=null){
+        if ($patient != null) {
 
-            if($liked!=null){
+            if ($liked != null) {
                 $response = [
                     'value' => false,
-                    'message' => 'comment already liked'
+                    'message' => 'comment already liked',
                 ];
             }
-            
-            if($unliked!=null){
+
+            if ($unliked != null) {
 
                 Likes::where('patient_id', '=', $request->patient_id)
-                            ->Where('doctor_id', Auth::id())
-                            ->Where('comment_id', $request->comment_id)
-                            ->Where('liked', false)
-                            ->update(['liked' => true]);
+                    ->Where('doctor_id', Auth::id())
+                    ->Where('comment_id', $request->comment_id)
+                    ->Where('liked', false)
+                    ->update(['liked' => true]);
                 $response = [
                     'value' => true,
-                    'message' => 'comment liked Successfully'
+                    'message' => 'comment liked Successfully',
                 ];
             }
-            if($liked==null && $unliked==null){
+            if ($liked == null && $unliked == null) {
                 $like = Likes::create([
                     'doctor_id' => Auth::id(),
                     'patient_id' => $request->patient_id,
                     'comment_id' => $request->comment_id,
-                    'liked' => true
+                    'liked' => true,
                 ]);
                 $response = [
                     'value' => true,
-                    'message' => 'comment liked Successfully'
+                    'message' => 'comment liked Successfully',
                 ];
             }
 
             return response($response, 200);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No patient was found'
+                'message' => 'No patient was found',
             ];
+
             return response($response, 404);
         }
     }
 
-
-        /**
+    /**
      * Store a newly created resource in storage.
      */
     public function unlike(StoreLikesRequest $request)
     {
         $patient = PatientHistory::where('id', $request->patient_id)->first();
         $liked = Likes::where('patient_id', $request->patient_id)
-                        ->Where('doctor_id', Auth::id())
-                        ->Where('comment_id', $request->comment_id)
-                        ->Where('liked', true)
-                        ->first();
+            ->Where('doctor_id', Auth::id())
+            ->Where('comment_id', $request->comment_id)
+            ->Where('liked', true)
+            ->first();
 
         $unliked = Likes::where('patient_id', $request->patient_id)
-                        ->Where('doctor_id', Auth::id())
-                        ->Where('comment_id', $request->comment_id)
-                        ->Where('liked', false)
-                        ->first();
+            ->Where('doctor_id', Auth::id())
+            ->Where('comment_id', $request->comment_id)
+            ->Where('liked', false)
+            ->first();
 
-        if($patient!=null){
+        if ($patient != null) {
 
-            if($liked!=null){
+            if ($liked != null) {
                 Likes::where('patient_id', '=', $request->patient_id)
-                            ->Where('doctor_id', Auth::id())
-                            ->Where('comment_id', $request->comment_id)
-                            ->Where('liked', true)
-                            ->update(['liked' => false]);
+                    ->Where('doctor_id', Auth::id())
+                    ->Where('comment_id', $request->comment_id)
+                    ->Where('liked', true)
+                    ->update(['liked' => false]);
 
                 $response = [
                     'value' => true,
-                    'message' => 'comment unliked Successfully'
+                    'message' => 'comment unliked Successfully',
                 ];
             }
-            if($unliked!=null){
+            if ($unliked != null) {
                 $response = [
                     'value' => false,
-                    'message' => 'comment already unliked'
+                    'message' => 'comment already unliked',
                 ];
             }
-            if($liked==null && $unliked==null){
+            if ($liked == null && $unliked == null) {
                 $like = Likes::create([
                     'doctor_id' => Auth::id(),
                     'patient_id' => $request->patient_id,
                     'comment_id' => $request->comment_id,
-                    'liked' => false
+                    'liked' => false,
                 ]);
                 $response = [
                     'value' => true,
-                    'message' => 'comment unliked Successfully'
+                    'message' => 'comment unliked Successfully',
                 ];
             }
 
             return response($response, 200);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No patient was found'
+                'message' => 'No patient was found',
             ];
+
             return response($response, 404);
         }
     }
+
     /**
      * Display the specified resource.
      */

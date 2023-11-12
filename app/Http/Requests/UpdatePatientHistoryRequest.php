@@ -31,8 +31,8 @@ class UpdatePatientHistoryRequest extends FormRequest
 
     public function messages()
     {
-        return[
-            'NID.size:14' => 'National ID should be 14 Number'
+        return [
+            'NID.size:14' => 'National ID should be 14 Number',
         ];
     }
 }

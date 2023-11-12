@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ExaminationResource\Pages;
-use App\Filament\Resources\ExaminationResource\RelationManagers;
 use App\Models\Examination;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
@@ -13,20 +12,25 @@ use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class ExaminationResource extends Resource
 {
     protected static ?string $model = Examination::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+
     protected static ?string $navigationLabel = 'Laboratory and radiology results';
+
     protected static ?string $navigationGroup = 'Patient Sections';
+
     protected static ?int $navigationSort = 9;
+
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::count();
     }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -70,7 +74,7 @@ class ExaminationResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('Doctor Name')
-                ->relationship('doctor', 'name'),
+                    ->relationship('doctor', 'name'),
                 Tables\Filters\SelectFilter::make('Patient Name')
                     ->relationship('patient', 'name'),
                 Tables\Filters\Filter::make('created_at')
@@ -88,11 +92,11 @@ class ExaminationResource extends Resource
                                 $data['created_until'],
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
-                    })
+                    }),
             ])->filtersTriggerAction(
                 fn (Action $action) => $action
                     ->button()
-                    ->label('Filter'),)
+                    ->label('Filter'), )
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
@@ -100,7 +104,7 @@ class ExaminationResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                    ExportBulkAction::make()
+                    ExportBulkAction::make(),
                 ]),
             ])
             ->emptyStateActions([

@@ -4,13 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    public function register(Request $request) {
+    public function register(Request $request)
+    {
         $fields = $request->validate([
             'name' => 'required|string',
             'lname' => 'required|string',
@@ -21,20 +21,20 @@ class AuthController extends Controller
             'workingplace' => 'required|string',
             'phone' => 'required|string',
             'job' => 'required|string',
-            'highestdegree' => 'required|string'
+            'highestdegree' => 'required|string',
         ]);
 
         $user = User::create([
             'name' => $fields['name'],
             'lname' => $fields['lname'],
             'email' => $fields['email'],
-            'password' => bcrypt( $fields['password']),
+            'password' => bcrypt($fields['password']),
             'age' => $fields['age'],
             'specialty' => $fields['specialty'],
             'workingplace' => $fields['workingplace'],
             'phone' => $fields['phone'],
             'job' => $fields['job'],
-            'highestdegree' => $fields['highestdegree']
+            'highestdegree' => $fields['highestdegree'],
         ]);
 
         $token = $user->createToken('apptoken')->plainTextToken;
@@ -42,42 +42,47 @@ class AuthController extends Controller
         $response = [
             'value' => true,
             'data' => $user,
-            'token' => $token
+            'token' => $token,
         ];
 
         return response($response, 201);
     }
 
-    public function login(Request $request) {
+    public function login(Request $request)
+    {
         $fields = $request->validate([
             'email' => 'required|string',
-            'password' => 'required|string'
+            'password' => 'required|string',
         ]);
 
         $user = User::where('email', $fields['email'])->first();
 
-        if (!$user || !Hash::check($fields['password'], $user->password)) {
+        if (! $user || ! Hash::check($fields['password'], $user->password)) {
             $response = [
                 'value' => false,
-                'message' => 'wrong data'
+                'message' => 'wrong data',
             ];
+
             return response($response, 404);
-        } else{
+        } else {
             $token = $user->createToken('apptoken')->plainTextToken;
             $response = [
                 'value' => true,
                 'data' => $user,
-                'token' => $token
+                'token' => $token,
             ];
+
             return response($response, 201);
         }
     }
 
-    public function logout(Request $request) {
+    public function logout(Request $request)
+    {
         auth()->user()->tokens()->delete();
+
         return [
             'value' => true,
-            'message' => 'Logged out'
+            'message' => 'Logged out',
         ];
     }
 
@@ -98,25 +103,28 @@ class AuthController extends Controller
             'workingplace' => 'string',
             'phone' => 'string',
             'job' => 'string',
-            'highestdegree' => 'string'
+            'highestdegree' => 'string',
         ]);
 
-        if($user!=null){
+        if ($user != null) {
             $user->update($request->all());
             $response = [
                 'value' => true,
                 'data' => $user,
-                'message' => 'User Updated Successfully'
+                'message' => 'User Updated Successfully',
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No User was found'
+                'message' => 'No User was found',
             ];
+
             return response($response, 404);
         }
     }
+
     /**
      * Display a listing of the resource.
      */
@@ -124,22 +132,23 @@ class AuthController extends Controller
     {
         $user = User::all();
 
-        if($user!=null){
+        if ($user != null) {
             $response = [
                 'value' => true,
-                'data' => $user
+                'data' => $user,
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No user was found'
+                'message' => 'No user was found',
             ];
+
             return response($response, 404);
         }
 
     }
-
 
     /**
      * Display the specified resource.
@@ -148,18 +157,18 @@ class AuthController extends Controller
     {
         $user = User::find($id);
 
-        if($user!=null){
+        if ($user != null) {
             $patientCount = $user->patients->count();
-            if($patientCount!=null){
+            if ($patientCount != null) {
                 $count = $patientCount;
-            }else{
+            } else {
                 $count = 0;
             }
 
-            $scoreValue  = $user->score->score;
-            if($scoreValue !=null){
+            $scoreValue = $user->score->score;
+            if ($scoreValue != null) {
                 $score = $scoreValue;
-            }else{
+            } else {
                 $score = 0;
             }
 
@@ -167,21 +176,25 @@ class AuthController extends Controller
                 'value' => true,
                 'patient_count' => $count,
                 'score_value' => $score,
-                'data' => $user
+                'data' => $user,
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No user was found'
+                'message' => 'No user was found',
             ];
+
             return response($response, 404);
         }
     }
 
-    public function userPatient(){
+    public function userPatient()
+    {
         $user = User::find(1);
         $patientCount = $user->patients->count();
+
         return $patientCount;
     }
 
@@ -192,7 +205,7 @@ class AuthController extends Controller
     {
         $user = User::find($id);
 
-        if($user!=null){
+        if ($user != null) {
             User::destroy($id);
 
             DB::table('patient_histories')->where('doctor_id', '=', $id)->delete();
@@ -205,17 +218,17 @@ class AuthController extends Controller
 
             $response = [
                 'value' => true,
-                'message' => 'User Deleted Successfully'
+                'message' => 'User Deleted Successfully',
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No User was found'
+                'message' => 'No User was found',
             ];
+
             return response($response, 404);
         }
     }
-
-
 }

@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Posts;
 use App\Http\Requests\StorePostsRequest;
 use App\Http\Requests\UpdatePostsRequest;
+use App\Models\Posts;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-
 
 class PostsController extends Controller
 {
@@ -16,22 +15,23 @@ class PostsController extends Controller
      */
     public function index()
     {
-        $post = Posts::
-        select('id','title', 'image', 'content', 'hidden', 'doctor_id' ,'updated_at')
-        ->with('doctor:id,name,lname')  
-        ->get();
+        $post = Posts::select('id', 'title', 'image', 'content', 'hidden', 'doctor_id', 'updated_at')
+            ->with('doctor:id,name,lname')
+            ->get();
 
-        if($post!=null){
+        if ($post != null) {
             $response = [
                 'value' => true,
-                'data' => $post
+                'data' => $post,
             ];
+
             return response($response, 200);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No post was found'
+                'message' => 'No post was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -58,7 +58,7 @@ class PostsController extends Controller
             $image = $request->file('image');
             $imagePath = $image->store('images', 'public');
             $imagePath = Storage::disk('public')->url($imagePath);
-                       //$image_path = Storage::disk('public')->putFile('images/', $request->file('image'));
+            //$image_path = Storage::disk('public')->putFile('images/', $request->file('image'));
 
         }
 
@@ -72,17 +72,19 @@ class PostsController extends Controller
         // Associate the post with the current user
         $user = Auth::user();
         $user->posts()->save($post);
-        if($post!=null){
+        if ($post != null) {
             $response = [
                 'value' => true,
-                'data' => $post
+                'data' => $post,
             ];
+
             return response($response, 200);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No user was found'
+                'message' => 'No user was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -98,22 +100,24 @@ class PostsController extends Controller
         //$post->load('postcomments.doctor');
 
         $post = Posts::where('id', $id)
-        ->select('id','title', 'image', 'content', 'hidden', 'doctor_id' ,'updated_at')
-        ->with('doctor:id,name,lname')  
-        //->with('postcomments:id,content,doctor_id,post_id')           
-        ->get();
+            ->select('id', 'title', 'image', 'content', 'hidden', 'doctor_id', 'updated_at')
+            ->with('doctor:id,name,lname')
+        //->with('postcomments:id,content,doctor_id,post_id')
+            ->get();
 
-        if($post!=null){
+        if ($post != null) {
             $response = [
                 'value' => true,
-                'data' => $post
+                'data' => $post,
             ];
+
             return response($response, 200);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No post was found'
+                'message' => 'No post was found',
             ];
+
             return response($response, 404);
         }
     }

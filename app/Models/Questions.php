@@ -23,7 +23,7 @@ class Questions extends Model
         'values',
         'type',
         'keyboard_type',
-        'mandatory'
+        'mandatory',
     ];
 
     protected $casts = [
@@ -33,6 +33,6 @@ class Questions extends Model
 
     public function doctor_answers(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(PatientHistory::class,'section_id');
+        return $this->hasOne(PatientHistory::class, 'section_id');
     }
 }

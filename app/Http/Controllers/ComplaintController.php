@@ -2,17 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreComplaintRequest;
+use App\Http\Requests\UpdateComplaintRequest;
 use App\Models\Complaint;
 use App\Models\Score;
 use App\Models\ScoreHistory;
-use App\Http\Requests\StoreComplaintRequest;
-use App\Http\Requests\UpdateComplaintRequest;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class ComplaintController extends Controller
 {
-
     /**
      * Display a listing of the resource.
      */
@@ -21,16 +19,18 @@ class ComplaintController extends Controller
         //$complaint = Complaint::latest()->paginate(10);
         $complaint = Complaint::latest()->get();
 
-        if($complaint!=null){
+        if ($complaint != null) {
             $response = [
                 'value' => true,
-                'data' => $complaint
+                'data' => $complaint,
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
-                'value' => false
+                'value' => false,
             ];
+
             return response($response, 404);
         }
     }
@@ -41,17 +41,19 @@ class ComplaintController extends Controller
     {
         $complaint = Complaint::create($request->all());
 
-        if($complaint!=null){
+        if ($complaint != null) {
             $response = [
                 'value' => true,
-                'data' => $complaint
+                'data' => $complaint,
             ];
+
             return response($response, 200);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Complaint was found'
+                'message' => 'No Complaint was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -63,17 +65,19 @@ class ComplaintController extends Controller
     {
         $complaint = Complaint::where('patient_id', $id)->first();
 
-        if($complaint!=null){
+        if ($complaint != null) {
             $response = [
                 'value' => true,
-                'data' => $complaint
+                'data' => $complaint,
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Complaint was found'
+                'message' => 'No Complaint was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -85,7 +89,7 @@ class ComplaintController extends Controller
     {
         $complaint = Complaint::where('patient_id', $id)->first();
 
-        if($complaint!=null){
+        if ($complaint != null) {
             $complaint->update($request->all());
 
             DB::table('sections')->where('patient_id', $id)->update(['section_2' => true]);
@@ -93,10 +97,10 @@ class ComplaintController extends Controller
             //scoring system
             $doctorId = auth()->user()->id; // Assuming you have authentication in place
             $score = Score::where('doctor_id', $doctorId)->first();
-            
+
             $incrementAmount = 5; // Example increment amount
             $action = 'Update Complaint Section'; // Example action
-            
+
             if ($score) {
                 $score->increment('score', $incrementAmount); // Increase the score
             } else {
@@ -105,7 +109,7 @@ class ComplaintController extends Controller
                     'score' => $incrementAmount,
                 ]);
             }
-    
+
             ScoreHistory::create([
                 'doctor_id' => $doctorId,
                 'score' => $incrementAmount,
@@ -116,14 +120,16 @@ class ComplaintController extends Controller
             $response = [
                 'value' => true,
                 'data' => $complaint,
-                'message' => 'Complaint Updated Successfully'
+                'message' => 'Complaint Updated Successfully',
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Complaint was found'
+                'message' => 'No Complaint was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -135,18 +141,20 @@ class ComplaintController extends Controller
     {
         $complaint = Complaint::where('patient_id', $id)->first();
 
-        if($complaint!=null){
+        if ($complaint != null) {
             DB::table('complaints')->where('patient_id', $id)->delete();
             $response = [
                 'value' => true,
-                'message' => 'Complaint Deleted Successfully'
+                'message' => 'Complaint Deleted Successfully',
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Complaint was found'
+                'message' => 'No Complaint was found',
             ];
+
             return response($response, 404);
         }
     }

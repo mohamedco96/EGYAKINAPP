@@ -3,7 +3,6 @@
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\PatientHistory>
@@ -18,7 +17,7 @@ class PatientHistoryFactory extends Factory
     public function definition(): array
     {
         return [
-            'owner_id' => fake()->numberBetween(1,50),
+            'owner_id' => fake()->numberBetween(1, 50),
             'name' => fake()->name(),
             'hospital' => fake()->words(2, true),
             'collected_data_from' => fake()->sentence(),
@@ -36,7 +35,7 @@ class PatientHistoryFactory extends Factory
             'DM' => fake()->words(1, true),
             'DM_duration' => fake()->randomNumber(2),
             'HTN' => fake()->words(1, true),
-            'HTN_duration' => fake()->randomNumber(2)
+            'HTN_duration' => fake()->randomNumber(2),
         ];
     }
 }

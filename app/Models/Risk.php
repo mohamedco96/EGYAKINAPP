@@ -36,7 +36,7 @@ class Risk extends Model
         'other-risk-factors',
         'other',
         'created_at',
-        'updated_at'
+        'updated_at',
     ];
 
     public function doctor(): BelongsTo

@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\AssessmentResource\Pages;
-use App\Filament\Resources\AssessmentResource\RelationManagers;
 use App\Models\Assessment;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
@@ -13,20 +12,25 @@ use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class AssessmentResource extends Resource
 {
     protected static ?string $model = Assessment::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+
     protected static ?string $navigationLabel = 'Assessment of the patient';
+
     protected static ?string $navigationGroup = 'Patient Sections';
+
     protected static ?int $navigationSort = 8;
+
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::count();
     }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -70,7 +74,7 @@ class AssessmentResource extends Resource
                         'Track marks (ie, intravenous drug abuse)' => 'Track marks (ie, intravenous drug abuse)',
                         'Oedema' => 'Oedema',
                         'Signs of dehydration' => 'Signs of dehydration',
-                        'Other' =>'Other',
+                        'Other' => 'Other',
                     ]),
                 Forms\Components\TextInput::make('skin_examination_clarify')->label('If the response to the previous question is others, clarify?'),
                 Forms\Components\Select::make('eye_examination')->label('Eye examination')
@@ -80,7 +84,7 @@ class AssessmentResource extends Resource
                         'Jaundice' => 'Jaundice',
                         'Pallor' => 'Pallor',
                         'Uveitis' => 'Uveitis',
-                        'Other' =>'Other',
+                        'Other' => 'Other',
                     ]),
                 Forms\Components\TextInput::make('eye_examination_clarify')->label('If the response to the previous question is others, clarify?'),
                 Forms\Components\select::make('ear_examination')->label('Ear examination')
@@ -97,8 +101,8 @@ class AssessmentResource extends Resource
                         'Pericardial rub' => 'Pericardial rub',
                         'Murmur' => 'Murmur',
                         'Abnormal heart sounds' => 'Abnormal heart sounds',
-                        'Irregular rhythm' =>'Irregular rhythm',
-                        'Other' =>'Other',
+                        'Irregular rhythm' => 'Irregular rhythm',
+                        'Other' => 'Other',
                     ]),
                 Forms\Components\TextInput::make('cardiac_examination_clarify')->label('If the response to the previous question is others, clarify?'),
                 Forms\Components\select::make('internal_jugular_vein')->label('Internal jugular vein')
@@ -113,8 +117,8 @@ class AssessmentResource extends Resource
                         'Coarse crepitations' => 'Coarse crepitations',
                         'Fine crepitations' => 'Fine crepitations',
                         'Pleural rub' => 'Pleural rub',
-                        'Reduction of air entry' =>'Reduction of air entry',
-                        'Other' =>'Other',
+                        'Reduction of air entry' => 'Reduction of air entry',
+                        'Other' => 'Other',
                     ]),
                 Forms\Components\TextInput::make('chest_examination_clarify')->label('If the response to the previous question is others, clarify?'),
                 Forms\Components\select::make('abdominal_examination')->label('Abdominal examination')
@@ -124,8 +128,8 @@ class AssessmentResource extends Resource
                         'Ascites' => 'Ascites',
                         'Palpable UB' => 'Palpable UB',
                         'Palpable Kidney' => 'Palpable Kidney',
-                        'Bruit' =>'Bruit',
-                        'Other' =>'Other',
+                        'Bruit' => 'Bruit',
+                        'Other' => 'Other',
                     ]),
                 Forms\Components\TextInput::make('abdominal_examination_clarify')->label('If the response to the previous question is others, clarify?'),
                 Forms\Components\TextInput::make('other')->label('Other important findings in examination'),
@@ -167,7 +171,7 @@ class AssessmentResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('Doctor Name')
-                ->relationship('doctor', 'name'),
+                    ->relationship('doctor', 'name'),
                 Tables\Filters\SelectFilter::make('Patient Name')
                     ->relationship('patient', 'name'),
                 Tables\Filters\Filter::make('created_at')
@@ -185,11 +189,11 @@ class AssessmentResource extends Resource
                                 $data['created_until'],
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
-                    })
+                    }),
             ])->filtersTriggerAction(
                 fn (Action $action) => $action
                     ->button()
-                    ->label('Filter'),)
+                    ->label('Filter'), )
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
@@ -197,7 +201,7 @@ class AssessmentResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                    ExportBulkAction::make()
+                    ExportBulkAction::make(),
                 ]),
             ])
             ->emptyStateActions([

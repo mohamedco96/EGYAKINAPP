@@ -41,35 +41,43 @@ class PatientHistory extends Model
         'HTN_duration',
         'other',
         'created_at',
-        'updated_at'
+        'updated_at',
     ];
+
     protected $casts = [
         'special_habits_of_the_patient' => 'array',
     ];
+
     public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
+
     public function treatments(): HasMany
     {
         return $this->hasMany(Treatment::class);
     }
+
     public function sections(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(Section::class,'patient_id');
+        return $this->hasOne(Section::class, 'patient_id');
     }
+
     public function complaint(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Complaint::class);
     }
+
     public function Cause(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Complaint::class);
     }
+
     public function questions(): BelongsTo
     {
-        return $this->belongsTo(Questions::class,'section_id');
+        return $this->belongsTo(Questions::class, 'section_id');
     }
+
     public function comments()
     {
         return $this->hasMany(Comment::class);
@@ -77,6 +85,6 @@ class PatientHistory extends Model
 
     public function notification()
     {
-        return $this->hasMany(Notification::class,'doctor_id');
+        return $this->hasMany(Notification::class, 'doctor_id');
     }
 }

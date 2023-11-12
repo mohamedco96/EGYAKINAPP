@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -26,7 +25,7 @@ class Outcome extends Model
         'final_status',
         'other',
         'created_at',
-        'updated_at'
+        'updated_at',
     ];
 
     /**
@@ -36,6 +35,7 @@ class Outcome extends Model
      */
     protected $casts = [
     ];
+
     public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class);

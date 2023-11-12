@@ -3,33 +3,35 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PatientResource\Pages;
-use App\Filament\Resources\PatientResource\RelationManagers;
 use App\Models\PatientHistory;
 use Filament\Forms;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
-use Filament\Forms\Components\DatePicker;
-use Filament\Tables\Actions\Action;
-use Filament\Forms\Components\CheckboxList;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class PatientResource extends Resource
 {
     protected static ?string $model = PatientHistory::class;
 
     protected static ?string $navigationIcon = 'heroicon-s-users';
+
     protected static ?string $navigationLabel = 'Patient History';
+
     protected static ?string $navigationGroup = 'Patient Sections';
+
     protected static ?int $navigationSort = 3;
+
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::count();
     }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -99,10 +101,10 @@ class PatientResource extends Resource
                     ->multiple()
                     ->options([
                         'NO' => 'NO',
-                        'Cigarette smoker' =>'Cigarette smoker',
-                        'Shisha smoker' =>'Shisha smoker',
+                        'Cigarette smoker' => 'Cigarette smoker',
+                        'Shisha smoker' => 'Shisha smoker',
                         'Drug addict' => 'Drug addict',
-                        'Others' => 'Others'
+                        'Others' => 'Others',
                     ]),
                 Forms\Components\TextInput::make('other_habits_of_the_patient'),
                 Forms\Components\Select::make('DM')->label('DM')
@@ -156,7 +158,7 @@ class PatientResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('Doctor Name')
-                ->relationship('doctor', 'name'),
+                    ->relationship('doctor', 'name'),
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         DatePicker::make('created_from'),
@@ -172,7 +174,7 @@ class PatientResource extends Resource
                                 $data['created_until'],
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
-                    })
+                    }),
                 /*Tables\Filters\SelectFilter::make('type')
                     ->options([
                         'cat' => 'Cat',
@@ -182,7 +184,7 @@ class PatientResource extends Resource
             ])->filtersTriggerAction(
                 fn (Action $action) => $action
                     ->button()
-                    ->label('Filter'),)
+                    ->label('Filter'), )
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
@@ -190,7 +192,7 @@ class PatientResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                    ExportBulkAction::make()
+                    ExportBulkAction::make(),
                     //ExportAction::make()
                 ]),
             ])

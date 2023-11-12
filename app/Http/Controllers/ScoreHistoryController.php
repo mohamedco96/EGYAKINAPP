@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ScoreHistory;
 use App\Http\Requests\StoreScoreHistoryRequest;
 use App\Http\Requests\UpdateScoreHistoryRequest;
+use App\Models\ScoreHistory;
 
 class ScoreHistoryController extends Controller
 {

@@ -14,20 +14,20 @@ class PatientTypeOverview extends BaseWidget
         return [
             Stat::make('Doctors', User::count())
             //->description('32k increase')
-            ->descriptionIcon('heroicon-m-arrow-trending-up')
-            ->chart([7, 2, 10, 3, 15, 4, 17])
-            ->color('success')
-            ->extraAttributes([
-                'class' => 'cursor-pointer',
-                'wire:click' => "\$dispatch('setStatusFilter', { filter: 'processed' })",
-            ]),
+                ->descriptionIcon('heroicon-m-arrow-trending-up')
+                ->chart([7, 2, 10, 3, 15, 4, 17])
+                ->color('success')
+                ->extraAttributes([
+                    'class' => 'cursor-pointer',
+                    'wire:click' => "\$dispatch('setStatusFilter', { filter: 'processed' })",
+                ]),
             Stat::make('Patients', PatientHistory::count())
           //  ->description('32k increase')
-            ->descriptionIcon('heroicon-m-arrow-trending-up')
-            ->chart([7, 2, 10, 3, 15, 4, 17])
-            ->color('success'),
+                ->descriptionIcon('heroicon-m-arrow-trending-up')
+                ->chart([7, 2, 10, 3, 15, 4, 17])
+                ->color('success'),
             //Stat::make('Complaints', PatientHistory::count()),
-           // Stat::make('Sections', PatientHistory::count()),
+            // Stat::make('Sections', PatientHistory::count()),
             // Stat::make('Rabbits', PatientHistory::query()->where('type', 'rabbit')->count()),
         ];
     }

@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Comment;
 use App\Http\Requests\StoreCommentRequest;
 use App\Http\Requests\UpdateCommentRequest;
+use App\Models\Comment;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -17,17 +17,19 @@ class CommentController extends Controller
     {
         $Comment = Comment::with('doctor:id,name,lname,workingplace')->latest()->get();
 
-        if($Comment->isNotEmpty()){
+        if ($Comment->isNotEmpty()) {
             $response = [
                 'value' => true,
-                'data' => $Comment
+                'data' => $Comment,
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Comment was found'
+                'message' => 'No Comment was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -39,20 +41,22 @@ class CommentController extends Controller
         $Comment = Comment::create([
             'doctor_id' => Auth::id(),
             'patient_id' => $request->patient_id,
-            'content' => $request->content
+            'content' => $request->content,
         ]);
 
-        if($Comment!=null){
+        if ($Comment != null) {
             $response = [
                 'value' => true,
-                'message' => 'Comment Created Successfully'
+                'message' => 'Comment Created Successfully',
             ];
+
             return response($response, 200);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Comment was found'
+                'message' => 'No Comment was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -63,20 +67,22 @@ class CommentController extends Controller
     public function show($patient_id)
     {
         $Comment = Comment::where('patient_id', $patient_id)
-        ->select('id','doctor_id','content','updated_at')
-        ->with('doctor:id,name,lname,workingplace')->get();
+            ->select('id', 'doctor_id', 'content', 'updated_at')
+            ->with('doctor:id,name,lname,workingplace')->get();
 
-        if($Comment->isNotEmpty()){
+        if ($Comment->isNotEmpty()) {
             $response = [
                 'value' => true,
-                'data' => $Comment
+                'data' => $Comment,
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Comment was found'
+                'message' => 'No Comment was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -88,19 +94,21 @@ class CommentController extends Controller
     {
         $Comment = Comment::where('id', $id)->first();
 
-        if($Comment!=null){
+        if ($Comment != null) {
             $Comment->update($request->all());
             $response = [
                 'value' => true,
                 'data' => $Comment,
-                'message' => 'Comment Updated Successfully'
+                'message' => 'Comment Updated Successfully',
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Comment was found'
+                'message' => 'No Comment was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -112,18 +120,20 @@ class CommentController extends Controller
     {
         $Comment = Comment::where('id', $id)->first();
 
-        if($Comment!=null){
+        if ($Comment != null) {
             DB::table('comments')->where('id', $id)->delete();
             $response = [
                 'value' => true,
-                'message' => 'Comment Deleted Successfully'
+                'message' => 'Comment Deleted Successfully',
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Comment was found'
+                'message' => 'No Comment was found',
             ];
+
             return response($response, 404);
         }
     }

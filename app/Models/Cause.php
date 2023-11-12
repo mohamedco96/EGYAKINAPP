@@ -29,7 +29,7 @@ class Cause extends Model
         'post-renal_others',
         'other',
         'created_at',
-        'updated_at'
+        'updated_at',
     ];
 
     protected $casts = [

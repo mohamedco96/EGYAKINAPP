@@ -2,15 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Decision;
 use App\Http\Requests\StoreDecisionRequest;
 use App\Http\Requests\UpdateDecisionRequest;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Decision;
 use Illuminate\Support\Facades\DB;
 
 class DecisionController extends Controller
 {
-
     /**
      * Display a listing of the resource.
      */
@@ -19,17 +17,19 @@ class DecisionController extends Controller
         //$Decision = Decision::latest()->paginate(10);
         $Decision = Decision::latest()->get();
 
-        if($Decision->isNotEmpty()){
+        if ($Decision->isNotEmpty()) {
             $response = [
                 'value' => true,
-                'data' => $Decision
+                'data' => $Decision,
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Decision was found'
+                'message' => 'No Decision was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -40,17 +40,19 @@ class DecisionController extends Controller
     {
         $Decision = Decision::create($request->all());
 
-        if($Decision!=null){
+        if ($Decision != null) {
             $response = [
                 'value' => true,
-                'data' => $Decision
+                'data' => $Decision,
             ];
+
             return response($response, 200);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Decision was found'
+                'message' => 'No Decision was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -62,17 +64,19 @@ class DecisionController extends Controller
     {
         $Decision = Decision::where('patient_id', $id)->first();
 
-        if($Decision!=null){
+        if ($Decision != null) {
             $response = [
                 'value' => true,
-                'data' => $Decision
+                'data' => $Decision,
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Decision was found'
+                'message' => 'No Decision was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -84,18 +88,18 @@ class DecisionController extends Controller
     {
         $Decision = Decision::where('patient_id', $id)->first();
 
-        if($Decision!=null){
+        if ($Decision != null) {
             $Decision->update($request->all());
-            
+
             DB::table('sections')->where('patient_id', $id)->update(['section_7' => true]);
 
             //scoring system
             $doctorId = auth()->user()->id; // Assuming you have authentication in place
             $score = Score::where('doctor_id', $doctorId)->first();
-            
+
             $incrementAmount = 5; // Example increment amount
             $action = 'Update Medical decision Section'; // Example action
-            
+
             if ($score) {
                 $score->increment('score', $incrementAmount); // Increase the score
             } else {
@@ -104,7 +108,7 @@ class DecisionController extends Controller
                     'score' => $incrementAmount,
                 ]);
             }
-    
+
             ScoreHistory::create([
                 'doctor_id' => $doctorId,
                 'score' => $incrementAmount,
@@ -112,18 +116,19 @@ class DecisionController extends Controller
                 'timestamp' => now(),
             ]);
 
-
             $response = [
                 'value' => true,
                 'data' => $Decision,
-                'message' => 'Decision Updated Successfully'
+                'message' => 'Decision Updated Successfully',
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Decision was found'
+                'message' => 'No Decision was found',
             ];
+
             return response($response, 404);
         }
     }
@@ -135,18 +140,20 @@ class DecisionController extends Controller
     {
         $Decision = Decision::where('patient_id', $id)->first();
 
-        if($Decision!=null){
+        if ($Decision != null) {
             DB::table('Decisions')->where('patient_id', $id)->delete();
             $response = [
                 'value' => true,
-                'message' => 'Decision Deleted Successfully'
+                'message' => 'Decision Deleted Successfully',
             ];
+
             return response($response, 201);
-        }else {
+        } else {
             $response = [
                 'value' => false,
-                'message' => 'No Decision was found'
+                'message' => 'No Decision was found',
             ];
+
             return response($response, 404);
         }
     }

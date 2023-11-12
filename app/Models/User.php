@@ -27,7 +27,7 @@ class User extends Authenticatable
         'workingplace',
         'phone',
         'job',
-        'highestdegree'
+        'highestdegree',
     ];
 
     /**
@@ -49,21 +49,25 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
     public function canAccessPanel(Panel $panel): bool
     {
         return str_ends_with($this->email, '@egyakin.com');
     }
+
     public function patients(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(PatientHistory::class,'doctor_id');
+        return $this->hasOne(PatientHistory::class, 'doctor_id');
     }
+
     public function sections(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(Section::class,'patient_id');
+        return $this->hasOne(Section::class, 'patient_id');
     }
+
     public function score(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(Score::class,'doctor_id');
+        return $this->hasOne(Score::class, 'doctor_id');
     }
 
     public function comments()
@@ -73,7 +77,7 @@ class User extends Authenticatable
 
     public function outcome(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(Outcome::class,'doctor_id');
+        return $this->hasOne(Outcome::class, 'doctor_id');
     }
 
     public function likess()
@@ -83,16 +87,16 @@ class User extends Authenticatable
 
     public function posts()
     {
-        return $this->hasMany(Posts::class,'doctor_id');
+        return $this->hasMany(Posts::class, 'doctor_id');
     }
 
     public function postcomments()
     {
-        return $this->hasMany(PostComments::class,'doctor_id');
+        return $this->hasMany(PostComments::class, 'doctor_id');
     }
 
     public function notification()
     {
-        return $this->hasMany(Notification::class,'doctor_id');
+        return $this->hasMany(Notification::class, 'doctor_id');
     }
 }

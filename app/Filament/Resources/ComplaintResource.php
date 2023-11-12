@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ComplaintResource\Pages;
-use App\Filament\Resources\ComplaintResource\RelationManagers;
 use App\Models\Complaint;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
@@ -13,20 +12,25 @@ use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class ComplaintResource extends Resource
 {
     protected static ?string $model = Complaint::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+
     protected static ?string $navigationLabel = 'Complaint';
+
     protected static ?string $navigationGroup = 'Patient Sections';
+
     protected static ?int $navigationSort = 4;
+
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::count();
     }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -55,17 +59,17 @@ class ComplaintResource extends Resource
                     ->multiple()
                     ->options([
                         'Oliguria/Anuria' => 'Oliguria/Anuria',
-                        'Change in color of urine' =>'Change in color of urine',
-                        'Burning micturation' =>'Burning micturation',
-                        'Puffiness of face/edema LL/Anasarca' =>'Puffiness of face/edema LL/Anasarca',
-                        'Fatigue/tiredness' =>'Fatigue/tiredness',
-                        'Confusion' =>'Confusion',
-                        'Chest pain/pressure' =>'Chest pain/pressure',
-                        'Shortness of beath' =>'Shortness of beath',
-                        'Nausea/Vomiting' =>'Nausea/Vomiting',
-                        'Seizures' =>'Seizures',
-                        'Accidentally discovered' =>'Accidentally discovered',
-                        'Other' =>'Other',
+                        'Change in color of urine' => 'Change in color of urine',
+                        'Burning micturation' => 'Burning micturation',
+                        'Puffiness of face/edema LL/Anasarca' => 'Puffiness of face/edema LL/Anasarca',
+                        'Fatigue/tiredness' => 'Fatigue/tiredness',
+                        'Confusion' => 'Confusion',
+                        'Chest pain/pressure' => 'Chest pain/pressure',
+                        'Shortness of beath' => 'Shortness of beath',
+                        'Nausea/Vomiting' => 'Nausea/Vomiting',
+                        'Seizures' => 'Seizures',
+                        'Accidentally discovered' => 'Accidentally discovered',
+                        'Other' => 'Other',
                     ]),
                 Forms\Components\TextInput::make('other'),
             ]);
@@ -88,7 +92,7 @@ class ComplaintResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('Doctor Name')
-                ->relationship('doctor', 'name'),
+                    ->relationship('doctor', 'name'),
                 Tables\Filters\SelectFilter::make('Patient Name')
                     ->relationship('patient', 'name'),
                 Tables\Filters\Filter::make('created_at')
@@ -106,11 +110,11 @@ class ComplaintResource extends Resource
                                 $data['created_until'],
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
-                    })
+                    }),
             ])->filtersTriggerAction(
                 fn (Action $action) => $action
                     ->button()
-                    ->label('Filter'),)
+                    ->label('Filter'), )
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
@@ -118,7 +122,7 @@ class ComplaintResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                    ExportBulkAction::make()
+                    ExportBulkAction::make(),
                 ]),
             ])
             ->emptyStateActions([

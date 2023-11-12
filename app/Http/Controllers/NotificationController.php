@@ -12,13 +12,13 @@ class NotificationController extends Controller
      */
     public function index()
     {
-        //$Notification = Notification::latest()->paginate(10);
-        $Notification = Notification::latest()->get();
+        //$notifications = Notification::latest()->paginate(10);
+        $notifications = Notification::latest()->get();
 
-        if ($Notification != null) {
+        if ($notifications->isNotEmpty()) {
             $response = [
                 'value' => true,
-                'data' => $Notification,
+                'data' => $notifications,
             ];
 
             return response($response, 201);
@@ -31,13 +31,6 @@ class NotificationController extends Controller
         }
     }
 
-    //@param \Illuminate\Http\Request $request
-    // @return \Illuminate\Http\Response
-    public function store(StoreNotificationRequest $request)
-    {
-
-    }
-
     /**
      * Display the specified resource.
      */
@@ -45,20 +38,20 @@ class NotificationController extends Controller
     {
         $doctorId = auth()->user()->id;
 
-        $Notification = Notification::where('doctor_id', $doctorId)
+        $notifications = Notification::where('doctor_id', $doctorId)
             ->select('id', 'read', 'type', 'patient_id', 'doctor_id', 'created_at')
             ->with('patient.doctor:id,name,lname,workingplace')
             ->with('patient:id,name,hospital,governorate,doctor_id')
             ->latest()
             ->get();
 
-        $unreadCount = Notification::where('doctor_id', $doctorId)->where('read', false)->count();
+        $unreadCount = $notifications->where('read', false)->count();
 
-        if ($Notification != null) {
+        if ($notifications->isNotEmpty()) {
             $response = [
                 'value' => true,
                 'unreadCount' => $unreadCount,
-                'data' => $Notification,
+                'data' => $notifications,
             ];
 
             return response($response, 201);
@@ -79,13 +72,12 @@ class NotificationController extends Controller
     {
         $doctorId = auth()->user()->id;
 
-        $Notification = Notification::where('doctor_id', $doctorId)->get();
+        $notifications = Notification::where('doctor_id', $doctorId);
 
-        if ($Notification != null) {
-            $Notification = Notification::where('doctor_id', $doctorId)->update(['read' => true]);
+        if ($notifications->exists()) {
+            $notifications->update(['read' => true]);
             $response = [
                 'value' => true,
-                'data' => $Notification,
                 'message' => 'Notification Updated Successfully',
             ];
 
@@ -98,13 +90,5 @@ class NotificationController extends Controller
 
             return response($response, 404);
         }
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id)
-    {
-
     }
 }

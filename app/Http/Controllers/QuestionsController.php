@@ -60,7 +60,11 @@ class QuestionsController extends Controller
     public function show($section_id)
     {
         $data = [];
-        for ($i = 1; $i <= 19; $i++) {
+        for ($i = 1; $i <= 20; $i++) {
+            // Skip iteration when $i is 15
+            if ($i === 15) {
+                continue;
+            }
             $questions = Questions::where('section_id', $section_id)
             ->where('id', $i)
             ->select('id', 'question', 'values', 'type', 'keyboard_type','mandatory', 'updated_at')
@@ -90,7 +94,11 @@ class QuestionsController extends Controller
         switch ($section_id) {
             case 1:
                 $data = [];
-                for ($i = 1; $i <= 19; $i++) {
+                for ($i = 1; $i <= 20; $i++) {
+                    // Skip iteration when $i is 15
+                    if ($i === 15) {
+                        continue;
+                    }
                     $questions = Questions::where('section_id', $section_id)
                     ->where('id', $i)
                     ->select('id', 'question', 'values', 'type', 'keyboard_type','mandatory', 'updated_at')
@@ -98,7 +106,7 @@ class QuestionsController extends Controller
         
                     $answers = PatientHistory::where('id', $patient_id)
                     ->select('id','name','hospital','collected_data_from','NID','phone','email','age','gender','occupation',
-                    'residency','governorate','marital_status','educational_level','special_habits_of_the_patient','DM',
+                    'residency','governorate','marital_status','educational_level','special_habits_of_the_patient','other_habits_of_the_patient','DM',
                     'DM_duration','HTN','HTN_duration','other',)
                     ->first();
         
@@ -153,7 +161,10 @@ class QuestionsController extends Controller
                             $question['answer'] = $answers->{'educational_level'}; 
                             break;
                         case 14:
-                            $question['answer'] = $answers->{'special_habits_of_the_patient'};
+                            $question['answer'] = [
+                                "answer" =>  $answers->{'special_habits_of_the_patient'},
+                                "other_field" => $answers->{'other_habits_of_the_patient'}
+                            ];
                             break;
                         case 15:
                             $question['answer'] = $answers->{'DM'};

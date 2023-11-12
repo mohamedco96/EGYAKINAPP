@@ -219,9 +219,11 @@ class PatientHistoryController extends Controller
                     $educational_level = null;
                 }
                 if ($request->has('14')) {
-                    $special_habits_of_the_patient = $request->input('14');
+                    $special_habits_of_the_patient = $request->input('14.answer');
+                    $other_habits_of_the_patient = $request->input('14.other_field');
                 }else{
                     $special_habits_of_the_patient = null;
+                    $other_habits_of_the_patient = null;
                 }
                 if ($request->has('15')) {
                     $DM = $request->input('15');
@@ -265,6 +267,7 @@ class PatientHistoryController extends Controller
                     'marital_status'  => $marital_status,
                     'educational_level'  => $educational_level,
                     'special_habits_of_the_patient'  => $special_habits_of_the_patient,
+                    'other_habits_of_the_patient'  => $other_habits_of_the_patient,
                     'DM'  => $DM,
                     'DM_duration'  => $DM_duration,
                     'HTN'  => $HTN,
@@ -331,6 +334,7 @@ class PatientHistoryController extends Controller
 
             $response = [
                 'value' => true,
+                'map' => $request->all(),
                 'doctor_id' => Auth::id(),
                 'id' => $patient->id,
                 'name' => $patient->name,
@@ -342,6 +346,7 @@ class PatientHistoryController extends Controller
         } catch (\Exception $e) {
             $response = [
                 'value' => false,
+                'map' => $request->all(),
                 'message' => 'Error: ' . $e->getMessage(),
             ];
     

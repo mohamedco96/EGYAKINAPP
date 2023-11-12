@@ -49,7 +49,7 @@ class PostCommentsController extends Controller
         if($post!=null){
             $response = [
                 'value' => true,
-                'data' => $comment
+                'message' => 'C0mment Created Successfully'
             ];
             return response($response, 200);
         }else {

@@ -225,28 +225,28 @@ class PatientHistoryController extends Controller
                     $special_habits_of_the_patient = null;
                     $other_habits_of_the_patient = null;
                 }
-                if ($request->has('15')) {
-                    $DM = $request->input('15');
+                if ($request->has('16')) {
+                    $DM = $request->input('16');
                 }else{
                     $DM = null;
                 }
-                if ($request->has('16')) {
-                    $DM_duration = $request->input('16');
+                if ($request->has('17')) {
+                    $DM_duration = $request->input('17');
                 }else{
                     $DM_duration = null;
                 }
-                if ($request->has('17')) {
-                    $HTN = $request->input('17');
+                if ($request->has('18')) {
+                    $HTN = $request->input('18');
                 }else{
                     $HTN = null;
                 }
-                if ($request->has('18')) {
-                    $HTN_duration = $request->input('18');
+                if ($request->has('19')) {
+                    $HTN_duration = $request->input('19');
                 }else{
                     $HTN_duration = null;
                 }              
-                if ($request->has('19')) {
-                    $other = $request->input('19');
+                if ($request->has('20')) {
+                    $other = $request->input('20');
                 }else{
                     $other = null;
                 }
@@ -334,7 +334,6 @@ class PatientHistoryController extends Controller
 
             $response = [
                 'value' => true,
-                'map' => $request->all(),
                 'doctor_id' => Auth::id(),
                 'id' => $patient->id,
                 'name' => $patient->name,
@@ -346,8 +345,7 @@ class PatientHistoryController extends Controller
         } catch (\Exception $e) {
             $response = [
                 'value' => false,
-                'map' => $request->all(),
-                'message' => 'Error: ' . $e->getMessage(),
+                'message' => 'Error: ' . $e->getMessage()
             ];
     
             return response($response, 500);

@@ -216,7 +216,7 @@ class SectionController extends Controller
                 }
 
                 if ($request->has('14')) {
-                    PatientHistory::where('id', $patient_id)->update(['special_habits_of_the_patient' => $request->input('14.answer')]);
+                    PatientHistory::where('id', $patient_id)->update(['special_habits_of_the_patient' => $request->input('14.answers')]);
                     PatientHistory::where('id', $patient_id)->update(['other_habits_of_the_patient' => $request->input('14.other_field')]);
                 }
 

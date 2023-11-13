@@ -241,7 +241,7 @@ class PatientHistoryController extends Controller
                     $educational_level = null;
                 }
                 if ($request->has('14')) {
-                    $special_habits_of_the_patient = $request->input('14.answer');
+                    $special_habits_of_the_patient = $request->input('14.answers');
                     $other_habits_of_the_patient = $request->input('14.other_field');
                 } else {
                     $special_habits_of_the_patient = null;

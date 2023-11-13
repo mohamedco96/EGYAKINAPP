@@ -235,7 +235,7 @@ class QuestionsController extends Controller
                             break;
                         case 24:
                             $question['answer'] = [
-                                'answer' => $answers->{'main_omplaint'},
+                                'answers' => $answers->{'main_omplaint'},
                                 'other_field' => $answers->{'other'},
                             ];
                             break;
@@ -277,13 +277,13 @@ class QuestionsController extends Controller
                             break;
                         case 27:
                             $question['answer'] = [
-                                'answer' => $answers->{'pre-renal_causes'},
+                                'answers' => $answers->{'pre-renal_causes'},
                                 'other_field' => $answers->{'pre-renal_others'},
                             ];
                             break;
                         case 29:
                             $question['answer'] = [
-                                'answer' => $answers->{'renal_causes'},
+                                'answers' => $answers->{'renal_causes'},
                                 'other_field' => $answers->{'renal_others'},
                             ];
                             break;
@@ -436,13 +436,13 @@ class QuestionsController extends Controller
                             break;
                         case 57:
                             $question['answer'] = [
-                                'answer' => $answers->{'skin_examination'},
+                                'answers' => $answers->{'skin_examination'},
                                 'other_field' => $answers->{'skin_examination_clarify'},
                             ];
                             break;
                         case 59:
                             $question['answer'] = [
-                                'answer' => $answers->{'eye_examination'},
+                                'answers' => $answers->{'eye_examination'},
                                 'other_field' => $answers->{'eye_examination_clarify'},
                             ];
                             break;
@@ -454,7 +454,7 @@ class QuestionsController extends Controller
                             break;
                         case 63:
                             $question['answer'] = [
-                                'answer' => $answers->{'cardiac_examination'},
+                                'answers' => $answers->{'cardiac_examination'},
                                 'other_field' => $answers->{'cardiac_examination_clarify'},
                             ];
                             break;
@@ -463,13 +463,13 @@ class QuestionsController extends Controller
                             break;
                         case 66:
                             $question['answer'] = [
-                                'answer' => $answers->{'chest_examination'},
+                                'answers' => $answers->{'chest_examination'},
                                 'other_field' => $answers->{'chest_examination_clarify'},
                             ];
                             break;
                         case 68:
                             $question['answer'] = [
-                                'answer' => $answers->{'abdominal_examination'},
+                                'answers' => $answers->{'abdominal_examination'},
                                 'other_field' => $answers->{'abdominal_examination_clarify'},
                             ];
                             break;

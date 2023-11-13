@@ -259,8 +259,8 @@ class SectionController extends Controller
                 }
 
                 if ($request->has('24')) {
-                    Complaint::where('patient_id', $patient_id)->update(['main_omplaint' => $request->input('24.main_omplaint')]);
-                    Complaint::where('patient_id', $patient_id)->update(['other' => $request->input('24.other')]);
+                    Complaint::where('patient_id', $patient_id)->update(['main_omplaint' => $request->input('24.answers')]);
+                    Complaint::where('patient_id', $patient_id)->update(['other' => $request->input('24.other_field')]);
                 }
 
                 DB::table('sections')->where('patient_id', $patient_id)->update(['section_2' => true]);
@@ -300,18 +300,18 @@ class SectionController extends Controller
                 }
 
                 if ($request->has('27')) {
-                    Cause::where('patient_id', $patient_id)->update(['pre-renal_causes' => $request->input('27.pre-renal_causes')]);
-                    Cause::where('patient_id', $patient_id)->update(['pre-renal_others' => $request->input('27.pre-renal_others')]);
+                    Cause::where('patient_id', $patient_id)->update(['pre-renal_causes' => $request->input('27.answers')]);
+                    Cause::where('patient_id', $patient_id)->update(['pre-renal_others' => $request->input('27.other_field')]);
                 }
 
                 if ($request->has('29')) {
-                    Cause::where('patient_id', $patient_id)->update(['renal_causes' => $request->input('29.renal_causes')]);
-                    Cause::where('patient_id', $patient_id)->update(['renal_others' => $request->input('29.renal_others')]);
+                    Cause::where('patient_id', $patient_id)->update(['renal_causes' => $request->input('29.answers')]);
+                    Cause::where('patient_id', $patient_id)->update(['renal_others' => $request->input('29.other_field')]);
                 }
 
                 if ($request->has('31')) {
-                    Cause::where('patient_id', $patient_id)->update(['post-renal_causes' => $request->input('31.post-renal_causes')]);
-                    Cause::where('patient_id', $patient_id)->update(['post-renal_others' => $request->input('31.post-renal_others')]);
+                    Cause::where('patient_id', $patient_id)->update(['post-renal_causes' => $request->input('31.answers')]);
+                    Cause::where('patient_id', $patient_id)->update(['post-renal_others' => $request->input('31.other_field')]);
                 }
 
                 if ($request->has('33')) {
@@ -452,12 +452,12 @@ class SectionController extends Controller
                     Assessment::where('patient_id', $patient_id)->update(['AVPU' => $request->input('56')]);
                 }
                 if ($request->has('57')) {
-                    Assessment::where('patient_id', $patient_id)->update(['skin_examination' => $request->input('57.skin_examination')]);
-                    Assessment::where('patient_id', $patient_id)->update(['skin_examination_clarify' => $request->input('57.skin_examination_clarify')]);
+                    Assessment::where('patient_id', $patient_id)->update(['skin_examination' => $request->input('57.answers')]);
+                    Assessment::where('patient_id', $patient_id)->update(['skin_examination_clarify' => $request->input('57.other_field')]);
                 }
                 if ($request->has('59')) {
-                    Assessment::where('patient_id', $patient_id)->update(['eye_examination' => $request->input('59.eye_examination')]);
-                    Assessment::where('patient_id', $patient_id)->update(['eye_examination_clarify' => $request->input('59.eye_examination_clarify')]);
+                    Assessment::where('patient_id', $patient_id)->update(['eye_examination' => $request->input('59.answers')]);
+                    Assessment::where('patient_id', $patient_id)->update(['eye_examination_clarify' => $request->input('59.other_field')]);
                 }
                 if ($request->has('61')) {
                     Assessment::where('patient_id', $patient_id)->update(['ear_examination' => $request->input('61')]);
@@ -466,19 +466,19 @@ class SectionController extends Controller
                     Assessment::where('patient_id', $patient_id)->update(['ear_examination_clarify' => $request->input('62')]);
                 }
                 if ($request->has('63')) {
-                    Assessment::where('patient_id', $patient_id)->update(['cardiac_examination' => $request->input('63.cardiac_examination')]);
-                    Assessment::where('patient_id', $patient_id)->update(['cardiac_examination_clarify' => $request->input('63.cardiac_examination_clarify')]);
+                    Assessment::where('patient_id', $patient_id)->update(['cardiac_examination' => $request->input('63.answers')]);
+                    Assessment::where('patient_id', $patient_id)->update(['cardiac_examination_clarify' => $request->input('63.other_field')]);
                 }
                 if ($request->has('65')) {
                     Assessment::where('patient_id', $patient_id)->update(['internal_jugular_vein' => $request->input('65')]);
                 }
                 if ($request->has('66')) {
-                    Assessment::where('patient_id', $patient_id)->update(['chest_examination' => $request->input('66.chest_examination')]);
-                    Assessment::where('patient_id', $patient_id)->update(['chest_examination_clarify' => $request->input('66.chest_examination_clarify')]);
+                    Assessment::where('patient_id', $patient_id)->update(['chest_examination' => $request->input('66.answers')]);
+                    Assessment::where('patient_id', $patient_id)->update(['chest_examination_clarify' => $request->input('66.other_field')]);
                 }
                 if ($request->has('68')) {
-                    Assessment::where('patient_id', $patient_id)->update(['abdominal_examination' => $request->input('68.abdominal_examination')]);
-                    Assessment::where('patient_id', $patient_id)->update(['abdominal_examination_clarify' => $request->input('68.abdominal_examination_clarify')]);
+                    Assessment::where('patient_id', $patient_id)->update(['abdominal_examination' => $request->input('68.answers')]);
+                    Assessment::where('patient_id', $patient_id)->update(['abdominal_examination_clarify' => $request->input('68.other_field')]);
                 }
                 if ($request->has('70')) {
                     Assessment::where('patient_id', $patient_id)->update(['other' => $request->input('70')]);

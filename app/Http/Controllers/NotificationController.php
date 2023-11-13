@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreNotificationRequest;
 use App\Models\Notification;
 
 class NotificationController extends Controller
@@ -41,6 +40,7 @@ class NotificationController extends Controller
         $notifications = Notification::where('doctor_id', $doctorId)
             ->select('id', 'read', 'type', 'patient_id', 'doctor_id', 'created_at')
             ->with('patient.doctor:id,name,lname,workingplace')
+            ->with('patient.sections:id,submit_status,outcome_status,patient_id')
             ->with('patient:id,name,hospital,governorate,doctor_id')
             ->latest()
             ->get();

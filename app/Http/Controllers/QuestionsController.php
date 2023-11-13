@@ -172,7 +172,7 @@ class QuestionsController extends Controller
                             $question['answer'] = $answers->{'educational_level'};
                             break;
                         case 14:
-                            $question['answer'] = [
+                            $question['answers'] = [
                                 'answer' => $answers->{'special_habits_of_the_patient'},
                                 'other_field' => $answers->{'other_habits_of_the_patient'},
                             ];

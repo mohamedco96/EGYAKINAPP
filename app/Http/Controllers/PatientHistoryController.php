@@ -543,16 +543,7 @@ class PatientHistoryController extends Controller
      */
     public function search($name)
     {
-        $Patient1 = PatientHistory::where('name', 'like', '%'.$name.'%')
-            ->orWhere('hospital', 'like', '%'.$name.'%')
-            ->with('doctor:id,name,lname')
-            ->with(['sections' => function ($query) {
-                $query->select('patient_id', 'submit_status', 'outcome_status');
-            }])
-            ->latest('updated_at')
-            ->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
-
-        $Patient2 = PatientHistory::where(function ($query) use ($name) {
+        $Patient = PatientHistory::where(function ($query) use ($name) {
             $query->where('name', 'like', '%'.$name.'%')
                 ->orWhere('hospital', 'like', '%'.$name.'%')
                 ->orWhereHas('doctor', function ($query) use ($name) {
@@ -566,16 +557,10 @@ class PatientHistoryController extends Controller
             ->latest('updated_at')
             ->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
 
-        $patient3 = DB::table('patient_histories')
-            ->join('users', 'patient_histories.doctor_id', '=', 'users.id')
-            ->select('users.name as user_name', 'patient_histories.name as patient_name')
-            ->get();
-
-
-        if ($Patient2 != null) {
+        if ($Patient != null) {
             $response = [
                 'value' => true,
-                'data' => $Patient2,
+                'data' => $Patient,
             ];
 
             return response($response, 201);

@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreOutcomeRequest;
 use App\Http\Requests\UpdateOutcomeRequest;
+use App\Models\Notification;
 use App\Models\Outcome;
+use App\Models\PatientHistory;
 use App\Models\Score;
 use App\Models\ScoreHistory;
 use Illuminate\Support\Facades\Auth;
@@ -41,55 +43,65 @@ class OutcomeController extends Controller
     // @return \Illuminate\Http\Response
     public function store(StoreOutcomeRequest $request)
     {
-        $Outcome = Outcome::create([
-            'doctor_id' => Auth::id(),
-            'patient_id' => $request->patient_id,
-            'outcome_of_the_patient' => $request->outcome_of_the_patient,
-            'creatinine_on_discharge' => $request->creatinine_on_discharge,
-            'final_status' => $request->final_status,
-            'other' => $request->other,
-        ]);
+        return DB::transaction(function () use ($request) {
+            $doctorId = Auth::id();
+            $patientId = $request->patient_id;
 
-        DB::table('sections')->where('patient_id', $request->patient_id)->update(['outcome_status' => true]);
+            // Create the Outcome record
+            $outcome = Outcome::create([
+                'doctor_id' => $doctorId,
+                'patient_id' => $patientId,
+                'outcome_of_the_patient' => $request->outcome_of_the_patient,
+                'creatinine_on_discharge' => $request->creatinine_on_discharge,
+                'final_status' => $request->final_status,
+                'other' => $request->other,
+            ]);
 
-        //scoring system
-        $doctorId = Auth::id(); // Assuming you have authentication in place
-        $score = Score::where('doctor_id', $doctorId)->first();
+            // Update the sections table
+            DB::table('sections')->where('patient_id', $patientId)->update(['outcome_status' => true]);
 
-        $incrementAmount = 5; // Example increment amount
-        $action = 'Add Outcome'; // Example action
-
-        if ($score) {
-            $score->increment('score', $incrementAmount); // Increase the score
-        } else {
-            Score::create([
+            // Update score and score history
+            $incrementAmount = 5;
+            Score::updateOrCreate(['doctor_id' => $doctorId], ['score' => DB::raw("score + $incrementAmount")]);
+            ScoreHistory::create([
                 'doctor_id' => $doctorId,
                 'score' => $incrementAmount,
+                'action' => 'Add Outcome',
+                'timestamp' => now(),
             ]);
-        }
 
-        ScoreHistory::create([
-            'doctor_id' => $doctorId,
-            'score' => $incrementAmount,
-            'action' => $action,
-            'timestamp' => now(),
-        ]);
+            // Send notification if necessary
+            $patientDoctor = PatientHistory::where('id', $patientId)->first();
+            $doctorId = ($patientDoctor->doctor_id == $doctorId) ? 'No need to send notification' : $patientDoctor->doctor_id;
+            if ($doctorId != 'No need to send notification') {
+                Notification::create([
+                    'content' => 'Outcome was created',
+                    'read' => false,
+                    'type' => 'Outcome',
+                    'patient_id' => $patientId,
+                    'doctor_id' => $doctorId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
 
-        if ($Outcome != null) {
-            $response = [
-                'value' => true,
-                'message' => 'Outcome Created Successfully',
-            ];
+            // Return response
+            if ($outcome) {
+                $response = [
+                    'value' => true,
+                    'message' => 'Outcome Created Successfully',
+                ];
 
-            return response($response, 200);
-        } else {
-            $response = [
-                'value' => false,
-                'message' => 'No Outcome was found',
-            ];
+                return response($response, 200);
+            } else {
+                $response = [
+                    'value' => false,
+                    'message' => 'No Outcome was found',
+                ];
 
-            return response($response, 404);
-        }
+                return response($response, 404);
+            }
+        });
     }
 
     /**

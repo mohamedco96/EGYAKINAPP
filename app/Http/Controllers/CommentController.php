@@ -6,6 +6,7 @@ use App\Http\Requests\StoreCommentRequest;
 use App\Http\Requests\UpdateCommentRequest;
 use App\Models\Comment;
 use App\Models\Notification;
+use App\Models\PatientHistory;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -45,7 +46,9 @@ class CommentController extends Controller
             'content' => $request->content,
         ]);
 
-        $allusers = Comment::where('patient_id', $request->patient_id)->get(['doctor_id']);
+        $patientdoctor = PatientHistory::where('id', $request->patient_id)->first(['doctor_id']);
+        $allusers = Comment::where('patient_id', $request->patient_id)->pluck('doctor_id')->toArray();
+        $allusers[] = $patientdoctor->doctor_id;
 
         foreach ($allusers as $user) {
             Notification::create([
@@ -58,6 +61,7 @@ class CommentController extends Controller
                 'updated_at' => now(),
             ]);
         }
+
         if ($Comment != null) {
             $response = [
                 'value' => true,

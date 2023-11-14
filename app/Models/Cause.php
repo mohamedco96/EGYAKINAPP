@@ -34,6 +34,7 @@ class Cause extends Model
 
     protected $casts = [
         'pre-renal_causes' => 'array',
+        'renal_causes' => 'array',
     ];
 
     public function doctor(): BelongsTo

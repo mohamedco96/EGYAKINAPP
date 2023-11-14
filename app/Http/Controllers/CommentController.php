@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreCommentRequest;
 use App\Http\Requests\UpdateCommentRequest;
 use App\Models\Comment;
+use App\Models\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -44,6 +45,19 @@ class CommentController extends Controller
             'content' => $request->content,
         ]);
 
+        $allusers = Comment::where('patient_id', $request->patient_id)->get(['doctor_id']);
+
+        foreach ($allusers as $user) {
+            Notification::create([
+                'content' => 'New Comment was created',
+                'read' => false,
+                'type' => 'Comment',
+                'patient_id' => $request->patient_id,
+                'doctor_id' => $user,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
         if ($Comment != null) {
             $response = [
                 'value' => true,

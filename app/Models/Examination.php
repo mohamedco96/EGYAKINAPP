@@ -24,7 +24,8 @@ class Examination extends Model
         'basal_creatinine',
         'renal_US',
         'specify_renal-US',
-        'other',
+        'Other laboratory findings',
+        'Other radiology findings',
         'created_at',
         'updated_at',
     ];

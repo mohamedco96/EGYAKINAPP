@@ -252,18 +252,18 @@ class SectionController extends Controller
                 $fields = [
                     '34' => 'CKD_history',
                     '35' => 'AK_history',
-                    '36' => 'cardiac_failure_history',
+                    '36' => 'cardiac-failure_history',
                     '37' => 'LCF_history',
-                    '38' => 'neurological_impairment_disability_history',
+                    '38' => 'neurological-impairment_disability_history',
                     '39' => 'sepsis_history',
                     '40' => 'contrast_media',
-                    '41' => 'drugs_with_potential_nephrotoxicity',
+                    '41' => 'drugs-with-potential-nephrotoxicity',
                     '42' => 'drug_name',
                     '43' => 'hypovolemia_history',
                     '44' => 'malignancy_history',
                     '45' => 'trauma_history',
                     '46' => 'autoimmune-disease_history',
-                    '47' => 'other_risk_factors',
+                    '47' => 'other-risk-factors',
                 ];
 
                 foreach ($fields as $field => $column) {

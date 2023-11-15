@@ -484,7 +484,7 @@ class QuestionsController extends Controller
                 break;
             case 6:
                 $data = [];
-                for ($i = 71; $i <= 74; $i++) {
+                for ($i = 71; $i <= 76; $i++) {
                     $questions = Questions::where('section_id', $section_id)
                         ->where('id', $i)
                         ->select('id', 'question', 'values', 'type', 'keyboard_type', 'mandatory', 'updated_at')
@@ -492,7 +492,8 @@ class QuestionsController extends Controller
 
                     $answers = Examination::where('patient_id', $patient_id)
                         ->select(
-                            'id', 'current_creatinine', 'basal_creatinine', 'renal_US', 'specify_renal-US'
+                            'id', 'current_creatinine', 'basal_creatinine', 'renal_US', 'specify_renal-US',
+                            'Other laboratory findings', 'Other radiology findings'
                         )
                         ->first();
 
@@ -519,6 +520,12 @@ class QuestionsController extends Controller
                         case 74:
                             $question['answer'] = $answers->{'specify_renal-US'};
                             break;
+                        case 75:
+                            $question['answer'] = $answers->{'Other laboratory findings'};
+                            break;
+                        case 76:
+                            $question['answer'] = $answers->{'Other radiology findings'};
+                            break;
                     }
 
                     $data[] = $question;
@@ -526,7 +533,7 @@ class QuestionsController extends Controller
                 break;
             case 7:
                 $data = [];
-                for ($i = 75; $i <= 75; $i++) {
+                for ($i = 77; $i <= 78; $i++) {
                     $questions = Questions::where('section_id', $section_id)
                         ->where('id', $i)
                         ->select('id', 'question', 'values', 'type', 'keyboard_type', 'mandatory', 'updated_at')
@@ -534,7 +541,7 @@ class QuestionsController extends Controller
 
                     $answers = Decision::where('patient_id', $patient_id)
                         ->select(
-                            'id', 'medical_decision'
+                            'id', 'medical_decision', 'other'
                         )
                         ->first();
 
@@ -549,8 +556,11 @@ class QuestionsController extends Controller
                     ];
 
                     switch ($i) {
-                        case 75:
+                        case 77:
                             $question['answer'] = $answers->{'medical_decision'};
+                            break;
+                        case 78:
+                            $question['answer'] = $answers->{'other'};
                             break;
                     }
 
@@ -559,7 +569,7 @@ class QuestionsController extends Controller
                 break;
             case 8:
                 $data = [];
-                for ($i = 76; $i <= 79; $i++) {
+                for ($i = 79; $i <= 82; $i++) {
                     $questions = Questions::where('section_id', $section_id)
                         ->where('id', $i)
                         ->select('id', 'question', 'values', 'type', 'keyboard_type', 'mandatory', 'updated_at')
@@ -582,16 +592,16 @@ class QuestionsController extends Controller
                     ];
 
                     switch ($i) {
-                        case 76:
+                        case 79:
                             $question['answer'] = $answers->{'outcome_of_the_patient'};
                             break;
-                        case 77:
+                        case 80:
                             $question['answer'] = $answers->{'creatinine_on_discharge'};
                             break;
-                        case 78:
+                        case 81:
                             $question['answer'] = $answers->{'final_status'};
                             break;
-                        case 79:
+                        case 82:
                             $question['answer'] = $answers->{'other'};
                             break;
                     }

@@ -21,7 +21,8 @@ return new class extends Migration
             $table->string('basal_creatinine')->nullable();
             $table->string('renal_US')->nullable();
             $table->string('specify_renal-US')->nullable();
-            $table->longText('other')->nullable();
+            $table->longText('Other laboratory findings')->nullable();
+            $table->longText('Other radiology findings')->nullable();
             $table->timestamps();
         });
     }

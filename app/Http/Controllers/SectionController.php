@@ -530,7 +530,13 @@ class SectionController extends Controller
                 if ($request->has('74')) {
                     Examination::where('patient_id', $patient_id)->update(['specify_renal-US' => $request->input('74')]);
                 }
+                if ($request->has('75')) {
+                    Examination::where('patient_id', $patient_id)->update(['Other laboratory findings' => $request->input('75')]);
+                }
 
+                if ($request->has('76')) {
+                    Examination::where('patient_id', $patient_id)->update(['Other radiology findings' => $request->input('76')]);
+                }
                 DB::table('sections')->where('patient_id', $patient_id)->update(['section_6' => true]);
 
                 //scoring system
@@ -563,10 +569,12 @@ class SectionController extends Controller
                 ];
                 break;
             case 7:
-                if ($request->has('75')) {
-                    Decision::where('patient_id', $patient_id)->update(['medical_decision' => $request->input('75')]);
+                if ($request->has('77')) {
+                    Decision::where('patient_id', $patient_id)->update(['medical_decision' => $request->input('77')]);
                 }
-
+                if ($request->has('78')) {
+                    Decision::where('patient_id', $patient_id)->update(['other' => $request->input('78')]);
+                }
                 DB::table('sections')->where('patient_id', $patient_id)->update(['section_7' => true]);
 
                 //scoring system

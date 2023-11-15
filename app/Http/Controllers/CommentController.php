@@ -46,17 +46,31 @@ class CommentController extends Controller
             'content' => $request->content,
         ]);
 
-        $patientdoctor = PatientHistory::where('id', $request->patient_id)->first(['doctor_id']);
-        $allusers = Comment::where('patient_id', $request->patient_id)->pluck('doctor_id')->toArray();
-        $allusers[] = $patientdoctor->doctor_id;
+        /* $allusers = Comment::where('patient_id', $request->patient_id)->pluck('doctor_id')->toArray();
+         $allusers[] = $patientdoctor->doctor_id;
 
-        foreach ($allusers as $user) {
+         foreach ($allusers as $user) {
+             Notification::create([
+                 'content' => 'New Comment was created',
+                 'read' => false,
+                 'type' => 'Comment',
+                 'patient_id' => $request->patient_id,
+                 'doctor_id' => $user,
+                 'created_at' => now(),
+                 'updated_at' => now(),
+             ]);
+         }*/
+
+        // Send notification if necessary
+        $patientdoctor = PatientHistory::where('id', $request->patient_id)->first(['doctor_id']);
+        $doctorId = ($patientDoctor->doctor_id == Auth::id()) ? 'No need to send notification' : $patientDoctor->doctor_id;
+        if ($doctorId != 'No need to send notification') {
             Notification::create([
                 'content' => 'New Comment was created',
                 'read' => false,
                 'type' => 'Comment',
                 'patient_id' => $request->patient_id,
-                'doctor_id' => $user,
+                'doctor_id' => $doctorId,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

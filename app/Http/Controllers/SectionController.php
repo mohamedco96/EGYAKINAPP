@@ -262,7 +262,7 @@ class SectionController extends Controller
                     '43' => 'hypovolemia_history',
                     '44' => 'malignancy_history',
                     '45' => 'trauma_history',
-                    '46' => 'autoimmune_disease_history',
+                    '46' => 'autoimmune-disease_history',
                     '47' => 'other_risk_factors',
                 ];
 

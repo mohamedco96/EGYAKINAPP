@@ -63,7 +63,7 @@ class CommentController extends Controller
 
         // Send notification if necessary
         $patientdoctor = PatientHistory::where('id', $request->patient_id)->first(['doctor_id']);
-        $doctorId = ($patientDoctor->doctor_id == Auth::id()) ? 'No need to send notification' : $patientDoctor->doctor_id;
+        $doctorId = ($patientdoctor->doctor_id == Auth::id()) ? 'No need to send notification' : $patientdoctor->doctor_id;
         if ($doctorId != 'No need to send notification') {
             Notification::create([
                 'content' => 'New Comment was created',

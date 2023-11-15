@@ -228,8 +228,8 @@ class SectionController extends Controller
                     '27.other_field' => 'pre-renal_others',
                     '29.answers' => 'renal_causes',
                     '29.other_field' => 'renal_others',
-                    '31.answers' => 'post-renal_causes',
-                    '31.other_field' => 'post-renal_others',
+                    '31' => 'post-renal_causes',
+                    '32' => 'post-renal_others',
                     '33' => 'other',
                 ];
 

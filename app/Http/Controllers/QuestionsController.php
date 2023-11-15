@@ -392,7 +392,7 @@ class QuestionsController extends Controller
                             'id', 'heart-rate/minute', 'respiratory-rate/minute', 'SBP', 'DBP', 'GCS', 'oxygen_saturation', 'temperature', 'UOP', 'AVPU',
                             'skin_examination', 'skin_examination_clarify', 'eye_examination', 'eye_examination_clarify', 'ear_examination',
                             'ear_examination_clarify', 'cardiac_examination', 'cardiac_examination_clarify', 'internal_jugular_vein', 'chest_examination',
-                            'chest_examination_clarify', 'abdominal_examination', 'abdominal_examination_clarify'
+                            'chest_examination_clarify', 'abdominal_examination', 'abdominal_examination_clarify', 'other'
                         )
                         ->first();
 

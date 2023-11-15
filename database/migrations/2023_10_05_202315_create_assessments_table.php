@@ -39,7 +39,7 @@ return new class extends Migration
             $table->string('chest_examination_clarify')->nullable();
             $table->string('abdominal_examination')->nullable();
             $table->string('abdominal_examination_clarify')->nullable();
-            $table->longText('other')->nullable();
+            $table->string('other')->nullable();
             $table->timestamps();
         });
     }

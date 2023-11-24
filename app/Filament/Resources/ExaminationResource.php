@@ -68,7 +68,8 @@ class ExaminationResource extends Resource
                 Tables\Columns\TextColumn::make('basal_creatinine')->label('Basal creatinine, if available'),
                 Tables\Columns\TextColumn::make('renal_US')->label('Renal US'),
                 Tables\Columns\TextColumn::make('specify_renal-US')->label('If renal US is abnormal, specify'),
-                Tables\Columns\TextColumn::make('other'),
+                Tables\Columns\TextColumn::make('Other laboratory findings'),
+                Tables\Columns\TextColumn::make('Other radiology findings'),
                 Tables\Columns\TextColumn::make('created_at'),
                 Tables\Columns\TextColumn::make('updated_at'),
             ])

@@ -70,9 +70,9 @@ class OutcomeResource extends Resource
                 Tables\Columns\TextColumn::make('doctor.name')->label('Doctor Name')->searchable(),
                 Tables\Columns\TextColumn::make('patient.name')->label('Patient Name')->searchable(),
                 Tables\Columns\TextColumn::make('outcome_of_the_patient')->label('Outcome of the patient'),
-                Tables\Columns\TextColumn::make('creatinine_on_discharge')->label(''),
-                Tables\Columns\TextColumn::make('final_status')->label(''),
-                Tables\Columns\TextColumn::make('other'),
+                Tables\Columns\TextColumn::make('creatinine_on_discharge')->label('Creatinine on discharge'),
+                Tables\Columns\TextColumn::make('final_status')->label('Final status'),
+                Tables\Columns\TextColumn::make('other')->label('Other Outcome'),
                 Tables\Columns\TextColumn::make('created_at'),
                 Tables\Columns\TextColumn::make('updated_at'),
             ])
@@ -102,18 +102,18 @@ class OutcomeResource extends Resource
                     ->button()
                     ->label('Filter'), )
             ->actions([
-                    Tables\Actions\EditAction::make(),
-                    Tables\Actions\DeleteAction::make(),
-                ])
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
+            ])
             ->bulkActions([
-                    Tables\Actions\BulkActionGroup::make([
-                        Tables\Actions\DeleteBulkAction::make(),
-                        ExportBulkAction::make(),
-                    ]),
-                ])
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                    ExportBulkAction::make(),
+                ]),
+            ])
             ->emptyStateActions([
-                    Tables\Actions\CreateAction::make(),
-                ]);
+                Tables\Actions\CreateAction::make(),
+            ]);
     }
 
     public static function getRelations(): array

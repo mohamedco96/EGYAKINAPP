@@ -97,7 +97,7 @@ class CauseResource extends Resource
                 Tables\Columns\TextColumn::make('renal_others')->label('If the cause of intrinsic renal AKI is others, what is the cause?'),
                 Tables\Columns\TextColumn::make('post-renal_causes')->label('Post-renal causes of AKI in this patient include'),
                 Tables\Columns\TextColumn::make('post-renal_others')->label('If the cause of post-renal AKI is others, what is the cause?'),
-                Tables\Columns\TextColumn::make('other'),
+                Tables\Columns\TextColumn::make('other')->label('Other Causes'),
                 Tables\Columns\TextColumn::make('created_at')->label('Created At'),
                 Tables\Columns\TextColumn::make('updated_at')->label('Updated At'),
             ])

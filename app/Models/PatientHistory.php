@@ -65,12 +65,37 @@ class PatientHistory extends Model
 
     public function complaint(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(Complaint::class);
+        return $this->hasOne(Complaint::class, 'patient_id');
     }
 
-    public function Cause(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function cause(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(Complaint::class);
+        return $this->hasOne(Cause::class, 'patient_id');
+    }
+
+    public function risk(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Risk::class, 'patient_id');
+    }
+
+    public function assessment(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Assessment::class, 'patient_id');
+    }
+
+    public function examination(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Examination::class, 'patient_id');
+    }
+
+    public function decision(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Decision::class, 'patient_id');
+    }
+
+    public function outcome(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Outcome::class, 'patient_id');
     }
 
     public function questions(): BelongsTo

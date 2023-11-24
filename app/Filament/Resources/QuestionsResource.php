@@ -23,9 +23,7 @@ class QuestionsResource extends Resource
 
     protected static ?string $navigationLabel = 'Questions';
 
-    protected static ?string $navigationGroup = 'Other';
-
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 4;
 
     public static function getNavigationBadge(): ?string
     {

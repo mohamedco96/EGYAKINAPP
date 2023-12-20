@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('hospital');
             $table->string('collected_data_from');
-            $table->string('NID')->nullable();
+            $table->string('NID')->unique();
             $table->string('phone')->nullable();
             $table->string('email')->nullable();
             $table->string('age');

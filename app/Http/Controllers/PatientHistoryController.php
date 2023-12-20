@@ -546,6 +546,7 @@ class PatientHistoryController extends Controller
         $Patient = PatientHistory::where(function ($query) use ($name) {
             $query->where('name', 'like', '%'.$name.'%')
                 ->orWhere('hospital', 'like', '%'.$name.'%')
+                ->orWhere('NID', 'like', '%'.$name.'%')
                 ->orWhereHas('doctor', function ($query) use ($name) {
                     $query->where('name', 'like', '%'.$name.'%');
                 });

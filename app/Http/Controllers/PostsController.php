@@ -16,6 +16,7 @@ class PostsController extends Controller
     public function index()
     {
         $post = Posts::select('id', 'title', 'image', 'content', 'hidden', 'doctor_id', 'updated_at')
+            ->where('hidden', 0)
             ->with('doctor:id,name,lname')
             ->get();
 

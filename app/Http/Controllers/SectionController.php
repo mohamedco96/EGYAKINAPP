@@ -366,7 +366,7 @@ class SectionController extends Controller
                 $action = 'Update Decision Section';
                 break;
         }
-
+        /*
         // Scoring system
         $doctorId = auth()->user()->id;
         $incrementAmount = 5;
@@ -387,7 +387,7 @@ class SectionController extends Controller
             'score' => $incrementAmount,
             'action' => $action,
             'timestamp' => now(),
-        ]);
+        ]);*/
 
         return $this->successResponse($response, 201);
     }
@@ -418,7 +418,7 @@ class SectionController extends Controller
             $doctorId = auth()->user()->id; // Assuming you have authentication in place
             $score = Score::where('doctor_id', $doctorId)->first();
 
-            $incrementAmount = 10; // Example increment amount
+            $incrementAmount = 4; // Example increment amount
             $action = 'Final Submit'; // Example action
 
             if ($score) {

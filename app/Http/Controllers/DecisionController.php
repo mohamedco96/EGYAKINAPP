@@ -92,7 +92,7 @@ class DecisionController extends Controller
             $Decision->update($request->all());
 
             DB::table('sections')->where('patient_id', $id)->update(['section_7' => true]);
-
+            /*
             //scoring system
             $doctorId = auth()->user()->id; // Assuming you have authentication in place
             $score = Score::where('doctor_id', $doctorId)->first();
@@ -114,7 +114,7 @@ class DecisionController extends Controller
                 'score' => $incrementAmount,
                 'action' => $action,
                 'timestamp' => now(),
-            ]);
+            ]);*/
 
             $response = [
                 'value' => true,

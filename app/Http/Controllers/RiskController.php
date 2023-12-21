@@ -91,7 +91,7 @@ class RiskController extends Controller
             $Risk->update($request->all());
 
             DB::table('sections')->where('patient_id', $id)->update(['section_4' => true]);
-
+            /*
             //scoring system
             $doctorId = auth()->user()->id; // Assuming you have authentication in place
             $score = Score::where('doctor_id', $doctorId)->first();
@@ -113,7 +113,7 @@ class RiskController extends Controller
                 'score' => $incrementAmount,
                 'action' => $action,
                 'timestamp' => now(),
-            ]);
+            ]);*/
 
             $response = [
                 'value' => true,

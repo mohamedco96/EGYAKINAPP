@@ -91,7 +91,7 @@ class AssessmentController extends Controller
             $Assessment->update($request->all());
 
             DB::table('sections')->where('patient_id', $id)->update(['section_5' => true]);
-
+            /*
             //scoring system
             $doctorId = auth()->user()->id; // Assuming you have authentication in place
             $score = Score::where('doctor_id', $doctorId)->first();
@@ -113,7 +113,7 @@ class AssessmentController extends Controller
                 'score' => $incrementAmount,
                 'action' => $action,
                 'timestamp' => now(),
-            ]);
+            ]);*/
 
             $response = [
                 'value' => true,

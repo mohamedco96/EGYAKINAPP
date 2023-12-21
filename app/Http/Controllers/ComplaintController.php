@@ -93,7 +93,7 @@ class ComplaintController extends Controller
             $complaint->update($request->all());
 
             DB::table('sections')->where('patient_id', $id)->update(['section_2' => true]);
-
+            /*
             //scoring system
             $doctorId = auth()->user()->id; // Assuming you have authentication in place
             $score = Score::where('doctor_id', $doctorId)->first();
@@ -115,7 +115,7 @@ class ComplaintController extends Controller
                 'score' => $incrementAmount,
                 'action' => $action,
                 'timestamp' => now(),
-            ]);
+            ]);*/
 
             $response = [
                 'value' => true,

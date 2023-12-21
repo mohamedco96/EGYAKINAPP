@@ -311,6 +311,7 @@ class PatientHistoryController extends Controller
                 $this->decision->create($relatedData);
                 //$this->outcome->create($relatedData);
 
+                /*
                 //scoring system
                 $doctorId = auth()->user()->id; // Assuming you have authentication in place
                 $score = Score::where('doctor_id', $doctorId)->first();
@@ -332,7 +333,7 @@ class PatientHistoryController extends Controller
                     'score' => $incrementAmount,
                     'action' => $action,
                     'timestamp' => now(),
-                ]);
+                ]);*/
 
                 return $patient;
             });

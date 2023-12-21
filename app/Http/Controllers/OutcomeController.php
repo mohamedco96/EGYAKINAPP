@@ -61,7 +61,7 @@ class OutcomeController extends Controller
             DB::table('sections')->where('patient_id', $patientId)->update(['outcome_status' => true]);
 
             // Update score and score history
-            $incrementAmount = 5;
+            $incrementAmount = 1;
             Score::updateOrCreate(['doctor_id' => $doctorId], ['score' => DB::raw("score + $incrementAmount")]);
             ScoreHistory::create([
                 'doctor_id' => $doctorId,

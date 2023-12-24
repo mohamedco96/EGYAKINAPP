@@ -28,6 +28,8 @@ class User extends Authenticatable
         'phone',
         'job',
         'highestdegree',
+        'blocked',
+        'limited'
     ];
 
     /**
@@ -48,6 +50,8 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'blocked' => 'boolean',
+        'limited' => 'boolean',
     ];
 
     public function canAccessPanel(Panel $panel): bool

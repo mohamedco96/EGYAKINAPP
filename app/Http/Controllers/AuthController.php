@@ -64,7 +64,14 @@ class AuthController extends Controller
             ];
 
             return response($response, 404);
-        } else {
+        }elseif ($user->blocked){
+            $response = [
+                'value' => false,
+                'message' => 'User is Blocked',
+            ];
+            return response($response, 404);
+        }
+        else {
             $token = $user->createToken('apptoken')->plainTextToken;
             $response = [
                 'value' => true,
@@ -78,8 +85,8 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        auth()->user()->tokens()->delete();
-
+        //auth()->user()->tokens()->delete();
+        $request->user()->currentAccessToken()->delete();
         return [
             'value' => true,
             'message' => 'Logged out',

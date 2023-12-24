@@ -64,6 +64,7 @@ class PatientHistoryController extends Controller
     public function index()
     {
         $Patient = PatientHistory::with('doctor:id,name,lname')
+            ->where('hidden', false)
             ->with(['sections' => function ($query) {
                 $query->select('patient_id', 'submit_status', 'outcome_status');
             }])
@@ -95,6 +96,7 @@ class PatientHistoryController extends Controller
     public function doctorPatientGetAll()
     {
         $Patient = PatientHistory::with('doctor:id,name,lname')
+            ->where('hidden', false)
             ->with(['sections' => function ($query) {
                 $query->select('patient_id', 'submit_status', 'outcome_status');
             }])
@@ -128,6 +130,7 @@ class PatientHistoryController extends Controller
         $user = Auth::user();
         /** @var TYPE_NAME $Patient */
         $Patient = $user->patients()
+            ->where('hidden', false)
                         //->with('sections:patient_id,submit_status,outcome_status')
             ->with('doctor:id,name,lname')
             ->with(['sections' => function ($query) {
@@ -544,7 +547,8 @@ class PatientHistoryController extends Controller
      */
     public function search($name)
     {
-        $Patient = PatientHistory::where(function ($query) use ($name) {
+        $Patient = PatientHistory::where('hidden', false)
+            ->where(function ($query) use ($name) {
             $query->where('name', 'like', '%'.$name.'%')
                 ->orWhere('hospital', 'like', '%'.$name.'%')
                 ->orWhere('NID', 'like', '%'.$name.'%')

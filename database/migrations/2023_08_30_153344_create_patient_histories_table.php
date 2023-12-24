@@ -36,6 +36,7 @@ return new class extends Migration
             $table->string('HTN');
             $table->string('HTN_duration')->nullable();
             $table->longText('other')->nullable();
+            $table->boolean('hidden')->default(false);
             $table->timestamps();
         });
     }

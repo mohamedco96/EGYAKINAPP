@@ -46,6 +46,7 @@ class PatientHistory extends Model
 
     protected $casts = [
         'special_habits_of_the_patient' => 'array',
+        'hidden' => 'boolean'
     ];
 
     public function doctor(): BelongsTo

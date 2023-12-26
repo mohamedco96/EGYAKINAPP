@@ -24,6 +24,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/register', 'AuthController@register');
 Route::post('/login', 'AuthController@login');
+Route::post('/forgotpassword', 'ForgetPasswordController@forgotPassword');
+Route::post('/resetpassword', 'ResetPasswordController@passwordReset');
 
 Route::get('/userPatient', 'AuthController@userPatient');
 
@@ -39,6 +41,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/users/{id}', 'AuthController@update');
     Route::delete('/users/{id}', 'AuthController@destroy');
     Route::post('/logout', 'AuthController@logout');
+    Route::post('/emailverification', 'EmailVerificationController@email_verification');
+    Route::post('/resendemailverification', 'EmailVerificationController@sendEmailVerification');
 
     //PatientHistory
     Route::get('/patientHistory', 'PatientHistoryController@index');

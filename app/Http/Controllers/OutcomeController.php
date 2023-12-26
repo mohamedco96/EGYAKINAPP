@@ -53,6 +53,7 @@ class OutcomeController extends Controller
                 'patient_id' => $patientId,
                 'outcome_of_the_patient' => $request->outcome_of_the_patient,
                 'creatinine_on_discharge' => $request->creatinine_on_discharge,
+                'duration_of_admission' => $request->duration_of_admission,
                 'final_status' => $request->final_status,
                 'other' => $request->other,
             ]);
@@ -110,7 +111,7 @@ class OutcomeController extends Controller
     public function show($patient_id)
     {
         $Outcome = Outcome::where('patient_id', $patient_id)
-            ->select('doctor_id', 'outcome_of_the_patient', 'creatinine_on_discharge', 'final_status', 'other', 'updated_at')
+            ->select('doctor_id', 'outcome_of_the_patient', 'creatinine_on_discharge','duration_of_admission', 'final_status', 'other', 'updated_at')
             ->with('doctor:id,name,lname')
             ->first();
 

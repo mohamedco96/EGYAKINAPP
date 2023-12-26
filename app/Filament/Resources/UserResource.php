@@ -41,6 +41,7 @@ class UserResource extends Resource
                 Forms\Components\TextInput::make('phone')->required()->tel(),
                 Forms\Components\TextInput::make('job')->required(),
                 Forms\Components\TextInput::make('highestdegree')->required()->label('Highest degree'),
+                Forms\Components\TextInput::make('registration_number')->required()->label('Registration Number'),
                 Forms\Components\Radio::make('blocked')->boolean(),
                 Forms\Components\Radio::make('limited')->boolean(),
             ]);
@@ -60,6 +61,7 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('phone'),
                 Tables\Columns\TextColumn::make('job'),
                 Tables\Columns\TextColumn::make('highestdegree')->label('Highest degree'),
+                Tables\Columns\TextColumn::make('registration_number')->label('Registration Number'),
                 Tables\Columns\TextColumn::make('blocked'),
                 Tables\Columns\TextColumn::make('limited'),
                 Tables\Columns\TextColumn::make('created_at')->label('Created At'),

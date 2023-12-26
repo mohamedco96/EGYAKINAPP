@@ -31,7 +31,7 @@ class PostsResource extends Resource
             ->schema([
                 Forms\Components\TextInput::make('title')->required(),
                 Forms\Components\FileUpload::make('image')->image()->imageEditor(),
-                Forms\Components\TextInput::make('content')->required(),
+                Forms\Components\RichEditor::make('content')->required(),
                 Forms\Components\Radio::make('hidden')->boolean(),
                 Forms\Components\Select::make('doctor_id')
                     ->relationship('doctor', 'name')

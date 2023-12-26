@@ -51,12 +51,13 @@ class OutcomeResource extends Resource
                         'Death' => 'Death',
                     ]),
                 Forms\Components\TextInput::make('creatinine_on_discharge')->label('Creatinine on discharge'),
+                Forms\Components\TextInput::make('duration_of_admission')->label('Duration of Admission'),
                 Forms\Components\select::make('final_status')->label('Final status')
                     ->options([
                         'No improvement (not on dialysis)' => 'No improvement (not on dialysis)',
                         'No improvement (on dialysis)' => 'No improvement (on dialysis)',
                         'Partial improvement' => 'Partial improvement',
-                        'Complete improvement (normal serum creatinine)' => 'Complete improvement (normal serum creatinine)',
+                        'Complete improvement (90% improvement of serum creatinine)' => 'Complete improvement (90% improvement of serum creatinine)',
                     ]),
                 Forms\Components\TextInput::make('other'),
             ]);
@@ -71,6 +72,7 @@ class OutcomeResource extends Resource
                 Tables\Columns\TextColumn::make('patient.name')->label('Patient Name')->searchable(),
                 Tables\Columns\TextColumn::make('outcome_of_the_patient')->label('Outcome of the patient'),
                 Tables\Columns\TextColumn::make('creatinine_on_discharge')->label('Creatinine on discharge'),
+                Tables\Columns\TextColumn::make('duration_of_admission')->label('Duration of Admission'),
                 Tables\Columns\TextColumn::make('final_status')->label('Final status'),
                 Tables\Columns\TextColumn::make('other')->label('Other Outcome'),
                 Tables\Columns\TextColumn::make('created_at'),

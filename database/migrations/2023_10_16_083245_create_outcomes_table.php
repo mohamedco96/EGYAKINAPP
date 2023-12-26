@@ -19,6 +19,7 @@ return new class extends Migration
             $table->foreign('patient_id')->references('id')->on('patient_histories')->onDelete('cascade');
             $table->string('outcome_of_the_patient')->nullable();
             $table->string('creatinine_on_discharge')->nullable();
+            $table->string('duration_of_admission')->nullable();
             $table->string('final_status')->nullable();
             $table->longText('other')->nullable();
             $table->timestamps();

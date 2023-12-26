@@ -21,7 +21,13 @@ class StorePatientHistoryRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [/*
+        return [
+            //'0' => 'string',
+            //'1' => 'string',
+            //'2' => 'string',
+           // '3' => 'string|size:14',
+           // '4' => 'string|size:11',
+            /* 
             'doctor_id' => 'required|string|exists:App\Models\User,id',
             'name' => 'required|string',
             'hospital' => 'required|string',
@@ -40,5 +46,15 @@ class StorePatientHistoryRequest extends FormRequest
             'DM' => 'required|string',
             'HTN' => 'required|string',*/
         ];
+    }
+
+    public function messages()
+    {
+    return [
+        '3' => 'The NID field must be 14 numbers.',
+        '4' => 'The phone field must be 11 numbers.',
+        //'3.required' => 'Custom error message for key 3',
+        // Add custom error messages for other keys and rules
+    ];
     }
 }

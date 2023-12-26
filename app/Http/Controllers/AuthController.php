@@ -6,7 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-
+use App\Notifications\EmailVerificationNotification;
 class AuthController extends Controller
 {
     public function register(Request $request)
@@ -22,6 +22,7 @@ class AuthController extends Controller
             'phone' => 'required|string',
             'job' => 'required|string',
             'highestdegree' => 'required|string',
+            'registration_number' => 'required|string',
         ]);
 
         $user = User::create([
@@ -35,10 +36,11 @@ class AuthController extends Controller
             'phone' => $fields['phone'],
             'job' => $fields['job'],
             'highestdegree' => $fields['highestdegree'],
+            'registration_number' => $fields['registration_number'],
         ]);
 
         $token = $user->createToken('apptoken')->plainTextToken;
-
+        $user->notify(new EmailVerificationNotification());
         $response = [
             'value' => true,
             'data' => $user,
@@ -111,6 +113,7 @@ class AuthController extends Controller
             'phone' => 'string',
             'job' => 'string',
             'highestdegree' => 'string',
+            'registration_number' => 'string',
         ]);
 
         if ($user != null) {

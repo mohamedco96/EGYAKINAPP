@@ -29,7 +29,12 @@ class User extends Authenticatable
         'job',
         'highestdegree',
         'blocked',
-        'limited'
+        'limited',
+        'gender',
+        'image',
+        'birth_date',
+        'role',
+        'registration_number'
     ];
 
     /**

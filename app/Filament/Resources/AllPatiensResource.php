@@ -130,6 +130,7 @@ class AllPatiensResource extends Resource
                 //Outcome Section
                 Tables\Columns\TextColumn::make('outcome.outcome_of_the_patient')->label('Outcome of the patient'),
                 Tables\Columns\TextColumn::make('outcome.creatinine_on_discharge')->label('Creatinine on discharge'),
+                Tables\Columns\TextColumn::make('outcome.duration_of_admission')->label('Duration of Admission'),
                 Tables\Columns\TextColumn::make('outcome.final_status')->label('Final status'),
                 Tables\Columns\TextColumn::make('outcome.other')->label('Other Outcome'),
 

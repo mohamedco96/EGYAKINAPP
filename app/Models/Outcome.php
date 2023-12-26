@@ -22,6 +22,7 @@ class Outcome extends Model
         'patient_id',
         'outcome_of_the_patient',
         'creatinine_on_discharge',
+        'duration_of_admission',
         'final_status',
         'other',
         'created_at',

@@ -49,7 +49,7 @@ class EmailVerificationNotification extends Notification
                     ->action('Notification Action', url('/'))
                     ->line('Thank you for using our application!');*/
 
-        $otp = $this->otp->generate($notifiable->email,4,60);
+        $otp = $this->otp->generate($notifiable->email,'numeric',4,60);
         return (new MailMessage)
         ->mailer('smtp')
         ->subject($this->subject)

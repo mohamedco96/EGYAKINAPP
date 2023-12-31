@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('questions', function (Blueprint $table) {
             $table->id();
-            $table->bigInteger('section_id')->unsigned()->index();
+            $table->string('section_id');
             $table->string('section_name');
             $table->Text('question');
             $table->Text('values')->nullable();

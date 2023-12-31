@@ -150,9 +150,12 @@ class PatientHistoryController extends Controller
         }
 
         if ($Patient->isNotEmpty()) {
+            $count = strval($count); // Convert count to a string
+            $score = strval($score); // Convert count to a string
             $response = [
                 'value' => true,
                 'patient_count' => $count,
+                
                 'score_value' => $score,
                 'data' => $Patient,
                 //'sections' => $sections

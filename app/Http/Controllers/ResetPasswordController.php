@@ -8,25 +8,23 @@ use App\Models\User;
 use App\Notifications\ResetPasswordVerificationNotification;
 use Otp;
 use Hash;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class ResetPasswordController extends Controller
 {
     private $otp;
-
-    public function __construct(){
-        $this->middleware('auth');
+    private $email;
+    
+    public function __construct(Request $request)
+    {
         $this->otp = new Otp;
+        $this->email = $request->email;
     }
-
+    
     public function resetpasswordverification(ResetPasswordRequest $request)
     {
-        if (!auth()->check()) {
-            return response()->json(['error' => 'User not authenticated.'], 401);
-        }
-    
-        $otp2 = $this->otp->validate(auth()->user()->email, $request->otp);
+
+        $otp2 = $this->otp->validate($email,$request->otp);
     
         if (!$otp2->status) {
             return response()->json(['error' => $otp2], 401);
@@ -36,12 +34,14 @@ class ResetPasswordController extends Controller
     }
 
     public function resetpassword(ResetPasswordRequest $request){
-        $verify =  DB::table('otps')->where('valid', '=', true);
+        $verify =  DB::table('otps')
+            ->where('email', '=', $email)
+            ->where('valid', '=', true);
         if($verify){
             return response()->json(['error' => 'This email not verified to change password'], 401);
         }
 
-        $user = User::where('email', Auth::user()->email)->first();
+        $user = User::where('email', $email)->first();
         $user->update(['password' => Hash::make($request->password)]);
         $success['success'] = true;
         return response()->json($success,200);

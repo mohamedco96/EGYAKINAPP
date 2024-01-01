@@ -16,21 +16,23 @@ class ResetPasswordController extends Controller
     private $otp;
 
     public function __construct(){
+        $this->middleware('auth');
         $this->otp = new Otp;
     }
 
-    // Retrieve the authenticated user's email
-
-    public function resetpasswordverification(ResetPasswordRequest $request){
-        $otp2 = $this->otp->validate(Auth::user()->email,$request->otp);
-        if(!$otp2->status){
+    public function resetpasswordverification(ResetPasswordRequest $request)
+    {
+        if (!auth()->check()) {
+            return response()->json(['error' => 'User not authenticated.'], 401);
+        }
+    
+        $otp2 = $this->otp->validate(auth()->user()->email, $request->otp);
+    
+        if (!$otp2->status) {
             return response()->json(['error' => $otp2], 401);
         }
-
-        $user = User::where('email', Auth::user()->email)->first();
-        //$user->update(['password' => Hash::make($request->password)]);
-        $success['success'] = true;
-        return response()->json($success,200);
+    
+        return response()->json(['success' => true], 200);
     }
 
     public function resetpassword(ResetPasswordRequest $request){

@@ -33,17 +33,22 @@ class ResetPasswordController extends Controller
         return response()->json(['success' => true], 200);
     }
 
-    public function resetpassword(ResetPasswordRequest $request){
-        $verify =  DB::table('otps')
-            ->where('email', '=', $this->email)
-            ->where('valid', '=', true);
-        if($verify){
-            return response()->json(['error' => 'This email not verified to change password'], 401);
-        }
+    public function resetpassword(ResetPasswordRequest $request)
+{
+    //$email = $request->email;
 
-        $user = User::where('email', $this->email)->first();
-        $user->update(['password' => Hash::make($request->password)]);
-        $success['success'] = true;
-        return response()->json($success,200);
+    $verify = DB::table('otps')
+        ->where('email', $this->email)
+        ->where('valid', true)
+        ->exists();
+
+    if ($verify) {
+        return response()->json(['error' => 'This email is not verified to change the password'], 401);
     }
+
+    $user = User::where('email', $this->email)->firstOrFail();
+    $user->update(['password' => Hash::make($request->password)]);
+
+    return response()->json(['success' => true], 200);
+}
 }

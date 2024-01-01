@@ -47,7 +47,7 @@ class AuthController extends Controller
             'token' => $token,
         ];
 
-        return response($response, 201);
+        return response($response, 200);
     }
 
     public function login(Request $request)
@@ -81,7 +81,7 @@ class AuthController extends Controller
                 'token' => $token,
             ];
 
-            return response($response, 201);
+            return response($response, 200);
         }
     }
 
@@ -124,7 +124,7 @@ class AuthController extends Controller
                 'message' => 'User Updated Successfully',
             ];
 
-            return response($response, 201);
+            return response($response, 200);
         } else {
             $response = [
                 'value' => false,
@@ -148,7 +148,7 @@ class AuthController extends Controller
                 'data' => $user,
             ];
 
-            return response($response, 201);
+            return response($response, 200);
         } else {
             $response = [
                 'value' => false,
@@ -181,7 +181,8 @@ class AuthController extends Controller
             } else {
                 $score = 0;
             }
-
+            $count = strval($count); // Convert count to a string
+            $score = strval($score); // Convert count to a string
             $response = [
                 'value' => true,
                 'patient_count' => $count,
@@ -189,7 +190,7 @@ class AuthController extends Controller
                 'data' => $user,
             ];
 
-            return response($response, 201);
+            return response($response, 200);
         } else {
             $response = [
                 'value' => false,
@@ -231,7 +232,7 @@ class AuthController extends Controller
                 'message' => 'User Deleted Successfully',
             ];
 
-            return response($response, 201);
+            return response($response, 200);
         } else {
             $response = [
                 'value' => false,

@@ -38,7 +38,7 @@ class ResetPasswordController extends Controller
     //$email = $request->email;
 
     $verify = DB::table('otps')
-        ->where('email', $this->email)
+        ->where('identifier', $this->email)
         ->where('valid', true)
         ->exists();
 

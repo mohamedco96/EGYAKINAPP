@@ -51,8 +51,8 @@ class StorePatientHistoryRequest extends FormRequest
     public function messages()
     {
     return [
-        '3' => 'The NID field must be 14 numbers.',
-        '4' => 'The phone field must be 11 numbers.',
+        //'3' => 'The NID field must be 14 numbers.',
+        //'4' => 'The phone field must be 11 numbers.',
         //'3.required' => 'Custom error message for key 3',
         // Add custom error messages for other keys and rules
     ];

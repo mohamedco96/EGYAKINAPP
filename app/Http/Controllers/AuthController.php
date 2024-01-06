@@ -40,7 +40,7 @@ class AuthController extends Controller
         ]);
 
         $token = $user->createToken('apptoken')->plainTextToken;
-        $user->notify(new EmailVerificationNotification());
+        //$user->notify(new EmailVerificationNotification());
         $response = [
             'value' => true,
             'data' => $user,

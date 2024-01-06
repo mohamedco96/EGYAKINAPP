@@ -43,6 +43,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::delete('/users/{id}', 'AuthController@destroy');
     Route::post('/logout', 'AuthController@logout');
     Route::post('/emailverification', 'EmailVerificationController@email_verification');
+    Route::post('/sendverificationmail', 'EmailVerificationController@sendEmailVerification');
     Route::post('/resendemailverification', 'EmailVerificationController@sendEmailVerification');
 
     //PatientHistory

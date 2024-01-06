@@ -74,21 +74,12 @@ class PostCommentsController extends Controller
         //->with('postcomments:id,content,doctor_id,post_id')
             ->get();
 
-        if ($postcomment != null) {
             $response = [
                 'value' => true,
                 'data' => $postcomment,
             ];
 
             return response($response, 200);
-        } else {
-            $response = [
-                'value' => false,
-                'message' => 'No post comment was found',
-            ];
-
-            return response($response, 404);
-        }
     }
 
     /**
@@ -121,7 +112,7 @@ class PostCommentsController extends Controller
                 'message' => 'Post comment Deleted Successfully',
             ];
 
-            return response($response, 201);
+            return response($response, 200);
         } else {
             $response = [
                 'value' => false,

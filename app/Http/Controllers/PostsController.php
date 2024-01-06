@@ -106,21 +106,12 @@ class PostsController extends Controller
         //->with('postcomments:id,content,doctor_id,post_id')
             ->get();
 
-        if ($post != null) {
             $response = [
                 'value' => true,
                 'data' => $post,
             ];
 
             return response($response, 200);
-        } else {
-            $response = [
-                'value' => false,
-                'message' => 'No post was found',
-            ];
-
-            return response($response, 404);
-        }
     }
 
     /**

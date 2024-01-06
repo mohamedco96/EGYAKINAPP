@@ -20,7 +20,7 @@ class NotificationController extends Controller
                 'data' => $notifications,
             ];
 
-            return response($response, 201);
+            return response($response, 200);
         } else {
             $response = [
                 'value' => false,
@@ -47,22 +47,13 @@ class NotificationController extends Controller
 
         $unreadCount = $notifications->where('read', false)->count();
 
-        if ($notifications->isNotEmpty()) {
             $response = [
                 'value' => true,
                 'unreadCount' => $unreadCount,
                 'data' => $notifications,
             ];
 
-            return response($response, 201);
-        } else {
-            $response = [
-                'value' => false,
-                'message' => 'No Notification was found',
-            ];
-
-            return response($response, 404);
-        }
+            return response($response, 200);
     }
 
     /**
@@ -81,7 +72,7 @@ class NotificationController extends Controller
                 'message' => 'Notification Updated Successfully',
             ];
 
-            return response($response, 201);
+            return response($response, 200);
         } else {
             $response = [
                 'value' => false,

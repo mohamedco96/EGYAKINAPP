@@ -25,7 +25,7 @@ class CommentController extends Controller
                 'data' => $Comment,
             ];
 
-            return response($response, 201);
+            return response($response, 200);
         } else {
             $response = [
                 'value' => false,
@@ -102,21 +102,12 @@ class CommentController extends Controller
             ->select('id', 'doctor_id', 'content', 'updated_at')
             ->with('doctor:id,name,lname,workingplace')->get();
 
-        if ($Comment->isNotEmpty()) {
             $response = [
                 'value' => true,
                 'data' => $Comment,
             ];
 
-            return response($response, 201);
-        } else {
-            $response = [
-                'value' => false,
-                'message' => 'No Comment was found',
-            ];
-
-            return response($response, 404);
-        }
+            return response($response, 200);
     }
 
     /**
@@ -134,7 +125,7 @@ class CommentController extends Controller
                 'message' => 'Comment Updated Successfully',
             ];
 
-            return response($response, 201);
+            return response($response, 200);
         } else {
             $response = [
                 'value' => false,
@@ -159,7 +150,7 @@ class CommentController extends Controller
                 'message' => 'Comment Deleted Successfully',
             ];
 
-            return response($response, 201);
+            return response($response, 200);
         } else {
             $response = [
                 'value' => false,

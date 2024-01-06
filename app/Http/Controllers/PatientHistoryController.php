@@ -78,7 +78,7 @@ class PatientHistoryController extends Controller
                 'data' => $Patient,
             ];
 
-            return response($response, 201);
+            return response($response, 200);
         } else {
             $response = [
                 'value' => false,
@@ -103,21 +103,12 @@ class PatientHistoryController extends Controller
             ->latest('updated_at')
             ->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
         // ->paginate(10,['id','doctor_id','name','hospital','created_at','updated_at']);
-        if ($Patient->isNotEmpty()) {
             $response = [
                 'value' => true,
                 'data' => $Patient,
             ];
 
-            return response($response, 201);
-        } else {
-            $response = [
-                'value' => false,
-                'message' => 'No Patient was found',
-            ];
-
-            return response($response, 404);
-        }
+            return response($response, 200);
 
     }
 
@@ -156,27 +147,18 @@ class PatientHistoryController extends Controller
             $verify= false;
         }
 
-        if ($Patient->isNotEmpty()) {
-            $count = strval($count); // Convert count to a string
-            $score = strval($score); // Convert count to a string
-            $response = [
-                'value' => true,
-                'verified' => $verify,
-                'patient_count' => $count,
-                'score_value' => $score,
-                'data' => $Patient,
-                //'sections' => $sections
-            ];
+        $count = strval($count); // Convert count to a string
+        $score = strval($score); // Convert count to a string
+        $response = [
+            'value' => true,
+            'verified' => $verify,
+            'patient_count' => $count,
+            'score_value' => $score,
+            'data' => $Patient,
+            //'sections' => $sections
+        ];
 
-            return response($response, 201);
-        } else {
-            $response = [
-                'value' => false,
-                'message' => 'No Patient was found',
-            ];
-
-            return response($response, 404);
-        }
+        return response($response, 200);
     }
 
     //@param \Illuminate\Http\Request $request
@@ -401,7 +383,7 @@ class PatientHistoryController extends Controller
                 'data' => $Patient,
             ];
 
-            return response($response, 201);
+            return response($response, 200);
         } else {
             $response = [
                 'value' => false,
@@ -503,7 +485,7 @@ class PatientHistoryController extends Controller
                 'message' => 'Patient Updated Successfully',
             ];
 
-            return response()->json($response, 201);
+            return response()->json($response, 200);
         } else {
             $response = [
                 'value' => false,
@@ -538,7 +520,7 @@ class PatientHistoryController extends Controller
                 'message' => 'Patient Deleted Successfully',
             ];
 
-            return response($response, 201);
+            return response($response, 200);
         } else {
             $response = [
                 'value' => false,
@@ -579,7 +561,7 @@ class PatientHistoryController extends Controller
                 'data' => $Patient,
             ];
 
-            return response($response, 201);
+            return response($response, 200);
         } else {
             $response = [
                 'value' => false,

@@ -313,7 +313,7 @@ class QuestionsController extends Controller
                         ->select(
                             'id', 'CKD_history', 'AK_history', 'cardiac-failure_history', 'LCF_history', 'neurological-impairment_disability_history',
                             'sepsis_history', 'contrast_media', 'drugs-with-potential-nephrotoxicity', 'drug_name', 'hypovolemia_history',
-                            'malignancy_history', 'trauma_history', 'autoimmune-disease_history', 'other-risk-factors', 'other'
+                            'malignancy_history', 'trauma_history', 'autoimmune-disease_history', 'other-risk-factors'
                         )
                         ->first();
 

@@ -30,7 +30,8 @@ class PostsResource extends Resource
         return $form
             ->schema([
                 Forms\Components\TextInput::make('title')->required(),
-                Forms\Components\FileUpload::make('image')->image()->imageEditor(),
+                Forms\Components\TextInput::make('image')->required(),
+                //Forms\Components\FileUpload::make('image')->image()->imageEditor(),
                 Forms\Components\RichEditor::make('content')->required(),
                 Forms\Components\Radio::make('hidden')->boolean(),
                 Forms\Components\Select::make('doctor_id')

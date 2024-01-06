@@ -72,7 +72,7 @@ class SectionResource extends Resource
                 Forms\Components\Radio::make('outcome_status')
                     ->label('Outcome status')
                     ->boolean(),
-                Forms\Components\Select::make('doc_id')
+                Forms\Components\Select::make('doctor_id')
                     ->relationship('doctor', 'name')
                     ->searchable()
                     ->preload()
@@ -96,7 +96,7 @@ class SectionResource extends Resource
                 Tables\Columns\TextColumn::make('section_7'),
                 Tables\Columns\TextColumn::make('submit_status'),
                 Tables\Columns\TextColumn::make('outcome_status'),
-                Tables\Columns\TextColumn::make('doc_id'),
+                Tables\Columns\TextColumn::make('doctor_id'),
                 Tables\Columns\TextColumn::make('created_at')->label('Created At'),
                 Tables\Columns\TextColumn::make('updated_at')->label('Updated At'),
             ])

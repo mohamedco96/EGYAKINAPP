@@ -149,13 +149,20 @@ class PatientHistoryController extends Controller
             $score = $user->score->score;
         }
 
+        $verify;
+        if ($user->email_verified_at) {
+            $verify= true;
+        } else {
+            $verify= false;
+        }
+
         if ($Patient->isNotEmpty()) {
             $count = strval($count); // Convert count to a string
             $score = strval($score); // Convert count to a string
             $response = [
                 'value' => true,
+                'verified' => $verify,
                 'patient_count' => $count,
-                
                 'score_value' => $score,
                 'data' => $Patient,
                 //'sections' => $sections

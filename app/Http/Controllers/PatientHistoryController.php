@@ -101,8 +101,9 @@ class PatientHistoryController extends Controller
                 $query->select('patient_id', 'submit_status', 'outcome_status');
             }])
             ->latest('updated_at')
-            ->select('id', 'doctor_id', 'name', 'hospital', 'updated_at')
-            ->paginate(10);
+            ->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
+           // ->select('id', 'doctor_id', 'name', 'hospital', 'updated_at')
+            //->paginate(10);
             
             $response = [
                 'value' => true,

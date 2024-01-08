@@ -6,7 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use App\Notifications\EmailVerificationNotification;
+use App\Notifications\WelcomeMailNotification;
 class AuthController extends Controller
 {
     public function register(Request $request)
@@ -40,7 +40,7 @@ class AuthController extends Controller
         ]);
 
         $token = $user->createToken('apptoken')->plainTextToken;
-        //$user->notify(new EmailVerificationNotification());
+        //$user->notify(new WelcomeMailNotification());
         $response = [
             'value' => true,
             'data' => $user,

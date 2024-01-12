@@ -40,7 +40,7 @@ class AuthController extends Controller
         ]);
 
         $token = $user->createToken('apptoken')->plainTextToken;
-        //$user->notify(new WelcomeMailNotification());
+        $user->notify(new WelcomeMailNotification());
         $response = [
             'value' => true,
             'data' => $user,

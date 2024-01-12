@@ -114,6 +114,26 @@ class PatientHistoryController extends Controller
 
     }
 
+    public function doctorPatientGetAllnew()
+    {
+        $Patient = PatientHistory::with('doctor:id,name,lname')
+            ->where('hidden', false)
+            ->with(['sections' => function ($query) {
+                $query->select('patient_id', 'submit_status', 'outcome_status');
+            }])
+            ->latest('updated_at')
+            //->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
+            ->select('id', 'doctor_id', 'name', 'hospital', 'updated_at')
+            ->paginate(10);
+            
+            $response = [
+                'value' => true,
+                'data' => $Patient,
+            ];
+
+            return response($response, 200);
+
+    }
     public function doctorPatientGet()
     {
         /*$Patient = $user->patients()

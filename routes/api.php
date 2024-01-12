@@ -53,6 +53,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/patientHistory/{id}', 'PatientHistoryController@update');
     Route::delete('/patientHistory/{id}', 'PatientHistoryController@destroy');
     Route::get('/allPatients', 'PatientHistoryController@doctorPatientGetAll');
+    Route::get('/allPatientsnew', 'PatientHistoryController@doctorPatientGetAllnew');
     Route::get('/currentPatients', 'PatientHistoryController@doctorPatientGet');
     Route::get('/patient/search/{name}', 'PatientHistoryController@search');
 

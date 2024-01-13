@@ -87,7 +87,7 @@ class UserResource extends Resource
                     ->trueLabel('Verified users')
                     ->falseLabel('Not verified users'),
 
-                Tables\Filters\SelectFilter::make('Doctor Name')
+                Tables\Filters\SelectFilter::make('id')->label('Doctor Name')
                     ->options(fn (): array => User::query()->pluck('name', 'id')->all()),
                 Tables\Filters\Filter::make('created_at')
                     ->form([

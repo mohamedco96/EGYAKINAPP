@@ -85,17 +85,20 @@ class QuestionsResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->searchable(),
-                Tables\Columns\TextColumn::make('section_id')->label('Section ID')->searchable(),
-                Tables\Columns\TextColumn::make('section_name')->label('Section Name')->searchable(),
-                Tables\Columns\TextColumn::make('question'),
-                Tables\Columns\TextColumn::make('values'),
-                Tables\Columns\TextColumn::make('type'),
-                Tables\Columns\TextColumn::make('keyboard_type'),
-                Tables\Columns\TextColumn::make('mandatory'),
-                Tables\Columns\TextColumn::make('created_at')->label('Created At'),
-                Tables\Columns\TextColumn::make('updated_at')->label('Updated At'),
+                Tables\Columns\TextColumn::make('id')->toggleable(isToggledHiddenByDefault: false)->searchable(),
+                Tables\Columns\TextColumn::make('section_id')->toggleable(isToggledHiddenByDefault: false)->label('Section ID')->searchable(),
+                Tables\Columns\TextColumn::make('section_name')->toggleable(isToggledHiddenByDefault: false)->label('Section Name')->searchable(),
+                Tables\Columns\TextColumn::make('question')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('values')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('type')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('keyboard_type')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\ToggleColumn::make('mandatory')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false)->label('Created At'),
+                Tables\Columns\TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: false)->label('Updated At'),
             ])
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->filters([
                 Tables\Filters\Filter::make('created_at')
                     ->form([
@@ -113,10 +116,19 @@ class QuestionsResource extends Resource
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
-            ])->filtersTriggerAction(
+            ])
+            ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action
                     ->button()
-                    ->label('Filter'), )
+                    ->label('Toggle columns'),
+            )
+            ->persistFiltersInSession()
+            ->deselectAllRecordsWhenFiltered(true)
+            ->filtersTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Filter'),
+            )
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
@@ -125,7 +137,6 @@ class QuestionsResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                     ExportBulkAction::make(),
-                    //ExportAction::make()
                 ]),
             ])
             ->emptyStateActions([

@@ -40,7 +40,7 @@ class UserResource extends Resource
                 Forms\Components\TextInput::make('workingplace')->required()->label('Working place'),
                 Forms\Components\TextInput::make('phone')->required()->tel(),
                 Forms\Components\TextInput::make('job')->required(),
-                Forms\Components\select::make('gender')
+                Forms\Components\Select::make('gender')
                     ->options([
                         'Male' => 'Male',
                         'Female' => 'Female',

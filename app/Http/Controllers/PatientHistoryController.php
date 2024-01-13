@@ -104,7 +104,7 @@ class PatientHistoryController extends Controller
             ->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
            // ->select('id', 'doctor_id', 'name', 'hospital', 'updated_at')
             //->paginate(10);
-            
+
             $response = [
                 'value' => true,
                 'data' => $Patient,
@@ -125,7 +125,7 @@ class PatientHistoryController extends Controller
             //->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
             ->select('id', 'doctor_id', 'name', 'hospital', 'updated_at')
             ->paginate(10);
-            
+
             $response = [
                 'value' => true,
                 'data' => $Patient,
@@ -162,7 +162,6 @@ class PatientHistoryController extends Controller
             $score = $user->score->score;
         }
 
-        $verify;
         if ($user->email_verified_at) {
             $verify= true;
         } else {

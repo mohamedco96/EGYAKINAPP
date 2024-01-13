@@ -34,16 +34,22 @@ class UserResource extends Resource
                 Forms\Components\TextInput::make('name')->required()->label('First Name'),
                 Forms\Components\TextInput::make('lname')->required()->label('Last Name'),
                 Forms\Components\TextInput::make('email')->required()->email()->label('Email address'),
-                //Forms\Components\TextInput::make('password')->required()->password(),
                 Forms\Components\TextInput::make('age'),
                 Forms\Components\TextInput::make('specialty')->required(),
                 Forms\Components\TextInput::make('workingplace')->required()->label('Working place'),
                 Forms\Components\TextInput::make('phone')->required()->tel(),
                 Forms\Components\TextInput::make('job')->required(),
+                Forms\Components\select::make('gender')
+                    ->options([
+                        'Male' => 'Male',
+                        'Female' => 'Female',
+                    ]),
                 Forms\Components\TextInput::make('highestdegree')->required()->label('Highest degree'),
                 Forms\Components\TextInput::make('registration_number')->required()->label('Registration Number'),
+                Forms\Components\DateTimePicker::make('email_verified_at'),
                 Forms\Components\Radio::make('blocked')->boolean(),
                 Forms\Components\Radio::make('limited')->boolean(),
+
             ]);
     }
 
@@ -51,24 +57,37 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->searchable(),
-                Tables\Columns\TextColumn::make('name')->label('First name')->searchable(),
-                Tables\Columns\TextColumn::make('lname')->label('Last name'),
-                Tables\Columns\TextColumn::make('email'),
-                Tables\Columns\TextColumn::make('age'),
-                Tables\Columns\TextColumn::make('specialty'),
-                Tables\Columns\TextColumn::make('workingplace')->label('Working place'),
-                Tables\Columns\TextColumn::make('phone'),
-                Tables\Columns\TextColumn::make('job'),
-                Tables\Columns\TextColumn::make('highestdegree')->label('Highest degree'),
-                Tables\Columns\TextColumn::make('registration_number')->label('Registration Number'),
-                Tables\Columns\TextColumn::make('blocked'),
-                Tables\Columns\TextColumn::make('limited'),
-                Tables\Columns\TextColumn::make('created_at')->label('Created At'),
+                Tables\Columns\TextColumn::make('id')->searchable()->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('name')->label('First name')->searchable()->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('lname')->label('Last name')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('email')->searchable()->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('age')->sortable()->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('specialty')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('workingplace')->label('Working place')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('phone')->searchable()->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('job')->searchable()->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('gender')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('highestdegree')->label('Highest degree')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('registration_number')->label('Registration Number')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\ToggleColumn::make('blocked')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\ToggleColumn::make('limited')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('email_verified_at')->toggleable(isToggledHiddenByDefault: false),
 
             ])
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->filters([
-                //Tables\Filters\SelectFilter::make('name'),
+                Tables\Filters\TernaryFilter::make('email_verified_at')
+                    ->label('Email verification')
+                    ->nullable()
+                    ->placeholder('All users')
+                    ->trueLabel('Verified users')
+                    ->falseLabel('Not verified users'),
+
+                Tables\Filters\SelectFilter::make('Doctor Name')
+                    ->options(fn (): array => User::query()->pluck('name', 'id')->all()),
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         DatePicker::make('created_from'),
@@ -85,7 +104,15 @@ class UserResource extends Resource
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
-            ])->filtersTriggerAction(
+            ])
+            ->toggleColumnsTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Toggle columns'),
+            )
+            ->persistFiltersInSession()
+            ->deselectAllRecordsWhenFiltered(true)
+            ->filtersTriggerAction(
                 fn (Action $action) => $action
                     ->button()
                     ->label('Filter'),

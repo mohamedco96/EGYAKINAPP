@@ -22,29 +22,9 @@ class StorePatientHistoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //'0' => 'string',
-            //'1' => 'string',
-            //'2' => 'string',
-           // '3' => 'string|size:14',
-           // '4' => 'string|size:11',
-            /* 
-            'doctor_id' => 'required|string|exists:App\Models\User,id',
-            'name' => 'required|string',
-            'hospital' => 'required|string',
-            'collected_data_from' => 'required|string',
-            'NID' => 'string|size:14',
-            'phone' => 'string|size:11',
-            'email' => 'email|string',
-            'age' => 'required|string',
-            'gender' => 'required|string',
-            'occupation' => 'required|string',
-            'residency' => 'required|string',
-            'governorate' => 'required|string',
-            'marital_status' => 'required|string',
-            'educational_level' => 'required|string',
-            'special_habits_of_the_patient' => 'required|array',
-            'DM' => 'required|string',
-            'HTN' => 'required|string',*/
+            //'3' => 'required|size:13',
+            //'4' => 'required|digits:11',
+           // '5' => 'required|email',
         ];
     }
 

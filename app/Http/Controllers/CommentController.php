@@ -44,6 +44,7 @@ class CommentController extends Controller
             'doctor_id' => Auth::id(),
             'patient_id' => $request->patient_id,
             'content' => $request->content,
+            //'content' => $request->commentContent,
         ]);
 
         /* $allusers = Comment::where('patient_id', $request->patient_id)->pluck('doctor_id')->toArray();

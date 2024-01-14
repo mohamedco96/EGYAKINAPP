@@ -67,17 +67,20 @@ class OutcomeResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->searchable(),
-                Tables\Columns\TextColumn::make('doctor.name')->label('Doctor Name')->searchable(),
-                Tables\Columns\TextColumn::make('patient.name')->label('Patient Name')->searchable(),
-                Tables\Columns\TextColumn::make('outcome_of_the_patient')->label('Outcome of the patient'),
-                Tables\Columns\TextColumn::make('creatinine_on_discharge')->label('Creatinine on discharge'),
-                Tables\Columns\TextColumn::make('duration_of_admission')->label('Duration of Admission'),
-                Tables\Columns\TextColumn::make('final_status')->label('Final status'),
-                Tables\Columns\TextColumn::make('other')->label('Other Outcome'),
-                Tables\Columns\TextColumn::make('created_at'),
-                Tables\Columns\TextColumn::make('updated_at'),
+                Tables\Columns\TextColumn::make('id')->toggleable(isToggledHiddenByDefault: false)->searchable(),
+                Tables\Columns\TextColumn::make('doctor.name')->toggleable(isToggledHiddenByDefault: false)->label('Doctor Name')->searchable(),
+                Tables\Columns\TextColumn::make('patient.name')->toggleable(isToggledHiddenByDefault: false)->label('Patient Name')->searchable(),
+                Tables\Columns\TextColumn::make('outcome_of_the_patient')->toggleable(isToggledHiddenByDefault: false)->label('Outcome of the patient'),
+                Tables\Columns\TextColumn::make('creatinine_on_discharge')->toggleable(isToggledHiddenByDefault: false)->label('Creatinine on discharge'),
+                Tables\Columns\TextColumn::make('duration_of_admission')->toggleable(isToggledHiddenByDefault: false)->label('Duration of Admission'),
+                Tables\Columns\TextColumn::make('final_status')->toggleable(isToggledHiddenByDefault: false)->label('Final status'),
+                Tables\Columns\TextColumn::make('other')->toggleable(isToggledHiddenByDefault: false)->label('Other Outcome'),
+                Tables\Columns\TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: false),
             ])
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->filters([
                 Tables\Filters\SelectFilter::make('Doctor Name')
                     ->relationship('doctor', 'name'),
@@ -99,10 +102,19 @@ class OutcomeResource extends Resource
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
-            ])->filtersTriggerAction(
+            ])
+            ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action
                     ->button()
-                    ->label('Filter'), )
+                    ->label('Toggle columns'),
+            )
+            ->persistFiltersInSession()
+            ->deselectAllRecordsWhenFiltered(true)
+            ->filtersTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Filter'),
+            )
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

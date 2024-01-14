@@ -48,12 +48,15 @@ class ContactResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->searchable(),
-                Tables\Columns\TextColumn::make('doctor.name')->label('Doctor Name')->searchable(),
-                Tables\Columns\TextColumn::make('message')->label('Message'),
-                Tables\Columns\TextColumn::make('created_at'),
-                Tables\Columns\TextColumn::make('updated_at'),
+                Tables\Columns\TextColumn::make('id')->toggleable(isToggledHiddenByDefault: false)->searchable(),
+                Tables\Columns\TextColumn::make('doctor.name')->toggleable(isToggledHiddenByDefault: false)->label('Doctor Name')->searchable(),
+                Tables\Columns\TextColumn::make('message')->toggleable(isToggledHiddenByDefault: false)->label('Message'),
+                Tables\Columns\TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: false),
             ])
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->filters([
                 Tables\Filters\SelectFilter::make('Doctor Name')
                     ->relationship('doctor', 'name'),
@@ -73,10 +76,19 @@ class ContactResource extends Resource
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
-            ])->filtersTriggerAction(
+            ])
+            ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action
                     ->button()
-                    ->label('Filter'), )
+                    ->label('Toggle columns'),
+            )
+            ->persistFiltersInSession()
+            ->deselectAllRecordsWhenFiltered(true)
+            ->filtersTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Filter'),
+            )
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

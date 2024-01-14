@@ -79,18 +79,21 @@ class ComplaintResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->searchable(),
-                Tables\Columns\TextColumn::make('doctor.name')->label('Doctor Name')->searchable(),
-                Tables\Columns\TextColumn::make('patient.name')->label('Patient Name')->searchable(),
-                Tables\Columns\TextColumn::make('where_was_th_patient_seen_for_the_first_time')->label('Where was the patient seen for the first time?'),
-                Tables\Columns\TextColumn::make('place_of_admission')->label('If the patient is admitted, what is the place of admission?'),
-                Tables\Columns\TextColumn::make('date_of_admission')->label('Date of admission'),
-                Tables\Columns\TextColumn::make('main_omplaint')->label('The main complaint'),
-                Tables\Columns\TextColumn::make('other')->label('If the response to the previous question is other, What is the main complaint of patient?'),
-                Tables\Columns\TextColumn::make('other'),
-                Tables\Columns\TextColumn::make('created_at'),
-                Tables\Columns\TextColumn::make('updated_at'),
+                Tables\Columns\TextColumn::make('id')->toggleable(isToggledHiddenByDefault: false)->searchable(),
+                Tables\Columns\TextColumn::make('doctor.name')->toggleable(isToggledHiddenByDefault: false)->label('Doctor Name')->searchable(),
+                Tables\Columns\TextColumn::make('patient.name')->toggleable(isToggledHiddenByDefault: false)->label('Patient Name')->searchable(),
+                Tables\Columns\TextColumn::make('where_was_th_patient_seen_for_the_first_time')->toggleable(isToggledHiddenByDefault: false)->label('Where was the patient seen for the first time?'),
+                Tables\Columns\TextColumn::make('place_of_admission')->toggleable(isToggledHiddenByDefault: false)->label('If the patient is admitted, what is the place of admission?'),
+                Tables\Columns\TextColumn::make('date_of_admission')->toggleable(isToggledHiddenByDefault: false)->label('Date of admission'),
+                Tables\Columns\TextColumn::make('main_omplaint')->toggleable(isToggledHiddenByDefault: false)->label('The main complaint'),
+                Tables\Columns\TextColumn::make('other')->toggleable(isToggledHiddenByDefault: false)->label('If the response to the previous question is other, What is the main complaint of patient?'),
+                Tables\Columns\TextColumn::make('other')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: false),
             ])
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->filters([
                 Tables\Filters\SelectFilter::make('Doctor Name')
                     ->relationship('doctor', 'name'),
@@ -112,10 +115,19 @@ class ComplaintResource extends Resource
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
-            ])->filtersTriggerAction(
+            ])
+            ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action
                     ->button()
-                    ->label('Filter'), )
+                    ->label('Toggle columns'),
+            )
+            ->persistFiltersInSession()
+            ->deselectAllRecordsWhenFiltered(true)
+            ->filtersTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Filter'),
+            )
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

@@ -6,12 +6,14 @@ use App\Filament\Resources\PostsResource\Pages;
 use App\Models\Posts;
 use App\Models\User;
 use Filament\Forms;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\ImageColumn;
+use Illuminate\Database\Eloquent\Builder;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class PostsResource extends Resource
@@ -37,7 +39,7 @@ class PostsResource extends Resource
                 Forms\Components\TextInput::make('image')->required(),
                 //Forms\Components\FileUpload::make('image')->image()->imageEditor(),
                 Forms\Components\RichEditor::make('content')->required(),
-                Forms\Components\Radio::make('hidden')->boolean(),
+                Forms\Components\Radio::make('hidden')->boolean()->required(),
                 Forms\Components\Select::make('doctor_id')
                     ->relationship('doctor', 'name')
                     ->searchable()
@@ -66,6 +68,22 @@ class PostsResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('Doctor Name')
                     ->options(fn (): array => User::query()->pluck('name', 'id')->all()),
+                Tables\Filters\Filter::make('created_at')
+                    ->form([
+                        DatePicker::make('created_from'),
+                        DatePicker::make('created_until'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['created_from'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                            )
+                            ->when(
+                                $data['created_until'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                            );
+                    }),
             ])
             ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action

@@ -84,22 +84,25 @@ class SectionResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->searchable(),
-                Tables\Columns\TextColumn::make('doctor.name')->label('Doctor Name')->searchable(),
-                Tables\Columns\TextColumn::make('patient.name')->label('Patient Name')->searchable(),
-                Tables\Columns\TextColumn::make('section_1'),
-                Tables\Columns\TextColumn::make('section_2'),
-                Tables\Columns\TextColumn::make('section_3'),
-                Tables\Columns\TextColumn::make('section_4'),
-                Tables\Columns\TextColumn::make('section_5'),
-                Tables\Columns\TextColumn::make('section_6'),
-                Tables\Columns\TextColumn::make('section_7'),
-                Tables\Columns\TextColumn::make('submit_status'),
-                Tables\Columns\TextColumn::make('outcome_status'),
-                Tables\Columns\TextColumn::make('doctor_id'),
-                Tables\Columns\TextColumn::make('created_at')->label('Created At'),
-                Tables\Columns\TextColumn::make('updated_at')->label('Updated At'),
+                Tables\Columns\TextColumn::make('id')->toggleable(isToggledHiddenByDefault: false)->searchable(),
+                Tables\Columns\TextColumn::make('doctor.name')->toggleable(isToggledHiddenByDefault: false)->label('Doctor Name')->searchable(),
+                Tables\Columns\TextColumn::make('patient.name')->toggleable(isToggledHiddenByDefault: false)->label('Patient Name')->searchable(),
+                Tables\Columns\ToggleColumn::make('section_1')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\ToggleColumn::make('section_2')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\ToggleColumn::make('section_3')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\ToggleColumn::make('section_4')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\ToggleColumn::make('section_5')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\ToggleColumn::make('section_6')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\ToggleColumn::make('section_7')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\ToggleColumn::make('submit_status')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\ToggleColumn::make('outcome_status')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('doctor_id')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false)->label('Created At'),
+                Tables\Columns\TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: false)->label('Updated At'),
             ])
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->filters([
                 Tables\Filters\SelectFilter::make('Doctor Name')
                     ->relationship('doctor', 'name'),
@@ -121,10 +124,19 @@ class SectionResource extends Resource
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
-            ])->filtersTriggerAction(
+            ])
+            ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action
                     ->button()
-                    ->label('Filter'), )
+                    ->label('Toggle columns'),
+            )
+            ->persistFiltersInSession()
+            ->deselectAllRecordsWhenFiltered(true)
+            ->filtersTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Filter'),
+            )
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

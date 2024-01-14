@@ -87,20 +87,23 @@ class CauseResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->searchable(),
-                Tables\Columns\TextColumn::make('doctor.name')->label('Doctor Name')->searchable(),
-                Tables\Columns\TextColumn::make('patient.name')->label('Patient Name')->searchable(),
-                Tables\Columns\TextColumn::make('cause_of_AKI')->label('Cause of AKI'),
-                Tables\Columns\TextColumn::make('pre-renal_causes')->label('Pre-renal causes of AKI in this patient include'),
-                Tables\Columns\TextColumn::make('pre-renal_others')->label('If the cause of pre-renal AKI is others, what is the cause?'),
-                Tables\Columns\TextColumn::make('renal_causes')->label('Intrinsic renal causes of AKI in this patient include'),
-                Tables\Columns\TextColumn::make('renal_others')->label('If the cause of intrinsic renal AKI is others, what is the cause?'),
-                Tables\Columns\TextColumn::make('post-renal_causes')->label('Post-renal causes of AKI in this patient include'),
-                Tables\Columns\TextColumn::make('post-renal_others')->label('If the cause of post-renal AKI is others, what is the cause?'),
-                Tables\Columns\TextColumn::make('other')->label('Other Causes'),
-                Tables\Columns\TextColumn::make('created_at')->label('Created At'),
-                Tables\Columns\TextColumn::make('updated_at')->label('Updated At'),
+                Tables\Columns\TextColumn::make('id')->toggleable(isToggledHiddenByDefault: false)->searchable(),
+                Tables\Columns\TextColumn::make('doctor.name')->toggleable(isToggledHiddenByDefault: false)->label('Doctor Name')->searchable(),
+                Tables\Columns\TextColumn::make('patient.name')->toggleable(isToggledHiddenByDefault: false)->label('Patient Name')->searchable(),
+                Tables\Columns\TextColumn::make('cause_of_AKI')->toggleable(isToggledHiddenByDefault: false)->label('Cause of AKI'),
+                Tables\Columns\TextColumn::make('pre-renal_causes')->toggleable(isToggledHiddenByDefault: false)->label('Pre-renal causes of AKI in this patient include'),
+                Tables\Columns\TextColumn::make('pre-renal_others')->toggleable(isToggledHiddenByDefault: false)->label('If the cause of pre-renal AKI is others, what is the cause?'),
+                Tables\Columns\TextColumn::make('renal_causes')->toggleable(isToggledHiddenByDefault: false)->label('Intrinsic renal causes of AKI in this patient include'),
+                Tables\Columns\TextColumn::make('renal_others')->toggleable(isToggledHiddenByDefault: false)->label('If the cause of intrinsic renal AKI is others, what is the cause?'),
+                Tables\Columns\TextColumn::make('post-renal_causes')->toggleable(isToggledHiddenByDefault: false)->label('Post-renal causes of AKI in this patient include'),
+                Tables\Columns\TextColumn::make('post-renal_others')->toggleable(isToggledHiddenByDefault: false)->label('If the cause of post-renal AKI is others, what is the cause?'),
+                Tables\Columns\TextColumn::make('other')->toggleable(isToggledHiddenByDefault: false)->label('Other Causes'),
+                Tables\Columns\TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false)->label('Created At'),
+                Tables\Columns\TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: false)->label('Updated At'),
             ])
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->filters([
                 Tables\Filters\SelectFilter::make('Doctor Name')
                     ->relationship('doctor', 'name'),
@@ -122,10 +125,19 @@ class CauseResource extends Resource
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
-            ])->filtersTriggerAction(
+            ])
+            ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action
                     ->button()
-                    ->label('Filter'), )
+                    ->label('Toggle columns'),
+            )
+            ->persistFiltersInSession()
+            ->deselectAllRecordsWhenFiltered(true)
+            ->filtersTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Filter'),
+            )
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

@@ -140,35 +140,38 @@ class AssessmentResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->searchable(),
-                Tables\Columns\TextColumn::make('doctor.name')->label('Doctor Name')->searchable(),
-                Tables\Columns\TextColumn::make('patient.name')->label('Patient Name')->searchable(),
-                Tables\Columns\TextColumn::make('heart-rate/minute')->label('Heart rate/minute'),
-                Tables\Columns\TextColumn::make('respiratory-rate/minute')->label('Respiratory rate/minute'),
-                Tables\Columns\TextColumn::make('SBP')->label('SBP'),
-                Tables\Columns\TextColumn::make('DBP')->label('DBP'),
-                Tables\Columns\TextColumn::make('GCS')->label('GCS'),
-                Tables\Columns\TextColumn::make('oxygen_saturation')->label('Oxygen saturation (%)'),
-                Tables\Columns\TextColumn::make('temperature')->label('Temperature'),
-                Tables\Columns\TextColumn::make('UOP')->label('UOP (ml/hour) '),
-                Tables\Columns\TextColumn::make('AVPU')->label('AVPU'),
-                Tables\Columns\TextColumn::make('skin_examination')->label('Skin examination'),
-                Tables\Columns\TextColumn::make('skin_examination_clarify')->label('If the response to the previous question is others, clarify?'),
-                Tables\Columns\TextColumn::make('eye_examination')->label('Eye examination'),
-                Tables\Columns\TextColumn::make('eye_examination_clarify')->label('If the response to the previous question is others, clarify?'),
-                Tables\Columns\TextColumn::make('ear_examination')->label('Ear examination'),
-                Tables\Columns\TextColumn::make('ear_examination_clarify')->label('If the response to the previous question is others, clarify?'),
-                Tables\Columns\TextColumn::make('cardiac_examination')->label('Cardiac examination'),
-                Tables\Columns\TextColumn::make('cardiac_examination_clarify')->label('If the response to the previous question is others, clarify?'),
-                Tables\Columns\TextColumn::make('internal_jugular_vein')->label('Internal jugular vein'),
-                Tables\Columns\TextColumn::make('chest_examination')->label('Chest examination'),
-                Tables\Columns\TextColumn::make('chest_examination_clarify')->label('If the response to the previous question is others, clarify?'),
-                Tables\Columns\TextColumn::make('abdominal_examination')->label('Abdominal examination'),
-                Tables\Columns\TextColumn::make('abdominal_examination_clarify')->label('If the response to the previous question is others, clarify?'),
-                Tables\Columns\TextColumn::make('other')->label('Other important findings in examination'),
-                Tables\Columns\TextColumn::make('created_at'),
-                Tables\Columns\TextColumn::make('updated_at'),
+                Tables\Columns\TextColumn::make('id')->toggleable(isToggledHiddenByDefault: false)->searchable(),
+                Tables\Columns\TextColumn::make('doctor.name')->toggleable(isToggledHiddenByDefault: false)->label('Doctor Name')->searchable(),
+                Tables\Columns\TextColumn::make('patient.name')->toggleable(isToggledHiddenByDefault: false)->label('Patient Name')->searchable(),
+                Tables\Columns\TextColumn::make('heart-rate/minute')->toggleable(isToggledHiddenByDefault: false)->label('Heart rate/minute'),
+                Tables\Columns\TextColumn::make('respiratory-rate/minute')->toggleable(isToggledHiddenByDefault: false)->label('Respiratory rate/minute'),
+                Tables\Columns\TextColumn::make('SBP')->toggleable(isToggledHiddenByDefault: false)->label('SBP'),
+                Tables\Columns\TextColumn::make('DBP')->toggleable(isToggledHiddenByDefault: false)->label('DBP'),
+                Tables\Columns\TextColumn::make('GCS')->toggleable(isToggledHiddenByDefault: false)->label('GCS'),
+                Tables\Columns\TextColumn::make('oxygen_saturation')->toggleable(isToggledHiddenByDefault: false)->label('Oxygen saturation (%)'),
+                Tables\Columns\TextColumn::make('temperature')->toggleable(isToggledHiddenByDefault: false)->label('Temperature'),
+                Tables\Columns\TextColumn::make('UOP')->toggleable(isToggledHiddenByDefault: false)->label('UOP (ml/hour) '),
+                Tables\Columns\TextColumn::make('AVPU')->toggleable(isToggledHiddenByDefault: false)->label('AVPU'),
+                Tables\Columns\TextColumn::make('skin_examination')->toggleable(isToggledHiddenByDefault: false)->label('Skin examination'),
+                Tables\Columns\TextColumn::make('skin_examination_clarify')->toggleable(isToggledHiddenByDefault: false)->label('If the response to the previous question is others, clarify?'),
+                Tables\Columns\TextColumn::make('eye_examination')->toggleable(isToggledHiddenByDefault: false)->label('Eye examination'),
+                Tables\Columns\TextColumn::make('eye_examination_clarify')->toggleable(isToggledHiddenByDefault: false)->label('If the response to the previous question is others, clarify?'),
+                Tables\Columns\TextColumn::make('ear_examination')->toggleable(isToggledHiddenByDefault: false)->label('Ear examination'),
+                Tables\Columns\TextColumn::make('ear_examination_clarify')->toggleable(isToggledHiddenByDefault: false)->label('If the response to the previous question is others, clarify?'),
+                Tables\Columns\TextColumn::make('cardiac_examination')->toggleable(isToggledHiddenByDefault: false)->label('Cardiac examination'),
+                Tables\Columns\TextColumn::make('cardiac_examination_clarify')->toggleable(isToggledHiddenByDefault: false)->label('If the response to the previous question is others, clarify?'),
+                Tables\Columns\TextColumn::make('internal_jugular_vein')->toggleable(isToggledHiddenByDefault: false)->label('Internal jugular vein'),
+                Tables\Columns\TextColumn::make('chest_examination')->toggleable(isToggledHiddenByDefault: false)->label('Chest examination'),
+                Tables\Columns\TextColumn::make('chest_examination_clarify')->toggleable(isToggledHiddenByDefault: false)->label('If the response to the previous question is others, clarify?'),
+                Tables\Columns\TextColumn::make('abdominal_examination')->toggleable(isToggledHiddenByDefault: false)->label('Abdominal examination'),
+                Tables\Columns\TextColumn::make('abdominal_examination_clarify')->toggleable(isToggledHiddenByDefault: false)->label('If the response to the previous question is others, clarify?'),
+                Tables\Columns\TextColumn::make('other')->toggleable(isToggledHiddenByDefault: false)->label('Other important findings in examination'),
+                Tables\Columns\TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: false),
             ])
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->filters([
                 Tables\Filters\SelectFilter::make('Doctor Name')
                     ->relationship('doctor', 'name'),
@@ -190,10 +193,19 @@ class AssessmentResource extends Resource
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
-            ])->filtersTriggerAction(
+            ])
+            ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action
                     ->button()
-                    ->label('Filter'), )
+                    ->label('Toggle columns'),
+            )
+            ->persistFiltersInSession()
+            ->deselectAllRecordsWhenFiltered(true)
+            ->filtersTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Filter'),
+            )
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

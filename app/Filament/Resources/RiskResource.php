@@ -123,26 +123,29 @@ class RiskResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->searchable(),
-                Tables\Columns\TextColumn::make('doctor.name')->label('Doctor Name')->searchable(),
-                Tables\Columns\TextColumn::make('patient.name')->label('Patient Name')->searchable(),
-                Tables\Columns\TextColumn::make('CKD_history')->label('History of CKD?'),
-                Tables\Columns\TextColumn::make('AK_history')->label('Past history of AKI?'),
-                Tables\Columns\TextColumn::make('cardiac-failure_history')->label('History of cardiac failure? '),
-                Tables\Columns\TextColumn::make('LCF_history')->label('History of LCF?'),
-                Tables\Columns\TextColumn::make('neurological-impairment_disability_history')->label('History of neurological impairment or disability?'),
-                Tables\Columns\TextColumn::make('sepsis_history')->label('History of sepsis?'),
-                Tables\Columns\TextColumn::make('contrast_media')->label('Recent use of iodinated contrast media?'),
-                Tables\Columns\TextColumn::make('drugs-with-potential-nephrotoxicity')->label('Current or recent use of drugs with potential nephrotoxicity?'),
-                Tables\Columns\TextColumn::make('drug_name')->label('If the answer to the previous question is yes, what is the drug?'),
-                Tables\Columns\TextColumn::make('hypovolemia_history')->label('History of hypovolemia?'),
-                Tables\Columns\TextColumn::make('malignancy_history')->label('History of malignancy?'),
-                Tables\Columns\TextColumn::make('trauma_history')->label('History of trauma?'),
-                Tables\Columns\TextColumn::make('autoimmune-disease_history')->label('History of autoimmune disease?'),
-                Tables\Columns\TextColumn::make('other-risk-factors')->label('Other risk factors?'),
-                Tables\Columns\TextColumn::make('created_at')->label('Created At'),
-                Tables\Columns\TextColumn::make('updated_at')->label('Updated At'),
+                Tables\Columns\TextColumn::make('id')->toggleable(isToggledHiddenByDefault: false)->searchable(),
+                Tables\Columns\TextColumn::make('doctor.name')->toggleable(isToggledHiddenByDefault: false)->label('Doctor Name')->searchable(),
+                Tables\Columns\TextColumn::make('patient.name')->toggleable(isToggledHiddenByDefault: false)->label('Patient Name')->searchable(),
+                Tables\Columns\TextColumn::make('CKD_history')->toggleable(isToggledHiddenByDefault: false)->label('History of CKD?'),
+                Tables\Columns\TextColumn::make('AK_history')->toggleable(isToggledHiddenByDefault: false)->label('Past history of AKI?'),
+                Tables\Columns\TextColumn::make('cardiac-failure_history')->toggleable(isToggledHiddenByDefault: false)->label('History of cardiac failure? '),
+                Tables\Columns\TextColumn::make('LCF_history')->toggleable(isToggledHiddenByDefault: false)->label('History of LCF?'),
+                Tables\Columns\TextColumn::make('neurological-impairment_disability_history')->toggleable(isToggledHiddenByDefault: false)->label('History of neurological impairment or disability?'),
+                Tables\Columns\TextColumn::make('sepsis_history')->toggleable(isToggledHiddenByDefault: false)->label('History of sepsis?'),
+                Tables\Columns\TextColumn::make('contrast_media')->toggleable(isToggledHiddenByDefault: false)->label('Recent use of iodinated contrast media?'),
+                Tables\Columns\TextColumn::make('drugs-with-potential-nephrotoxicity')->toggleable(isToggledHiddenByDefault: false)->label('Current or recent use of drugs with potential nephrotoxicity?'),
+                Tables\Columns\TextColumn::make('drug_name')->toggleable(isToggledHiddenByDefault: false)->label('If the answer to the previous question is yes, what is the drug?'),
+                Tables\Columns\TextColumn::make('hypovolemia_history')->toggleable(isToggledHiddenByDefault: false)->label('History of hypovolemia?'),
+                Tables\Columns\TextColumn::make('malignancy_history')->toggleable(isToggledHiddenByDefault: false)->label('History of malignancy?'),
+                Tables\Columns\TextColumn::make('trauma_history')->toggleable(isToggledHiddenByDefault: false)->label('History of trauma?'),
+                Tables\Columns\TextColumn::make('autoimmune-disease_history')->toggleable(isToggledHiddenByDefault: false)->label('History of autoimmune disease?'),
+                Tables\Columns\TextColumn::make('other-risk-factors')->toggleable(isToggledHiddenByDefault: false)->label('Other risk factors?'),
+                Tables\Columns\TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false)->label('Created At'),
+                Tables\Columns\TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: false)->label('Updated At'),
             ])
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->filters([
                 Tables\Filters\SelectFilter::make('Doctor Name')
                     ->relationship('doctor', 'name'),
@@ -164,10 +167,19 @@ class RiskResource extends Resource
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
-            ])->filtersTriggerAction(
+            ])
+            ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action
                     ->button()
-                    ->label('Filter'), )
+                    ->label('Toggle columns'),
+            )
+            ->persistFiltersInSession()
+            ->deselectAllRecordsWhenFiltered(true)
+            ->filtersTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Filter'),
+            )
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

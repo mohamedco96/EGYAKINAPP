@@ -132,32 +132,35 @@ class PatientResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->searchable(),
-                Tables\Columns\TextColumn::make('name')->searchable(),
-                Tables\Columns\TextColumn::make('doctor.name')->label('Doctor Name')->searchable(),
-                Tables\Columns\TextColumn::make('hospital')->searchable(),
-                Tables\Columns\TextColumn::make('collected_data_from'),
-                Tables\Columns\TextColumn::make('NID')->label('National ID')->searchable(),
-                Tables\Columns\TextColumn::make('phone')->searchable(),
-                Tables\Columns\TextColumn::make('email')->searchable(),
-                Tables\Columns\TextColumn::make('age'),
-                Tables\Columns\TextColumn::make('gender')->searchable(),
-                Tables\Columns\TextColumn::make('occupation'),
-                Tables\Columns\TextColumn::make('residency'),
-                Tables\Columns\TextColumn::make('governorate'),
-                Tables\Columns\TextColumn::make('marital_status'),
-                Tables\Columns\TextColumn::make('educational_level'),
-                Tables\Columns\TextColumn::make('special_habits_of_the_patient'),
-                Tables\Columns\TextColumn::make('other_habits_of_the_patient'),
-                Tables\Columns\TextColumn::make('DM')->label('DM'),
-                Tables\Columns\TextColumn::make('DM_duration')->label('DM Duration'),
-                Tables\Columns\TextColumn::make('HTN')->label('HTN'),
-                Tables\Columns\TextColumn::make('HTN_duration')->label('HTN Duration'),
-                Tables\Columns\TextColumn::make('other'),
-                Tables\Columns\TextColumn::make('hidden'),
-                Tables\Columns\TextColumn::make('created_at')->label('Created At'),
-                Tables\Columns\TextColumn::make('updated_at')->label('Updated At'),
+                Tables\Columns\TextColumn::make('id')->toggleable(isToggledHiddenByDefault: false)->searchable(),
+                Tables\Columns\TextColumn::make('name')->toggleable(isToggledHiddenByDefault: false)->searchable(),
+                Tables\Columns\TextColumn::make('doctor.name')->toggleable(isToggledHiddenByDefault: false)->label('Doctor Name')->searchable(),
+                Tables\Columns\TextColumn::make('hospital')->toggleable(isToggledHiddenByDefault: false)->searchable(),
+                Tables\Columns\TextColumn::make('collected_data_from')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('NID')->toggleable(isToggledHiddenByDefault: false)->label('National ID')->searchable(),
+                Tables\Columns\TextColumn::make('phone')->toggleable(isToggledHiddenByDefault: false)->searchable(),
+                Tables\Columns\TextColumn::make('email')->toggleable(isToggledHiddenByDefault: false)->searchable(),
+                Tables\Columns\TextColumn::make('age')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('gender')->toggleable(isToggledHiddenByDefault: false)->searchable(),
+                Tables\Columns\TextColumn::make('occupation')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('residency')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('governorate')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('marital_status')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('educational_level')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('special_habits_of_the_patient')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('other_habits_of_the_patient')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('DM')->toggleable(isToggledHiddenByDefault: false)->label('DM'),
+                Tables\Columns\TextColumn::make('DM_duration')->toggleable(isToggledHiddenByDefault: false)->label('DM Duration'),
+                Tables\Columns\TextColumn::make('HTN')->toggleable(isToggledHiddenByDefault: false)->label('HTN'),
+                Tables\Columns\TextColumn::make('HTN_duration')->toggleable(isToggledHiddenByDefault: false)->label('HTN Duration'),
+                Tables\Columns\TextColumn::make('other')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\ToggleColumn::make('hidden')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false)->label('Created At'),
+                Tables\Columns\TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: false)->label('Updated At'),
             ])
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->filters([
                 Tables\Filters\SelectFilter::make('Doctor Name')
                     ->relationship('doctor', 'name'),
@@ -177,16 +180,18 @@ class PatientResource extends Resource
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
-                /*Tables\Filters\SelectFilter::make('type')
-                    ->options([
-                        'cat' => 'Cat',
-                        'dog' => 'Dog',
-                        'rabbit' => 'Rabbit',
-                    ]),*/
-            ])->filtersTriggerAction(
+            ])->toggleColumnsTriggerAction(
                 fn (Action $action) => $action
                     ->button()
-                    ->label('Filter'), )
+                    ->label('Toggle columns'),
+            )
+            ->persistFiltersInSession()
+            ->deselectAllRecordsWhenFiltered(true)
+            ->filtersTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Filter'),
+            )
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
@@ -195,7 +200,6 @@ class PatientResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                     ExportBulkAction::make(),
-                    //ExportAction::make()
                 ]),
             ])
             ->emptyStateActions([

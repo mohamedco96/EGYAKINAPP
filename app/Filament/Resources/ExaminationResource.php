@@ -61,18 +61,21 @@ class ExaminationResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->searchable(),
-                Tables\Columns\TextColumn::make('doctor.name')->label('Doctor Name')->searchable(),
-                Tables\Columns\TextColumn::make('patient.name')->label('Patient Name')->searchable(),
-                Tables\Columns\TextColumn::make('current_creatinine')->label('Current creatinine'),
-                Tables\Columns\TextColumn::make('basal_creatinine')->label('Basal creatinine, if available'),
-                Tables\Columns\TextColumn::make('renal_US')->label('Renal US'),
-                Tables\Columns\TextColumn::make('specify_renal-US')->label('If renal US is abnormal, specify'),
-                Tables\Columns\TextColumn::make('Other laboratory findings'),
-                Tables\Columns\TextColumn::make('Other radiology findings'),
-                Tables\Columns\TextColumn::make('created_at'),
-                Tables\Columns\TextColumn::make('updated_at'),
+                Tables\Columns\TextColumn::make('id')->toggleable(isToggledHiddenByDefault: false)->searchable(),
+                Tables\Columns\TextColumn::make('doctor.name')->toggleable(isToggledHiddenByDefault: false)->label('Doctor Name')->searchable(),
+                Tables\Columns\TextColumn::make('patient.name')->toggleable(isToggledHiddenByDefault: false)->label('Patient Name')->searchable(),
+                Tables\Columns\TextColumn::make('current_creatinine')->toggleable(isToggledHiddenByDefault: false)->label('Current creatinine'),
+                Tables\Columns\TextColumn::make('basal_creatinine')->toggleable(isToggledHiddenByDefault: false)->label('Basal creatinine, if available'),
+                Tables\Columns\TextColumn::make('renal_US')->toggleable(isToggledHiddenByDefault: false)->label('Renal US'),
+                Tables\Columns\TextColumn::make('specify_renal-US')->toggleable(isToggledHiddenByDefault: false)->label('If renal US is abnormal, specify'),
+                Tables\Columns\TextColumn::make('Other laboratory findings')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('Other radiology findings')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: false),
             ])
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->filters([
                 Tables\Filters\SelectFilter::make('Doctor Name')
                     ->relationship('doctor', 'name'),
@@ -94,10 +97,19 @@ class ExaminationResource extends Resource
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
-            ])->filtersTriggerAction(
+            ])
+            ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action
                     ->button()
-                    ->label('Filter'), )
+                    ->label('Toggle columns'),
+            )
+            ->persistFiltersInSession()
+            ->deselectAllRecordsWhenFiltered(true)
+            ->filtersTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Filter'),
+            )
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

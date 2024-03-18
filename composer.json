@@ -12,9 +12,10 @@
         "filament/filament": "3.0-stable",
         "flowframe/laravel-trend": "^0.1.5",
         "guzzlehttp/guzzle": "^7.2",
-        "ichtrojan/laravel-otp": "^1.4",
+        "ichtrojan/laravel-otp": "^2.0",
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.2",
+        "laravel/telescope": "^5.0",
         "laravel/tinker": "^2.8",
         "livewire/livewire": "^3.0",
         "pxlrbt/filament-excel": "^2.1"

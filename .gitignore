@@ -7,6 +7,7 @@
 /public/index.php
 /public/robots.txt
 /public/EGYAKIN
+/public/*
 /storage/*.key
 /vendor
 .env

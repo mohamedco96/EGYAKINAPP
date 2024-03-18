@@ -161,6 +161,7 @@
       <path value="$PROJECT_DIR$/vendor/flowframe/laravel-trend" />
       <path value="$PROJECT_DIR$/vendor/ichtrojan/laravel-otp" />
       <path value="$PROJECT_DIR$/vendor/carbonphp/carbon-doctrine-types" />
+      <path value="$PROJECT_DIR$/vendor/laravel/telescope" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.1" />

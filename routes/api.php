@@ -43,6 +43,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/users/{id}', 'AuthController@update');
     Route::delete('/users/{id}', 'AuthController@destroy');
     Route::post('/logout', 'AuthController@logout');
+    Route::post('/upload-profile-image', 'AuthController@uploadProfileImage');
     Route::post('/emailverification', 'EmailVerificationController@email_verification');
     Route::post('/sendverificationmail', 'EmailVerificationController@sendEmailVerification');
     Route::post('/resendemailverification', 'EmailVerificationController@sendEmailVerification');
@@ -161,12 +162,10 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 });
 
 Route::fallback(function () {
-    $response = [
+    return response()->json([
         'value' => false,
         'message' => 'Page does not exist',
-    ];
-
-    return response($response, 404);
+    ], 404);
 });
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {

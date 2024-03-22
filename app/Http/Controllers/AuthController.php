@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use App\Notifications\WelcomeMailNotification;
+use Illuminate\Support\Facades\Storage;
+
+
 class AuthController extends Controller
 {
     public function register(Request $request)
@@ -94,6 +97,38 @@ class AuthController extends Controller
             'message' => 'Logged out',
         ];
     }
+
+    public function uploadProfileImage(Request $request)
+    {
+        $request->validate([
+            'profile_image' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
+        ]);
+
+        if ($request->hasFile('profile_image')) {
+            $image = $request->file('profile_image');
+
+            $path = $image->store('profile_images', 'public');
+
+            // Get the absolute URL of the uploaded image
+            $absolutePath = url(Storage::url($path));
+
+            // Update user's profile image path in the database
+            auth()->user()->update(['image' => $absolutePath]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile image uploaded successfully.',
+                'image_path' => $absolutePath,
+            ], 200);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Please choose an image file.',
+        ], 400);
+    }
+
+
 
     /**
      * Update the specified resource in storage.

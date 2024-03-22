@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('lname')->nullable();
+            $table->string('image')->nullable(); // New column for profile image
             $table->string('email');
             $table->string('age')->nullable();
             $table->string('specialty')->nullable();

@@ -108,7 +108,7 @@ class AuthController extends Controller
             $image = $request->file('profile_image');
 
             // Generate a unique file name using the original file name and a timestamp
-            $fileName = $image->getClientOriginalName() . '_' . time();
+            $fileName = '_' . time() . $image->getClientOriginalName();
 
             // Store the image in the specified directory with the generated file name
             $path = $image->storeAs('profile_images', $fileName, 'public');

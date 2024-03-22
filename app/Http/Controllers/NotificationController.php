@@ -13,21 +13,15 @@ class NotificationController extends Controller
     {
         //$notifications = Notification::latest()->paginate(10);
         $notifications = Notification::latest()->get();
+        $unreadCount = $notifications->where('read', false)->count();
 
-        if ($notifications->isNotEmpty()) {
             $response = [
                 'value' => true,
+                'unreadCount' => $unreadCount,
                 'data' => $notifications,
             ];
 
             return response($response, 200);
-        } else {
-            $response = [
-                'value' => false,
-            ];
-
-            return response($response, 404);
-        }
     }
 
     /**

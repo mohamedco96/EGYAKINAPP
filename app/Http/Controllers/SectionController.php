@@ -8,6 +8,7 @@ use App\Models\Cause;
 use App\Models\Complaint;
 use App\Models\Decision;
 use App\Models\Examination;
+use App\Models\Outcome;
 use App\Models\PatientHistory;
 use App\Models\Questions;
 use App\Models\Risk;
@@ -15,6 +16,10 @@ use App\Models\Score;
 use App\Models\ScoreHistory;
 use App\Models\Section;
 use Illuminate\Support\Facades\DB;
+use App\Models\SectionFieldMapping;
+use Illuminate\Support\Facades\Log;
+use App\Models\SectionsInfo;
+
 
 class SectionController extends Controller
 {
@@ -54,12 +59,18 @@ class SectionController extends Controller
      */
     public function show($patient_id)
     {
-        $submit_status = Section::where('patient_id', $patient_id)->get(['submit_status'])->first();
+        $submit_status = Section::where('patient_id', $patient_id)->value('submit_status');
 
         $sections = Section::where('patient_id', $patient_id)
             ->select('section_1', 'section_2', 'section_3', 'section_4', 'section_5', 'section_6', 'section_7')
             ->first();
 
+        if (!$sections) {
+            return response()->json([
+                'value' => false,
+                'message' => 'Sections not found for the given patient ID.',
+            ], 404);
+        }
         $updated_at = [
             'updated_at1' => PatientHistory::where('id', $patient_id)->value('updated_at'),
             'updated_at2' => Complaint::where('patient_id', $patient_id)->value('updated_at'),
@@ -70,60 +81,40 @@ class SectionController extends Controller
             'updated_at7' => Decision::where('patient_id', $patient_id)->value('updated_at'),
         ];
 
-        $data = [];
-        for ($i = 1; $i <= 7; $i++) {
-            $section = [
-                'section_id' => $i,
-                'section_status' => $sections->{'section_'.$i},
-                'updated_at' => $updated_at['updated_at'.$i],
-            ];
+        $sectionInfos = SectionsInfo::all();
 
-            switch ($i) {
-                case 1:
-                    $section['section_name'] = 'Patient History';
-                    break;
-                case 2:
-                    $section['section_name'] = 'Complaint';
-                    break;
-                case 3:
-                    $section['section_name'] = 'Cause of AKI';
-                    break;
-                case 4:
-                    $section['section_name'] = 'Risk factors for AKI';
-                    break;
-                case 5:
-                    $section['section_name'] = 'Assessment of the patient';
-                    break;
-                case 6:
-                    $section['section_name'] = 'Laboratory and radiology results'; //Medical examinations
-                    break;
-                case 7:
-                    $section['section_name'] = 'Medical decision';
-                    break;
-            }
+        $data = [];
+        foreach ($sectionInfos as $sectionInfo) {
+            $section_id = $sectionInfo->id;
+            $section_name = $sectionInfo->section_name;
+
+            // Check if the key exists in the array before accessing it
+            $updated_at_key = 'updated_at'.$section_id;
+            $updated_at_value = isset($updated_at[$updated_at_key]) ? $updated_at[$updated_at_key] : null;
+
+            $section = [
+                'section_id' => $section_id,
+                'section_status' => $sections->{'section_'.$section_id},
+                'updated_at' => $updated_at_value,
+                'section_name' => $section_name,
+            ];
 
             $data[] = $section;
         }
 
         if ($sections) {
-            $response = [
-                'value' => true,
-                // 'data' => $values
-            ];
-
             return response()->json([
                 'value' => true,
-                'submit_status' => $submit_status->submit_status,
+                'submit_status' => $submit_status,
                 'data' => $data,
             ]);
         } else {
-            $response = [
+            return response()->json([
                 'value' => false,
-            ];
-
-            return response($response, 404);
+            ], 404);
         }
     }
+
 
     public function showSection($section_id, $patient_id)
     {
@@ -154,10 +145,78 @@ class SectionController extends Controller
         }
     }
 
+
+
+
+
+
+    public function update(UpdateSectionRequest $request, $section_id, $patient_id)
+    {
+        try {
+            // Define the mapping of section IDs to model names
+            $modelMappings = [
+                1 => PatientHistory::class,
+                2 => Complaint::class,
+                3 => Cause::class,
+                4 => Risk::class,
+                5 => Assessment::class,
+                6 => Examination::class,
+                7 => Decision::class,
+                8 => Outcome::class,
+                // Add more mappings as needed for other section IDs
+            ];
+
+            // Check if the section ID has a corresponding model mapping
+            if (!isset($modelMappings[$section_id])) {
+                return response()->json([
+                    'value' => false,
+                    'message' => 'No model mapping found for the specified section ID.',
+                ], 404);
+            }
+
+            // Retrieve field mappings for the specified section
+            $fieldMappings = SectionFieldMapping::where('section_id', $section_id)->pluck('column_name', 'field_name');
+
+            // If no field mappings found, return an error response
+            if ($fieldMappings->isEmpty()) {
+                return response()->json([
+                    'value' => false,
+                    'message' => 'No field mappings found for the specified section.',
+                ], 404);
+            }
+
+            // Get the model name based on the section ID
+            $modelName = $modelMappings[$section_id];
+
+            // Update the model based on field mappings
+            foreach ($fieldMappings as $field => $column) {
+                if ($request->has($field)) {
+                    $modelName::where('id', $patient_id)->update([$column => $request->input($field)]);
+                }
+            }
+
+            // Response with success message and any additional data
+            $response = [
+                'value' => true,
+                'message' => 'Section updated successfully.',
+            ];
+
+            return response()->json($response, 200);
+        } catch (\Exception $e) {
+            // Log any unexpected errors
+            Log::error('Error updating section: ' . $e->getMessage());
+
+            // Return error response
+            return response()->json([
+                'value' => false,
+                'message' => 'An unexpected error occurred while updating the section. Please try again later.',
+            ], 500);
+        }
+    }
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateSectionRequest $request, $section_id, $patient_id)
+    public function updatebkp(UpdateSectionRequest $request, $section_id, $patient_id)
     {
         switch ($section_id) {
             case 1:

@@ -29,6 +29,7 @@ Route::post('/resetpasswordverification', 'ResetPasswordController@resetpassword
 Route::post('/resetpassword', 'ResetPasswordController@resetpassword');
 
 Route::get('/userPatient', 'AuthController@userPatient');
+Route::post('/chat', 'ChatController@chat');
 
 //Route::post('/register',[AuthController::class,'register']);
 //Route::post('/login',[AuthController::class,'login']);

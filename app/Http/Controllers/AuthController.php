@@ -107,6 +107,47 @@ class AuthController extends Controller
         if ($request->hasFile('profile_image')) {
             $image = $request->file('profile_image');
 
+            // Generate a unique file name using the original file name and a timestamp
+            $fileName = $image->getClientOriginalName() . '_' . time();
+
+            // Store the image in the specified directory with the generated file name
+            $path = $image->storeAs('profile_images', $fileName, 'public');
+
+            // Get the absolute URL of the uploaded image
+            //$absolutePath = url(Storage::url($path));
+
+            // Get the relative path of the uploaded image (without the storage folder prefix)
+            $relativePath = 'storage/' . $path;
+
+            // Update user's profile image path in the database
+            auth()->user()->update(['image' => $path]);
+
+            // Construct the full URL by appending the relative path to the APP_URL
+            $imageUrl = config('app.url') . '/' . 'storage/app/public/' . $path;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile image uploaded successfully.',
+                'image_path' => $imageUrl,
+            ], 200);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Please choose an image file.',
+        ], 400);
+    }
+
+
+    public function uploadProfileImagebkp(Request $request)
+    {
+        $request->validate([
+            'profile_image' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
+        ]);
+
+        if ($request->hasFile('profile_image')) {
+            $image = $request->file('profile_image');
+
             $path = $image->store('profile_images', 'public');
 
             // Get the absolute URL of the uploaded image

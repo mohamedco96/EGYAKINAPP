@@ -8,7 +8,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use App\Notifications\WelcomeMailNotification;
 use Illuminate\Support\Facades\Storage;
-
+use App\Models\PatientHistory;
+use App\Models\Section;
+use App\Models\Complaint;
+use App\Models\Cause;
+use App\Models\Risk;
+use App\Models\Assessment;
+use App\Models\Examination;
 
 class AuthController extends Controller
 {
@@ -294,46 +300,45 @@ class AuthController extends Controller
     }
 
 
-
-    public function userPatient()
-    {
-        $user = User::find(1);
-        $patientCount = $user->patients->count();
-
-        return $patientCount;
-    }
-
     /**
      * Remove the specified resource from storage.
      */
     public function destroy($id)
     {
+        // Find the user by ID
         $user = User::find($id);
 
-        if ($user != null) {
-            User::destroy($id);
+        // Check if the user exists
+        if ($user) {
+            // Delete the user
+            $user->delete();
 
-            DB::table('patient_histories')->where('doctor_id', '=', $id)->delete();
-            DB::table('sections')->where('doctor_id', '=', $id)->delete();
-            DB::table('complaints')->where('doctor_id', '=', $id)->delete();
-            DB::table('causes')->where('doctor_id', '=', $id)->delete();
-            DB::table('risks')->where('doctor_id', '=', $id)->delete();
-            DB::table('assessments')->where('doctor_id', '=', $id)->delete();
-            DB::table('examinations')->where('doctor_id', '=', $id)->delete();
+            // Delete related records from other tables
+            PatientHistory::where('doctor_id', $id)->delete();
+            Section::where('doctor_id', $id)->delete();
+            Complaint::where('doctor_id', $id)->delete();
+            Cause::where('doctor_id', $id)->delete();
+            Risk::where('doctor_id', $id)->delete();
+            Assessment::where('doctor_id', $id)->delete();
+            Examination::where('doctor_id', $id)->delete();
 
+            // Prepare the success response
             $response = [
                 'value' => true,
                 'message' => 'User Deleted Successfully',
             ];
 
-            return response($response, 200);
+            // Return the success response
+            return response()->json($response, 200);
         } else {
+            // Prepare the error response if the user does not exist
             $response = [
                 'value' => false,
                 'message' => 'No User was found',
             ];
 
-            return response($response, 404);
+            // Return the error response
+            return response()->json($response, 404);
         }
     }
 }

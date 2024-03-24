@@ -17,6 +17,7 @@ class AuthController extends Controller
         $fields = $request->validate([
             'name' => 'required|string',
             'lname' => 'required|string',
+            //'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
             'email' => 'required|string|unique:users,email',
             'password' => 'required|string|confirmed',
             'age' => 'integer',
@@ -28,9 +29,22 @@ class AuthController extends Controller
             'registration_number' => 'required|string',
         ]);
 
+            //$image = $request->file('image');
+
+            // Generate a unique file name using the original file name and a timestamp
+            //$fileName = time() . '_' . $image->getClientOriginalName();
+
+            // Store the image in the specified directory with the generated file name
+            //$path = $image->storeAs('profile_images', $fileName, 'public');
+
+            // Construct the full URL by appending the relative path to the APP_URL
+            //$imageUrl = config('app.url') . '/' . 'storage/app/public/' . $path;
+
+
         $user = User::create([
             'name' => $fields['name'],
             'lname' => $fields['lname'],
+            //'image' => $path,
             'email' => $fields['email'],
             'password' => bcrypt($fields['password']),
             'age' => $fields['age'],
@@ -47,6 +61,7 @@ class AuthController extends Controller
         $response = [
             'value' => true,
             'data' => $user,
+            //'image' => $imageUrl,
             'token' => $token,
         ];
 
@@ -101,11 +116,11 @@ class AuthController extends Controller
     public function uploadProfileImage(Request $request)
     {
         $request->validate([
-            'profile_image' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
         ]);
 
-        if ($request->hasFile('profile_image')) {
-            $image = $request->file('profile_image');
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
 
             // Generate a unique file name using the original file name and a timestamp
             $fileName = time() . '_' . $image->getClientOriginalName();
@@ -126,9 +141,9 @@ class AuthController extends Controller
             $imageUrl = config('app.url') . '/' . 'storage/app/public/' . $path;
 
             return response()->json([
-                'success' => true,
+                'value' => true,
                 'message' => 'Profile image uploaded successfully.',
-                'image_path' => $imageUrl,
+                'image' => $imageUrl,
             ], 200);
         }
 
@@ -142,11 +157,11 @@ class AuthController extends Controller
     public function uploadProfileImagebkp(Request $request)
     {
         $request->validate([
-            'profile_image' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
+            'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
         ]);
 
-        if ($request->hasFile('profile_image')) {
-            $image = $request->file('profile_image');
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
 
             $path = $image->store('profile_images', 'public');
 
@@ -181,6 +196,7 @@ class AuthController extends Controller
         $fields = $request->validate([
             'name' => 'string',
             'lname' => 'string',
+            //'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
             'email' => 'string|email',
             'password' => 'string',
             'age' => 'integer',
@@ -241,41 +257,43 @@ class AuthController extends Controller
      */
     public function show($id)
     {
-        $user = User::find($id);
+        // Find the user by ID with patients relation eager loaded
+        $user = User::with('patients')->find($id);
 
-        if ($user != null) {
-            $patientCount = $user->patients->count();
-            if ($patientCount != null) {
-                $count = $patientCount;
-            } else {
-                $count = 0;
-            }
+        // Check if the user exists
+        if ($user) {
+            // Get the user's image URL
+            //$imageUrl = $user->image ? url(Storage::url($user->image)) : null;
+            $imageUrl = config('app.url') . '/' . 'storage/app/public/' . $user->image;
+            // Get the number of patients associated with the user
+            $patientCount = $user->patients()->count();
 
-            $scoreValue = $user->score->score;
-            if ($scoreValue != null) {
-                $score = $scoreValue;
-            } else {
-                $score = 0;
-            }
-            $count = strval($count); // Convert count to a string
-            $score = strval($score); // Convert count to a string
-            $response = [
+            // Get the user's score value
+            $scoreValue = optional($user->score)->score ?? 0;
+
+            // Prepare the response data
+            $responseData = [
                 'value' => true,
-                'patient_count' => $count,
-                'score_value' => $score,
+                'patient_count' => strval($patientCount) ?? 0,
+                'score_value' => strval($scoreValue) ,
+                'image' => $imageUrl,
                 'data' => $user,
             ];
 
-            return response($response, 200);
+            // Return a success response
+            return response()->json($responseData, 200);
         } else {
+            // Return a not found response if the user does not exist
             $response = [
                 'value' => false,
                 'message' => 'No user was found',
             ];
 
-            return response($response, 404);
+            return response()->json($response, 404);
         }
     }
+
+
 
     public function userPatient()
     {

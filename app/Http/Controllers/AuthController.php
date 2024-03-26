@@ -191,11 +191,72 @@ class AuthController extends Controller
     }
 
 
+    public function update(Request $request, $id)
+    {
+        // Find the user by ID
+        $user = User::find($id);
+
+        // Check if the user exists
+        if ($user != null) {
+            // Validate the request data
+            $request->validate([
+                'name' => 'string',
+                'lname' => 'string',
+                'syndicate_card' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
+                'email' => 'string|email',
+                'password' => 'string',
+                'age' => 'integer',
+                'specialty' => 'string',
+                'workingplace' => 'string',
+                'phone' => 'string',
+                'job' => 'string',
+                'highestdegree' => 'string',
+                'registration_number' => 'string',
+            ]);
+
+            // Check if syndicate_card field is provided
+            if ($request->hasFile('syndicate_card')) {
+                // Get the image file
+                $image = $request->file('syndicate_card');
+
+                // Generate a unique file name using the original file name and a timestamp
+                $fileName = time() . '_' . $image->getClientOriginalName();
+
+                // Store the image in the specified directory with the generated file name
+                $path = $image->storeAs('syndicate_cards', $fileName, 'public');
+
+                // Update user's profile image path in the database
+                $user->update(['syndicate_card' => $path]);
+            }
+
+            // Update user's other fields
+            $user->update($request->except('syndicate_card'));
+
+            // Construct the full URL by appending the relative path to the APP_URL
+            $imageUrl = config('app.url') . '/' . 'storage/app/public/' . $user->syndicate_card;
+
+            $response = [
+                'value' => true,
+                'syndicate_card' => $imageUrl,
+                'data' => $user,
+                'message' => 'User Updated Successfully',
+            ];
+
+            return response($response, 200);
+        } else {
+            $response = [
+                'value' => false,
+                'message' => 'No User was found',
+            ];
+
+            return response($response, 404);
+        }
+    }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id)
+    public function updatebkp(Request $request, $id)
     {
         $user = User::find($id);
 

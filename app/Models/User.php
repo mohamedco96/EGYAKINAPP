@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'lname',
         'image',
+        'syndicate_card',
         'email',
         'password',
         'age',

@@ -45,6 +45,10 @@ class PatientHistory extends Model
     ];
 
     protected $casts = [
+        //'id' => 'string', // Cast primary key to string
+        //'foreign_key' => 'string', // Cast foreign key to string
+        //'doctor_id' => 'string',
+       //'patient_id' => 'string',
         'special_habits_of_the_patient' => 'array',
         'hidden' => 'boolean'
     ];

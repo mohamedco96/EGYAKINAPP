@@ -12,6 +12,7 @@ use App\Models\Examination;
 use App\Models\Notification;
 use App\Models\Outcome;
 use App\Models\PatientHistory;
+use App\Models\Posts;
 use App\Models\Risk;
 use App\Models\Score;
 use App\Models\ScoreHistory;
@@ -93,6 +94,61 @@ class PatientHistoryController extends Controller
     /**
      * Display a listing of the resource.
      */
+    public function homeGetAllData()
+    {
+        // Return all posts
+        $posts = Posts::select('id', 'title', 'image', 'content', 'hidden', 'doctor_id', 'updated_at')
+            ->where('hidden', false)
+            ->with(['doctor' => function ($query) {
+                $query->select('id', 'name', 'lname');
+            }])
+            ->get();
+
+        // Return current patients
+        $user = Auth::user();
+        $currentPatients = $user->patients()
+            ->where('hidden', false)
+            ->with(['doctor' => function ($query) {
+                $query->select('id', 'name', 'lname');
+            }, 'sections' => function ($query) {
+                $query->select('patient_id', 'submit_status', 'outcome_status');
+            }])
+            ->latest('updated_at')
+            ->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
+
+        // Return all patients
+        $allPatients = PatientHistory::with(['doctor' => function ($query) {
+            $query->select('id', 'name', 'lname');
+        }, 'sections' => function ($query) {
+            $query->select('patient_id', 'submit_status', 'outcome_status');
+        }])
+            ->where('hidden', false)
+            ->latest('updated_at')
+            ->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
+
+        // Get patient count and score value
+        $patientCount = $user->patients->count() ?? 0;
+        $scoreValue = $user->score->score ?? 0;
+        $isVerified = $user->email_verified_at ? true : false;
+
+        // Prepare response data
+        $response = [
+            'value' => true,
+            'verified' => $isVerified,
+            'patient_count' => strval($patientCount),
+            'score_value' => strval($scoreValue),
+            'role' => 'Admin',
+            'data' => [
+                'all_patients' => $allPatients,
+                'current_patient' => $currentPatients,
+                'posts' => $posts,
+            ],
+        ];
+
+        return response($response, 200);
+    }
+
+
     public function doctorPatientGetAll()
     {
         $Patient = PatientHistory::with('doctor:id,name,lname')
@@ -134,6 +190,7 @@ class PatientHistoryController extends Controller
             return response($response, 200);
 
     }
+
     public function doctorPatientGet()
     {
         /*$Patient = $user->patients()

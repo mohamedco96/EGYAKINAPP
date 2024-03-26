@@ -58,6 +58,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/allPatientsnew', 'PatientHistoryController@doctorPatientGetAllnew');
     Route::get('/currentPatients', 'PatientHistoryController@doctorPatientGet');
     Route::get('/patient/search/{name}', 'PatientHistoryController@search');
+    Route::get('/home', 'PatientHistoryController@homeGetAllData');
 
     //Questions
     Route::get('/questions', 'QuestionsController@index');

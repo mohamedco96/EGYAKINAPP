@@ -127,9 +127,10 @@ class PatientHistoryController extends Controller
             ->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
 
         // Get patient count and score value
-        $patientCount = $user->patients->count() ?? 0;
-        $scoreValue = $user->score->score ?? 0;
+        $patientCount = $user->patients ? $user->patients->count() : 0;
+        $scoreValue = $user->score ? $user->score->score : 0;
         $isVerified = $user->email_verified_at ? true : false;
+
 
         // Prepare response data
         $response = [

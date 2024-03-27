@@ -20,6 +20,8 @@ use App\Models\Section;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use PDF;
+use Illuminate\Support\Facades\Storage;
 
 class PatientHistoryController extends Controller
 {
@@ -57,6 +59,39 @@ class PatientHistoryController extends Controller
         $this->examination = $examination;
         $this->decision = $decision;
         $this->outcome = $outcome;
+    }
+
+    public function generatePatientPDF($patient_id)
+    {
+        // Retrieve the patient from the database
+        $patient = PatientHistory::findOrFail($patient_id);
+
+        // Pass the data to the blade view
+        $data = [
+            'patient' => $patient,
+            // Add more data here if needed
+        ];
+
+        // Generate the PDF using the blade view and data
+        $pdf = PDF::loadView('patient_pdf', $data);
+
+        //$pdf = PDF::loadHTML('<h1>Hello, this is a New PDF!</h1>');
+
+        // Ensure the 'pdfs' directory exists in the public disk
+        Storage::disk('public')->makeDirectory('pdfs');
+
+        // Generate a unique filename for the PDF
+        $pdfFileName = 'filename2.pdf';
+
+        // Save the PDF file to the public disk
+        Storage::disk('public')->put('pdfs/' . $pdfFileName, $pdf->output());
+
+        // Generate the URL for downloading the PDF file
+       // $pdfUrl = Storage::disk('public')->url('pdfs/' . $pdfFileName);
+        $pdfUrl = config('app.url') . '/' . 'storage/app/public/pdfs/' . $pdfFileName;
+
+        // Return the URL to download the PDF file
+        return response()->json(['pdf_url' => $pdfUrl]);
     }
 
     /**

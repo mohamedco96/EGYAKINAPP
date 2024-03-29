@@ -166,11 +166,22 @@ class PatientHistoryController extends Controller
         $scoreValue = $user->score ? $user->score->score : 0;
         $isVerified = $user->email_verified_at ? true : false;
 
+        $notifications = Notification::where('doctor_id', $user->id)
+            ->select('id', 'read', 'type', 'patient_id', 'doctor_id', 'created_at')
+            ->with('patient.doctor:id,name,lname,workingplace')
+            ->with('patient.sections:id,submit_status,outcome_status,patient_id')
+            ->with('patient:id,name,hospital,governorate,doctor_id')
+            ->latest()
+            ->get();
+
+        $unreadCount = $notifications->where('read', false)->count();
+
 
         // Prepare response data
         $response = [
             'value' => true,
             'verified' => $isVerified,
+            'unreadCount' => strval($unreadCount),
             'patient_count' => strval($patientCount),
             'score_value' => strval($scoreValue),
             'role' => 'Admin',

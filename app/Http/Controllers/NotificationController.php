@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Notification;
+use Carbon\Carbon;
 
 class NotificationController extends Controller
 {
@@ -24,6 +25,47 @@ class NotificationController extends Controller
             return response($response, 200);
     }
 
+    public function showNew()
+    {
+        // Get today's date
+        $today = Carbon::today();
+
+        $doctorId = auth()->user()->id;
+
+        // Get records created today
+        $todayRecords = Notification::where('doctor_id', $doctorId)
+            ->whereDate('created_at', $today)
+            ->select('id', 'read', 'type', 'patient_id', 'doctor_id', 'created_at')
+            ->with('patient.doctor:id,name,lname,workingplace')
+            ->with('patient.sections:id,submit_status,outcome_status,patient_id')
+            ->with('patient:id,name,hospital,governorate,doctor_id')
+            ->latest()
+            ->get();
+
+        // Get records created recently (excluding today)
+        $recentRecords = Notification::where('doctor_id', $doctorId)
+            ->where('created_at', '>', $today)
+            ->orWhereDate('created_at', '<', $today)
+            ->select('id', 'read', 'type', 'patient_id', 'doctor_id', 'created_at')
+            ->with('patient.doctor:id,name,lname,workingplace')
+            ->with('patient.sections:id,submit_status,outcome_status,patient_id')
+            ->with('patient:id,name,hospital,governorate,doctor_id')
+            ->latest()
+            ->get();
+
+        $unreadCount = Notification::where('doctor_id', $doctorId)
+                        ->where('read', false)->count();
+
+        $response = [
+            'value' => true,
+            'unreadCount' => strval($unreadCount),
+            'todayRecords' => $todayRecords,
+            'recentRecords' => $recentRecords
+        ];
+
+        return response()->json($response, 200);
+
+    }
     /**
      * Display the specified resource.
      */

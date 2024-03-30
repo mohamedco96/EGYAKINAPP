@@ -31,6 +31,9 @@ Route::post('/resetpassword', 'ResetPasswordController@resetpassword');
 Route::get('/userPatient', 'AuthController@userPatient');
 Route::post('/chat', 'ChatController@chat');
 
+
+Route::post('/role', 'AuthController@roletest');
+
 //Route::post('/register',[AuthController::class,'register']);
 //Route::post('/login',[AuthController::class,'login']);
 
@@ -159,6 +162,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     //Route::get('/notification','NotificationController@index');
     Route::post('/notification', 'NotificationController@store');
     Route::get('/notification', 'NotificationController@show');
+    Route::get('/shownotification', 'NotificationController@showNew');
     Route::put('/notification', 'NotificationController@update');
     Route::delete('/notification/{id}', 'NotificationController@destroy');
 });

@@ -163,7 +163,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/notification', 'NotificationController@store');
     Route::get('/notification', 'NotificationController@show');
     Route::get('/shownotification', 'NotificationController@showNew');
-    Route::put('/notification', 'NotificationController@update');
+    Route::put('/notification/{id}', 'NotificationController@update');
     Route::delete('/notification/{id}', 'NotificationController@destroy');
 });
 

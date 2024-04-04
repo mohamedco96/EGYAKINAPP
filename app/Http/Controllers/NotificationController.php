@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Notification;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
@@ -95,14 +96,15 @@ class NotificationController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update()
+    public function update(Request $request,$id)
     {
         $doctorId = auth()->user()->id;
 
-        $notifications = Notification::where('doctor_id', $doctorId);
+        $notifications = Notification::where('doctor_id', $doctorId)
+        ->where('id', $id);
 
         if ($notifications->exists()) {
-            $notifications->update(['read' => true]);
+            $notifications->update($request->all());
             $response = [
                 'value' => true,
                 'message' => 'Notification Updated Successfully',
@@ -116,6 +118,47 @@ class NotificationController extends Controller
             ];
 
             return response($response, 404);
+        }
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $notification = Notification::create($request->all());
+
+        $response = [
+            'value' => true,
+            'data' => $notification,
+            'message' => 'Notification created successfully',
+        ];
+
+        return response()->json($response, 201);
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy($id)
+    {
+        $doctorId = auth()->user()->id;
+        $notification = Notification::where('doctor_id', $doctorId)->find($id);
+
+
+        if ($notification) {
+            $notification->delete();
+            $response = [
+                'value' => true,
+                'message' => 'Notification deleted successfully',
+            ];
+            return response()->json($response, 200);
+        } else {
+            $response = [
+                'value' => false,
+                'message' => 'Notification not found',
+            ];
+            return response()->json($response, 404);
         }
     }
 }

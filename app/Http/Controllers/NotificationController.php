@@ -121,6 +121,30 @@ class NotificationController extends Controller
         }
     }
 
+    public function markAllAsRead()
+    {
+        $doctorId = auth()->user()->id;
+
+        $notifications = Notification::where('doctor_id', $doctorId);
+
+        if ($notifications->exists()) {
+            $notifications->update(['read' => true]);
+            $response = [
+                'value' => true,
+                'message' => 'Notifications Updated Successfully',
+            ];
+
+            return response($response, 200);
+        } else {
+            $response = [
+                'value' => false,
+                'message' => 'No Notification was found',
+            ];
+
+            return response($response, 404);
+        }
+    }
+
     /**
      * Store a newly created resource in storage.
      */

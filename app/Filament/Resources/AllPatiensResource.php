@@ -11,7 +11,7 @@ use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportAllAction;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class AllPatiensResource extends Resource
@@ -175,6 +175,7 @@ class AllPatiensResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     //Tables\Actions\DeleteBulkAction::make(),
                     ExportBulkAction::make(),
+                    //ExportAllAction::make(), // New export all action
                     //ExportAction::make()
                 ]),
             ])

@@ -15,6 +15,9 @@ use App\Models\Cause;
 use App\Models\Risk;
 use App\Models\Assessment;
 use App\Models\Examination;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
+
 
 class AuthController extends Controller
 {
@@ -159,7 +162,6 @@ class AuthController extends Controller
         ], 400);
     }
 
-
     public function uploadProfileImagebkp(Request $request)
     {
         $request->validate([
@@ -189,7 +191,6 @@ class AuthController extends Controller
             'message' => 'Please choose an image file.',
         ], 400);
     }
-
 
     public function update(Request $request, $id)
     {
@@ -237,7 +238,7 @@ class AuthController extends Controller
 
             $response = [
                 'value' => true,
-                'syndicate_card' => $imageUrl,
+                //'syndicate_card' => $imageUrl,
                 'data' => $user,
                 'message' => 'User Updated Successfully',
             ];
@@ -360,7 +361,6 @@ class AuthController extends Controller
         }
     }
 
-
     /**
      * Remove the specified resource from storage.
      */
@@ -402,4 +402,5 @@ class AuthController extends Controller
             return response()->json($response, 404);
         }
     }
+
 }

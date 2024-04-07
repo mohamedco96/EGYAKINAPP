@@ -26,7 +26,7 @@ class NotificationController extends Controller
             return response($response, 200);
     }
 
-    public function showNew()
+    public function showNew(Request $request)
     {
         // Get today's date
         $today = Carbon::today();
@@ -52,7 +52,7 @@ class NotificationController extends Controller
             ->with('patient.sections:id,submit_status,outcome_status,patient_id')
             ->with('patient:id,name,hospital,governorate,doctor_id')
             ->latest()
-            ->get();
+            ->paginate($request->input('per_page', 10)); // Default per page limit is 10
 
         $unreadCount = Notification::where('doctor_id', $doctorId)
                         ->where('read', false)->count();

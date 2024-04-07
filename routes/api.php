@@ -32,7 +32,6 @@ Route::get('/userPatient', 'AuthController@userPatient');
 Route::post('/chat', 'ChatController@chat');
 
 
-Route::post('/role', 'AuthController@roletest');
 
 //Route::post('/register',[AuthController::class,'register']);
 //Route::post('/login',[AuthController::class,'login']);
@@ -50,6 +49,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/emailverification', 'EmailVerificationController@email_verification');
     Route::post('/sendverificationmail', 'EmailVerificationController@sendEmailVerification');
     Route::post('/resendemailverification', 'EmailVerificationController@sendEmailVerification');
+
+    //Role & Permission
+    Route::post('/role', 'AuthController@roletest');
+    Route::post('/createRoleAndPermission', 'RolePermissionController@createRoleAndPermission');
+    Route::post('/assignRoleToUser', 'RolePermissionController@assignRoleToUser');
+    Route::post('/checkPermission', 'RolePermissionController@checkRoleAndPermission');
+
 
     //PatientHistory
     Route::get('/patientHistory', 'PatientHistoryController@index');

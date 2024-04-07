@@ -7,10 +7,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
+use Spatie\Permission\Traits\HasPermissions;
+
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles, HasPermissions;
 
     /**
      * The attributes that are mass assignable.
@@ -48,6 +51,44 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
+    /**
+     * Get the user's image URL with prefix.
+     *
+     * @param  string|null  $value
+     * @return string|null
+     */
+    public function getImageAttribute($value): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+
+        // Add your prefix here
+        $prefix = config('app.url') . '/' . 'storage/app/public/';
+        return $prefix . $value;
+    }
+
+
+
+    /**
+     * Get the user's syndicate card URL with prefix.
+     *
+     * @param  string|null  $value
+     * @return string|null
+     */
+    public function getSyndicateCardAttribute($value): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+
+        // Add your prefix here
+        $prefix = config('app.url') . '/' . 'storage/app/public/';
+        return $prefix . $value;
+    }
+
+
 
     /**
      * The attributes that should be cast.

@@ -15,10 +15,12 @@ use App\Models\Risk;
 use App\Models\Score;
 use App\Models\ScoreHistory;
 use App\Models\Section;
+use App\Notifications\ReachingSpecificPoints;
 use Illuminate\Support\Facades\DB;
 use App\Models\SectionFieldMapping;
 use Illuminate\Support\Facades\Log;
 use App\Models\SectionsInfo;
+use Illuminate\Support\Facades\Auth;
 
 
 class SectionController extends Controller
@@ -469,48 +471,55 @@ class SectionController extends Controller
     {
         $patient = Section::where('patient_id', $patient_id)->first();
 
-        if ($patient != null) {
-
-            DB::table('sections')->where('patient_id', $patient_id)->update(['submit_status' => true]);
-
-            //scoring system
-            $doctorId = auth()->user()->id; // Assuming you have authentication in place
-            $score = Score::where('doctor_id', $doctorId)->first();
-
-            $incrementAmount = 4; // Example increment amount
-            $action = 'Final Submit'; // Example action
-
-            if ($score) {
-                $score->increment('score', $incrementAmount); // Increase the score
-            } else {
-                Score::create([
-                    'doctor_id' => $doctorId,
-                    'score' => $incrementAmount,
-                ]);
-            }
-
-            ScoreHistory::create([
-                'doctor_id' => $doctorId,
-                'score' => $incrementAmount,
-                'action' => $action,
-                'timestamp' => now(),
-            ]);
-
-            $response = [
-                'value' => true,
-                'message' => 'Final Submit Updated Successfully',
-            ];
-
-            return response($response, 201);
-        } else {
+        if (!$patient) {
             $response = [
                 'value' => false,
-                'message' => 'Final Submit was found',
+                'message' => 'Patient not found',
             ];
 
-            return response($response, 404);
+            return response()->json($response, 404);
         }
+
+        // Update submit status
+        $patient->update(['submit_status' => true]);
+
+        // Scoring system
+        $doctorId = Auth::id();
+        $incrementAmount = 4;
+        $action = 'Final Submit';
+
+        $score = Score::firstOrNew(['doctor_id' => $doctorId]);
+        $score->score += $incrementAmount;
+        $score->threshold += $incrementAmount;
+        $newThreshold = $score->threshold;
+
+        // Send notification if the new score exceeds 50 or its multiples
+        if ($newThreshold >= 50) {
+            // Load user object
+            $user = Auth::user();
+            // Send notification
+            $user->notify(new ReachingSpecificPoints($score));
+            $score->threshold = 0;
+        }
+
+        $score->save();
+
+        // Log score history
+        ScoreHistory::create([
+            'doctor_id' => $doctorId,
+            'score' => $incrementAmount,
+            'action' => $action,
+            'timestamp' => now(),
+        ]);
+
+        $response = [
+            'value' => true,
+            'message' => 'Final Submit Updated Successfully',
+        ];
+
+        return response()->json($response, 201);
     }
+
 
     /**
      * Remove the specified resource from storage.

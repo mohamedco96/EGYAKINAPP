@@ -32,3 +32,4 @@ storage/logs/laravel.log
 /storage/app/public/profile_images
 /storage/logs
 /storage/app/public
+storage/logs/laravel.log

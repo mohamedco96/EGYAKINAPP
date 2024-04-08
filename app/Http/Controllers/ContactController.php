@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreContactRequest;
 use App\Http\Requests\UpdateContactRequest;
 use App\Models\Contact;
+use App\Notifications\ContactRequestNotification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -48,7 +49,9 @@ class ContactController extends Controller
                 'value' => true,
                 'message' => 'Contact Created Successfully',
             ];
-
+            $emailAddresses = ['mostafa_abdelsalam@egyakin.com', 'Darsh1980@mans.edu.eg'];
+            $user = Auth::user();
+            $user->notify(new ContactRequestNotification($emailAddresses,$request->message));
             return response($response, 200);
         } else {
             $response = [

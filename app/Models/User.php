@@ -102,6 +102,24 @@ class User extends Authenticatable
         'limited' => 'boolean',
     ];
 
+    /**
+     * Route notifications for the mail channel.
+     *
+     * @param  \Illuminate\Notifications\Notification  $notification
+     * @return string
+     */
+    public function routeNotificationForMail($notification)
+    {
+        // Check if the notification is ContactRequestNotification
+        if ($notification instanceof \App\Notifications\ContactRequestNotification) {
+            // Return the specific email address for this notification
+            return ['mostafa_abdelsalam@egyakin.com', 'Darsh1980@mans.edu.eg'];
+        }
+
+        // For other notifications, use the default behavior
+        return $this->email;
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
         return str_ends_with($this->email, '@egyakin.com');

@@ -9,6 +9,7 @@ use App\Models\Outcome;
 use App\Models\PatientHistory;
 use App\Models\Score;
 use App\Models\ScoreHistory;
+use App\Notifications\ReachingSpecificPoints;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -61,15 +62,35 @@ class OutcomeController extends Controller
             // Update the sections table
             DB::table('sections')->where('patient_id', $patientId)->update(['outcome_status' => true]);
 
-            // Update score and score history
+
+            // Scoring system
             $incrementAmount = 1;
-            Score::updateOrCreate(['doctor_id' => $doctorId], ['score' => DB::raw("score + $incrementAmount")]);
+            $action = 'Add Outcome';
+
+            $score = Score::firstOrNew(['doctor_id' => $doctorId]);
+            $score->score += $incrementAmount;
+            $score->threshold += $incrementAmount;
+            $newThreshold = $score->threshold;
+
+            // Send notification if the new score exceeds 50 or its multiples
+            if ($newThreshold >= 50) {
+                // Load user object
+                $user = Auth::user();
+                // Send notification
+                $user->notify(new ReachingSpecificPoints($score));
+                $score->threshold = 0;
+            }
+
+            $score->save();
+
+            // Log score history
             ScoreHistory::create([
                 'doctor_id' => $doctorId,
                 'score' => $incrementAmount,
-                'action' => 'Add Outcome',
+                'action' => $action,
                 'timestamp' => now(),
             ]);
+
 
             // Send notification if necessary
             $patientDoctor = PatientHistory::where('id', $patientId)->first();

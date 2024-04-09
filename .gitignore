@@ -33,3 +33,4 @@ storage/logs/laravel.log
 /storage/logs
 /storage/app/public
 storage/logs/laravel.log
+/storage/logs

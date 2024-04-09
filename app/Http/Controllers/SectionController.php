@@ -481,7 +481,7 @@ class SectionController extends Controller
         }
 
         // Update submit status
-        $patient->update(['submit_status' => true]);
+        $patient->update(['submit_status' => true,'final_submited_at' => now()]);
 
         // Scoring system
         $doctorId = Auth::id();

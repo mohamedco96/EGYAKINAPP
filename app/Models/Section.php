@@ -5,17 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
 
 class Section extends Model
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasFactory;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int, string>
+     * @var array
      */
     protected $fillable = [
         'doctor_id',
@@ -35,7 +33,7 @@ class Section extends Model
     /**
      * The attributes that should be cast.
      *
-     * @var array<string, string>
+     * @var array
      */
     protected $casts = [
         'section_1' => 'boolean',
@@ -49,36 +47,71 @@ class Section extends Model
         'outcome_status' => 'boolean',
     ];
 
+    /**
+     * Define the relationship with the doctor.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
     public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Define the relationship with the patient.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
     public function patient(): BelongsTo
     {
         return $this->belongsTo(PatientHistory::class);
     }
 
+    /**
+     * Define the relationship with the complaint.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
     public function complaint(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Complaint::class, 'patient_id');
     }
 
+    /**
+     * Define the relationship with the cause.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
     public function cause(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Cause::class, 'patient_id');
     }
 
+    /**
+     * Define the relationship with the risk.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
     public function risk(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Risk::class, 'patient_id');
     }
 
+    /**
+     * Define the relationship with the assessment.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
     public function assessment(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Assessment::class, 'patient_id');
     }
 
+    /**
+     * Define the relationship with the examination.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
     public function examination(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Examination::class, 'patient_id');

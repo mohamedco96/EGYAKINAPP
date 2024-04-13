@@ -2,14 +2,12 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Spatie\Permission\Traits\HasPermissions;
-
 
 class User extends Authenticatable
 {
@@ -18,7 +16,7 @@ class User extends Authenticatable
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int, string>
+     * @var array
      */
     protected $fillable = [
         'name',
@@ -45,11 +43,22 @@ class User extends Authenticatable
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var array<int, string>
+     * @var array
      */
     protected $hidden = [
         'password',
         'remember_token',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'blocked' => 'boolean',
+        'limited' => 'boolean',
     ];
 
     /**
@@ -79,6 +88,17 @@ class User extends Authenticatable
      */
     public function getSyndicateCardAttribute($value): ?string
     {
+        return $this->getPrefixedUrl($value);
+    }
+
+    /**
+     * Get the URL with prefix.
+     *
+     * @param  string|null  $value
+     * @return string|null
+     */
+    private function getPrefixedUrl($value): ?string
+    {
         if (!$value) {
             return null;
         }
@@ -88,54 +108,47 @@ class User extends Authenticatable
         return $prefix . $value;
     }
 
-
-
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
-        'blocked' => 'boolean',
-        'limited' => 'boolean',
-    ];
-
     /**
      * Route notifications for the mail channel.
      *
      * @param  \Illuminate\Notifications\Notification  $notification
-     * @return string
+     * @return string|array
      */
     public function routeNotificationForMail($notification)
     {
-        // Check if the notification is ContactRequestNotification
         if ($notification instanceof \App\Notifications\ContactRequestNotification) {
-            // Return the specific email address for this notification
+            // Return the specific email addresses for this notification
             return ['mostafa_abdelsalam@egyakin.com', 'Darsh1980@mans.edu.eg'];
         }
 
-        // For other notifications, use the default behavior
         return $this->email;
     }
 
+    /**
+     * Check if user can access the panel.
+     *
+     * @param  Panel  $panel
+     * @return bool
+     */
     public function canAccessPanel(Panel $panel): bool
     {
         return str_ends_with($this->email, '@egyakin.com');
     }
 
-    public function patients(): \Illuminate\Database\Eloquent\Relations\HasOne
+    /**
+     * Define relationships.
+     */
+    public function patients()
     {
         return $this->hasOne(PatientHistory::class, 'doctor_id');
     }
 
-    public function sections(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function sections()
     {
         return $this->hasOne(Section::class, 'patient_id');
     }
 
-    public function score(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function score()
     {
         return $this->hasOne(Score::class, 'doctor_id');
     }
@@ -145,7 +158,7 @@ class User extends Authenticatable
         return $this->hasMany(Comment::class);
     }
 
-    public function outcome(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function outcome()
     {
         return $this->hasOne(Outcome::class, 'doctor_id');
     }

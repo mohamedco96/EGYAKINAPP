@@ -5,17 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
 
 class Complaint extends Model
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasFactory;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int, string>
+     * @var array
      */
     protected $fillable = [
         'doctor_id',
@@ -25,14 +23,12 @@ class Complaint extends Model
         'date_of_admission',
         'main_omplaint',
         'other',
-        'created_at',
-        'updated_at',
     ];
 
     /**
      * The attributes that should be cast.
      *
-     * @var array<string, string>
+     * @var array
      */
     protected $casts = [
         'date_of_admission' => 'date',
@@ -40,11 +36,17 @@ class Complaint extends Model
 
     ];
 
+    /**
+     * Get the doctor that made the complaint.
+     */
     public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Get the patient history associated with the complaint.
+     */
     public function patient(): BelongsTo
     {
         return $this->belongsTo(PatientHistory::class);

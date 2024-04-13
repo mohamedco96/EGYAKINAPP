@@ -38,16 +38,16 @@ class AuthController extends Controller
             'registration_number' => 'required|string',
         ]);
 
-            //$image = $request->file('image');
+        //$image = $request->file('image');
 
-            // Generate a unique file name using the original file name and a timestamp
-            //$fileName = time() . '_' . $image->getClientOriginalName();
+        // Generate a unique file name using the original file name and a timestamp
+        //$fileName = time() . '_' . $image->getClientOriginalName();
 
-            // Store the image in the specified directory with the generated file name
-            //$path = $image->storeAs('profile_images', $fileName, 'public');
+        // Store the image in the specified directory with the generated file name
+        //$path = $image->storeAs('profile_images', $fileName, 'public');
 
-            // Construct the full URL by appending the relative path to the APP_URL
-            //$imageUrl = config('app.url') . '/' . 'storage/app/public/' . $path;
+        // Construct the full URL by appending the relative path to the APP_URL
+        //$imageUrl = config('app.url') . '/' . 'storage/app/public/' . $path;
 
 
         $user = User::create([
@@ -86,21 +86,20 @@ class AuthController extends Controller
 
         $user = User::where('email', $fields['email'])->first();
 
-        if (! $user || ! Hash::check($fields['password'], $user->password)) {
+        if (!$user || !Hash::check($fields['password'], $user->password)) {
             $response = [
                 'value' => false,
                 'message' => 'wrong data',
             ];
 
             return response($response, 404);
-        }elseif ($user->blocked){
+        } elseif ($user->blocked) {
             $response = [
                 'value' => false,
                 'message' => 'User is Blocked',
             ];
             return response($response, 404);
-        }
-        else {
+        } else {
             $token = $user->createToken('apptoken')->plainTextToken;
             $response = [
                 'value' => true,
@@ -343,7 +342,7 @@ class AuthController extends Controller
             $responseData = [
                 'value' => true,
                 'patient_count' => strval($patientCount) ?? 0,
-                'score_value' => strval($scoreValue) ,
+                'score_value' => strval($scoreValue),
                 'image' => $imageUrl,
                 'data' => $user,
             ];

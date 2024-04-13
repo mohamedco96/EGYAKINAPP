@@ -5,43 +5,44 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
 
 class Decision extends Model
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasFactory;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int, string>
+     * @var array
      */
     protected $fillable = [
         'doctor_id',
         'patient_id',
         'medical_decision',
         'other',
-        'created_at',
-        'updated_at',
     ];
 
     /**
      * The attributes that should be cast.
      *
-     * @var array<string, string>
+     * @var array
      */
     protected $casts = [
         'date_of_admission' => 'date',
         'main_omplaint' => 'array',
-
     ];
 
+    /**
+     * Get the doctor who made the decision.
+     */
     public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Get the patient associated with the decision.
+     */
     public function patient(): BelongsTo
     {
         return $this->belongsTo(PatientHistory::class);

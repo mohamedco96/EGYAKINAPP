@@ -4,16 +4,26 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Contact extends Model
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasFactory;
 
-    protected $fillable = ['doctor_id', 'message'];
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+    protected $fillable = [
+        'doctor_id',
+        'message',
+    ];
 
-    public function doctor()
+    /**
+     * Get the doctor who received the contact message.
+     */
+    public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }

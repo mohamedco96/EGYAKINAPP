@@ -5,17 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
 
 class Examination extends Model
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasFactory;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int, string>
+     * @var array
      */
     protected $fillable = [
         'doctor_id',
@@ -30,11 +28,17 @@ class Examination extends Model
         'updated_at',
     ];
 
+    /**
+     * Get the doctor who performed the examination.
+     */
     public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Get the patient associated with the examination.
+     */
     public function patient(): BelongsTo
     {
         return $this->belongsTo(PatientHistory::class);

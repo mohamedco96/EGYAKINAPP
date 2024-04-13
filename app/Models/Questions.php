@@ -4,17 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
 
 class Questions extends Model
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasFactory;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int, string>
+     * @var array
      */
     protected $fillable = [
         'section_id',
@@ -26,12 +24,20 @@ class Questions extends Model
         'mandatory',
     ];
 
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
     protected $casts = [
         'values' => 'array',
         'mandatory' => 'boolean',
     ];
 
-    public function doctor_answers(): \Illuminate\Database\Eloquent\Relations\HasOne
+    /**
+     * Get the doctor answers for the question.
+     */
+    public function doctor_answers()
     {
         return $this->hasOne(PatientHistory::class, 'section_id');
     }

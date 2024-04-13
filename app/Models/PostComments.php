@@ -4,21 +4,33 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
 
 class PostComments extends Model
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasFactory;
 
-    protected $fillable = ['content', 'doctor_id', 'post_id'];
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+    protected $fillable = [
+        'content',
+        'doctor_id',
+        'post_id',
+    ];
 
-    // Define the relationships
+    /**
+     * Get the doctor that owns the comment.
+     */
     public function doctor()
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Get the post that the comment belongs to.
+     */
     public function Posts()
     {
         return $this->belongsTo(Posts::class);

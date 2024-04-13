@@ -8,5 +8,15 @@ use Illuminate\Database\Eloquent\Model;
 class SectionFieldMapping extends Model
 {
     use HasFactory;
-    protected $fillable = ['section_id', 'field_name', 'column_name'];
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+    protected $fillable = [
+        'section_id',
+        'field_name',
+        'column_name',
+    ];
 }

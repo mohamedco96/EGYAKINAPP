@@ -4,26 +4,44 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Comment extends Model
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasFactory;
 
-    protected $fillable = ['doctor_id', 'patient_id', 'content'];
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+    protected $fillable = [
+        'doctor_id',
+        'patient_id',
+        'content',
+    ];
 
-    public function doctor()
+    /**
+     * Get the doctor that owns the comment.
+     */
+    public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function patient()
+    /**
+     * Get the patient history associated with the comment.
+     */
+    public function patient(): BelongsTo
     {
         return $this->belongsTo(PatientHistory::class);
     }
 
-    public function likes()
+    /**
+     * Get the likes for the comment.
+     */
+    public function likes(): HasMany
     {
         return $this->hasMany(Likes::class);
     }

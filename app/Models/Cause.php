@@ -15,7 +15,7 @@ class Cause extends Model
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int, string>
+     * @var array
      */
     protected $fillable = [
         'doctor_id',
@@ -28,20 +28,29 @@ class Cause extends Model
         'post-renal_causes',
         'post-renal_others',
         'other',
-        'created_at',
-        'updated_at',
     ];
 
+    /**
+     * The attributes that should be cast to native types.
+     *
+     * @var array
+     */
     protected $casts = [
         'pre-renal_causes' => 'array',
         'renal_causes' => 'array',
     ];
 
+    /**
+     * Get the doctor that owns the cause.
+     */
     public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Get the patient history associated with the cause.
+     */
     public function patient(): BelongsTo
     {
         return $this->belongsTo(PatientHistory::class);

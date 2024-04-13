@@ -5,17 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 class Outcome extends Model
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int, string>
+     * @var array
      */
     protected $fillable = [
         'doctor_id',
@@ -25,23 +24,19 @@ class Outcome extends Model
         'duration_of_admission',
         'final_status',
         'other',
-        'created_at',
-        'updated_at',
     ];
 
     /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
+     * Get the doctor associated with the outcome.
      */
-    protected $casts = [
-    ];
-
     public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Get the patient associated with the outcome.
+     */
     public function patient(): BelongsTo
     {
         return $this->belongsTo(PatientHistory::class);

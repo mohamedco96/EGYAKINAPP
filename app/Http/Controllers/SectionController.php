@@ -191,11 +191,12 @@ class SectionController extends Controller
 
             // Get the model name based on the section ID
             $modelName = $modelMappings[$section_id];
-
+            // Adjust patient_id column based on section_id
+            $patientIdColumn = $section_id == 1 ? 'id' : 'patient_id';
             // Update the model based on field mappings
             foreach ($fieldMappings as $field => $column) {
                 if ($request->has($field)) {
-                    $modelName::where('patient_id', $patient_id)->update([$column => $request->input($field)]);
+                    $modelName::where($patientIdColumn, $patient_id)->update([$column => $request->input($field)]);
                 }
             }
 

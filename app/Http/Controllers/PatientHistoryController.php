@@ -362,10 +362,10 @@ class PatientHistoryController extends Controller
                 }
                 if ($request->has('14')) {
                     $special_habits_of_the_patient = $request->input('14.answers');
-                    $other_habits_of_the_patient = $request->input('14.other_field');
+                    $special_habits_of_the_patient_other_field = $request->input('14.other_field');
                 } else {
                     $special_habits_of_the_patient = null;
-                    $other_habits_of_the_patient = null;
+                    $special_habits_of_the_patient_other_field = null;
                 }
                 if ($request->has('16')) {
                     $DM = $request->input('16');
@@ -409,7 +409,7 @@ class PatientHistoryController extends Controller
                     'marital_status' => $marital_status,
                     'educational_level' => $educational_level,
                     'special_habits_of_the_patient' => $special_habits_of_the_patient,
-                    'other_habits_of_the_patient' => $other_habits_of_the_patient,
+                    'special_habits_of_the_patient_other_field' => $special_habits_of_the_patient_other_field,
                     'DM' => $DM,
                     'DM_duration' => $DM_duration,
                     'HTN' => $HTN,

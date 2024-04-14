@@ -18,6 +18,7 @@ use App\Models\Score;
 use App\Models\ScoreHistory;
 use App\Models\Section;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use PDF;
@@ -498,23 +499,51 @@ class PatientHistoryController extends Controller
 
     //@param \Illuminate\Http\Request $request
 // @return \Illuminate\Http\Response
-    public function store(StorePatientHistoryRequest $request)
+    public function store(Request $request)
     {
         try {
-            // Extracting user ID once for efficiency
             $doctor_id = Auth::id();
+            // Validating request data
+            $request->validate([
+                //'1' => 'required', // Assuming '0' represents the 'name' field
+               // '2' => 'required', // Assuming '1' represents the 'hospital' field
+                // Add validation rules for other fields if necessary
+            ]);
 
-            // Mapping request data to local variables with default values
-            $questionMap = $request->all();
-            $fields = [
-                'name', 'hospital', 'collected_data_from', 'NID', 'phone', 'email',
-                'age', 'gender', 'occupation', 'residency', 'governorate', 'marital_status',
-                'educational_level', 'special_habits_of_the_patient', 'special_habits_of_the_patient_other_field',
-                'DM', 'DM_duration', 'HTN', 'HTN_duration', 'other'
+            // Mapping indices to field names
+            $fieldMap = [
+                1 => 'name',
+                2 => 'hospital',
+                3 => 'collected_data_from',
+                4 => 'NID',
+                5 => 'phone',
+                6 => 'email',
+                7 => 'age',
+                8 => 'gender',
+                9 => 'occupation',
+                10 => 'residency',
+                11 => 'governorate',
+                12 => 'marital_status',
+                13 => 'educational_level',
+                14 => 'special_habits_of_the_patient',
+                16 => 'DM',
+                17 => 'DM_duration',
+                18 => 'HTN',
+                19 => 'HTN_duration',
+                20 => 'other'
+                // Add mappings for other fields if necessary
             ];
+
+            // Mapping request data to field names
             $requestData = [];
-            foreach ($fields as $field) {
-                $requestData[$field] = $request->has($field) ? $request->input($field) : null;
+            foreach ($fieldMap as $index => $field) {
+                $requestData[$field] = $request->input((string) $index);
+            }
+
+            // Handling special case for field '13'
+            if ($request->has('14')) {
+                $requestData['special_habits_of_the_patient'] = $request->input('14.answers');
+                $requestData['special_habits_of_the_patient_other_field'] = $request->input('14.other_field');
             }
 
             // Creating patient history
@@ -525,7 +554,12 @@ class PatientHistoryController extends Controller
                 $relatedData = ['doctor_id' => $doctor_id, 'patient_id' => $patient->id];
                 $sections = ['section_1', 'complaint', 'cause', 'risk', 'assessment', 'examination', 'decision'];
                 foreach ($sections as $section) {
-                    $this->$section->create(array_merge($relatedData, [$section => true]));
+                    if ($section=='section_1'){
+                        $this->section->create(array_merge($relatedData, ['section_1' => true]));
+                    }else{
+                        $this->$section->create(array_merge($relatedData));
+
+                    }
                 }
 
                 return $patient;

@@ -148,10 +148,6 @@ class SectionController extends Controller
     }
 
 
-
-
-
-
     public function update(UpdateSectionRequest $request, $section_id, $patient_id)
     {
         try {
@@ -219,6 +215,7 @@ class SectionController extends Controller
             ], 500);
         }
     }
+
     /**
      * Update the specified resource in storage.
      */
@@ -485,7 +482,7 @@ class SectionController extends Controller
         }
 
         // Update submit status
-        $patient->update(['submit_status' => true,'final_submited_at' => now()]);
+        $patient->update(['submit_status' => true, 'final_submited_at' => now()]);
 
         // Scoring system
         $doctorId = Auth::id();

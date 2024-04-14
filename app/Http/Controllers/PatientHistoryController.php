@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use PDF;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class PatientHistoryController extends Controller
 {
@@ -288,7 +289,7 @@ class PatientHistoryController extends Controller
 
     //@param \Illuminate\Http\Request $request
     // @return \Illuminate\Http\Response
-    public function store(StorePatientHistoryRequest $request)
+    public function storebkp(StorePatientHistoryRequest $request)
     {
         try {
             $patient = DB::transaction(function () use ($request) {
@@ -492,6 +493,82 @@ class PatientHistoryController extends Controller
             ];
 
             return response($response, 500);
+        }
+    }
+
+    //@param \Illuminate\Http\Request $request
+// @return \Illuminate\Http\Response
+    public function store(StorePatientHistoryRequest $request)
+    {
+        try {
+            // Extracting user ID once for efficiency
+            $doctor_id = Auth::id();
+
+            // Mapping request data to local variables with default values
+            $questionMap = $request->all();
+            $fields = [
+                'name', 'hospital', 'collected_data_from', 'NID', 'phone', 'email',
+                'age', 'gender', 'occupation', 'residency', 'governorate', 'marital_status',
+                'educational_level', 'special_habits_of_the_patient', 'special_habits_of_the_patient_other_field',
+                'DM', 'DM_duration', 'HTN', 'HTN_duration', 'other'
+            ];
+            $requestData = [];
+            foreach ($fields as $field) {
+                $requestData[$field] = $request->has($field) ? $request->input($field) : null;
+            }
+
+            // Creating patient history
+            $patient = DB::transaction(function () use ($doctor_id, $requestData) {
+                $patient = $this->patientHistory->create(array_merge(['doctor_id' => $doctor_id], $requestData));
+
+                // Creating related data sections
+                $relatedData = ['doctor_id' => $doctor_id, 'patient_id' => $patient->id];
+                $sections = ['section_1', 'complaint', 'cause', 'risk', 'assessment', 'examination', 'decision'];
+                foreach ($sections as $section) {
+                    $this->$section->create(array_merge($relatedData, [$section => true]));
+                }
+
+                return $patient;
+            });
+
+            // Logging successful patient creation
+            \Log::info('New patient created', ['doctor_id' => $doctor_id, 'patient_id' => $patient->id]);
+
+            // Notifying other doctors
+            $doctorIds = User::whereNotIn('id', [$doctor_id])->pluck('id');
+            foreach ($doctorIds as $otherDoctorId) {
+                Notification::create([
+                    'content' => 'New Patient was created',
+                    'read' => false,
+                    'type' => 'New Patient',
+                    'patient_id' => $patient->id,
+                    'doctor_id' => $otherDoctorId,
+                ]);
+            }
+
+            // Building response
+            $submit_status = Section::where('patient_id', $patient->id)->value('submit_status');
+            $response = [
+                'value' => true,
+                'doctor_id' => $doctor_id,
+                'id' => $patient->id,
+                'name' => $patient->name,
+                'submit_status' => $submit_status,
+                'message' => 'Patient Created Successfully',
+            ];
+
+            return response()->json($response, 200);
+        } catch (\Exception $e) {
+            // Logging error
+            Log::error('Error creating patient', ['error' => $e->getMessage()]);
+
+            // Building error response
+            $response = [
+                'value' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ];
+
+            return response()->json($response, 500);
         }
     }
 

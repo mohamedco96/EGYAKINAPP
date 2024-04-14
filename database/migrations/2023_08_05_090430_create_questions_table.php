@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('type');
             $table->string('keyboard_type')->nullable();
             $table->boolean('mandatory')->default(false);
+            $table->boolean('skip')->nullable()->default(false);
             $table->timestamps();
         });
     }

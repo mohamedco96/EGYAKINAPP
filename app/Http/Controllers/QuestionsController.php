@@ -65,6 +65,11 @@ class QuestionsController extends Controller
 
         $data = [];
         foreach ($questions as $question) {
+            // Skip questions with certain IDs
+            if ($question->skip) {
+                Log::info("Question with ID {$question->id} skipped as per skip flag.");
+                continue;
+            }
             $data[] = [
                 'id' => $question->id,
                 'question' => $question->question,

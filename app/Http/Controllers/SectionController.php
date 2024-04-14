@@ -170,6 +170,7 @@ class SectionController extends Controller
 
             // Check if the section ID has a corresponding model mapping
             if (!isset($modelMappings[$section_id])) {
+                Log::error("No model mapping found for section ID {$section_id}.");
                 return response()->json([
                     'value' => false,
                     'message' => 'No model mapping found for the specified section ID.',
@@ -181,6 +182,7 @@ class SectionController extends Controller
 
             // If no field mappings found, return an error response
             if ($fieldMappings->isEmpty()) {
+                Log::error("No field mappings found for section ID {$section_id}.");
                 return response()->json([
                     'value' => false,
                     'message' => 'No field mappings found for the specified section.',
@@ -203,6 +205,7 @@ class SectionController extends Controller
                 'message' => 'Section updated successfully.',
             ];
 
+            Log::info("Section updated successfully for section ID {$section_id} and patient ID {$patient_id}.");
             return response()->json($response, 200);
         } catch (\Exception $e) {
             // Log any unexpected errors

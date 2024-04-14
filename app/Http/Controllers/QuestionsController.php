@@ -51,10 +51,12 @@ class QuestionsController extends Controller
      */
     public function show($section_id)
     {
+        // Fetch questions dynamically based on section_id
         $questions = Questions::where('section_id', $section_id)
-            ->select('id', 'question', 'values', 'type', 'keyboard_type', 'mandatory', 'updated_at')
+            ->orderBy('id')
             ->get();
 
+        // Check if questions are found
         if ($questions->isEmpty()) {
             Log::warning("No questions found for section ID: {$section_id}");
             return response()->json([
@@ -65,12 +67,12 @@ class QuestionsController extends Controller
 
         $data = [];
         foreach ($questions as $question) {
-            // Skip questions with certain IDs
             if ($question->skip) {
                 Log::info("Question with ID {$question->id} skipped as per skip flag.");
                 continue;
             }
-            $data[] = [
+            // Construct question data
+            $questionData = [
                 'id' => $question->id,
                 'question' => $question->question,
                 'values' => $question->values,
@@ -79,15 +81,21 @@ class QuestionsController extends Controller
                 'mandatory' => $question->mandatory,
                 'updated_at' => $question->updated_at,
             ];
+
+            // Add question data to the response data
+            $data[] = $questionData;
         }
 
+        // Prepare the response
         $response = [
             'value' => true,
             'data' => $data,
         ];
 
+        // Log success message
         Log::info("Questions retrieved successfully for section ID: {$section_id}");
 
+        // Return the response
         return response()->json($response, 200);
     }
 

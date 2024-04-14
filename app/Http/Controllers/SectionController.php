@@ -152,7 +152,7 @@ class SectionController extends Controller
 
 
 
-    public function updatebkp(UpdateSectionRequest $request, $section_id, $patient_id)
+    public function update(UpdateSectionRequest $request, $section_id, $patient_id)
     {
         try {
             // Define the mapping of section IDs to model names
@@ -218,7 +218,7 @@ class SectionController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateSectionRequest $request, $section_id, $patient_id)
+    public function updatebkp(UpdateSectionRequest $request, $section_id, $patient_id)
     {
         switch ($section_id) {
             case 1:

@@ -195,7 +195,7 @@ class SectionController extends Controller
             // Update the model based on field mappings
             foreach ($fieldMappings as $field => $column) {
                 if ($request->has($field)) {
-                    $modelName::where('id', $patient_id)->update([$column => $request->input($field)]);
+                    $modelName::where('patient_id', $patient_id)->update([$column => $request->input($field)]);
                 }
             }
 

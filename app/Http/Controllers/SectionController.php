@@ -194,6 +194,7 @@ class SectionController extends Controller
                 if ($request->has($field)) {
                     $modelName::where($patientIdColumn, $patient_id)->update([$column => $request->input($field)]);
                 }
+                DB::table('sections')->where('patient_id', $patient_id)->update(['section_'.$section_id => true]);
             }
 
             // Response with success message and any additional data

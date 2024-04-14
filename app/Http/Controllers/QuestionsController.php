@@ -15,6 +15,7 @@ use App\Models\Questions;
 use App\Models\Risk;
 use App\Models\SectionFieldMapping;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Log;
 
 
 class QuestionsController extends Controller
@@ -80,7 +81,7 @@ class QuestionsController extends Controller
         return response()->json($response, 200);
     }
 
-    public function ShowQuestitionsAnswars($section_id, $patient_id)
+    public function ShowQuestitionsAnswarsbkp($section_id, $patient_id)
     {
         switch ($section_id) {
             case 1:
@@ -98,7 +99,7 @@ class QuestionsController extends Controller
                     $answers = PatientHistory::where('id', $patient_id)
                         ->select('id', 'name', 'hospital', 'collected_data_from', 'NID', 'phone', 'email', 'age', 'gender', 'occupation',
                             'residency', 'governorate', 'marital_status', 'educational_level', 'special_habits_of_the_patient', 'other_habits_of_the_patient', 'DM',
-                            'DM_duration', 'HTN', 'HTN_duration', 'other', )
+                            'DM_duration', 'HTN', 'HTN_duration', 'other',)
                         ->first();
 
                     $question = [
@@ -598,7 +599,7 @@ class QuestionsController extends Controller
         return response($response, 200);
     }
 
-    public function ShowQuestitionsAnswarsbkp($section_id, $patient_id)
+    public function ShowQuestitionsAnswars($section_id, $patient_id)
     {
         $data = [];
 
@@ -609,12 +610,14 @@ class QuestionsController extends Controller
 
         foreach ($questions as $question) {
             // Skip questions with certain IDs
-            if (in_array($question->id, [15, 25, 28, 30, 58, 60, 64, 67, 69])) {
+            if ($question->skip == true) {
+                Log::info("Question with ID {$question->id} skipped as per skip flag.");
                 continue;
             }
 
             $answersModel = $this->getAnswersModel($section_id);
             if (!$answersModel) {
+                Log::warning("No answer model found for section ID {$section_id}.");
                 continue;
             }
 
@@ -622,8 +625,6 @@ class QuestionsController extends Controller
             $patientIdColumn = $section_id == 1 ? 'id' : 'patient_id';
             $answers = $answersModel::where($patientIdColumn, $patient_id)->first();
 
-            $answerColumn = $this->getAnswerColumnName($question->id);
-            //echo $answerColumn . "\n";
             $questionData = [
                 'id' => $question->id,
                 'question' => $question->question,
@@ -632,12 +633,22 @@ class QuestionsController extends Controller
                 'keyboard_type' => $question->keyboard_type,
                 'mandatory' => $question->mandatory,
                 'updated_at' => $question->updated_at,
-                'answer' => isset($answers->$answerColumn) ? $answers->$answerColumn : null,
-                //'answer' => [
-                   // 'answers' => isset($answers->special_habits_of_the_patient) ? $answers->special_habits_of_the_patient : null,
-                    //'other_field' => isset($answers->other_habits_of_the_patient) ? $answers->other_habits_of_the_patient : null,
-                //],
             ];
+
+            // Get the main answer column name dynamically
+            $mainAnswerColumnName = $this->getAnswerColumnName($question->id);
+
+            // Construct the other field column name by appending '_other_field' to the main answer column name
+            $otherFieldColumnName = $mainAnswerColumnName . '_other_field';
+
+            if ($question->type === 'multiple') {
+                $questionData['answer'] = [
+                    'answers' => isset($answers->$mainAnswerColumnName) ? $answers->$mainAnswerColumnName : null,
+                    'other_field' => isset($answers->$otherFieldColumnName) ? $answers->$otherFieldColumnName : null,
+                ];
+            } else {
+                $questionData['answer'] = isset($answers->$mainAnswerColumnName) ? $answers->$mainAnswerColumnName : null;
+            }
 
             $data[] = $questionData;
         }
@@ -646,6 +657,8 @@ class QuestionsController extends Controller
             'value' => true,
             'data' => $data,
         ];
+
+        Log::info("Questions and answers retrieved successfully for section ID {$section_id} and patient ID {$patient_id}.");
 
         return response()->json($response, 200);
     }
@@ -684,7 +697,6 @@ class QuestionsController extends Controller
 
 
     }
-
 
 
     /**

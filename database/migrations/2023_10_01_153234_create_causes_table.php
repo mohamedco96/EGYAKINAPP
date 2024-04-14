@@ -19,9 +19,9 @@ return new class extends Migration
             $table->foreign('patient_id')->references('id')->on('patient_histories')->onDelete('cascade');
             $table->string('cause_of_AKI')->nullable();
             $table->string('pre-renal_causes')->nullable();
-            $table->string('pre-renal_others')->nullable();
+            $table->string('pre-renal_causes_other_field')->nullable();
             $table->string('renal_causes')->nullable();
-            $table->string('renal_others')->nullable();
+            $table->string('renal_causes_other_field')->nullable();
             $table->string('post-renal_causes')->nullable();
             $table->string('post-renal_others')->nullable();
             $table->longText('other')->nullable();

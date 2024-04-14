@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('place_of_admission')->nullable();
             $table->date('date_of_admission')->nullable();
             $table->string('main_omplaint')->nullable();
-            $table->longText('other')->nullable();
+            $table->longText('main_omplaint_other_field')->nullable();
             $table->timestamps();
         });
     }

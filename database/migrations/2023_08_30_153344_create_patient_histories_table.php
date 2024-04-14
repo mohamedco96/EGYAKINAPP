@@ -30,7 +30,7 @@ return new class extends Migration
             $table->string('marital_status');
             $table->string('educational_level');
             $table->string('special_habits_of_the_patient');
-            $table->string('other_habits_of_the_patient')->nullable();
+            $table->string('special_habits_of_the_patient_other_field')->nullable();
             $table->string('DM');
             $table->string('DM_duration')->nullable();
             $table->string('HTN');

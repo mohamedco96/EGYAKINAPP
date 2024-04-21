@@ -9,7 +9,6 @@ use App\Notifications\ResetPasswordVerificationNotification;
 use Otp;
 use Hash;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class ResetPasswordController extends Controller
 {
@@ -22,77 +21,37 @@ class ResetPasswordController extends Controller
         $this->email = $request->email;
     }
 
-    /**
-     * Verify reset password OTP.
-     *
-     * @param  \App\Http\Requests\ResetPasswordRequest  $request
-     * @return \Illuminate\Http\Response
-     */
     public function resetpasswordverification(ResetPasswordRequest $request)
     {
-        try {
-            $otp2 = $this->otp->validate($this->email, $request->otp);
 
-            if (!$otp2->status) {
-                Log::warning('Reset password OTP verification failed', ['email' => $this->email]);
-                return response()->json([
-                    'value' => false,
-                    'message' => $otp2,
-                ], 401);
-            }
+        $otp2 = $this->otp->validate($this->email,$request->otp);
 
-            Log::info('Reset password OTP verified successfully', ['email' => $this->email]);
-
-            return response()->json([
-                'value' => true,
-                'message' => 'Reset password OTP verified successfully',
-            ], 200);
-        } catch (\Exception $e) {
-            Log::error('Error verifying reset password OTP', ['error' => $e->getMessage()]);
-            return response()->json([
-                'value' => false,
-                'message' => 'Internal server error',
-            ], 500);
+        if (!$otp2->status) {
+            return response()->json(['error' => $otp2], 401);
         }
+
+        return response()->json(['success' => true], 200);
     }
 
-    /**
-     * Reset user password.
-     *
-     * @param  \App\Http\Requests\ResetPasswordRequest  $request
-     * @return \Illuminate\Http\Response
-     */
     public function resetpassword(ResetPasswordRequest $request)
-    {
-        try {
-            $verify = DB::table('otps')
-                ->where('identifier', $this->email)
-                ->where('valid', true)
-                ->exists();
+{
+    //$email = $request->email;
 
-            if ($verify) {
-                Log::warning('Email not verified for password reset', ['email' => $this->email]);
-                return response()->json([
-                    'value' => false,
-                    'message' => 'This email is not verified to change the password.',
-                ], 401);
-            }
+    $verify = DB::table('otps')
+        ->where('identifier', $this->email)
+        ->where('valid', true)
+        ->exists();
 
-            $user = User::where('email', $this->email)->firstOrFail();
-            $user->update(['password' => Hash::make($request->password)]);
-
-            Log::info('Password reset successfully', ['email' => $this->email]);
-
-            return response()->json([
-                'value' => true,
-                'message' => 'Password reset successfully',
-            ], 200);
-        } catch (\Exception $e) {
-            Log::error('Error resetting password', ['error' => $e->getMessage()]);
-            return response()->json([
-                'value' => false,
-                'message' => 'Internal server error',
-            ], 500);
-        }
+    if ($verify) {
+        return response()->json([
+            'value' => false,
+            'message' => 'This email is not verified to change the password.',
+        ], 401);
     }
+
+    $user = User::where('email', $this->email)->firstOrFail();
+    $user->update(['password' => Hash::make($request->password)]);
+
+    return response()->json(['success' => true], 200);
+}
 }

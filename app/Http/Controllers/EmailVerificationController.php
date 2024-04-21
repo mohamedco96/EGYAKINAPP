@@ -55,16 +55,14 @@ class EmailVerificationController extends Controller
 
             if(!$otp2->status){
                 Log::warning('Email verification failed', ['user_id' => Auth::user()->id]);
-                return response()->json([
-                    'value' => false,
-                    'message' => 'OTP does not exist',
-                ], 401);
+                return response()->json(['error' => $otp2], 401);
             }
 
             $user = User::where('email', Auth::user()->email)->first();
             $user->update(['email_verified_at' => now()]);
 
             Log::info('Email verified successfully', ['user_id' => Auth::user()->id]);
+
             return response()->json([
                 'value' => true,
                 'message' => 'User Email verified successfully',

@@ -37,7 +37,7 @@ class ResetPasswordController extends Controller
                 Log::warning('Reset password OTP verification failed', ['email' => $this->email]);
                 return response()->json([
                     'value' => false,
-                    'message' => 'OTP does not exist',
+                    'message' => $otp2,
                 ], 401);
             }
 

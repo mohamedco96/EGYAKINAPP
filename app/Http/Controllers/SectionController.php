@@ -67,6 +67,8 @@ class SectionController extends Controller
             ->select('section_1', 'section_2', 'section_3', 'section_4', 'section_5', 'section_6', 'section_7')
             ->first();
 
+        $patient_name = PatientHistory::where('id', $patient_id)->value('name');
+        $doctor_Id = PatientHistory::where('id', $patient_id)->value('doctor_id');
         if (!$sections) {
             return response()->json([
                 'value' => false,
@@ -108,6 +110,8 @@ class SectionController extends Controller
             return response()->json([
                 'value' => true,
                 'submit_status' => $submit_status,
+                'patient_name' => $patient_name,
+                'doctor_Id' => $doctor_Id,
                 'data' => $data,
             ]);
         } else {

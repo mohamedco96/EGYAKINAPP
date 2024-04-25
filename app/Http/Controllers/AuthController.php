@@ -146,7 +146,8 @@ class AuthController extends Controller
             auth()->user()->update(['image' => $path]);
 
             // Construct the full URL by appending the relative path to the APP_URL
-            $imageUrl = config('app.url') . '/' . 'storage/app/public/' . $path;
+            //$imageUrl = config('app.url') . '/' . 'storage/app/public/' . $path;
+            $imageUrl = config('app.url') . '/' . 'storage/' . $path;
 
             return response()->json([
                 'value' => true,
@@ -233,7 +234,7 @@ class AuthController extends Controller
             $user->update($request->except('syndicate_card'));
 
             // Construct the full URL by appending the relative path to the APP_URL
-            $imageUrl = config('app.url') . '/' . 'storage/app/public/' . $user->syndicate_card;
+            $imageUrl = config('app.url') . '/' . 'storage/' . $user->syndicate_card;
 
             $response = [
                 'value' => true,
@@ -331,7 +332,7 @@ class AuthController extends Controller
         if ($user) {
             // Get the user's image URL
             //$imageUrl = $user->image ? url(Storage::url($user->image)) : null;
-            $imageUrl = config('app.url') . '/' . 'storage/app/public/' . $user->image;
+            $imageUrl = config('app.url') . '/' . 'storage/' . $user->image;
             // Get the number of patients associated with the user
             $patientCount = $user->patients()->count();
 

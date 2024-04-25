@@ -151,6 +151,7 @@ class PatientHistoryController extends Controller
                 $query->select('patient_id', 'submit_status', 'outcome_status');
             }])
             ->latest('updated_at')
+            ->limit(5) // Add limit here
             ->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
 
         // Return all patients
@@ -161,6 +162,7 @@ class PatientHistoryController extends Controller
         }])
             ->where('hidden', false)
             ->latest('updated_at')
+            ->limit(5) // Add limit here
             ->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
 
         // Get patient count and score value
@@ -206,27 +208,6 @@ class PatientHistoryController extends Controller
                 $query->select('patient_id', 'submit_status', 'outcome_status');
             }])
             ->latest('updated_at')
-            ->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
-           // ->select('id', 'doctor_id', 'name', 'hospital', 'updated_at')
-            //->paginate(10);
-
-            $response = [
-                'value' => true,
-                'data' => $Patient,
-            ];
-
-            return response($response, 200);
-
-    }
-
-    public function doctorPatientGetAllnew()
-    {
-        $Patient = PatientHistory::with('doctor:id,name,lname')
-            ->where('hidden', false)
-            ->with(['sections' => function ($query) {
-                $query->select('patient_id', 'submit_status', 'outcome_status');
-            }])
-            ->latest('updated_at')
             //->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
             ->select('id', 'doctor_id', 'name', 'hospital', 'updated_at')
             ->paginate(10);
@@ -239,6 +220,7 @@ class PatientHistoryController extends Controller
             return response($response, 200);
 
     }
+
 
     public function doctorPatientGet()
     {
@@ -256,7 +238,9 @@ class PatientHistoryController extends Controller
                 $query->select('patient_id', 'submit_status', 'outcome_status');
             }])
             ->latest('updated_at')
-            ->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
+            //->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
+            ->select('id', 'doctor_id', 'name', 'hospital', 'updated_at')
+            ->paginate(10);
 
         $count = 0;
         if ($user->patients && $user->patients->count() !== null) {

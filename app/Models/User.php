@@ -74,7 +74,8 @@ class User extends Authenticatable
         }
 
         // Add your prefix here
-        $prefix = config('app.url') . '/' . 'storage/app/public/';
+       // $prefix = config('app.url') . '/' . 'storage/app/public/';
+       $prefix = config('app.url') . '/' . 'storage/';
         return $prefix . $value;
     }
 

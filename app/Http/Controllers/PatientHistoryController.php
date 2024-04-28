@@ -101,7 +101,7 @@ class PatientHistoryController extends Controller
      */
     public function index()
     {
-        $Patient = PatientHistory::with('doctor:id,name,lname')
+        $Patient = PatientHistory::with('doctor:id,name,lname','image')
             ->where('hidden', false)
             ->with(['sections' => function ($query) {
                 $query->select('patient_id', 'submit_status', 'outcome_status');
@@ -137,7 +137,7 @@ class PatientHistoryController extends Controller
         $posts = Posts::select('id', 'title', 'image', 'content', 'hidden', 'doctor_id', 'updated_at')
             ->where('hidden', false)
             ->with(['doctor' => function ($query) {
-                $query->select('id', 'name', 'lname');
+                $query->select('id', 'name', 'lname','image');
             }])
             ->get();
 
@@ -146,7 +146,7 @@ class PatientHistoryController extends Controller
         $currentPatients = $user->patients()
             ->where('hidden', false)
             ->with(['doctor' => function ($query) {
-                $query->select('id', 'name', 'lname');
+                $query->select('id', 'name', 'lname','image');
             }, 'sections' => function ($query) {
                 $query->select('patient_id', 'submit_status', 'outcome_status');
             }])
@@ -156,7 +156,7 @@ class PatientHistoryController extends Controller
 
         // Return all patients
         $allPatients = PatientHistory::with(['doctor' => function ($query) {
-            $query->select('id', 'name', 'lname');
+            $query->select('id', 'name', 'lname','image');
         }, 'sections' => function ($query) {
             $query->select('patient_id', 'submit_status', 'outcome_status');
         }])
@@ -165,8 +165,10 @@ class PatientHistoryController extends Controller
             ->limit(5) // Add limit here
             ->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
 
+
         // Get patient count and score value
-        $patientCount = $user->patients ? $user->patients->count() : 0;
+        $userPatientCount = $user->patients() ? $user->patients()->count() : 0;
+        $allPatientCount = PatientHistory::count() ? PatientHistory::count() : 0;
         $scoreValue = $user->score ? $user->score->score : 0;
         $isVerified = $user->email_verified_at ? true : false;
 
@@ -186,7 +188,8 @@ class PatientHistoryController extends Controller
             'value' => true,
             'verified' => $isVerified,
             'unreadCount' => strval($unreadCount),
-            'patient_count' => strval($patientCount),
+            'doctor_patient_count' => strval($userPatientCount),
+            'all_patient_count' => strval($allPatientCount),
             'score_value' => strval($scoreValue),
             'role' => 'Admin',
             'data' => [
@@ -202,7 +205,7 @@ class PatientHistoryController extends Controller
 
     public function doctorPatientGetAll()
     {
-        $Patient = PatientHistory::with('doctor:id,name,lname')
+        $Patient = PatientHistory::with('doctor:id,name,lname','image')
             ->where('hidden', false)
             ->with(['sections' => function ($query) {
                 $query->select('patient_id', 'submit_status', 'outcome_status');
@@ -233,7 +236,7 @@ class PatientHistoryController extends Controller
         $Patient = $user->patients()
             ->where('hidden', false)
                         //->with('sections:patient_id,submit_status,outcome_status')
-            ->with('doctor:id,name,lname')
+            ->with('doctor:id,name,lname','image')
             ->with(['sections' => function ($query) {
                 $query->select('patient_id', 'submit_status', 'outcome_status');
             }])
@@ -768,7 +771,7 @@ class PatientHistoryController extends Controller
                     $query->where('name', 'like', '%'.$name.'%');
                 });
         })
-            ->with('doctor:id,name,lname')
+            ->with('doctor:id,name,lname','image')
             ->with(['sections' => function ($query) {
                 $query->select('patient_id', 'submit_status', 'outcome_status');
             }])

@@ -45,8 +45,8 @@ class NotificationController extends Controller
 
         // Get records created recently (excluding today)
         $recentRecords = Notification::where('doctor_id', $doctorId)
-            ->where('created_at', '>', $today)
-            ->orWhereDate('created_at', '<', $today)
+            //->where('created_at', '>', $today)
+            ->WhereDate('created_at', '<', $today)
             ->select('id', 'read', 'type', 'patient_id', 'doctor_id', 'created_at')
             ->with('patient.doctor:id,name,lname,workingplace')
             ->with('patient.sections:id,submit_status,outcome_status,patient_id')
@@ -63,6 +63,8 @@ class NotificationController extends Controller
             'todayRecords' => $todayRecords,
             'recentRecords' => $recentRecords
         ];
+
+        Notification::where('doctor_id', $doctorId)->update(['read' => true]);
 
         return response()->json($response, 200);
 

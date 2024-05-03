@@ -101,7 +101,7 @@ class PatientHistoryController extends Controller
      */
     public function index()
     {
-        $Patient = PatientHistory::with('doctor:id,name,lname','image')
+        $Patient = PatientHistory::with('doctor:id,name,lname')
             ->where('hidden', false)
             ->with(['sections' => function ($query) {
                 $query->select('patient_id', 'submit_status', 'outcome_status');
@@ -137,7 +137,7 @@ class PatientHistoryController extends Controller
         $posts = Posts::select('id', 'title', 'image', 'content', 'hidden', 'doctor_id', 'updated_at')
             ->where('hidden', false)
             ->with(['doctor' => function ($query) {
-                $query->select('id', 'name', 'lname','image');
+                $query->select('id', 'name', 'lname');
             }])
             ->get();
 
@@ -146,7 +146,7 @@ class PatientHistoryController extends Controller
         $currentPatients = $user->patients()
             ->where('hidden', false)
             ->with(['doctor' => function ($query) {
-                $query->select('id', 'name', 'lname','image');
+                $query->select('id', 'name', 'lname');
             }, 'sections' => function ($query) {
                 $query->select('patient_id', 'submit_status', 'outcome_status');
             }])
@@ -156,7 +156,7 @@ class PatientHistoryController extends Controller
 
         // Return all patients
         $allPatients = PatientHistory::with(['doctor' => function ($query) {
-            $query->select('id', 'name', 'lname','image');
+            $query->select('id', 'name', 'lname');
         }, 'sections' => function ($query) {
             $query->select('patient_id', 'submit_status', 'outcome_status');
         }])
@@ -206,7 +206,7 @@ class PatientHistoryController extends Controller
 
     public function doctorPatientGetAll()
     {
-        $Patient = PatientHistory::with('doctor:id,name,lname','image')
+        $Patient = PatientHistory::with('doctor:id,name,lname')
             ->where('hidden', false)
             ->with(['sections' => function ($query) {
                 $query->select('patient_id', 'submit_status', 'outcome_status');
@@ -237,7 +237,7 @@ class PatientHistoryController extends Controller
         $Patient = $user->patients()
             ->where('hidden', false)
                         //->with('sections:patient_id,submit_status,outcome_status')
-            ->with('doctor:id,name,lname','image')
+            ->with('doctor:id,name,lname')
             ->with(['sections' => function ($query) {
                 $query->select('patient_id', 'submit_status', 'outcome_status');
             }])
@@ -772,7 +772,7 @@ class PatientHistoryController extends Controller
                     $query->where('name', 'like', '%'.$name.'%');
                 });
         })
-            ->with('doctor:id,name,lname','image')
+            ->with('doctor:id,name,lname')
             ->with(['sections' => function ($query) {
                 $query->select('patient_id', 'submit_status', 'outcome_status');
             }])

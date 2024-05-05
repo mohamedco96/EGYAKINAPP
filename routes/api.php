@@ -32,7 +32,6 @@ Route::get('/userPatient', 'AuthController@userPatient');
 Route::post('/chat', 'ChatController@chat');
 
 
-
 //Route::post('/register',[AuthController::class,'register']);
 //Route::post('/login',[AuthController::class,'login']);
 
@@ -56,6 +55,19 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/assignRoleToUser', 'RolePermissionController@assignRoleToUser');
     Route::post('/checkPermission', 'RolePermissionController@checkRoleAndPermission');
 
+    //Patient
+    Route::post('/patient', 'PatientsController@store');
+    Route::get('/patient/{section_id}/{patient_id}', 'PatientsController@showQuestionsAnswers');
+    Route::put('/patientsection/{patient_id}', 'PatientsController@updateFinalSubmit');
+    Route::put('/patientsection/{section_id}/{patient_id}', 'PatientsController@update');
+    Route::put('/submitStatus/{patient_id}', 'PatientsController@updateFinalSubmit');
+    Route::get('/showSections/{patient_id}', 'PatientsController@show');
+    Route::delete('/patient/{id}', 'PatientsController@destroy');
+    Route::get('/searchNew/{name}', 'PatientsController@searchNew');
+    Route::get('/homeNew', 'PatientsController@homeGetAllData');
+    Route::get('/currentPatientsNew', 'PatientsController@doctorPatientGet');
+    Route::get('/allPatientsNew', 'PatientsController@doctorPatientGetAll');
+    Route::get('/test', 'PatientsController@test');
 
     //PatientHistory
     Route::get('/patientHistory', 'PatientHistoryController@index');

@@ -136,13 +136,18 @@ class User extends Authenticatable
         return str_ends_with($this->email, '@egyakin.com');
     }
 
+    public function patients()
+    {
+        return $this->hasMany(Patients::class, 'doctor_id');
+    }
+
     /**
      * Define relationships.
      */
-    public function patients()
+    /*public function patients()
     {
         return $this->hasOne(PatientHistory::class, 'doctor_id');
-    }
+    }*/
 
     public function sections()
     {

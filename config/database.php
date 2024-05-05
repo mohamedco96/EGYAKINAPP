@@ -54,6 +54,7 @@ return [
             'unix_socket' => env('DB_SOCKET', ''),
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
+           // 'timezone' => '+03:00', // Adjust timezone here
             'prefix' => '',
             'prefix_indexes' => true,
             'strict' => true,

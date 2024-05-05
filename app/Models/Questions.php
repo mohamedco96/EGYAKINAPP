@@ -41,4 +41,14 @@ class Questions extends Model
     {
         return $this->hasOne(PatientHistory::class, 'section_id');
     }
+
+    public function section()
+    {
+        return $this->belongsTo(SectionsInfo::class);
+    }
+
+    public function answers()
+    {
+        return $this->hasMany(Answers::class);
+    }
 }

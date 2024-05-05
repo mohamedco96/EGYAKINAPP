@@ -18,4 +18,9 @@ class SectionsInfo extends Model
         'section_name',
         'section_description',
     ];
+
+    public function questions()
+    {
+        return $this->hasMany(Questions::class);
+    }
 }

@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('questions', function (Blueprint $table) {
             $table->id();
-            $table->string('section_id');
+            $table->bigInteger('section_id')->unsigned()->index();
+            $table->foreign('section_id')->references('id')->on('sections_infos')->onDelete('cascade');
             $table->string('section_name');
             $table->Text('question');
             $table->Text('values')->nullable();

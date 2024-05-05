@@ -16,8 +16,8 @@ return new class extends Migration
             $table->bigInteger('section_id')->unsigned()->index();
             $table->foreign('section_id')->references('id')->on('sections_infos')->onDelete('cascade');
             $table->string('section_name');
-            $table->Text('question');
-            $table->Text('values')->nullable();
+            $table->text('question');
+            $table->text('values')->nullable();
             $table->string('type');
             $table->string('keyboard_type')->nullable();
             $table->boolean('mandatory')->default(false);

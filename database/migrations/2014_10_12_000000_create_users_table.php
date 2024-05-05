@@ -23,7 +23,6 @@ return new class extends Migration
             $table->string('phone')->nullable();
             $table->string('job')->nullable();
             $table->string('gender')->nullable();
-            $table->string('image')->nullable();
             $table->string('syndicate_card')->nullable();
             $table->string('birth_date')->nullable();
             $table->string('role')->nullable();

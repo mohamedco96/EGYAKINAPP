@@ -22,7 +22,7 @@ return new class extends Migration
             $table->bigInteger('patient_id')->unsigned()->index();
             $table->foreign('patient_id')->references('id')->on('patients')->onDelete('cascade');
             $table->Text('answer');
-            $table->string('answer_type');
+            $table->string('type')->nullable();
             $table->timestamps();
         });
     }

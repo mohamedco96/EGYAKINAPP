@@ -88,7 +88,7 @@ class NotificationController extends Controller
     {
         return Notification::where('doctor_id', $doctorId)
             ->whereDate('created_at', '<', $today)
-            ->whereDate('created_at', '<>', $today)
+            //->whereDate('created_at', '<>', $today)
             ->select('id', 'read', 'type', 'patient_id', 'doctor_id', 'created_at')
             ->with(['patient' => function ($query) {
                 $query->select('id', 'doctor_id', 'updated_at');

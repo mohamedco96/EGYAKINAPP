@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Notification;
+use App\Models\Patients;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -37,22 +38,53 @@ class NotificationController extends Controller
         $todayRecords = Notification::where('doctor_id', $doctorId)
             ->whereDate('created_at', $today)
             ->select('id', 'read', 'type', 'patient_id', 'doctor_id', 'created_at')
-            ->with('patient.doctor:id,name,lname,workingplace')
-            ->with('patient.sections:id,submit_status,outcome_status,patient_id')
-            ->with('patient:id,name,hospital,governorate,doctor_id')
+            ->with(['patient' => function ($query) {
+                $query->select('id','doctor_id','updated_at');
+            }])
+            ->with(['patient.doctor' => function ($query) {
+                $query->select('id','name','lname','workingplace','image');
+            }])
+            ->with(['patient.answers' => function ($query) {
+                $query->select('id', 'patient_id', 'answer')
+                    ->whereIn('question_id', [1, 2,11]); // Adjusted condition using whereIn
+            }])
+            ->with(['patient.status' => function ($query) {
+                $query->select('id', 'patient_id', 'key', 'status')
+                    ->where(function ($query) {
+                        $query->where('key', 'LIKE', 'submit_status')
+                            ->orWhere('key', 'LIKE', 'outcome_status');
+                    });
+            }])
             ->latest()
             ->get();
+
+
 
         // Get records created recently (excluding today)
         $recentRecords = Notification::where('doctor_id', $doctorId)
             //->where('created_at', '>', $today)
             ->WhereDate('created_at', '<', $today)
             ->select('id', 'read', 'type', 'patient_id', 'doctor_id', 'created_at')
-            ->with('patient.doctor:id,name,lname,workingplace')
-            ->with('patient.sections:id,submit_status,outcome_status,patient_id')
-            ->with('patient:id,name,hospital,governorate,doctor_id')
+            ->with(['patient' => function ($query) {
+                $query->select('id','doctor_id','updated_at');
+            }])
+            ->with(['patient.doctor' => function ($query) {
+                $query->select('id','name','lname','workingplace','image');
+            }])
+            ->with(['patient.answers' => function ($query) {
+                $query->select('id', 'patient_id', 'answer')
+                    ->whereIn('question_id', [1, 2,11]); // Adjusted condition using whereIn
+            }])
+            ->with(['patient.status' => function ($query) {
+                $query->select('id', 'patient_id', 'key', 'status')
+                    ->where(function ($query) {
+                        $query->where('key', 'LIKE', 'submit_status')
+                            ->orWhere('key', 'LIKE', 'outcome_status');
+                    });
+            }])
             ->latest()
             ->paginate($request->input('per_page', 10)); // Default per page limit is 10
+
 
         $unreadCount = Notification::where('doctor_id', $doctorId)
                         ->where('read', false)->count();
@@ -78,9 +110,23 @@ class NotificationController extends Controller
 
         $notifications = Notification::where('doctor_id', $doctorId)
             ->select('id', 'read', 'type', 'patient_id', 'doctor_id', 'created_at')
-            ->with('patient.doctor:id,name,lname,workingplace')
-            ->with('patient.sections:id,submit_status,outcome_status,patient_id')
-            ->with('patient:id,name,hospital,governorate,doctor_id')
+            ->with(['patient' => function ($query) {
+                $query->select('id','doctor_id','updated_at');
+            }])
+            ->with(['patient.doctor' => function ($query) {
+                $query->select('id','name','lname','workingplace','image');
+            }])
+            ->with(['patient.answers' => function ($query) {
+                $query->select('id', 'patient_id', 'answer')
+                    ->whereIn('question_id', [1, 2,11]); // Adjusted condition using whereIn
+            }])
+            ->with(['patient.status' => function ($query) {
+                $query->select('id', 'patient_id', 'key', 'status')
+                    ->where(function ($query) {
+                        $query->where('key', 'LIKE', 'submit_status')
+                            ->orWhere('key', 'LIKE', 'outcome_status');
+                    });
+            }])
             ->latest()
             ->get();
 

@@ -679,6 +679,13 @@ class PatientsController extends Controller
 
         $doctor_Id = Patients::where('id', $patient_id)->value('doctor_id');
 
+        if (!$patient_name) {
+            return response()->json([
+                'value' => false,
+                'message' => 'Patient not found for the given patient ID.',
+            ], 404);
+        }
+
         if (!$sections) {
             return response()->json([
                 'value' => false,
@@ -725,6 +732,7 @@ class PatientsController extends Controller
         } else {
             return response()->json([
                 'value' => false,
+                'message' => 'Sections not found for the given patient ID.',
             ], 404);
         }
     }

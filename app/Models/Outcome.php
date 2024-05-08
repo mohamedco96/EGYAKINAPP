@@ -39,6 +39,6 @@ class Outcome extends Model
      */
     public function patient(): BelongsTo
     {
-        return $this->belongsTo(PatientHistory::class);
+        return $this->belongsTo(Patients::class, 'patient_id');
     }
 }

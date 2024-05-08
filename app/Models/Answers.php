@@ -34,4 +34,9 @@ class Answers extends Model
     {
         return $this->belongsTo(User::class, 'doctor_id');
     }
+
+    public function notification()
+    {
+        return $this->belongsTo(Notification::class, 'patient_id');
+    }
 }

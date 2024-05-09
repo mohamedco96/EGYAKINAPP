@@ -565,7 +565,7 @@ class PatientsController extends Controller
             'section_id' => $sectionId, // Pass section ID
             'question_id' => $questionId,
             'patient_id' => $patientId,
-            'answer' => is_array($answerText) ? json_encode($answerText) : $answerText, // Convert array to JSON string if it's an array
+            'answer' => is_array($answerText) ? $answerText : $answerText, // Convert array to JSON string if it's an array
             // Use 'other_field' column if $isOtherField is true, otherwise use null
             'type' => $isOtherField ? 'other' : null,
         ]);
@@ -579,7 +579,7 @@ class PatientsController extends Controller
                 ->where('question_id', $questionId)
                 ->whereNotNull('type')
                 ->update([
-                    'answer' => is_array($answerText) ? json_encode($answerText) : $answerText, // Convert array to JSON string if it's an array
+                    'answer' => is_array($answerText) ? $answerText : $answerText, // Convert array to JSON string if it's an array
                     // Use 'other_field' column if $isOtherField is true, otherwise use null
                     'type' => $isOtherField ? 'other' : null,
                 ]);
@@ -589,7 +589,7 @@ class PatientsController extends Controller
                 ->where('question_id', $questionId)
                 ->where('type', null)
                 ->update([
-                    'answer' => is_array($answerText) ? json_encode($answerText) : $answerText, // Convert array to JSON string if it's an array
+                    'answer' => is_array($answerText) ? $answerText : $answerText, // Convert array to JSON string if it's an array
                     // Use 'other_field' column if $isOtherField is true, otherwise use null
                     'type' => $isOtherField ? 'other' : null,
                 ]);
@@ -728,7 +728,9 @@ class PatientsController extends Controller
 
                     // Populate the answers array
                     foreach ($questionAnswers as $answer) {
-                        $questionData['answer']['answers'][] = $answer->answer;
+                        if ($answer->type !== 'other') {
+                            $questionData['answer']['answers'][] = $answer->answer;
+                        }
                         if ($answer->type === 'other') {
                             $questionData['answer']['other_field'] = $answer->answer;
                         }
@@ -842,25 +844,34 @@ class PatientsController extends Controller
      */
     public function destroy($id)
     {
-        $Patient = Patients::find($id);
+        $user = auth()->user();
+        // Check if the user has permission to edit articles
+        if ($user->hasPermissionTo('delete patient', 'web')) {
+            $Patient = Patients::find($id);
 
-        if ($Patient != null) {
-            Patients::destroy($id);
+            if ($Patient != null) {
+                Patients::destroy($id);
 
-            $response = [
-                'value' => true,
-                'message' => 'Patient Deleted Successfully',
-            ];
+                $response = [
+                    'value' => true,
+                    'message' => 'Patient Deleted Successfully',
+                ];
 
-            return response($response, 200);
+                return response($response, 200);
+            } else {
+                $response = [
+                    'value' => false,
+                    'message' => 'No Patient was found',
+                ];
+
+                return response($response, 404);
+            }
         } else {
-            $response = [
-                'value' => false,
-                'message' => 'No Patient was found',
-            ];
-
-            return response($response, 404);
+            return response()->json(['value' => false,
+                'message' => 'User does not have permission to delete Patient']
+                , 404);
         }
+
     }
 
     public function searchNew($name)

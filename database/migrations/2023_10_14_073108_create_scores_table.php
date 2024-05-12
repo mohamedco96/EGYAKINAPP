@@ -16,6 +16,7 @@ return new class extends Migration
             $table->bigInteger('doctor_id')->unsigned()->index();
             $table->foreign('doctor_id')->references('id')->on('users')->onDelete('cascade');
             $table->string('score');
+            $table->string('threshold')->nullable();
             $table->timestamps();
         });
     }

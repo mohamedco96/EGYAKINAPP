@@ -17,6 +17,10 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/pdf', function () {
+    return view('patient_pdf');
+});
+
 Route::get('/policy', function () {
     return view('policy');
 });

@@ -83,7 +83,7 @@ class CommentController extends Controller
             Log::info('New comment created', [
                 'comment_id' => $comment->id,
                 'patient_id' => $request->patient_id,
-                'doctor_id' => Auth::id(),
+                'doctor_id' => $patientDoctorId,
             ]);
 
             return response()->json($response, 200);

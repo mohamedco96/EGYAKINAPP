@@ -802,6 +802,9 @@ class PatientsController extends Controller
 
         $data = [];
         foreach ($sectionInfos as $sectionInfo) {
+            if ($sectionInfo->id === 8){
+                continue;
+            }
             $section_id = $sectionInfo->id;
             $section_name = $sectionInfo->section_name;
 

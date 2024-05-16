@@ -70,17 +70,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/test', 'PatientsController@test');
     Route::get('/generatePDF/{patient_id}', 'PatientsController@generatePatientPDF');
 
-    //PatientHistory
-    Route::get('/patientHistory', 'PatientHistoryController@index');
-    Route::post('/patientHistory', 'PatientHistoryController@store');
-    Route::get('/patientHistory/{id}', 'PatientHistoryController@show');
-    Route::put('/patientHistory/{id}', 'PatientHistoryController@update');
-    Route::delete('/patientHistory/{id}', 'PatientHistoryController@destroy');
-    Route::get('/allPatients', 'PatientHistoryController@doctorPatientGetAll');
-    Route::get('/currentPatients', 'PatientHistoryController@doctorPatientGet');
-    Route::get('/patient/search/{name}', 'PatientHistoryController@search');
-    Route::get('/home', 'PatientHistoryController@homeGetAllData');
-    Route::get('/generate-pdf/{patient_id}', 'PatientHistoryController@generatePatientPDF');
 
     //Questions
     Route::get('/questions', 'QuestionsController@index');
@@ -89,41 +78,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/questions/{section_id}/{patient_id}', 'QuestionsController@ShowQuestitionsAnswars');
     Route::put('/questions/{id}', 'QuestionsController@update');
     Route::delete('/questions/{id}', 'QuestionsController@destroy');
-
-    //complaint
-    Route::get('/complaint', 'ComplaintController@index');
-    Route::post('/complaint', 'ComplaintController@store');
-    Route::get('/complaint/{id}', 'ComplaintController@show');
-    Route::put('/complaint/{id}', 'ComplaintController@update');
-    Route::delete('/complaint/{id}', 'ComplaintController@destroy');
-
-    //Cause of AKI
-    Route::get('/cause', 'CauseController@index');
-    Route::post('/cause', 'CauseController@store');
-    Route::get('/cause/{id}', 'CauseController@show');
-    Route::put('/cause/{id}', 'CauseController@update');
-    Route::delete('/cause/{id}', 'CauseController@destroy');
-
-    //Risk factors for AKI
-    Route::get('/risk', 'RiskController@index');
-    Route::post('/risk', 'RiskController@store');
-    Route::get('/risk/{id}', 'RiskController@show');
-    Route::put('/risk/{id}', 'RiskController@update');
-    Route::delete('/risk/{id}', 'RiskController@destroy');
-
-    //Assessment of the patient
-    Route::get('/assessment', 'AssessmentController@index');
-    Route::post('/assessment', 'AssessmentController@store');
-    Route::get('/assessment/{id}', 'AssessmentController@show');
-    Route::put('/assessment/{id}', 'AssessmentController@update');
-    Route::delete('/assessment/{id}', 'AssessmentController@destroy');
-
-    //Medical examinations
-    Route::get('/examination', 'ExaminationController@index');
-    Route::post('/examination', 'ExaminationController@store');
-    Route::get('/examination/{id}', 'ExaminationController@show');
-    Route::put('/examination/{id}', 'ExaminationController@update');
-    Route::delete('/examination/{id}', 'ExaminationController@destroy');
 
     //Section
     Route::get('/section', 'SectionController@index');
@@ -148,12 +102,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/contact/{id}', 'ContactController@update');
     Route::delete('/contact/{id}', 'ContactController@destroy');
 
-    //Decision
-    Route::get('/decision', 'DecisionController@index');
-    Route::post('/decision', 'DecisionController@store');
-    Route::get('/decision/{id}', 'DecisionController@show');
-    Route::put('/decision/{id}', 'DecisionController@update');
-    Route::delete('/decision/{id}', 'DecisionController@destroy');
 
     //Outcome
     Route::get('/outcome', 'OutcomeController@index');

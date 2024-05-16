@@ -6,9 +6,10 @@ use App\Http\Requests\StoreCommentRequest;
 use App\Http\Requests\UpdateCommentRequest;
 use App\Models\Comment;
 use App\Models\Notification;
-use App\Models\PatientHistory;
+use App\Models\Patients;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CommentController extends Controller
 {
@@ -17,81 +18,83 @@ class CommentController extends Controller
      */
     public function index()
     {
-        $Comment = Comment::with('doctor:id,name,lname,workingplace')->latest()->get();
+        $comments = Comment::with('doctor:id,name,lname,workingplace')->latest()->get();
 
-        if ($Comment->isNotEmpty()) {
-            $response = [
-                'value' => true,
-                'data' => $Comment,
-            ];
-
-            return response($response, 200);
-        } else {
+        if ($comments->isEmpty()) {
             $response = [
                 'value' => false,
-                'message' => 'No Comment was found',
+                'message' => 'No comments were found',
             ];
 
-            return response($response, 404);
+            return response()->json($response, 404);
         }
+
+        $response = [
+            'value' => true,
+            'data' => $comments,
+        ];
+
+        return response()->json($response, 200);
     }
 
-    //@param \Illuminate\Http\Request $request
-    // @return \Illuminate\Http\Response
+    /**
+     * Store a newly created resource in storage.
+     */
     public function store(StoreCommentRequest $request)
     {
-        $Comment = Comment::create([
+        $patient = Patients::where('id', $request->patient_id)->first();
+
+        if (!$patient) {
+            $response = [
+                'value' => false,
+                'message' => 'Patient not found',
+            ];
+            return response()->json($response, 404);
+        }
+
+        $comment = Comment::create([
             'doctor_id' => Auth::id(),
             'patient_id' => $request->patient_id,
-            'content' => $request->content,
-            //'content' => $request->commentContent,
+            'content' => $request->commentContent,
         ]);
 
-        /* $allusers = Comment::where('patient_id', $request->patient_id)->pluck('doctor_id')->toArray();
-         $allusers[] = $patientdoctor->doctor_id;
+        // Retrieve the patient's doctor ID
+        $patientDoctorId = Patients::where('id', $request->patient_id)->value('doctor_id');
 
-         foreach ($allusers as $user) {
-             Notification::create([
-                 'content' => 'New Comment was created',
-                 'read' => false,
-                 'type' => 'Comment',
-                 'patient_id' => $request->patient_id,
-                 'doctor_id' => $user,
-                 'created_at' => now(),
-                 'updated_at' => now(),
-             ]);
-         }*/
-
-        // Send notification if necessary
-        $patientdoctor = PatientHistory::where('id', $request->patient_id)->first(['doctor_id']);
-        $doctorId = ($patientdoctor->doctor_id == Auth::id()) ? 'No need to send notification' : $patientdoctor->doctor_id;
-        if ($doctorId != 'No need to send notification') {
+        // Check if the authenticated user is the patient's doctor
+        if ($patientDoctorId !== Auth::id()) {
+            // Send notification to the patient's doctor
             Notification::create([
-                'content' => 'New Comment was created',
+                'content' => 'New comment was created',
                 'read' => false,
                 'type' => 'Comment',
                 'patient_id' => $request->patient_id,
-                'doctor_id' => $doctorId,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'doctor_id' => Auth::id(),
             ]);
         }
 
-        if ($Comment != null) {
+
+        if ($comment !== null) {
             $response = [
                 'value' => true,
-                'message' => 'Comment Created Successfully',
+                'message' => 'Comment created successfully',
             ];
 
-            return response($response, 200);
-        } else {
-            $response = [
-                'value' => false,
-                'message' => 'No Comment was found',
-            ];
+            Log::info('New comment created', [
+                'comment_id' => $comment->id,
+                'patient_id' => $request->patient_id,
+                'doctor_id' => Auth::id(),
+            ]);
 
-            return response($response, 404);
+            return response()->json($response, 200);
         }
+
+        $response = [
+            'value' => false,
+            'message' => 'Failed to create comment',
+        ];
+
+        return response()->json($response, 500);
     }
 
     /**
@@ -99,16 +102,17 @@ class CommentController extends Controller
      */
     public function show($patient_id)
     {
-        $Comment = Comment::where('patient_id', $patient_id)
+        $comments = Comment::where('patient_id', $patient_id)
             ->select('id', 'doctor_id', 'content', 'updated_at')
-            ->with('doctor:id,name,lname,workingplace')->get();
+            ->with('doctor:id,name,lname,workingplace')
+            ->get();
 
-            $response = [
-                'value' => true,
-                'data' => $Comment,
-            ];
+        $response = [
+            'value' => true,
+            'data' => $comments,
+        ];
 
-            return response($response, 200);
+        return response()->json($response, 200);
     }
 
     /**
@@ -116,25 +120,32 @@ class CommentController extends Controller
      */
     public function update(UpdateCommentRequest $request, $id)
     {
-        $Comment = Comment::where('id', $id)->first();
+        $comment = Comment::find($id);
 
-        if ($Comment != null) {
-            $Comment->update($request->all());
+        if ($comment !== null) {
+            $comment->update($request->all());
+
             $response = [
                 'value' => true,
-                'data' => $Comment,
-                'message' => 'Comment Updated Successfully',
+                'data' => $comment,
+                'message' => 'Comment updated successfully',
             ];
 
-            return response($response, 200);
-        } else {
-            $response = [
-                'value' => false,
-                'message' => 'No Comment was found',
-            ];
+            Log::info('Comment updated', [
+                'comment_id' => $comment->id,
+                'patient_id' => $comment->patient_id,
+                'doctor_id' => Auth::id(),
+            ]);
 
-            return response($response, 404);
+            return response()->json($response, 200);
         }
+
+        $response = [
+            'value' => false,
+            'message' => 'Comment not found',
+        ];
+
+        return response()->json($response, 404);
     }
 
     /**
@@ -142,23 +153,30 @@ class CommentController extends Controller
      */
     public function destroy($id)
     {
-        $Comment = Comment::where('id', $id)->first();
+        $comment = Comment::find($id);
 
-        if ($Comment != null) {
-            DB::table('comments')->where('id', $id)->delete();
+        if ($comment !== null) {
+            $comment->delete();
+
             $response = [
                 'value' => true,
-                'message' => 'Comment Deleted Successfully',
+                'message' => 'Comment deleted successfully',
             ];
 
-            return response($response, 200);
-        } else {
-            $response = [
-                'value' => false,
-                'message' => 'No Comment was found',
-            ];
+            Log::info('Comment deleted', [
+                'comment_id' => $comment->id,
+                'patient_id' => $comment->patient_id,
+                'doctor_id' => Auth::id(),
+            ]);
 
-            return response($response, 404);
+            return response()->json($response, 200);
         }
+
+        $response = [
+            'value' => false,
+            'message' => 'Comment not found',
+        ];
+
+        return response()->json($response, 404);
     }
 }

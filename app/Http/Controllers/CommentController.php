@@ -55,7 +55,7 @@ class CommentController extends Controller
         $comment = Comment::create([
             'doctor_id' => Auth::id(),
             'patient_id' => $request->patient_id,
-            'content' => $request->commentContent,
+            'content' => $request->content,
         ]);
 
         // Retrieve the patient's doctor ID

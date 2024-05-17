@@ -69,7 +69,7 @@ class CommentController extends Controller
                 'read' => false,
                 'type' => 'Comment',
                 'patient_id' => $request->patient_id,
-                'doctor_id' => Auth::id(),
+                'doctor_id' => $patientDoctorId,
             ]);
         }
 

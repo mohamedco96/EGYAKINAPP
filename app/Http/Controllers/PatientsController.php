@@ -873,7 +873,7 @@ class PatientsController extends Controller
     {
         $user = auth()->user();
         // Check if the user has permission to edit articles
-        if ($user->hasPermissionTo('delete patient', 'web')) {
+        //if ($user->hasPermissionTo('delete patient', 'web')) {
             $Patient = Patients::find($id);
 
             if ($Patient != null) {
@@ -893,11 +893,11 @@ class PatientsController extends Controller
 
                 return response($response, 404);
             }
-        } else {
+        /*} else {
             return response()->json(['value' => false,
                     'message' => 'User does not have permission to delete Patient']
                 , 404);
-        }
+        }*/
 
     }
 

@@ -744,7 +744,7 @@ class PatientsController extends Controller
                 if ($question->type === 'multiple') {
                     // Initialize the answer array
                     $questionData['answer'] = [
-                        'answers' => [], // Initialize answers as an empty array
+                        'answers' => null, // Initialize answers as an empty array
                         'other_field' => null // Set other_field to null by default
                     ];
                     // Find answers for this question from the fetched answers
@@ -753,7 +753,7 @@ class PatientsController extends Controller
                     // Populate the answers array
                     foreach ($questionAnswers as $answer) {
                         if ($answer->type !== 'other') {
-                            $questionData['answer']['answers'][] = $answer->answer;
+                            $questionData['answer']['answers'] = $answer->answer;
                         }
                         if ($answer->type === 'other') {
                             $questionData['answer']['other_field'] = $answer->answer;

@@ -778,8 +778,8 @@ class PatientsController extends Controller
                 if ($question->type === 'multiple') {
                     // Initialize the answer array
                     $questionData['answer'] = [
-                        'answers' => null, // Initialize answers as an empty array
-                        'other_field' => null // Set other_field to null by default
+                        'answers' => [], // Initialize answers as an empty array
+                        'other_field' => "" // Set other_field to null by default
                     ];
                     // Find answers for this question from the fetched answers
                     $questionAnswers = $multipleQuestionAnswers->where('question_id', $question->id);
@@ -795,7 +795,7 @@ class PatientsController extends Controller
                     }
                 } else {
                     // For other types of questions, return the answer directly
-                    $questionData['answer'] = $answer ? $answer->answer : null;
+                    $questionData['answer'] = $answer ? $answer->answer : "";
                 }
 
                 $data[] = $questionData;

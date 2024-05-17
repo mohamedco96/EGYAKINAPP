@@ -162,10 +162,11 @@ class NotificationController extends Controller
             // Log successful response
             Log::info('Successfully fetched new notifications.', ['doctor_id' => $doctorId]);
 
+            Notification::where('doctor_id', $doctorId)->update(['read' => true]);
+
             return response()->json($response, 200);
 
             // Update notifications as read
-            Notification::where('doctor_id', $doctorId)->update(['read' => true]);
         } catch (\Exception $e) {
             // Log error
             Log::error('Error occurred while fetching new notifications: ' . $e->getMessage());

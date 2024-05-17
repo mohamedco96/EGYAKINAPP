@@ -69,6 +69,22 @@ class PatientsController extends Controller
                 ->limit(5) // Add limit here
                 ->get();
 
+            //Return Top Doctors
+            $topDoctors = User::select('id', 'name', 'specialty', 'workingplace', 'job', 'image', 'highestdegree')
+                ->withCount('patients')
+                ->selectSub(function ($query) {
+                    $query->selectRaw('COALESCE(score, 0)') // Coalesce to handle null scores
+                    ->from('scores')
+                        ->whereColumn('users.id', 'scores.doctor_id')
+                        ->limit(1);
+                }, 'score')
+                ->orderByRaw('patients_count DESC, COALESCE(score, 0) DESC')
+                ->get()
+                ->map(function ($user) {
+                    $user->patients_count = strval($user->patients_count);
+                    return $user;
+                });
+
             // Transform the response
             $transformPatientData = function ($patient) {
                 $submit_status = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
@@ -111,6 +127,7 @@ class PatientsController extends Controller
                 'verified' => $isVerified,
                 'unreadCount' => (string)$unreadCount,
                 'doctor_patient_count' => (string)$userPatientCount,
+                'topDoctors' => $topDoctors,
                 'all_patient_count' => (string)$allPatientCount,
                 'score_value' => (string)$scoreValue,
                 'role' => 'Admin',
@@ -598,26 +615,26 @@ class PatientsController extends Controller
     {
         $answerText = is_array($answerText) ? json_encode($answerText) : '"' . trim($answerText, '"') . '"';
         if ($isOtherField) {
-                // update other answer record
-                Answers::where('patient_id', $patientId)
-                    ->where('question_id', $questionId)
-                    ->whereNotNull('type')
-                    ->update([
-                        'answer' => is_array($answerText) ? $answerText : $answerText, // Convert array to JSON string if it's an array
-                        // Use 'other_field' column if $isOtherField is true, otherwise use null
-                        'type' => $isOtherField ? 'other' : null,
-                    ]);
-            } else {
-                // update answer record
-                Answers::where('patient_id', $patientId)
-                    ->where('question_id', $questionId)
-                    ->where('type', null)
-                    ->update([
-                        'answer' => is_array($answerText) ? $answerText : $answerText, // Convert array to JSON string if it's an array
-                        // Use 'other_field' column if $isOtherField is true, otherwise use null
-                        'type' => $isOtherField ? 'other' : null,
-                    ]);
-            }
+            // update other answer record
+            Answers::where('patient_id', $patientId)
+                ->where('question_id', $questionId)
+                ->whereNotNull('type')
+                ->update([
+                    'answer' => is_array($answerText) ? $answerText : $answerText, // Convert array to JSON string if it's an array
+                    // Use 'other_field' column if $isOtherField is true, otherwise use null
+                    'type' => $isOtherField ? 'other' : null,
+                ]);
+        } else {
+            // update answer record
+            Answers::where('patient_id', $patientId)
+                ->where('question_id', $questionId)
+                ->where('type', null)
+                ->update([
+                    'answer' => is_array($answerText) ? $answerText : $answerText, // Convert array to JSON string if it's an array
+                    // Use 'other_field' column if $isOtherField is true, otherwise use null
+                    'type' => $isOtherField ? 'other' : null,
+                ]);
+        }
     }
 
     /**
@@ -874,25 +891,25 @@ class PatientsController extends Controller
         $user = auth()->user();
         // Check if the user has permission to edit articles
         //if ($user->hasPermissionTo('delete patient', 'web')) {
-            $Patient = Patients::find($id);
+        $Patient = Patients::find($id);
 
-            if ($Patient != null) {
-                Patients::destroy($id);
+        if ($Patient != null) {
+            Patients::destroy($id);
 
-                $response = [
-                    'value' => true,
-                    'message' => 'Patient Deleted Successfully',
-                ];
+            $response = [
+                'value' => true,
+                'message' => 'Patient Deleted Successfully',
+            ];
 
-                return response($response, 200);
-            } else {
-                $response = [
-                    'value' => false,
-                    'message' => 'No Patient was found',
-                ];
+            return response($response, 200);
+        } else {
+            $response = [
+                'value' => false,
+                'message' => 'No Patient was found',
+            ];
 
-                return response($response, 404);
-            }
+            return response($response, 404);
+        }
         /*} else {
             return response()->json(['value' => false,
                     'message' => 'User does not have permission to delete Patient']

@@ -544,18 +544,35 @@ class PatientsController extends Controller
 
                         // Retrieve the section ID for the question from $questionSectionIds array
                         $sectionId = $questionSectionIds[$questionId] ?? null;
+                        $questionIsExists = Answers::where('patient_id', $patient_id)
+                            ->where('question_id', $questionId)
+                            ->first();
+                        if ($questionIsExists) {
+                            // Check if the question has already been processed
+                            if (isset($value['answers']) && is_array($value['answers'])) {
+                                // Process the answer for the question
+                                $answers = $value['answers'];
+                                $otherFieldAnswer = $value['other_field'] ?? null;
 
-                        // Check if the question has already been processed
-                        if (isset($value['answers']) && is_array($value['answers'])) {
-                            // Process the answer for the question
-                            $answers = $value['answers'];
-                            $otherFieldAnswer = $value['other_field'] ?? null;
+                                $this->updateAnswer($questionId, $answers, $patient_id, false, $section_id);
+                                $this->updateAnswer($questionId, $otherFieldAnswer, $patient_id, true, $section_id);
+                            } elseif (isset($questionSectionIds[$questionId])) {
+                                // Save the answer along with the corresponding section ID
+                                $this->updateAnswer($questionId, $value, $patient_id, false, $section_id);
+                            }
+                        } else {
+                            // Check if the question has already been processed
+                            if (isset($value['answers']) && is_array($value['answers'])) {
+                                // Process the answer for the question
+                                $answers = $value['answers'];
+                                $otherFieldAnswer = $value['other_field'] ?? null;
 
-                            $this->saveAnswer($doctor_id, $questionId, $answers, $patient_id, false, $section_id);
-                            $this->saveAnswer($doctor_id, $questionId, $otherFieldAnswer, $patient_id, true, $section_id);
-                        } elseif (isset($questionSectionIds[$questionId])) {
-                            // Save the answer along with the corresponding section ID
-                            $this->saveAnswer($doctor_id, $questionId, $value, $patient_id, false, $section_id);
+                                $this->saveAnswer($doctor_id, $questionId, $answers, $patient_id, false, $section_id);
+                                $this->saveAnswer($doctor_id, $questionId, $otherFieldAnswer, $patient_id, true, $section_id);
+                            } elseif (isset($questionSectionIds[$questionId])) {
+                                // Save the answer along with the corresponding section ID
+                                $this->saveAnswer($doctor_id, $questionId, $value, $patient_id, false, $section_id);
+                            }
                         }
                     }
                 }

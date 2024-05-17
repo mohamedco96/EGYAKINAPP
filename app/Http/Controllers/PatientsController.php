@@ -481,18 +481,38 @@ class PatientsController extends Controller
                         // Retrieve the section ID for the question from $questionSectionIds array
                         $sectionId = $questionSectionIds[$questionId] ?? null;
 
-                        // Check if the question has already been processed
-                        if (isset($value['answers']) && is_array($value['answers'])) {
-                            // Process the answer for the question
-                            $answers = $value['answers'];
-                            $otherFieldAnswer = $value['other_field'] ?? null;
+                        $questionIsExists = Answers::where('patient_id', $patient_id)
+                            ->where('question_id', $questionId)
+                            ->first();
 
-                            $this->updateAnswer($questionId, $answers, $patient_id, false, $section_id);
-                            $this->updateAnswer($questionId, $otherFieldAnswer, $patient_id, true, $section_id);
-                        } elseif (isset($questionSectionIds[$questionId])) {
-                            // Save the answer along with the corresponding section ID
-                            $this->updateAnswer($questionId, $value, $patient_id, false, $section_id);
+                        if ($questionIsExists) {
+                            // Check if the question has already been processed
+                            if (isset($value['answers']) && is_array($value['answers'])) {
+                                // Process the answer for the question
+                                $answers = $value['answers'];
+                                $otherFieldAnswer = $value['other_field'] ?? null;
+
+                                $this->updateAnswer($questionId, $answers, $patient_id, false, $section_id);
+                                $this->updateAnswer($questionId, $otherFieldAnswer, $patient_id, true, $section_id);
+                            } elseif (isset($questionSectionIds[$questionId])) {
+                                // Save the answer along with the corresponding section ID
+                                $this->updateAnswer($questionId, $value, $patient_id, false, $section_id);
+                            }
+                        } else {
+                            // Check if the question has already been processed
+                            if (isset($value['answers']) && is_array($value['answers'])) {
+                                // Process the answer for the question
+                                $answers = $value['answers'];
+                                $otherFieldAnswer = $value['other_field'] ?? null;
+
+                                $this->saveAnswer($doctor_id, $questionId, $answers, $patient_id, false, $section_id);
+                                $this->saveAnswer($doctor_id, $questionId, $otherFieldAnswer, $patient_id, true, $section_id);
+                            } elseif (isset($questionSectionIds[$questionId])) {
+                                // Save the answer along with the corresponding section ID
+                                $this->saveAnswer($doctor_id, $questionId, $value, $patient_id, false, $section_id);
+                            }
                         }
+
                     }
                     $patientSectionStatus->update(['updated_at' => now()]);
                 }
@@ -576,27 +596,28 @@ class PatientsController extends Controller
 
     protected function updateAnswer($questionId, $answerText, $patientId, $isOtherField = false, $sectionId = null)
     {
+        $answerText = is_array($answerText) ? json_encode($answerText) : '"' . trim($answerText, '"') . '"';
         if ($isOtherField) {
-            // update other answer record
-            Answers::where('patient_id', $patientId)
-                ->where('question_id', $questionId)
-                ->whereNotNull('type')
-                ->update([
-                    'answer' => is_array($answerText) ? $answerText : $answerText, // Convert array to JSON string if it's an array
-                    // Use 'other_field' column if $isOtherField is true, otherwise use null
-                    'type' => $isOtherField ? 'other' : null,
-                ]);
-        } else {
-            // update answer record
-            Answers::where('patient_id', $patientId)
-                ->where('question_id', $questionId)
-                ->where('type', null)
-                ->update([
-                    'answer' => is_array($answerText) ? $answerText : $answerText, // Convert array to JSON string if it's an array
-                    // Use 'other_field' column if $isOtherField is true, otherwise use null
-                    'type' => $isOtherField ? 'other' : null,
-                ]);
-        }
+                // update other answer record
+                Answers::where('patient_id', $patientId)
+                    ->where('question_id', $questionId)
+                    ->whereNotNull('type')
+                    ->update([
+                        'answer' => is_array($answerText) ? $answerText : $answerText, // Convert array to JSON string if it's an array
+                        // Use 'other_field' column if $isOtherField is true, otherwise use null
+                        'type' => $isOtherField ? 'other' : null,
+                    ]);
+            } else {
+                // update answer record
+                Answers::where('patient_id', $patientId)
+                    ->where('question_id', $questionId)
+                    ->where('type', null)
+                    ->update([
+                        'answer' => is_array($answerText) ? $answerText : $answerText, // Convert array to JSON string if it's an array
+                        // Use 'other_field' column if $isOtherField is true, otherwise use null
+                        'type' => $isOtherField ? 'other' : null,
+                    ]);
+            }
     }
 
     /**
@@ -802,7 +823,7 @@ class PatientsController extends Controller
 
         $data = [];
         foreach ($sectionInfos as $sectionInfo) {
-            if ($sectionInfo->id === 8){
+            if ($sectionInfo->id === 8) {
                 continue;
             }
             $section_id = $sectionInfo->id;
@@ -874,7 +895,7 @@ class PatientsController extends Controller
             }
         } else {
             return response()->json(['value' => false,
-                'message' => 'User does not have permission to delete Patient']
+                    'message' => 'User does not have permission to delete Patient']
                 , 404);
         }
 
@@ -1073,7 +1094,7 @@ class PatientsController extends Controller
 
         $patient = Patients::select('id', 'doctor_id', 'updated_at')
             ->where('hidden', false)
-            ->where('id',132)
+            ->where('id', 132)
             ->with(['doctor' => function ($query) {
                 $query->select('id', 'name', 'lname', 'image');
             }])

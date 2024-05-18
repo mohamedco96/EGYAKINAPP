@@ -2,27 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PatientHistory;
 use App\Models\Patients;
-use App\Http\Requests\StorePatientsRequest;
 use App\Http\Requests\UpdatePatientsRequest;
-
 use App\Models\PatientStatus;
-use App\Models\Posts;
 use App\Models\Questions;
 use App\Models\Score;
 use App\Models\ScoreHistory;
 use App\Models\SectionsInfo;
-use App\Models\User;
 use App\Models\Answers;
-use App\Models\Notification;
-use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use PhpOption\None;
 use PDF;
 
 class SectionsController extends Controller

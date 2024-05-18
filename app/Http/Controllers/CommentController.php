@@ -104,7 +104,7 @@ class CommentController extends Controller
     {
         $comments = Comment::where('patient_id', $patient_id)
             ->select('id', 'doctor_id', 'content', 'updated_at')
-            ->with('doctor:id,name,lname,workingplace')
+            ->with('doctor:id,name,lname,workingplace,image')
             ->get();
 
         $response = [

@@ -56,13 +56,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/checkPermission', 'RolePermissionController@checkRoleAndPermission');
 
     //Patient
-    Route::post('/patient', 'PatientsController@store');
-    Route::get('/patient/{section_id}/{patient_id}', 'PatientsController@showQuestionsAnswers');
+    Route::post('/patient', 'PatientsController@storePatient');
+    Route::get('/patient/{section_id}/{patient_id}', 'SectionsController@showQuestionsAnswers');
     Route::put('/patientsection/{patient_id}', 'PatientsController@updateFinalSubmit');
-    Route::put('/patientsection/{section_id}/{patient_id}', 'PatientsController@update');
-    Route::put('/submitStatus/{patient_id}', 'PatientsController@updateFinalSubmit');
-    Route::get('/showSections/{patient_id}', 'PatientsController@show');
-    Route::delete('/patient/{id}', 'PatientsController@destroy');
+    Route::put('/patientsection/{section_id}/{patient_id}', 'PatientsController@updatePatient');
+    Route::put('/submitStatus/{patient_id}', 'SectionsController@updateFinalSubmit');
+    Route::get('/showSections/{patient_id}', 'SectionsController@showSections');
+    Route::delete('/patient/{id}', 'PatientsController@destroyPatient');
     Route::get('/searchNew/{name}', 'PatientsController@searchNew');
     Route::get('/homeNew', 'PatientsController@homeGetAllData');
     Route::get('/currentPatientsNew', 'PatientsController@doctorPatientGet');
@@ -132,6 +132,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/notification/{id}', 'NotificationController@update');
     Route::put('/notification', 'NotificationController@markAllAsRead');
     Route::delete('/notification/{id}', 'NotificationController@destroy');
+
+    //Achievement
+    Route::get('/achievement', 'AchievementController@index');
+    Route::post('/achievement', 'AchievementController@store');
+    Route::get('/achievement/{id}', 'AchievementController@show');
+    Route::put('/achievement/{id}', 'AchievementController@update');
+    Route::delete('/achievement/{id}', 'AchievementController@destroy');
 });
 
 Route::fallback(function () {

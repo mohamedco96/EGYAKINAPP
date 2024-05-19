@@ -163,36 +163,6 @@ class AuthController extends Controller
         ], 400);
     }
 
-    public function uploadProfileImagebkp(Request $request)
-    {
-        $request->validate([
-            'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
-        ]);
-
-        if ($request->hasFile('image')) {
-            $image = $request->file('image');
-
-            $path = $image->store('profile_images', 'public');
-
-            // Get the absolute URL of the uploaded image
-            $absolutePath = url(Storage::url($path));
-
-            // Update user's profile image path in the database
-            auth()->user()->update(['image' => $absolutePath]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Profile image uploaded successfully.',
-                'image_path' => $absolutePath,
-            ], 200);
-        }
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Please choose an image file.',
-        ], 400);
-    }
-
     public function update(Request $request, $id)
     {
         // Find the user by ID
@@ -256,47 +226,6 @@ class AuthController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
-     */
-    public function updatebkp(Request $request, $id)
-    {
-        $user = User::find($id);
-
-        $fields = $request->validate([
-            'name' => 'string',
-            'lname' => 'string',
-            //'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
-            'email' => 'string|email',
-            'password' => 'string',
-            'age' => 'integer',
-            'specialty' => 'string',
-            'workingplace' => 'string',
-            'phone' => 'string',
-            'job' => 'string',
-            'highestdegree' => 'string',
-            'registration_number' => 'string',
-        ]);
-
-        if ($user != null) {
-            $user->update($request->all());
-            $response = [
-                'value' => true,
-                'data' => $user,
-                'message' => 'User Updated Successfully',
-            ];
-
-            return response($response, 200);
-        } else {
-            $response = [
-                'value' => false,
-                'message' => 'No User was found',
-            ];
-
-            return response($response, 404);
-        }
-    }
-
-    /**
      * Display a listing of the resource.
      */
     public function index()
@@ -325,6 +254,45 @@ class AuthController extends Controller
      * Display the specified resource.
      */
     public function show($id)
+    {
+        // Find the user by ID with patients relation eager loaded
+        $user = User::with('patients')->find($id);
+
+        // Check if the user exists
+        if ($user) {
+            // Get the user's image URL
+            //$imageUrl = $user->image ? url(Storage::url($user->image)) : null;
+            $imageUrl = config('app.url') . '/' . 'storage/' . $user->image;
+            // Get the number of patients associated with the user
+            $patientCount = $user->patients()->count();
+
+            // Get the user's score value
+            $scoreValue = optional($user->score)->score ?? 0;
+
+            // Prepare the response data
+            $responseData = [
+                'value' => true,
+                'patient_count' => strval($patientCount) ?? 0,
+                'score_value' => strval($scoreValue),
+                'image' => $imageUrl,
+                'data' => $user,
+            ];
+
+            // Return a success response
+            return response()->json($responseData, 200);
+        } else {
+            // Return a not found response if the user does not exist
+            $response = [
+                'value' => false,
+                'message' => 'No user was found',
+            ];
+
+            return response()->json($response, 404);
+        }
+    }
+
+
+    public function showAnotherProfile($id)
     {
         // Find the user by ID with patients relation eager loaded
         $user = User::with('patients')->find($id);

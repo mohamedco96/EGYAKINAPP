@@ -15,6 +15,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use PDF;
 
 class PatientsController extends Controller
@@ -723,4 +724,146 @@ class PatientsController extends Controller
         }
     }
 
+    public function generatePatientPDF($patient_id)
+    {
+        try {
+            // Retrieve the patient from the database with related data
+            $patient = Patients::with(['doctor', 'status', 'answers'])->findOrFail($patient_id);
+
+            $data = [];
+
+            // Fetch all questions
+            $questions = Questions::with('section')->get();
+
+            // Iterate over each question
+            foreach ($questions as $question) {
+                // Skip questions with certain IDs
+                if ($question->skip) {
+                    Log::info("Question with ID {$question->id} skipped as per skip flag.");
+                    continue;
+                }
+
+                $questionData = [
+                    'id' => $question->id,
+                    'section_id' => $question->section->id ?? "test",
+                    'section_name' => $question->section->section_name ?? "Not found",
+                    'question' => $question->question,
+                    'values' => $question->values,
+                    'type' => $question->type,
+                    'keyboard_type' => $question->keyboard_type,
+                    'mandatory' => $question->mandatory,
+                    'updated_at' => $question->updated_at,
+                ];
+
+                // Find the answer for this question
+                $answer = $patient->answers->where('question_id', $question->id)->first();
+
+                if ($question->type === 'multiple') {
+                    // Initialize the answer array
+                    $questionData['answer'] = [
+                        'answers' => [], // Initialize answers as an empty array
+                        'other_field' => null // Set other_field to null by default
+                    ];
+
+                    // Find answers for this question
+                    $questionAnswers = $patient->answers->where('question_id', $question->id);
+
+                    // Populate the answers array
+                    foreach ($questionAnswers as $answer) {
+                        if ($answer->type !== 'other') {
+                            $questionData['answer']['answers'][] = $answer->answer;
+                        }
+                        if ($answer->type === 'other') {
+                            $questionData['answer']['other_field'] = $answer->answer;
+                        }
+                    }
+                } else {
+                    // For other types of questions, return the answer directly
+                    $questionData['answer'] = $answer ? $answer->answer : null;
+                }
+
+                $data[] = $questionData;
+            }
+
+            // Pass the data to the blade view
+            $pdfData = [
+                'patient' => $patient,
+                'questionData' => $data
+                // Add more data here if needed
+            ];
+
+            // Generate the PDF using the blade view and data
+            $pdf = PDF::loadView('patient_pdf', $pdfData);
+
+            // Ensure the 'pdfs' directory exists in the public disk
+            Storage::disk('public')->makeDirectory('pdfs');
+
+            // Generate a unique filename for the PDF
+            $pdfFileName = 'filename2.pdf';
+
+            // Save the PDF file to the public disk
+            Storage::disk('public')->put('pdfs/' . $pdfFileName, $pdf->output());
+
+            // Generate the URL for downloading the PDF file
+            $pdfUrl = config('app.url') . '/' . 'storage/app/public/pdfs/' . $pdfFileName;
+
+            // Return the URL to download the PDF file along with patient data
+            return response()->json(['pdf_url' => $pdfUrl, 'patient' => $data]);
+        } catch (\Exception $e) {
+            // Log and return error if an exception occurs
+            Log::error("Error while generating PDF: " . $e->getMessage());
+            return response()->json([
+                'value' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function generatePatientPDFold($patient_id)
+    {
+        // Retrieve the patient from the database
+        //$patient = Patients::findOrFail($patient_id);
+
+        $patient = Patients::select('id', 'doctor_id', 'updated_at')
+            ->where('hidden', false)
+            ->where('id', 132)
+            ->with(['doctor' => function ($query) {
+                $query->select('id', 'name', 'lname', 'image');
+            }])
+            ->with(['status' => function ($query) {
+                $query->select('id', 'patient_id', 'key', 'status');
+            }])
+            ->with(['answers' => function ($query) {
+                $query->select('id', 'patient_id', 'answer', 'question_id');
+            }])
+            ->latest('updated_at')
+            ->get();
+
+        // Pass the data to the blade view
+        $data = [
+            'patient' => $patient,
+            // Add more data here if needed
+        ];
+
+        // Generate the PDF using the blade view and data
+        $pdf = PDF::loadView('patient_pdf', $data);
+
+        //$pdf = PDF::loadHTML('<h1>Hello, this is a New PDF!</h1>');
+
+        // Ensure the 'pdfs' directory exists in the public disk
+        Storage::disk('public')->makeDirectory('pdfs');
+
+        // Generate a unique filename for the PDF
+        $pdfFileName = 'filename2.pdf';
+
+        // Save the PDF file to the public disk
+        Storage::disk('public')->put('pdfs/' . $pdfFileName, $pdf->output());
+
+        // Generate the URL for downloading the PDF file
+        // $pdfUrl = Storage::disk('public')->url('pdfs/' . $pdfFileName);
+        $pdfUrl = config('app.url') . '/' . 'storage/app/public/pdfs/' . $pdfFileName;
+
+        // Return the URL to download the PDF file
+        return response()->json(['pdf_url' => $pdfUrl]);
+    }
 }

@@ -314,6 +314,35 @@
             </div>
         </div>
     </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <h2>Outcome</h2>
+                @foreach($questionData as $data)
+                    @if($data['section_id'] === 8)
+                        <p>Q{{ $data['id'] }}: {{ $data['question'] }}</p>
+                        @if($data['type'] === 'multiple')
+                            <p>Answer:</p>
+                            <ul>
+                                @foreach($data['answer']['answers'] as $answer)
+                                    <li>
+                                        @foreach($answer as $value)
+                                            {{ $value }},
+                                        @endforeach
+                                    </li>
+                                @endforeach
+                            </ul>
+                            @if($data['answer']['other_field'])
+                                <p>Other Field: {{ $data['answer']['other_field'] }}</p>
+                            @endif
+                        @else
+                            <p>Answer: {{ $data['answer'] }}</p>
+                        @endif
+                    @endif
+                @endforeach
+            </div>
+        </div>
+    </div>
 
     <!-- Additional Sections -->
     <!-- Charts and Graphs Section -->

@@ -163,11 +163,11 @@ class AuthController extends Controller
         ], 400);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request)
     {
         // Find the user by ID
-        $user = User::find($id);
-
+        $doctor_id = Auth::id();
+        $user = User::find($doctor_id);
         // Check if the user exists
         if ($user != null) {
             // Validate the request data

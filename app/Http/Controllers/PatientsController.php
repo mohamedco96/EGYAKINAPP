@@ -7,6 +7,8 @@ use App\Http\Requests\UpdatePatientsRequest;
 use App\Models\PatientStatus;
 use App\Models\Posts;
 use App\Models\Questions;
+use App\Models\Score;
+use App\Models\ScoreHistory;
 use App\Models\User;
 use App\Models\Answers;
 use App\Models\Notification;
@@ -530,6 +532,50 @@ class PatientsController extends Controller
                 ]);
             }
 
+            $patientOutcomeStatus = PatientStatus::where('patient_id', $patient_id)
+                ->where('key', 'outcome_status')->first();
+
+            if (!$patientOutcomeStatus) {
+
+                PatientStatus::create(
+                    [
+                        'doctor_id' => $doctor_id,
+                        'patient_id' => $patient_id,
+                        'key' => 'outcome_status',
+                        'status' => true
+                    ]
+                );
+
+                // Scoring system
+                $doctorId = Auth::id();
+                $incrementAmount = 1;
+                $action = 'Add Outcome';
+
+                $score = Score::firstOrNew(['doctor_id' => $doctorId]);
+                $score->score += $incrementAmount;
+                $score->threshold += $incrementAmount;
+                $newThreshold = $score->threshold;
+
+                // Send notification if the new score exceeds 50 or its multiples
+                if ($newThreshold >= 50) {
+                    // Load user object
+                    $user = Auth::user();
+                    // Send notification
+                    $user->notify(new ReachingSpecificPoints($score));
+                    $score->threshold = 0;
+                }
+
+                $score->save();
+
+                // Log score history
+                ScoreHistory::create([
+                    'doctor_id' => $doctorId,
+                    'score' => $incrementAmount,
+                    'action' => $action,
+                    'timestamp' => now(),
+                ]);
+
+            }
 
             // Logging successful patient creation
             Log::info('Section_' . $section_id . 'updated successfully', ['doctor_id' => $doctor_id, 'patient_id' => $patient_id]);

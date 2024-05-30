@@ -2,7 +2,7 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\PatientHistory;
+use App\Models\Patients;
 use Filament\Widgets\ChartWidget;
 use Flowframe\Trend\Trend;
 use Flowframe\Trend\TrendValue;
@@ -21,7 +21,7 @@ class PatientChart extends ChartWidget
     {
         // $activeFilter = $this->filter;
 
-        $data = Trend::model(PatientHistory::class)
+        $data = Trend::model(Patients::class)
             ->between(
                 start: now()->startOfYear(),
                 end: now()->endOfYear(),

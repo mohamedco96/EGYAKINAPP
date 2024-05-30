@@ -2,7 +2,7 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\PatientHistory;
+use App\Models\Patients;
 use App\Models\User;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -21,7 +21,7 @@ class PatientTypeOverview extends BaseWidget
                     'class' => 'cursor-pointer',
                     'wire:click' => "\$dispatch('setStatusFilter', { filter: 'processed' })",
                 ]),
-            Stat::make('Patients', PatientHistory::count())
+            Stat::make('Patients', Patients::count())
           //  ->description('32k increase')
                 ->descriptionIcon('heroicon-m-arrow-trending-up')
                 ->chart([7, 2, 10, 3, 15, 4, 17])

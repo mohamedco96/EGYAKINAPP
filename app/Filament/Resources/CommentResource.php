@@ -55,7 +55,7 @@ class CommentResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('id')->toggleable(isToggledHiddenByDefault: false)->searchable(),
                 Tables\Columns\TextColumn::make('doctor.name')->toggleable(isToggledHiddenByDefault: false)->label('Doctor Name')->searchable(),
-                Tables\Columns\TextColumn::make('patient.name')->toggleable(isToggledHiddenByDefault: false)->label('Patient Name')->searchable(),
+                Tables\Columns\TextColumn::make('patient_id')->toggleable(isToggledHiddenByDefault: false)->label('Patient ID')->searchable(),
                 Tables\Columns\TextColumn::make('content')->toggleable(isToggledHiddenByDefault: false)->label('Content'),
                 Tables\Columns\TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: false),
@@ -66,8 +66,8 @@ class CommentResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('Doctor Name')
                     ->relationship('doctor', 'name'),
-                Tables\Filters\SelectFilter::make('Patient Name')
-                    ->relationship('patient', 'name'),
+                //Tables\Filters\SelectFilter::make('Patient Name')
+                    //->relationship('patient', 'name'),
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         DatePicker::make('created_from'),

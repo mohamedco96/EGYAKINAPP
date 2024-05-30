@@ -62,6 +62,7 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('name')->label('First name')->searchable()->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('lname')->label('Last name')->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('email')->searchable()->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\ImageColumn::make('image')->toggleable(isToggledHiddenByDefault: false)->circular(),
                 Tables\Columns\TextColumn::make('age')->sortable()->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('specialty')->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('workingplace')->label('Working place')->toggleable(isToggledHiddenByDefault: false),

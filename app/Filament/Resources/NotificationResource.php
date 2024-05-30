@@ -44,7 +44,8 @@ class NotificationResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('id')->toggleable(isToggledHiddenByDefault: false)->searchable(),
                 Tables\Columns\TextColumn::make('doctor.name')->toggleable(isToggledHiddenByDefault: false)->label('Doctor Name')->searchable(),
-                Tables\Columns\TextColumn::make('patient.name')->toggleable(isToggledHiddenByDefault: false)->label('Patient Name')->searchable(),
+                //Tables\Columns\TextColumn::make('patient.name')->toggleable(isToggledHiddenByDefault: false)->label('Patient Name')->searchable(),
+                Tables\Columns\TextColumn::make('patient_id')->toggleable(isToggledHiddenByDefault: false)->label('Patient ID')->searchable(),
                 Tables\Columns\TextColumn::make('content')->toggleable(isToggledHiddenByDefault: false)->label('content'),
                 Tables\Columns\ToggleColumn::make('read')->toggleable(isToggledHiddenByDefault: false)->label('read'),
                 Tables\Columns\TextColumn::make('type')->toggleable(isToggledHiddenByDefault: false)->label('type'),
@@ -57,8 +58,8 @@ class NotificationResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('Doctor Name')
                     ->relationship('doctor', 'name'),
-                Tables\Filters\SelectFilter::make('Patient Name')
-                    ->relationship('patient', 'name'),
+                //Tables\Filters\SelectFilter::make('Patient Name')
+                    //->relationship('patient', 'name'),
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         DatePicker::make('created_from'),

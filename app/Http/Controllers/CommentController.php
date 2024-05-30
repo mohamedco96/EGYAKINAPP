@@ -43,7 +43,7 @@ class CommentController extends Controller
     public function store(StoreCommentRequest $request)
     {
         $patient = Patients::where('id', $request->patient_id)->first();
-
+        $doctorID = Auth::id();
         if (!$patient) {
             $response = [
                 'value' => false,
@@ -60,9 +60,11 @@ class CommentController extends Controller
 
         // Retrieve the patient's doctor ID
         $patientDoctorId = Patients::where('id', $request->patient_id)->value('doctor_id');
-
+        echo  '$doctorID' . $doctorID;
+        echo  '$patientDoctorId' . $patientDoctorId;
         // Check if the authenticated user is the patient's doctor
-        if ($patientDoctorId !== Auth::id()) {
+        if ($patientDoctorId !== $doctorID) {
+            echo 'test#########';
             // Send notification to the patient's doctor
             Notification::create([
                 'content' => 'New comment was created',

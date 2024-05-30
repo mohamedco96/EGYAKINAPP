@@ -13,9 +13,6 @@ return new class extends Migration
     {
         Schema::create('patient_histories', function (Blueprint $table) {
             $table->id();
-            $table->bigInteger('doctor_id')->unsigned()->index();
-            $table->foreign('doctor_id')->references('id')->on('users')->onDelete('cascade');
-            $table->bigInteger('section_id')->unsigned()->index()->default(1);
             $table->string('name');
             $table->string('hospital');
             $table->string('collected_data_from');
@@ -36,7 +33,6 @@ return new class extends Migration
             $table->string('HTN');
             $table->string('HTN_duration')->nullable();
             $table->longText('other')->nullable();
-            $table->boolean('hidden')->default(false);
             $table->timestamps();
         });
     }

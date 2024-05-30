@@ -188,4 +188,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Notification::class, 'doctor_id');
     }
+
+    public function achievements(): HasMany
+    {
+        return $this->hasMany(Achievement::class);
+    }
 }

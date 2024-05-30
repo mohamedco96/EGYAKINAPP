@@ -64,7 +64,7 @@ class CommentController extends Controller
         echo  '$patientDoctorId' . $patientDoctorId;
         // Check if the authenticated user is the patient's doctor
         if ($patientDoctorId !== $doctorID) {
-            echo 'test#########';
+
             // Send notification to the patient's doctor
             Notification::create([
                 'content' => 'New comment was created',
@@ -94,6 +94,8 @@ class CommentController extends Controller
         $response = [
             'value' => false,
             'message' => 'Failed to create comment',
+            '$patientDoctorId' => $patientDoctorId,
+            '$doctorID' => $doctorID,
         ];
 
         return response()->json($response, 500);

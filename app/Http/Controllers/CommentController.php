@@ -65,8 +65,8 @@ class CommentController extends Controller
             ], 500);
         }
 
-        // Retrieve the patient's doctor ID
-        $patientDoctorId = $patient->doctor_id;
+        // Retrieve the patient's doctor ID and cast to integer
+        $patientDoctorId = (int) $patient->doctor_id;
 
         // Log the doctor IDs for debugging
         Log::debug('Authenticated Doctor ID:', ['doctor_id' => $doctorID]);

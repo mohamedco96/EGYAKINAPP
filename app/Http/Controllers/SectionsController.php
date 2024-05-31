@@ -170,10 +170,31 @@ class SectionsController extends Controller
                 $data[] = $questionData;
             }
 
-            $response = [
-                'value' => true,
-                'data' => $data,
-            ];
+            $submitter = PatientStatus::select('id', 'doctor_id')
+                ->where('patient_id', $patient_id)
+                ->where('key', 'outcome_status')
+                ->with(['doctor' => function ($query) {
+                    $query->select('id', 'name', 'image');
+                }])
+                ->first(); // Use first() instead of get() to get a single record
+
+            if ($section_id == 8) {
+                $doctor = $submitter->doctor;
+                $response = [
+                    'value' => true,
+                    'Submitter' => [
+                        'name' => $doctor->name,
+                        'image' => $doctor->image,
+                    ],
+                    'data' => $data
+                ];
+            } else {
+                $response = [
+                    'value' => true,
+                    'data' => $data,
+                ];
+            }
+
 
             Log::info("Questions and answers retrieved successfully for section ID {$section_id} and patient ID {$patient_id}.");
 

@@ -65,7 +65,7 @@ class PatientsController extends Controller
                 ->get();
 
             //Return Top Doctors
-            $topDoctors = User::select('id', 'name', 'specialty', 'workingplace', 'job', 'image', 'highestdegree')
+            $topDoctors = User::select('id', 'name','image')
                 ->withCount('patients')
                 ->selectSub(function ($query) {
                     $query->selectRaw('COALESCE(score, 0)') // Coalesce to handle null scores
@@ -123,11 +123,12 @@ class PatientsController extends Controller
                 'verified' => $isVerified,
                 'unreadCount' => (string)$unreadCount,
                 'doctor_patient_count' => (string)$userPatientCount,
-                'topDoctors' => $topDoctors,
+
                 'all_patient_count' => (string)$allPatientCount,
                 'score_value' => (string)$scoreValue,
                 'role' => 'Admin',
                 'data' => [
+                    'topDoctors' => $topDoctors,
                     'all_patients' => $allPatientsResponseData,
                     'current_patient' => $currentPatientsResponseData,
                     'posts' => $posts,
@@ -574,7 +575,6 @@ class PatientsController extends Controller
                     'action' => $action,
                     'timestamp' => now(),
                 ]);
-
             }
 
             // Logging successful patient creation

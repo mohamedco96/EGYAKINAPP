@@ -189,8 +189,13 @@ class User extends Authenticatable
         return $this->hasMany(Notification::class, 'doctor_id');
     }
 
-    public function achievements(): HasMany
+    public function achievements(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Achievement::class);
+    }
+
+    public function PatientStatus(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PatientStatus::class);
     }
 }

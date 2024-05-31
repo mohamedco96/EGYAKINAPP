@@ -42,29 +42,34 @@ class CommentController extends Controller
      */
     public function store(StoreCommentRequest $request)
     {
-        $patient = Patients::where('id', $request->patient_id)->first();
+        $patient = Patients::find($request->patient_id);
         $doctorID = Auth::id();
+
         if (!$patient) {
-            $response = [
+            return response()->json([
                 'value' => false,
                 'message' => 'Patient not found',
-            ];
-            return response()->json($response, 404);
+            ], 404);
         }
 
         $comment = Comment::create([
-            'doctor_id' => Auth::id(),
+            'doctor_id' => $doctorID,
             'patient_id' => $request->patient_id,
             'content' => $request->content,
         ]);
 
-        // Retrieve the patient's doctor ID
-        $patientDoctorId = Patients::where('id', $request->patient_id)->value('doctor_id');
-        echo  '$doctorID' . $doctorID;
-        echo  '$patientDoctorId' . $patientDoctorId;
-        // Check if the authenticated user is the patient's doctor
-        if ($patientDoctorId !== $doctorID) {
+        if (!$comment) {
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to create comment',
+            ], 500);
+        }
 
+        // Retrieve the patient's doctor ID
+        $patientDoctorId = $patient->doctor_id;
+
+        // Check if the authenticated user is not the patient's doctor
+        if ($patientDoctorId !== $doctorID) {
             // Send notification to the patient's doctor
             Notification::create([
                 'content' => 'New comment was created',
@@ -75,30 +80,16 @@ class CommentController extends Controller
             ]);
         }
 
+        Log::info('New comment created', [
+            'comment_id' => $comment->id,
+            'patient_id' => $request->patient_id,
+            'doctor_id' => $doctorID,
+        ]);
 
-        if ($comment !== null) {
-            $response = [
-                'value' => true,
-                'message' => 'Comment created successfully',
-            ];
-
-            Log::info('New comment created', [
-                'comment_id' => $comment->id,
-                'patient_id' => $request->patient_id,
-                'doctor_id' => $patientDoctorId,
-            ]);
-
-            return response()->json($response, 200);
-        }
-
-        $response = [
-            'value' => false,
-            'message' => 'Failed to create comment',
-            '$patientDoctorId' => $patientDoctorId,
-            '$doctorID' => $doctorID,
-        ];
-
-        return response()->json($response, 500);
+        return response()->json([
+            'value' => true,
+            'message' => 'Comment created successfully',
+        ], 200);
     }
 
     /**

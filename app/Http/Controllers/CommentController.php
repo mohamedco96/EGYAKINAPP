@@ -68,6 +68,10 @@ class CommentController extends Controller
         // Retrieve the patient's doctor ID
         $patientDoctorId = $patient->doctor_id;
 
+        // Log the doctor IDs for debugging
+        Log::debug('Authenticated Doctor ID:', ['doctor_id' => $doctorID]);
+        Log::debug('Patient Doctor ID:', ['patient_doctor_id' => $patientDoctorId]);
+
         // Check if the authenticated user is not the patient's doctor
         if ($patientDoctorId !== $doctorID) {
             // Send notification to the patient's doctor
@@ -78,6 +82,9 @@ class CommentController extends Controller
                 'patient_id' => $request->patient_id,
                 'doctor_id' => $patientDoctorId,
             ]);
+        } else {
+            // Log that no notification was sent
+            Log::debug('No notification sent as the authenticated doctor is the same as the patient\'s doctor.');
         }
 
         Log::info('New comment created', [

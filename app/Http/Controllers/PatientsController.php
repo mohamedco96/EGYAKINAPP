@@ -35,6 +35,13 @@ class PatientsController extends Controller
      */
     public function homeGetAllData()
     {
+        /*$user = Auth::user();
+        if ($user->hasRole('Tester')) {
+            return response()->json('user have Tester role', 200);
+        }else{
+            return response()->json('user not have Tester role', 200);
+        }*/
+
         try {
             // Return all posts
             $posts = Posts::select('id', 'title', 'image', 'content', 'hidden', 'doctor_id', 'updated_at')

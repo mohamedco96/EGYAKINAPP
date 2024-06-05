@@ -148,7 +148,7 @@ class SectionsController extends Controller
                     // Initialize the answer array
                     $questionData['answer'] = [
                         'answers' => [], // Initialize answers as an empty array
-                        'other_field' => "" // Set other_field to null by default
+                        'other_field' => null // Set other_field to null by default
                     ];
                     // Find answers for this question from the fetched answers
                     $questionAnswers = $multipleQuestionAnswers->where('question_id', $question->id);
@@ -164,7 +164,7 @@ class SectionsController extends Controller
                     }
                 } else {
                     // For other types of questions, return the answer directly
-                    $questionData['answer'] = $answer ? $answer->answer : "";
+                    $questionData['answer'] = $answer ? $answer->answer : null;
                 }
 
                 $data[] = $questionData;
@@ -174,7 +174,7 @@ class SectionsController extends Controller
                 ->where('patient_id', $patient_id)
                 ->where('key', 'outcome_status')
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'image');
+                    $query->select('id', 'name','lname', 'image');
                 }])
                 ->first(); // Use first() instead of get() to get a single record
 
@@ -183,7 +183,7 @@ class SectionsController extends Controller
                 $response = [
                     'value' => true,
                     'Submitter' => [
-                        'name' => $doctor->name,
+                        'name' => $doctor->name .' '. $doctor->lname,
                         'image' => $doctor->image,
                     ],
                     'data' => $data

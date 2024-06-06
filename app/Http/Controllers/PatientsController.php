@@ -543,7 +543,7 @@ class PatientsController extends Controller
             $patientOutcomeStatus = PatientStatus::where('patient_id', $patient_id)
                 ->where('key', 'outcome_status')->first();
 
-            if (!$patientOutcomeStatus) {
+            if (!$patientOutcomeStatus && $section_id == 8) {
 
                 PatientStatus::create(
                     [

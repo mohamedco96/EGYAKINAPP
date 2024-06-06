@@ -112,8 +112,7 @@ class SectionsController extends Controller
                 ->get();
 
             // Fetch all answers for the patient in one query
-            $answers = Answers::where('patient_id', $patient_id)
-                ->get();
+            $answers = Answers::where('patient_id', $patient_id)->get();
 
             foreach ($questions as $question) {
                 // Skip questions with certain IDs
@@ -174,27 +173,37 @@ class SectionsController extends Controller
                 ->where('patient_id', $patient_id)
                 ->where('key', 'outcome_status')
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name','lname', 'image');
+                    $query->select('id', 'name', 'lname', 'image');
                 }])
                 ->first(); // Use first() instead of get() to get a single record
 
             if ($section_id == 8) {
-                $doctor = $submitter->doctor;
-                $response = [
-                    'value' => true,
-                    'Submitter' => [
-                        'name' => $doctor->name .' '. $doctor->lname,
-                        'image' => $doctor->image,
-                    ],
-                    'data' => $data
-                ];
+                if ($submitter && $submitter->doctor) {
+                    $doctor = $submitter->doctor;
+                    $response = [
+                        'value' => true,
+                        'Submitter' => [
+                            'name' => $doctor->name . ' ' . $doctor->lname,
+                            'image' => $doctor->image,
+                        ],
+                        'data' => $data
+                    ];
+                } else {
+                    $response = [
+                        'value' => true,
+                        'Submitter' => [
+                            'name' => null,
+                            'image' => null,
+                        ],
+                        'data' => $data
+                    ];
+                }
             } else {
                 $response = [
                     'value' => true,
                     'data' => $data,
                 ];
             }
-
 
             Log::info("Questions and answers retrieved successfully for section ID {$section_id} and patient ID {$patient_id}.");
 

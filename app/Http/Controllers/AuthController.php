@@ -496,6 +496,56 @@ class AuthController extends Controller
         }
     }
 
+    public function doctorProfileGetScoreHistory()
+    {
+        try {
+            // Return all patients
+            $user = Auth::user();
+            $getScoreHistory = $user->scoreHistory()
+                ->select('id', 'doctor_id','score','action', 'updated_at')
+                ->with(['doctor' => function ($query) {
+                    $query->select('id', 'name', 'lname', 'image');
+                }])
+                ->latest('updated_at')
+                ->get();
+
+            // Transform the response
+            $transformedPatients = $getScoreHistory->map(function ($score) {
+                return [
+                    'id' => $score->id,
+                    'doctor_id' => $score->doctor_id,
+                    'score' => $score->score,
+                    'action' => $score->action,
+                    'updated_at' => $score->updated_at,
+                    'doctor' => $score->doctor,
+                ];
+            });
+
+            // Paginate the transformed data
+            $currentPage = LengthAwarePaginator::resolveCurrentPage();
+            $slicedData = $transformedPatients->slice(($currentPage - 1) * 10, 10);
+            $transformedPatientsPaginated = new LengthAwarePaginator($slicedData->values(), count($transformedPatients), 10);
+
+            // Prepare response data
+            $response = [
+                'value' => true,
+                'data' => $transformedPatientsPaginated,
+            ];
+
+            // Log successful response
+            Log::info('Successfully retrieved all patients for doctor.', ['doctor_id' => optional(auth()->user())->id]);
+
+            // Return the transformed response
+            return response()->json($response, 200);
+        } catch (\Exception $e) {
+            // Log error
+            Log::error('Error retrieving all patients for doctor.', ['doctor_id' => optional(auth()->user())->id, 'exception' => $e]);
+
+            // Return error response
+            return response()->json(['error' => 'Failed to retrieve all patients for doctor.'], 500);
+        }
+    }
+
     /**
      * Remove the specified resource from storage.
      */

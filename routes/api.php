@@ -43,6 +43,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/users/{id}', 'AuthController@show');
     Route::get('/showAnotherProfile/{id}', 'AuthController@showAnotherProfile');
     Route::get('/doctorProfileGetPatients', 'AuthController@doctorProfileGetPatients');
+    Route::get('/doctorProfileGetScoreHistory', 'AuthController@doctorProfileGetScoreHistory');
     Route::put('/users', 'AuthController@update');
     Route::delete('/users/{id}', 'AuthController@destroy');
     Route::post('/logout', 'AuthController@logout');

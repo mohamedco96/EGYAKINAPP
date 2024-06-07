@@ -151,6 +151,11 @@ class User extends Authenticatable
         return $this->hasOne(Score::class, 'doctor_id');
     }
 
+    public function scoreHistory()
+    {
+        return $this->hasOne(ScoreHistory::class, 'doctor_id');
+    }
+
     public function comments()
     {
         return $this->hasMany(Comment::class);

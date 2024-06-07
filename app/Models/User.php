@@ -59,6 +59,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'blocked' => 'boolean',
         'limited' => 'boolean',
+        'isSyndicateCardRequired' => 'boolean'
     ];
 
     /**
@@ -69,17 +70,8 @@ class User extends Authenticatable
      */
     public function getImageAttribute($value): ?string
     {
-        if (!$value) {
-            return null;
-        }
-
-        // Add your prefix here
-       // $prefix = config('app.url') . '/' . 'storage/app/public/';
-       $prefix = config('app.url') . '/' . 'storage/';
-        return $prefix . $value;
+        return $this->getPrefixedUrl($value);
     }
-
-
 
     /**
      * Get the user's syndicate card URL with prefix.
@@ -105,7 +97,7 @@ class User extends Authenticatable
         }
 
         // Add your prefix here
-        $prefix = config('app.url') . '/' . 'storage/app/public/';
+        $prefix = config('app.url') . '/' . 'storage/';
         return $prefix . $value;
     }
 

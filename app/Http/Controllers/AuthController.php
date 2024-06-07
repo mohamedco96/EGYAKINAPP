@@ -164,6 +164,49 @@ class AuthController extends Controller
         ], 400);
     }
 
+    public function uploadSyndicateCard(Request $request)
+    {
+        $request->validate([
+            'syndicate_card' => 'required|image|mimes:jpeg,png,jpg,gif', // max 2MB
+            //'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
+        ]);
+
+        if ($request->hasFile('syndicate_card')) {
+            $image = $request->file('syndicate_card');
+
+            // Generate a unique file name using the original file name and a timestamp
+            $fileName = time() . '_' . $image->getClientOriginalName();
+
+            // Store the image in the specified directory with the generated file name
+            $path = $image->storeAs('syndicate_card', $fileName, 'public');
+
+            // Get the absolute URL of the uploaded image
+            //$absolutePath = url(Storage::url($path));
+
+            // Get the relative path of the uploaded image (without the storage folder prefix)
+            $relativePath = 'storage/' . $path;
+
+            // Update user's profile image path in the database
+            auth()->user()->update(['syndicate_card' => $path]);
+
+            // Construct the full URL by appending the relative path to the APP_URL
+            //$imageUrl = config('app.url') . '/' . 'storage/app/public/' . $path;
+            $imageUrl = config('app.url') . '/' . 'storage/' . $path;
+
+            return response()->json([
+                'value' => true,
+                'message' => 'User syndicate card uploaded successfully.',
+                'image' => $imageUrl,
+            ], 200);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Please choose an image file.',
+        ], 400);
+    }
+
+
     public function update(Request $request)
     {
         // Find the user by ID

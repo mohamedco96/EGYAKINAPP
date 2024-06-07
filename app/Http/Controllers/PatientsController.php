@@ -124,13 +124,17 @@ class PatientsController extends Controller
             $unreadCount = Notification::where('doctor_id', $user->id)
                 ->where('read', false)->count();
 
+            //get SyndicateCard value
+            $isSyndicateCardRequired = $user->isSyndicateCardRequired;
+
+
             // Prepare response data
             $response = [
                 'value' => true,
                 'verified' => $isVerified,
                 'unreadCount' => (string)$unreadCount,
                 'doctor_patient_count' => (string)$userPatientCount,
-
+                'isSyndicateCardRequired' => $isSyndicateCardRequired,
                 'all_patient_count' => (string)$allPatientCount,
                 'score_value' => (string)$scoreValue,
                 'role' => 'Admin',

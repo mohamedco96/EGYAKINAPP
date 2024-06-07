@@ -255,6 +255,7 @@ class AuthController extends Controller
         // Find the user by ID
         $doctor_id = Auth::id();
         $user = User::find($doctor_id);
+
         // Check if the user exists
         if ($user != null) {
             // Validate the request data
@@ -273,6 +274,13 @@ class AuthController extends Controller
                 'registration_number' => 'string',
             ]);
 
+            // Check if the email address is being updated
+            if ($request->has('email') && $request->email !== $user->email) {
+                // Update user's email and set email_verified_at to null
+                $user->email = $request->email;
+                $user->email_verified_at = null;
+            }
+
             // Check if syndicate_card field is provided
             if ($request->hasFile('syndicate_card')) {
                 // Get the image file
@@ -285,11 +293,12 @@ class AuthController extends Controller
                 $path = $image->storeAs('syndicate_cards', $fileName, 'public');
 
                 // Update user's profile image path in the database
-                $user->update(['syndicate_card' => $path]);
+                $user->syndicate_card = $path;
             }
 
-            // Update user's other fields
-            $user->update($request->except('syndicate_card'));
+            // Update user's other fields except for email and syndicate_card
+            $user->fill($request->except(['email', 'syndicate_card']));
+            $user->save();
 
             // Construct the full URL by appending the relative path to the APP_URL
             $imageUrl = config('app.url') . '/' . 'storage/' . $user->syndicate_card;

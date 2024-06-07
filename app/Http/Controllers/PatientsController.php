@@ -304,6 +304,74 @@ class PatientsController extends Controller
         }
     }
 
+    public function doctorProfileGetPatients()
+    {
+        try {
+            // Return all patients
+            $user = Auth::user();
+            $currentPatients = $user->patients()
+                ->select('id', 'doctor_id', 'updated_at')
+                ->where('hidden', false)
+                ->with(['doctor' => function ($query) {
+                    $query->select('id', 'name', 'lname', 'image');
+                }])
+                ->with(['status' => function ($query) {
+                    $query->select('id', 'patient_id', 'key', 'status');
+                }])
+                ->with(['answers' => function ($query) {
+                    $query->select('id', 'patient_id', 'answer', 'question_id');
+                }])
+                ->latest('updated_at')
+                ->get();
+
+            // Transform the response
+            $transformedPatients = $currentPatients->map(function ($patient) {
+                $submitStatus = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
+                $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
+
+                $nameAnswer = optional($patient->answers->where('question_id', 1)->first())->answer;
+                $hospitalAnswer = optional($patient->answers->where('question_id', 2)->first())->answer;
+
+                return [
+                    'id' => $patient->id,
+                    'doctor_id' => $patient->doctor_id,
+                    'name' => $nameAnswer,
+                    'hospital' => $hospitalAnswer,
+                    'updated_at' => $patient->updated_at,
+                    'doctor' => $patient->doctor,
+                    'sections' => [
+                        'patient_id' => $patient->id,
+                        'submit_status' => $submitStatus ?? false,
+                        'outcome_status' => $outcomeStatus ?? false,
+                    ]
+                ];
+            });
+
+            // Paginate the transformed data
+            $currentPage = LengthAwarePaginator::resolveCurrentPage();
+            $slicedData = $transformedPatients->slice(($currentPage - 1) * 10, 10);
+            $transformedPatientsPaginated = new LengthAwarePaginator($slicedData->values(), count($transformedPatients), 10);
+
+            // Prepare response data
+            $response = [
+                'value' => true,
+                'data' => $transformedPatientsPaginated,
+            ];
+
+            // Log successful response
+            Log::info('Successfully retrieved all patients for doctor.', ['doctor_id' => optional(auth()->user())->id]);
+
+            // Return the transformed response
+            return response()->json($response, 200);
+        } catch (\Exception $e) {
+            // Log error
+            Log::error('Error retrieving all patients for doctor.', ['doctor_id' => optional(auth()->user())->id, 'exception' => $e]);
+
+            // Return error response
+            return response()->json(['error' => 'Failed to retrieve all patients for doctor.'], 500);
+        }
+    }
+
     /**
      * Store a newly created resource in storage.
      */

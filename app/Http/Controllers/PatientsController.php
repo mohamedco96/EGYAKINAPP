@@ -858,10 +858,10 @@ class PatientsController extends Controller
             Storage::disk('public')->put('pdfs/' . $pdfFileName, $pdf->output());
 
             // Generate the URL for downloading the PDF file
-            $pdfUrl = config('app.url') . '/' . 'storage/app/public/pdfs/' . $pdfFileName;
+            $pdfUrl = config('app.url') . '/' . 'storage/pdfs/' . $pdfFileName;
 
             // Return the URL to download the PDF file along with patient data
-            return response()->json(['pdf_url' => $pdfUrl, 'patient' => $data]);
+            return response()->json(['pdf_url' => $pdfUrl]);
         } catch (\Exception $e) {
             // Log and return error if an exception occurs
             Log::error("Error while generating PDF: " . $e->getMessage());

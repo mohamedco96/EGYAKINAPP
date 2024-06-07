@@ -18,7 +18,7 @@ use App\Models\Assessment;
 use App\Models\Examination;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
-
+use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
@@ -120,6 +120,49 @@ class AuthController extends Controller
             'value' => true,
             'message' => 'Logged out',
         ];
+    }
+
+    /**
+     * Change the authenticated user's password.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function changePassword(Request $request)
+    {
+        // Validate the request data
+        $validator = Validator::make($request->all(), [
+            'current_password' => 'required',
+            'new_password' => 'required|confirmed',
+        ]);
+
+        // If validation fails, return error response
+        if ($validator->fails()) {
+            return response()->json([
+                'value' => false,
+                'message' => 'Required data is missing or password field confirmation does not match'
+                //'message' => $validator->errors()
+            ], 422);
+        }
+
+        $user = Auth::user();
+
+        // Check if the current password matches
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'value' => false,
+                'message' => 'Current password is incorrect'
+            ], 400);
+        }
+
+        // Update the password
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json([
+            'value' => true,
+            'message' => 'Password changed successfully'
+        ], 200);
     }
 
     public function uploadProfileImage(Request $request)

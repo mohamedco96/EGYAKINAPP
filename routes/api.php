@@ -45,6 +45,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/users', 'AuthController@update');
     Route::delete('/users/{id}', 'AuthController@destroy');
     Route::post('/logout', 'AuthController@logout');
+    Route::post('/changePassword', 'AuthController@changePassword');
     Route::post('/upload-profile-image', 'AuthController@uploadProfileImage');
     Route::post('/uploadSyndicateCard', 'AuthController@uploadSyndicateCard');
     Route::post('/emailverification', 'EmailVerificationController@email_verification');

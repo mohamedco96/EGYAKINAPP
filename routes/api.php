@@ -107,6 +107,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/contact/{id}', 'ContactController@update');
     Route::delete('/contact/{id}', 'ContactController@destroy');
 
+    //Settings
+    Route::get('/settings', 'SettingsController@index');
+    Route::post('/settings', 'SettingsController@store');
+    Route::get('/settings/{id}', 'SettingsController@show');
+    Route::put('/settings/{id}', 'SettingsController@update');
+    Route::delete('/settings/{id}', 'SettingsController@destroy');
 
     //Outcome
     Route::get('/outcome', 'OutcomeController@index');

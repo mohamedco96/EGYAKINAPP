@@ -125,7 +125,7 @@ class PatientsController extends Controller
                 ->where('read', false)->count();
 
             //get SyndicateCard value
-            $isSyndicateCardRequired = $user->isSyndicateCardRequired; //Not Required, Required, Verified
+            $isSyndicateCardRequired = $user->isSyndicateCardRequired; //Not Required, Required, Pending,Verified
 
 
             // Prepare response data

@@ -232,7 +232,7 @@ class AuthController extends Controller
             $relativePath = 'storage/' . $path;
 
             // Update user's profile image path in the database
-            auth()->user()->update(['syndicate_card' => $path,'isSyndicateCardRequired' => 'Verified']);
+            auth()->user()->update(['syndicate_card' => $path,'isSyndicateCardRequired' => 'Pending']);
 
             // Construct the full URL by appending the relative path to the APP_URL
             //$imageUrl = config('app.url') . '/' . 'storage/app/public/' . $path;

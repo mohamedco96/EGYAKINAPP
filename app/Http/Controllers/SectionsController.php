@@ -173,7 +173,7 @@ class SectionsController extends Controller
                 ->where('patient_id', $patient_id)
                 ->where('key', 'outcome_status')
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image');
+                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
                 }])
                 ->first(); // Use first() instead of get() to get a single record
 

@@ -127,7 +127,7 @@ class AuthController extends Controller
     /**
      * Change the authenticated user's password.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function changePassword(Request $request)
@@ -135,7 +135,7 @@ class AuthController extends Controller
         // Validate the request data
         $validator = Validator::make($request->all(), [
             'current_password' => 'required',
-            'new_password' => 'required|confirmed',
+            'new_password' => 'required',
         ]);
 
         // If validation fails, return error response
@@ -232,7 +232,7 @@ class AuthController extends Controller
             $relativePath = 'storage/' . $path;
 
             // Update user's profile image path in the database
-            auth()->user()->update(['syndicate_card' => $path,'isSyndicateCardRequired' => 'Pending']);
+            auth()->user()->update(['syndicate_card' => $path, 'isSyndicateCardRequired' => 'Pending']);
 
             // Construct the full URL by appending the relative path to the APP_URL
             //$imageUrl = config('app.url') . '/' . 'storage/app/public/' . $path;
@@ -428,16 +428,27 @@ class AuthController extends Controller
         }
     }
 
-    public function doctorProfileGetPatients()
+    public function doctorProfileGetPatients($id)
     {
         try {
             // Return all patients
-            $user = Auth::user();
+
+            // Find the user by ID
+            $user = User::find($id);
+
+            // Check if the user exists
+            if (!$user) {
+                return response()->json([
+                    'value' => false,
+                    'message' => 'User not found'
+                ], 404);
+            }
+
             $currentPatients = $user->patients()
                 ->select('id', 'doctor_id', 'updated_at')
                 ->where('hidden', false)
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image');
+                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
                 }])
                 ->with(['status' => function ($query) {
                     $query->select('id', 'patient_id', 'key', 'status');
@@ -496,15 +507,26 @@ class AuthController extends Controller
         }
     }
 
-    public function doctorProfileGetScoreHistory()
+    public function doctorProfileGetScoreHistory($id)
     {
         try {
             // Return all patients
-            $user = Auth::user();
+
+            // Find the user by ID
+            $user = User::find($id);
+
+            // Check if the user exists
+            if (!$user) {
+                return response()->json([
+                    'value' => false,
+                    'message' => 'User not found'
+                ], 404);
+            }
+
             $getScoreHistory = $user->scoreHistory()
-                ->select('id', 'doctor_id','score','action', 'updated_at')
+                ->select('id', 'doctor_id', 'score', 'action', 'updated_at')
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image');
+                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
                 }])
                 ->latest('updated_at')
                 ->get();

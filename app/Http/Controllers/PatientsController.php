@@ -47,7 +47,7 @@ class PatientsController extends Controller
             $posts = Posts::select('id', 'title', 'image', 'content', 'hidden', 'doctor_id', 'updated_at')
                 ->where('hidden', false)
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image');
+                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
                 }])
                 ->get();
 
@@ -56,7 +56,7 @@ class PatientsController extends Controller
             $currentPatients = $user->patients()
                 ->where('hidden', false)
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image');
+                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
                 }])
                 ->latest('updated_at')
                 ->limit(5) // Add limit here
@@ -65,14 +65,14 @@ class PatientsController extends Controller
             // Return all patients
             $allPatients = Patients::where('hidden', false)
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image');
+                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
                 }])
                 ->latest('updated_at')
                 ->limit(5) // Add limit here
                 ->get();
 
             //Return Top Doctors
-            $topDoctors = User::select('id', 'name','image')
+            $topDoctors = User::select('id', 'name','image','syndicate_card','isSyndicateCardRequired')
                 ->withCount('patients')
                 ->selectSub(function ($query) {
                     $query->selectRaw('COALESCE(score, 0)') // Coalesce to handle null scores
@@ -170,7 +170,7 @@ class PatientsController extends Controller
             $allPatients = Patients::select('id', 'doctor_id', 'updated_at')
                 ->where('hidden', false)
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image');
+                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
                 }])
                 ->with(['status' => function ($query) {
                     $query->select('id', 'patient_id', 'key', 'status');
@@ -238,7 +238,7 @@ class PatientsController extends Controller
                 ->select('id', 'doctor_id', 'updated_at')
                 ->where('hidden', false)
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image');
+                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
                 }])
                 ->with(['status' => function ($query) {
                     $query->select('id', 'patient_id', 'key', 'status');
@@ -313,7 +313,7 @@ class PatientsController extends Controller
                 ->select('id', 'doctor_id', 'updated_at')
                 ->where('hidden', false)
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image');
+                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
                 }])
                 ->with(['status' => function ($query) {
                     $query->select('id', 'patient_id', 'key', 'status');
@@ -775,7 +775,7 @@ class PatientsController extends Controller
 
                 })
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image');
+                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
                 }])
                 ->with(['status' => function ($query) {
                     $query->select('id', 'patient_id', 'key', 'status');
@@ -953,7 +953,7 @@ class PatientsController extends Controller
             ->where('hidden', false)
             ->where('id', 132)
             ->with(['doctor' => function ($query) {
-                $query->select('id', 'name', 'lname', 'image');
+                $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
             }])
             ->with(['status' => function ($query) {
                 $query->select('id', 'patient_id', 'key', 'status');

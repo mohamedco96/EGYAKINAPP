@@ -113,26 +113,23 @@
         <div class="col-md-12">
             <div class="section">
                 <h2>Patient History</h2>
-                @foreach($questionData as $data)
-                    @if($data['section_id'] === 1)
-                        <p>Q{{ $data['id'] }}: {{ $data['question'] }}</p>
-                        @if($data['type'] === 'multiple')
-                            <p>Answer:</p>
-                            <ul>
-                                @foreach($data['answer']['answers'] as $answer)
-                                    <li>
-                                        @foreach($answer as $value)
-                                            {{ $value }},
-                                        @endforeach
-                                    </li>
-                                @endforeach
-                            </ul>
-                            @if($data['answer']['other_field'])
-                                <p>Other Field: {{ $data['answer']['other_field'] }}</p>
-                            @endif
-                        @else
-                            <p>Answer: {{ $data['answer'] }}</p>
-                        @endif
+                @php
+                    $question8Answer = '';
+                    $question1Answer = '';
+                    $question7Answer = '';
+                @endphp
+                @foreach($patient->answers as $answer)
+                    @if($answer->question_id === 1)
+                        <p>Patient ID: {{ $patient->id }}</p>
+                    @endif
+                    @if($answer->question_id === 8)
+                        {{ $answer->answer }} Patient &nbsp;
+                    @endif
+                    @if($answer->question_id === 1)
+                        Named {{ $answer->answer }} &nbsp;
+                    @endif
+                    @if($answer->question_id === 7)
+                        Aged {{ $answer->answer }}&nbsp;
                     @endif
                 @endforeach
             </div>

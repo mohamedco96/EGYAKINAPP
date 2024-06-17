@@ -43,29 +43,23 @@ class DoseResource extends Resource
                     ->label('Title')
                     ->required(),
 
-                Forms\Components\FieldSet::make()
-                    ->label('Description')
-                    ->schema([
-                        RichEditor::make('description')->toolbarButtons([
-                            'blockquote',
-                            'bold',
-                            'bulletList',
-                            'codeBlock',
-                            'h2',
-                            'h3',
-                            'italic',
-                            'orderedList',
-                            'redo',
-                            'strike',
-                            'underline',
-                            'undo',
-                        ]),
+                Forms\Components\RichEditor::make('description')
+                    ->required()
+                    ->toolbarButtons([
+                        'blockquote',
+                        'bold',
+                        'bulletList',
+                        'codeBlock',
+                        'h2',
+                        'h3',
+                        'italic',
+                        'orderedList',
+                        'redo',
+                        'strike',
+                        'underline',
+                        'undo',
                     ]),
-
-                Forms\Components\FieldSet::make()
-                    ->label('Dose')
-                    ->schema([
-                        RichEditor::make('dose')
+                Forms\Components\RichEditor::make('dose')
                             ->required()
                             ->toolbarButtons([
                                 'blockquote',
@@ -81,7 +75,45 @@ class DoseResource extends Resource
                                 'underline',
                                 'undo',
                             ]),
-                    ]),
+//                Forms\Components\FieldSet::make()
+//                    ->label('Description')
+//                    ->schema([
+//                        RichEditor::make('description')->toolbarButtons([
+//                            'blockquote',
+//                            'bold',
+//                            'bulletList',
+//                            'codeBlock',
+//                            'h2',
+//                            'h3',
+//                            'italic',
+//                            'orderedList',
+//                            'redo',
+//                            'strike',
+//                            'underline',
+//                            'undo',
+//                        ]),
+//                    ]),
+//
+//                Forms\Components\FieldSet::make()
+//                    ->label('Dose')
+//                    ->schema([
+//                        RichEditor::make('dose')
+//                            ->required()
+//                            ->toolbarButtons([
+//                                'blockquote',
+//                                'bold',
+//                                'bulletList',
+//                                'codeBlock',
+//                                'h2',
+//                                'h3',
+//                                'italic',
+//                                'orderedList',
+//                                'redo',
+//                                'strike',
+//                                'underline',
+//                                'undo',
+//                            ]),
+//                    ]),
             ]);
     }
 

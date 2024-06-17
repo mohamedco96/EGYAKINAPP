@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Dose;
 use App\Models\Patients;
 use App\Http\Requests\UpdatePatientsRequest;
 use App\Models\PatientStatus;
@@ -832,9 +833,10 @@ class PatientsController extends Controller
             // Log successful search
             Log::info('Successfully retrieved patients for the search term.', ['search_term' => $name]);
 
+            $data = [$transformedPatientsPaginated,$dose];
             $response = [
                 'value' => true,
-                'data' => $transformedPatientsPaginated,
+                'data' => $data,
             ];
 
             return response()->json($response, 200);

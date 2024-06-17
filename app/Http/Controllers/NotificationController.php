@@ -2,14 +2,40 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Notification;
+//use App\Models\Notification; //will rename it
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Log;
+use Kreait\Firebase\Contract\Messaging as FirebaseMessaging;
+use Kreait\Firebase\Messaging\CloudMessage;
+use Kreait\Firebase\Messaging\Notification;
+
 
 class NotificationController extends Controller
 {
+    protected $messaging;
+
+    public function __construct(FirebaseMessaging $messaging)
+    {
+        $this->messaging = $messaging;
+    }
+
+    public function send(Request $request)
+    {
+        $deviceToken = $request->input('token');
+        $title = $request->input('title');
+        $body = $request->input('body');
+
+        $notification = Notification::create($title, $body);
+        $message = CloudMessage::withTarget('token', $deviceToken)
+            ->withNotification($notification);
+
+        $this->messaging->send($message);
+
+        return response()->json(['status' => 'Message sent successfully']);
+    }
+
     /**
      * Display a listing of the resource.
      */

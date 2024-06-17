@@ -44,7 +44,6 @@ class DoseResource extends Resource
                     ->required(),
 
                 Forms\Components\RichEditor::make('description')
-                    ->required()
                     ->toolbarButtons([
                         'blockquote',
                         'bold',

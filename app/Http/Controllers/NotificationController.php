@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-//use App\Models\AppNotification; //will rename it
+use App\Models\AppNotification;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;

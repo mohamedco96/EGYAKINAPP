@@ -9,7 +9,7 @@ use App\Models\Cause;
 use App\Models\Complaint;
 use App\Models\Decision;
 use App\Models\Examination;
-use App\Models\Notification;
+use App\Models\AppNotification;
 use App\Models\Outcome;
 use App\Models\PatientHistory;
 use App\Models\Posts;
@@ -172,7 +172,7 @@ class PatientHistoryController extends Controller
         $scoreValue = $user->score ? $user->score->score : 0;
         $isVerified = $user->email_verified_at ? true : false;
 
-        $notifications = Notification::where('doctor_id', $user->id)
+        $notifications = AppNotification::where('doctor_id', $user->id)
             ->select('id', 'read', 'type', 'patient_id', 'doctor_id', 'created_at')
             ->with('patient.doctor:id,name,lname,workingplace')
             ->with('patient.sections:id,submit_status,outcome_status,patient_id')
@@ -180,7 +180,7 @@ class PatientHistoryController extends Controller
             ->latest()
             ->get();
 
-        $unreadCount = Notification::where('doctor_id', $user->id)
+        $unreadCount = AppNotification::where('doctor_id', $user->id)
         ->where('read', false)->count();
 
 
@@ -454,7 +454,7 @@ class PatientHistoryController extends Controller
             $doctorIds = User::whereNotIn('id', [$doctorId])->pluck('id');
 
             foreach ($doctorIds as $doctorId) {
-                Notification::create([
+                AppNotification::create([
                     'content' => 'New Patient was created',
                     'read' => false,
                     'type' => 'New Patient',
@@ -559,7 +559,7 @@ class PatientHistoryController extends Controller
             // Notifying other doctors
             $doctorIds = User::whereNotIn('id', [$doctor_id])->pluck('id');
             foreach ($doctorIds as $otherDoctorId) {
-                Notification::create([
+                AppNotification::create([
                     'content' => 'New Patient was created',
                     'read' => false,
                     'type' => 'New Patient',

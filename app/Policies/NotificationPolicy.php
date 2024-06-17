@@ -2,7 +2,7 @@
 
 namespace App\Policies;
 
-use App\Models\Notification;
+use App\Models\AppNotification;
 use App\Models\User;
 
 class NotificationPolicy
@@ -18,7 +18,7 @@ class NotificationPolicy
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, Notification $notification): bool
+    public function view(User $user, AppNotification $notification): bool
     {
         return true;
     }
@@ -34,7 +34,7 @@ class NotificationPolicy
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Notification $notification): bool
+    public function update(User $user, AppNotification $notification): bool
     {
         return true;
     }
@@ -42,7 +42,7 @@ class NotificationPolicy
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, Notification $notification): bool
+    public function delete(User $user, AppNotification $notification): bool
     {
         return true;
     }
@@ -50,7 +50,7 @@ class NotificationPolicy
     /**
      * Determine whether the user can restore the model.
      */
-    public function restore(User $user, Notification $notification): bool
+    public function restore(User $user, AppNotification $notification): bool
     {
         return true;
     }
@@ -58,7 +58,7 @@ class NotificationPolicy
     /**
      * Determine whether the user can permanently delete the model.
      */
-    public function forceDelete(User $user, Notification $notification): bool
+    public function forceDelete(User $user, AppNotification $notification): bool
     {
         return true;
     }

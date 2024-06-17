@@ -115,6 +115,6 @@ class PatientHistory extends Model
 
     public function notification()
     {
-        return $this->hasMany(Notification::class, 'doctor_id');
+        return $this->hasMany(AppNotification::class, 'doctor_id');
     }
 }

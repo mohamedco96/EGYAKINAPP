@@ -37,6 +37,6 @@ class Answers extends Model
 
     public function notification()
     {
-        return $this->belongsTo(Notification::class, 'patient_id');
+        return $this->belongsTo(AppNotification::class, 'patient_id');
     }
 }

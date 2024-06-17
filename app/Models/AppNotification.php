@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Laravel\Sanctum\HasApiTokens;
 
-class Notification extends Model
+class AppNotification extends Model
 {
     use HasApiTokens, HasFactory;
 

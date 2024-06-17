@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-//use App\Models\Notification; //will rename it
+//use App\Models\AppNotification; //will rename it
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Contract\Messaging as FirebaseMessaging;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
-
+use App\Models\FcmToken;
+use Illuminate\Database\QueryException;
 
 class NotificationController extends Controller
 {
@@ -21,7 +22,7 @@ class NotificationController extends Controller
         $this->messaging = $messaging;
     }
 
-    public function send(Request $request)
+    public function sendold(Request $request)
     {
         $deviceToken = $request->input('token');
         $title = $request->input('title');
@@ -37,12 +38,143 @@ class NotificationController extends Controller
     }
 
     /**
+     * Send a message to all FCM tokens.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function send(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'body' => 'required|string|max:1000',
+        ]);
+
+        try {
+            // Retrieve all tokens from the fcm_tokens table
+            $tokens = FcmToken::pluck('token')->toArray();
+
+            if (empty($tokens)) {
+                Log::info('No FCM tokens found.');
+                return response()->json(['status' => 'No tokens found'], 404);
+            }
+
+            $title = $request->input('title');
+            $body = $request->input('body');
+
+            $notification = Notification::create($title, $body);
+
+            $messages = [];
+            foreach ($tokens as $token) {
+                $messages[] = CloudMessage::withTarget('token', $token)
+                    ->withNotification($notification);
+            }
+
+            // Send messages in bulk
+            $this->messaging->sendAll($messages);
+
+            Log::info('Message sent successfully to all tokens.', [
+                'title' => $title,
+                'body' => $body,
+                'tokens_count' => count($tokens),
+            ]);
+
+            return response()->json(['status' => 'Message sent successfully to all tokens'], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Exception occurred while sending message.', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTrace(),
+            ]);
+
+            return response()->json(['status' => 'Failed to send message. Please try again later.'], 500);
+        }
+    }
+
+    /**
+     * Store a newly created FCM token.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function storeFCM(Request $request)
+    {
+        // Validate the request
+        $request->validate([
+            //'doctor_id' => 'required|exists:users,id',
+            //'token' => 'required|unique:fcm_tokens,token',
+        ]);
+
+        try {
+            // Attempt to create a new FCM token
+            $fcmToken = FcmToken::create([
+                'doctor_id' => $request->doctor_id,
+                'token' => $request->token,
+            ]);
+
+            // Log the successful token storage
+            Log::info('FCM token stored successfully.', [
+                'doctor_id' => $request->doctor_id,
+                'token' => $request->token,
+            ]);
+
+            // Return success response
+            return response()->json([
+                'value' => true,
+                'message' => 'FCM token stored successfully',
+            ], 201);
+
+        } catch (QueryException $e) {
+            // Check for duplicate token error
+            if ($e->errorInfo[1] == 1062) {
+                // Log the duplicate token error
+                Log::error('Duplicate FCM token error.', [
+                    'doctor_id' => $request->doctor_id,
+                    'token' => $request->token,
+                ]);
+
+                // Return error response for duplicate token
+                return response()->json([
+                    'value' => false,
+                    'message' => 'The FCM token already exists.',
+                ], 409);
+            }
+
+            // Log any other database errors
+            Log::error('Database error while storing FCM token.', [
+                'message' => $e->getMessage(),
+                'doctor_id' => $request->doctor_id,
+                'token' => $request->token,
+            ]);
+
+            // Return general error response
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to store FCM token. Please try again later.',
+            ], 500);
+        } catch (\Exception $e) {
+            // Log any other exceptions that occur
+            Log::error('Exception occurred while storing FCM token.', [
+                'message' => $e->getMessage(),
+                'doctor_id' => $request->doctor_id,
+                'token' => $request->token,
+            ]);
+
+            // Return general error response
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to store FCM token. Please try again later.',
+            ], 500);
+        }
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index()
     {
         try {
-            $notifications = Notification::latest()->get();
+            $notifications = AppNotification::latest()->get();
             $unreadCount = $notifications->where('read', false)->count();
 
             $response = [
@@ -65,7 +197,7 @@ class NotificationController extends Controller
             $today = Carbon::today();
 
             // Fetch today's records
-            $todayRecords = Notification::where('doctor_id', $doctorId)
+            $todayRecords = AppNotification::where('doctor_id', $doctorId)
                 ->whereDate('created_at', $today)
                 ->with([
                     'patient' => function ($query) {
@@ -116,7 +248,7 @@ class NotificationController extends Controller
             });
 
             // Fetch recent records
-            $recentRecords = Notification::where('doctor_id', $doctorId)
+            $recentRecords = AppNotification::where('doctor_id', $doctorId)
                 ->whereDate('created_at', '<', $today)
                 ->with([
                     'patient' => function ($query) {
@@ -175,7 +307,7 @@ class NotificationController extends Controller
 
 
             // Count unread notifications
-            $unreadCount = Notification::where('doctor_id', $doctorId)->where('read', false)->count();
+            $unreadCount = AppNotification::where('doctor_id', $doctorId)->where('read', false)->count();
 
             // Prepare response
             $response = [
@@ -188,7 +320,7 @@ class NotificationController extends Controller
             // Log successful response
             Log::info('Successfully fetched new notifications.', ['doctor_id' => $doctorId]);
 
-            Notification::where('doctor_id', $doctorId)->update(['read' => true]);
+            AppNotification::where('doctor_id', $doctorId)->update(['read' => true]);
 
             return response()->json($response, 200);
 

@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreOutcomeRequest;
 use App\Http\Requests\UpdateOutcomeRequest;
-use App\Models\Notification;
+use App\Models\AppNotification;
 use App\Models\Outcome;
 use App\Models\PatientHistory;
 use App\Models\Score;
@@ -96,7 +96,7 @@ class OutcomeController extends Controller
             $patientDoctor = PatientHistory::where('id', $patientId)->first();
             $doctorId = ($patientDoctor->doctor_id == $doctorId) ? 'No need to send notification' : $patientDoctor->doctor_id;
             if ($doctorId != 'No need to send notification') {
-                Notification::create([
+                AppNotification::create([
                     'content' => 'Outcome was created',
                     'read' => false,
                     'type' => 'Outcome',

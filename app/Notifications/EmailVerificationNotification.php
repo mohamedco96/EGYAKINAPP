@@ -46,7 +46,7 @@ class EmailVerificationNotification extends Notification
     {
         /*return (new MailMessage)
                     ->line('The introduction to the notification.')
-                    ->action('Notification Action', url('/'))
+                    ->action('AppNotification Action', url('/'))
                     ->line('Thank you for using our application!');*/
 
         $otp = $this->otp->generate($notifiable->email,'numeric',4,10);

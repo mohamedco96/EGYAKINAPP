@@ -5,7 +5,7 @@ namespace Database\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Notification>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\AppNotification>
  */
 class NotificationFactory extends Factory
 {

@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreCommentRequest;
 use App\Http\Requests\UpdateCommentRequest;
 use App\Models\Comment;
-use App\Models\Notification;
+use App\Models\AppNotification;
 use App\Models\Patients;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -75,7 +75,7 @@ class CommentController extends Controller
         // Check if the authenticated user is not the patient's doctor
         if ($patientDoctorId !== $doctorID) {
             // Send notification to the patient's doctor
-            Notification::create([
+            AppNotification::create([
                 'content' => 'New comment was created',
                 'read' => false,
                 'type' => 'Comment',

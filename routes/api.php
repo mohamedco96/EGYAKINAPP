@@ -33,6 +33,8 @@ Route::post('/chat', 'ChatController@chat');
 
 
 Route::post('/send-notification', 'NotificationController@send');
+Route::post('/storeFCM', 'NotificationController@storeFCM');
+
 
 //Settings
 Route::get('/settings', 'SettingsController@index');
@@ -135,7 +137,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/Postcomments/{id}', 'PostCommentsController@update');
     Route::delete('/Postcomments/{id}', 'PostCommentsController@destroy');
 
-    //Notification
+    //AppNotification
     //Route::get('/notification','NotificationController@index');
     Route::post('/notification', 'NotificationController@store');
     Route::get('/notification', 'NotificationController@show');

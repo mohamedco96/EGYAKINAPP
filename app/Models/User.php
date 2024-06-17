@@ -182,7 +182,7 @@ class User extends Authenticatable
 
     public function notification()
     {
-        return $this->hasMany(Notification::class, 'doctor_id');
+        return $this->hasMany(AppNotification::class, 'doctor_id');
     }
 
     public function achievements(): \Illuminate\Database\Eloquent\Relations\HasMany

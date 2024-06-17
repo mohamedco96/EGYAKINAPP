@@ -3,7 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\NotificationResource\Pages;
-use App\Models\Notification;
+use App\Models\AppNotification;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -15,7 +15,7 @@ use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class NotificationResource extends Resource
 {
-    protected static ?string $model = Notification::class;
+    protected static ?string $model = AppNotification::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 

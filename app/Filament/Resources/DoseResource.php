@@ -7,6 +7,7 @@ use App\Filament\Resources\DoseResource\RelationManagers;
 use App\Models\Dose;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -37,13 +38,49 @@ class DoseResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('title')->required(),
-                //Forms\Components\TextInput::make('description'),
-                Forms\Components\Textarea::make('description')
-                    ->extraAttributes(['rows' => 6]),
-                Forms\Components\Textarea::make('dose')
-                    ->extraAttributes(['rows' => 6]),
-                //Forms\Components\TextInput::make('dose')->required(),
+                Forms\Components\TextInput::make('title')
+                    ->label('Title')
+                    ->required(),
+
+                Forms\Components\FieldSet::make()
+                    ->label('Description')
+                    ->schema([
+                        RichEditor::make('description')->toolbarButtons([
+                            'blockquote',
+                            'bold',
+                            'bulletList',
+                            'codeBlock',
+                            'h2',
+                            'h3',
+                            'italic',
+                            'orderedList',
+                            'redo',
+                            'strike',
+                            'underline',
+                            'undo',
+                        ]),
+                    ]),
+
+                Forms\Components\FieldSet::make()
+                    ->label('Dose')
+                    ->schema([
+                        RichEditor::make('dose')
+                            ->required()
+                            ->toolbarButtons([
+                                'blockquote',
+                                'bold',
+                                'bulletList',
+                                'codeBlock',
+                                'h2',
+                                'h3',
+                                'italic',
+                                'orderedList',
+                                'redo',
+                                'strike',
+                                'underline',
+                                'undo',
+                            ]),
+                    ]),
             ]);
     }
 

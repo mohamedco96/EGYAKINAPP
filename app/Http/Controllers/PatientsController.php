@@ -11,7 +11,7 @@ use App\Models\Score;
 use App\Models\ScoreHistory;
 use App\Models\User;
 use App\Models\Answers;
-use App\Models\Notification;
+use App\Models\AppNotification;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
@@ -121,7 +121,7 @@ class PatientsController extends Controller
             $isVerified = (bool)$user->email_verified_at;
 
             // Get unread notification count
-            $unreadCount = Notification::where('doctor_id', $user->id)
+            $unreadCount = AppNotification::where('doctor_id', $user->id)
                 ->where('read', false)->count();
 
             //get SyndicateCard value
@@ -440,7 +440,7 @@ class PatientsController extends Controller
             // Notifying other doctors
             $doctorIds = User::whereNotIn('id', [$doctor_id])->pluck('id');
             foreach ($doctorIds as $otherDoctorId) {
-                Notification::create([
+                AppNotification::create([
                     'content' => 'New Patient was created',
                     'read' => false,
                     'type' => 'New Patient',
@@ -762,6 +762,9 @@ class PatientsController extends Controller
     {
         //return 'test';
         try {
+            $dose = Dose::select('id', 'title', 'description', 'dose', 'created_at')
+                ->where('title', 'like', '%' . $name . '%');
+
             $patients = Patients::select('id', 'doctor_id', 'updated_at')
                 ->where('hidden', false)
                 ->where(function ($query) use ($name) {
@@ -772,7 +775,6 @@ class PatientsController extends Controller
                         ->orWhereHas('answers', function ($query) use ($name) {
                             $query->where('answer', 'like', '%' . $name . '%');
                         });
-
                 })
                 ->with(['doctor' => function ($query) {
                     $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');

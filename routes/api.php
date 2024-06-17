@@ -144,6 +144,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/notification', 'NotificationController@markAllAsRead');
     Route::delete('/notification/{id}', 'NotificationController@destroy');
 
+    //Dose
+    Route::get('/dose', 'DoseController@index');
+    Route::post('/dose', 'DoseController@store');
+    Route::get('/dose/{id}', 'DoseController@show');
+    Route::put('/dose/{id}', 'DoseController@update');
+    Route::delete('/dose/{id}', 'DoseController@destroy');
+
     //Achievement
     Route::get('/achievement', 'AchievementController@index');
     Route::post('/achievement', 'AchievementController@store');

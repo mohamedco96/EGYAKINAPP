@@ -76,7 +76,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/submitStatus/{patient_id}', 'SectionsController@updateFinalSubmit');
     Route::get('/showSections/{patient_id}', 'SectionsController@showSections');
     Route::delete('/patient/{id}', 'PatientsController@destroyPatient');
-    Route::get('/searchNew/{name}', 'PatientsController@searchNew');
+    Route::post('/searchNew', 'PatientsController@searchNew');
     Route::get('/homeNew', 'PatientsController@homeGetAllData');
     Route::get('/currentPatientsNew', 'PatientsController@doctorPatientGet');
     Route::get('/allPatientsNew', 'PatientsController@doctorPatientGetAll');

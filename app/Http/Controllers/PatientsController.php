@@ -759,37 +759,44 @@ class PatientsController extends Controller
 
     }
 
-    public function searchNew($name)
+    public function searchNew(Request $request)
     {
-        //return 'test';
         try {
-            $dose = Dose::select('id', 'title', 'description', 'dose', 'created_at')
-                ->where('title', 'like', '%' . $name . '%');
+            // Validate the incoming request data
+            $request->validate([
+                'dose' => 'nullable|string|max:255',
+                'patient' => 'nullable|string|max:255',
+            ]);
 
-            $patients = Patients::select('id', 'doctor_id', 'updated_at')
-                ->where('hidden', false)
-                ->where(function ($query) use ($name) {
-                    $query
-                        ->WhereHas('doctor', function ($query) use ($name) {
-                            $query->where('name', 'like', '%' . $name . '%');
-                        })
-                        ->orWhereHas('answers', function ($query) use ($name) {
-                            $query->where('answer', 'like', '%' . $name . '%');
-                        });
-                })
-                ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
-                }])
-                ->with(['status' => function ($query) {
-                    $query->select('id', 'patient_id', 'key', 'status');
-                }])
-                ->with(['answers' => function ($query) {
-                    $query->select('id', 'patient_id', 'answer', 'question_id');
-                }])
+            $doseQuery = $request->input('dose', '');
+            $patientQuery = $request->input('patient', '');
+
+            // Retrieve doses
+            $doses = Dose::select('id', 'title', 'description', 'dose', 'created_at')
+                ->where('title', 'like', '%' . $doseQuery . '%')
                 ->latest('updated_at')
                 ->get();
 
-            // Transform the response
+            // Retrieve patients
+            $patients = Patients::select('id', 'doctor_id', 'updated_at')
+                ->where('hidden', false)
+                ->where(function ($query) use ($patientQuery) {
+                    $query->whereHas('doctor', function ($query) use ($patientQuery) {
+                        $query->where('name', 'like', '%' . $patientQuery . '%');
+                    })
+                        ->orWhereHas('answers', function ($query) use ($patientQuery) {
+                            $query->where('answer', 'like', '%' . $patientQuery . '%');
+                        });
+                })
+                ->with([
+                    'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired',
+                    'status:id,patient_id,key,status',
+                    'answers:id,patient_id,answer,question_id'
+                ])
+                ->latest('updated_at')
+                ->get();
+
+            // Transform the patients data
             $transformedPatients = $patients->map(function ($patient) {
                 $submitStatus = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
                 $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
@@ -814,45 +821,54 @@ class PatientsController extends Controller
 
             // Paginate the transformed data
             $currentPage = LengthAwarePaginator::resolveCurrentPage();
-            $slicedData = $transformedPatients->slice(($currentPage - 1) * 10, 10);
-            $transformedPatientsPaginated = new LengthAwarePaginator($slicedData->values(), count($transformedPatients), 10);
+            $perPage = 10;
+            $slicedData = $transformedPatients->slice(($currentPage - 1) * $perPage, $perPage);
+            $transformedPatientsPaginated = new LengthAwarePaginator(
+                $slicedData->values(),
+                count($transformedPatients),
+                $perPage,
+                $currentPage,
+                ['path' => LengthAwarePaginator::resolveCurrentPath()]
+            );
 
-
-            if ($patients->isEmpty()) {
-                // Log no patient found
-                Log::info('No patient was found for the search term.', ['search_term' => $name]);
-
-                $response = [
-                    'value' => false,
-                    'message' => 'No patient was found.',
-                ];
-
-                return response()->json($response, 404);
+            if (empty($patientQuery) && empty($doseQuery)) {
+                Log::info('No search term provided.');
+                return response()->json([
+                    'value' => true,
+                    'data' => [
+                        'patients' => [],
+                        'doses' => [],
+                    ],
+                ], 200);
+            } elseif (empty($patientQuery)) {
+                Log::info('No patient search term provided.');
+                $transformedPatientsPaginated = [];
+            } elseif (empty($doseQuery)) {
+                Log::info('No dose search term provided.');
+                $doses = [];
             }
 
+
             // Log successful search
-            Log::info('Successfully retrieved patients for the search term.', ['search_term' => $name]);
-
-            $data = [$transformedPatientsPaginated,$dose];
-            $response = [
+            Log::info('Successfully retrieved data for the search term.', ['search_term' => $patientQuery]);
+            return response()->json([
                 'value' => true,
-                'data' => $data,
-            ];
+                'data' => [
+                    'patients' => $transformedPatientsPaginated,
+                    'doses' => $doses,
+                ],
+            ], 200);
 
-            return response()->json($response, 200);
         } catch (\Exception $e) {
             // Log error
-            Log::error('Error searching for patients.', ['search_term' => $name, 'exception' => $e]);
+            Log::error('Error searching for data.', ['exception' => $e]);
 
-            $response = [
+            return response()->json([
                 'value' => false,
-                'message' => 'Failed to search for patients.',
-            ];
-            // Return error response
-            return response()->json($response, 500);
+                'message' => 'Failed to search for data.',
+            ], 500);
         }
     }
-
     public function generatePatientPDF($patient_id)
     {
         try {

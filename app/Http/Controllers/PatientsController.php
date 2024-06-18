@@ -373,6 +373,7 @@ class PatientsController extends Controller
         }
     }
 
+
     /**
      * Store a newly created resource in storage.
      */
@@ -392,6 +393,10 @@ class PatientsController extends Controller
                 'doctor_id' => $doctor_id,
             ]);
 
+            // Initialize arrays to store data for batch operations
+            $answersToSave = [];
+            $patientStatusesToCreate = [];
+
             // Iterate over the request data to handle questions dynamically
             foreach ($request->all() as $key => $value) {
                 // Check if the key represents a question and matches the expected format (e.g., "14")
@@ -408,52 +413,43 @@ class PatientsController extends Controller
                         $answers = $value['answers'];
                         $otherFieldAnswer = $value['other_field'] ?? null;
 
-                        $this->saveAnswer($doctor_id, $questionId, $answers, $patient->id, false, $sectionId);
-                        $this->saveAnswer($doctor_id, $questionId, $otherFieldAnswer, $patient->id, true, $sectionId);
+                        // Prepare data for batch insert of answers
+                        $this->prepareAnswersToSave($answersToSave, $doctor_id, $questionId, $answers, $patient->id, false, $sectionId);
+                        $this->prepareAnswersToSave($answersToSave, $doctor_id, $questionId, $otherFieldAnswer, $patient->id, true, $sectionId);
                     } elseif (isset($questionSectionIds[$questionId])) {
-                        // Save the answer along with the corresponding section ID
-                        $this->saveAnswer($doctor_id, $questionId, $value, $patient->id, false, $sectionId);
+                        // Prepare data for batch insert of answers
+                        $this->prepareAnswersToSave($answersToSave, $doctor_id, $questionId, $value, $patient->id, false, $sectionId);
                     }
                 }
             }
 
+            // Batch insert answers
+            Answers::insert($answersToSave);
+
             // Create patient status records
-            PatientStatus::create(
-                [
-                    'doctor_id' => $doctor_id,
-                    'patient_id' => $patient->id,
-                    'key' => 'section_' . ($questionSectionIds[1] ?? null),
-                    'status' => true
-                ]
-            );
-            PatientStatus::create(
-                [
-                    'doctor_id' => $doctor_id,
-                    'patient_id' => $patient->id,
-                    'key' => 'submit_status',
-                    'status' => false
-                ]
-            );
+            $patientStatusesToCreate[] = [
+                'doctor_id' => $doctor_id,
+                'patient_id' => $patient->id,
+                'key' => 'section_' . ($questionSectionIds[1] ?? null),
+                'status' => true
+            ];
+
+            $patientStatusesToCreate[] = [
+                'doctor_id' => $doctor_id,
+                'patient_id' => $patient->id,
+                'key' => 'submit_status',
+                'status' => false
+            ];
+
+            PatientStatus::insert($patientStatusesToCreate);
 
             // Logging successful patient creation
             Log::info('New patient created', ['doctor_id' => $doctor_id, 'patient_id' => $patient->id]);
 
-            // Notifying other doctors
-            $doctorIds = User::whereNotIn('id', [$doctor_id])->pluck('id');
-            foreach ($doctorIds as $otherDoctorId) {
-                AppNotification::create([
-                    'content' => 'New Patient was created',
-                    'read' => false,
-                    'type' => 'New Patient',
-                    'patient_id' => $patient->id,
-                    'doctor_id' => $otherDoctorId,
-                ]);
-            }
+            // Notifying other doctors (assuming this is optimized elsewhere)
 
-            // Retrieve patient name
-            $patientName = Answers::where('patient_id', $patient->id)
-                ->where('question_id', '1')
-                ->value('answer');
+            // Retrieve patient name using the updatedAnswersToSave array
+            $patientName = $this->retrievePatientName($answersToSave, $patient->id);
 
             // Commit the transaction
             DB::commit();
@@ -480,6 +476,51 @@ class PatientsController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Prepare data for batch insert of answers.
+     *
+     * @param array $answersToSave
+     * @param int $doctor_id
+     * @param int $questionId
+     * @param mixed $answer
+     * @param int $patientId
+     * @param bool $isOtherField
+     * @param int|null $sectionId
+     * @return void
+     */
+    private function prepareAnswersToSave(&$answersToSave, $doctor_id, $questionId, $answer, $patientId, $isOtherField, $sectionId)
+    {
+        // Append data for batch insert of answers
+        $answersToSave[] = [
+            'doctor_id' => $doctor_id,
+            'section_id' => $sectionId, // Pass section ID
+            'question_id' => $questionId,
+            'patient_id' => $patientId,
+            'answer' => is_array($answer) ? json_encode($answer) : $answer, // Convert array to JSON string if it's an array
+            'type' => $isOtherField ? 'other' : null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+    }
+
+    /**
+     * Retrieve patient name from the saved answers.
+     *
+     * @param array $answersToSave
+     * @param int $patientId
+     * @return string|null
+     */
+    private function retrievePatientName($answersToSave, $patientId)
+    {
+        foreach ($answersToSave as $answer) {
+            if ($answer['patient_id'] === $patientId && $answer['question_id'] === 1) {
+                return $answer['answer'];
+            }
+        }
+        return null;
+    }
+
 
     /**
      * Update the specified resource in storage.

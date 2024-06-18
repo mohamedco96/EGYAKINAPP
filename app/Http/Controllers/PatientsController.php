@@ -50,7 +50,7 @@ class PatientsController extends Controller
             $filename = $file->getClientOriginalName();
 
             // Store the file in the storage/app/uploads directory
-            $path = $file->storeAs('uploads', random_int(500,10000000000) .'_'. $filename, 'public');
+            $path = $file->storeAs('reports', random_int(500,10000000000) .'_'. $filename, 'public');
 
             // Get the full URL of the uploaded file
             $relativePath = 'storage/' . $path;

@@ -458,7 +458,7 @@ class PatientsController extends Controller
                 'value' => true,
                 'doctor_id' => $doctor_id,
                 'id' => $patient->id,
-                'name' => $patientName,
+                'name' => $patientName, // Remove additional quotes
                 'submit_status' => false,
                 'message' => 'Patient Created Successfully',
             ];
@@ -491,13 +491,16 @@ class PatientsController extends Controller
      */
     private function prepareAnswersToSave(&$answersToSave, $doctor_id, $questionId, $answer, $patientId, $isOtherField, $sectionId)
     {
+        // Ensure the answer is wrapped in double quotes for storage
+        $answerText = is_array($answer) ? json_encode($answer) : '"' . addslashes($answer) . '"';
+
         // Append data for batch insert of answers
         $answersToSave[] = [
             'doctor_id' => $doctor_id,
             'section_id' => $sectionId, // Pass section ID
             'question_id' => $questionId,
             'patient_id' => $patientId,
-            'answer' => is_array($answer) ? json_encode($answer) : $answer, // Convert array to JSON string if it's an array
+            'answer' => $answerText, // Ensure answer is wrapped in double quotes
             'type' => $isOtherField ? 'other' : null,
             'created_at' => now(),
             'updated_at' => now(),
@@ -515,7 +518,8 @@ class PatientsController extends Controller
     {
         foreach ($answersToSave as $answer) {
             if ($answer['patient_id'] === $patientId && $answer['question_id'] === 1) {
-                return $answer['answer'];
+                // Remove extra quotes from the name
+                return stripslashes(trim($answer['answer'], '"'));
             }
         }
         return null;

@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use PDF;
 
+
 class PatientsController extends Controller
 {
     protected $Patients;
@@ -30,6 +31,47 @@ class PatientsController extends Controller
         $this->Patients = $Patients;
     }
 
+    /**
+     * Handle the file upload.
+     */
+    public function uploadFile(Request $request)
+    {
+        // Validate the request
+        $request->validate([
+            //'file' => 'required|mimes:jpg,jpeg,png,pdf|max:2048', // Example validation
+        ]);
+
+        // Check if the request has a file
+        if ($request->hasFile('file')) {
+            // Get the file
+            $file = $request->file('file');
+
+            // Get the original filename
+            $filename = $file->getClientOriginalName();
+
+            // Store the file in the storage/app/uploads directory
+            $path = $file->storeAs('uploads', random_int(500,10000000000) .'_'. $filename);
+
+            // Get the full URL of the uploaded file
+            $fullPath = Storage::url($path);
+
+            // Store file path in database if necessary
+            // Example: File::create(['path' => $path]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'File uploaded successfully.',
+                'file' => $filename,
+                'path' => $path,
+                'full_path' => $fullPath,
+            ], 200);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Please select a file to upload.',
+        ], 400);
+    }
 
     /**
      * Display a listing of the resource.
@@ -914,6 +956,7 @@ class PatientsController extends Controller
             ], 500);
         }
     }
+
     public function generatePatientPDF($patient_id)
     {
         try {

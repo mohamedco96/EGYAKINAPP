@@ -50,10 +50,12 @@ class PatientsController extends Controller
             $filename = $file->getClientOriginalName();
 
             // Store the file in the storage/app/uploads directory
-            $path = $file->storeAs('uploads', random_int(500,10000000000) .'_'. $filename);
+            $path = $file->storeAs('uploads', random_int(500,10000000000) .'_'. $filename, 'public');
 
             // Get the full URL of the uploaded file
-            $fullPath = Storage::url($path);
+            $relativePath = 'storage/' . $path;
+
+            $fileUrl = config('app.url') . '/' . 'storage/' . $path;
 
             // Store file path in database if necessary
             // Example: File::create(['path' => $path]);
@@ -63,7 +65,7 @@ class PatientsController extends Controller
                 'message' => 'File uploaded successfully.',
                 'file' => $filename,
                 'path' => $path,
-                'full_path' => $fullPath,
+                'full_path' => $fileUrl,
             ], 200);
         }
 

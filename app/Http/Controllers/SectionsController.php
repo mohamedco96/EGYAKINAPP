@@ -96,23 +96,18 @@ class SectionsController extends Controller
                 ], 404);
             }
 
-            $patient = Patients::find($patient_id); // Retrieve the patient from the database
-            if (!$patient) {
-                return response()->json([
-                    'value' => false,
-                    'message' => "Patient not found",
-                ], 404);
-            }
-
-            $data = [];
-
             // Fetch questions dynamically based on section_id
             $questions = Questions::where('section_id', $section_id)
                 ->orderBy('id')
                 ->get();
 
             // Fetch all answers for the patient in one query
-            $answers = Answers::where('patient_id', $patient_id)->get();
+            $answers = Answers::where('patient_id', $patient_id)
+                ->whereIn('question_id', $questions->pluck('id'))
+                ->get();
+
+            // Initialize data array to store questions and answers
+            $data = [];
 
             foreach ($questions as $question) {
                 // Skip questions with certain IDs
@@ -134,23 +129,15 @@ class SectionsController extends Controller
                 // Find the answer for this question from the fetched answers
                 $answer = $answers->where('question_id', $question->id)->first();
 
-                // Get the IDs of questions of type 'multiple'
-                $multipleQuestionIds = $questions->filter(function ($question) {
-                    return $question->type === 'multiple';
-                })->pluck('id')->toArray();
-
-                $multipleQuestionAnswers = Answers::whereIn('question_id', $multipleQuestionIds)
-                    ->where('patient_id', $patient_id)
-                    ->get();
-
                 if ($question->type === 'multiple') {
                     // Initialize the answer array
                     $questionData['answer'] = [
                         'answers' => [], // Initialize answers as an empty array
                         'other_field' => null // Set other_field to null by default
                     ];
+
                     // Find answers for this question from the fetched answers
-                    $questionAnswers = $multipleQuestionAnswers->where('question_id', $question->id);
+                    $questionAnswers = $answers->where('question_id', $question->id);
 
                     // Populate the answers array
                     foreach ($questionAnswers as $answer) {

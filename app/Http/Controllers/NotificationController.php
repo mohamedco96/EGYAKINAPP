@@ -6,6 +6,7 @@ use App\Models\AppNotification;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Contract\Messaging as FirebaseMessaging;
 use Kreait\Firebase\Messaging\CloudMessage;
@@ -99,6 +100,8 @@ class NotificationController extends Controller
      */
     public function storeFCM(Request $request)
     {
+        $doctorId = Auth::id();
+
         // Validate the request
         $request->validate([
             //'doctor_id' => 'required|exists:users,id',
@@ -108,13 +111,13 @@ class NotificationController extends Controller
         try {
             // Attempt to create a new FCM token
             $fcmToken = FcmToken::create([
-                'doctor_id' => $request->doctor_id,
+                'doctor_id' => $doctorId,
                 'token' => $request->token,
             ]);
 
             // Log the successful token storage
             Log::info('FCM token stored successfully.', [
-                'doctor_id' => $request->doctor_id,
+                'doctor_id' => $doctorId,
                 'token' => $request->token,
             ]);
 
@@ -129,7 +132,7 @@ class NotificationController extends Controller
             if ($e->errorInfo[1] == 1062) {
                 // Log the duplicate token error
                 Log::error('Duplicate FCM token error.', [
-                    'doctor_id' => $request->doctor_id,
+                    'doctor_id' => $doctorId,
                     'token' => $request->token,
                 ]);
 
@@ -143,7 +146,7 @@ class NotificationController extends Controller
             // Log any other database errors
             Log::error('Database error while storing FCM token.', [
                 'message' => $e->getMessage(),
-                'doctor_id' => $request->doctor_id,
+                'doctor_id' => $doctorId,
                 'token' => $request->token,
             ]);
 
@@ -156,7 +159,7 @@ class NotificationController extends Controller
             // Log any other exceptions that occur
             Log::error('Exception occurred while storing FCM token.', [
                 'message' => $e->getMessage(),
-                'doctor_id' => $request->doctor_id,
+                'doctor_id' => $doctorId,
                 'token' => $request->token,
             ]);
 

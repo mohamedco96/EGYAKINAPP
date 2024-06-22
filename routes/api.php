@@ -33,7 +33,6 @@ Route::post('/chat', 'ChatController@chat');
 
 
 Route::post('/send-notification', 'NotificationController@send');
-Route::post('/storeFCM', 'NotificationController@storeFCM');
 
 
 //Settings
@@ -61,6 +60,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/emailverification', 'EmailVerificationController@email_verification');
     Route::post('/sendverificationmail', 'EmailVerificationController@sendEmailVerification');
     Route::post('/resendemailverification', 'EmailVerificationController@sendEmailVerification');
+    Route::post('/storeFCM', 'NotificationController@storeFCM');
+
 
     //Role & Permission
     Route::post('/role', 'AuthController@roletest');

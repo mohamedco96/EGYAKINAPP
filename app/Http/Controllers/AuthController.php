@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FcmToken;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -41,18 +42,6 @@ class AuthController extends Controller
             'registration_number' => 'required|string',
         ]);
 
-        //$image = $request->file('image');
-
-        // Generate a unique file name using the original file name and a timestamp
-        //$fileName = time() . '_' . $image->getClientOriginalName();
-
-        // Store the image in the specified directory with the generated file name
-        //$path = $image->storeAs('profile_images', $fileName, 'public');
-
-        // Construct the full URL by appending the relative path to the APP_URL
-        //$imageUrl = config('app.url') . '/' . 'storage/app/public/' . $path;
-
-
         $user = User::create([
             'name' => $fields['name'],
             'lname' => $fields['lname'],
@@ -76,6 +65,25 @@ class AuthController extends Controller
             //'image' => $imageUrl,
             'token' => $token,
         ];
+
+        if($request->has('token')){
+            $existingToken = FcmToken::where('token', $request->token)->first();
+
+            if (!$existingToken) {
+                // Attempt to create a new FCM token
+                FcmToken::create([
+                    'doctor_id' => $user->id,
+                    'token' => $request->token,
+                ]);
+
+                // Log the successful token storage
+                Log::info('FCM token stored successfully.', [
+                    'doctor_id' => $user->id,
+                    'token' => $request->token,
+                ]);
+            }
+        }
+
 
         return response($response, 200);
     }
@@ -109,6 +117,24 @@ class AuthController extends Controller
                 'data' => $user,
                 'token' => $token,
             ];
+
+            if($request->has('token')){
+                $existingToken = FcmToken::where('token', $request->token)->first();
+
+                if (!$existingToken) {
+                    // Attempt to create a new FCM token
+                    FcmToken::create([
+                        'doctor_id' => $user->id,
+                        'token' => $request->token,
+                    ]);
+
+                    // Log the successful token storage
+                    Log::info('FCM token stored successfully.', [
+                        'doctor_id' => $user->id,
+                        'token' => $request->token,
+                    ]);
+                }
+            }
 
             return response($response, 200);
         }

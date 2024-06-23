@@ -66,20 +66,20 @@ class AuthController extends Controller
             'token' => $token,
         ];
 
-        if($request->has('token')){
-            $existingToken = FcmToken::where('token', $request->token)->first();
+        if($request->has('fcmToken')){
+            $existingToken = FcmToken::where('token', $request->fcmToken)->first();
 
             if (!$existingToken) {
                 // Attempt to create a new FCM token
                 FcmToken::create([
                     'doctor_id' => $user->id,
-                    'token' => $request->token,
+                    'token' => $request->fcmToken,
                 ]);
 
                 // Log the successful token storage
                 Log::info('FCM token stored successfully.', [
                     'doctor_id' => $user->id,
-                    'token' => $request->token,
+                    'token' => $request->fcmToken,
                 ]);
             }
         }
@@ -118,20 +118,20 @@ class AuthController extends Controller
                 'token' => $token,
             ];
 
-            if($request->has('token')){
-                $existingToken = FcmToken::where('token', $request->token)->first();
+            if($request->has('fcmToken')){
+                $existingToken = FcmToken::where('token', $request->fcmToken)->first();
 
                 if (!$existingToken) {
                     // Attempt to create a new FCM token
                     FcmToken::create([
                         'doctor_id' => $user->id,
-                        'token' => $request->token,
+                        'token' => $request->fcmToken,
                     ]);
 
                     // Log the successful token storage
                     Log::info('FCM token stored successfully.', [
                         'doctor_id' => $user->id,
-                        'token' => $request->token,
+                        'token' => $request->fcmToken,
                     ]);
                 }
             }

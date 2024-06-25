@@ -1,10 +1,11 @@
 <?php
 
-use App\Http\controllers\AuthController;
-use App\Http\controllers\PatientHistoryController;
-use App\Http\controllers\ProductController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PatientHistoryController;
+use App\Http\Controllers\ProductController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Log;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,11 +18,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-//Route::apiresource('PatientHistory',PatientHistoryController::class);
-
-//Public routes
-//Route::get('/products/search/{name}',[ProductController::class,'search']);
-
+// Public routes
 Route::post('/register', 'AuthController@register');
 Route::post('/login', 'AuthController@login');
 Route::post('/forgotpassword', 'ForgetPasswordController@forgotPassword');
@@ -30,26 +27,23 @@ Route::post('/resetpassword', 'ResetPasswordController@resetpassword');
 
 Route::get('/userPatient', 'AuthController@userPatient');
 
-
 Route::post('/send-notification', 'NotificationController@send');
 
-
-//Settings
+// Settings
 Route::get('/settings', 'SettingsController@index');
 Route::post('/settings', 'SettingsController@store');
 Route::get('/settings/{id}', 'SettingsController@show');
 Route::put('/settings/{id}', 'SettingsController@update');
 Route::delete('/settings/{id}', 'SettingsController@destroy');
 
-//protected routes
+// Protected routes
 Route::group(['middleware' => ['auth:sanctum']], function () {
-
-    //Users
+    // Users
     Route::get('/users', 'AuthController@index');
     Route::get('/users/{id}', 'AuthController@show');
     Route::get('/showAnotherProfile/{id}', 'AuthController@showAnotherProfile');
     Route::get('/doctorProfileGetPatients/{id}', 'AuthController@doctorProfileGetPatients');
-    Route::get('/doctorProfileGetScoreHistory/{id}', 'AuthController@doctorProfileGetScoreHistory');
+    Route::get('/doctorProfileGetScoreHistory', 'AuthController@doctorProfileGetScoreHistory');
     Route::put('/users', 'AuthController@update');
     Route::delete('/users/{id}', 'AuthController@destroy');
     Route::post('/logout', 'AuthController@logout');
@@ -61,14 +55,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/resendemailverification', 'EmailVerificationController@sendEmailVerification');
     Route::post('/storeFCM', 'NotificationController@storeFCM');
 
-
-    //Role & Permission
+    // Role & Permission
     Route::post('/role', 'AuthController@roletest');
     Route::post('/createRoleAndPermission', 'RolePermissionController@createRoleAndPermission');
     Route::post('/assignRoleToUser', 'RolePermissionController@assignRoleToUser');
     Route::post('/checkPermission', 'RolePermissionController@checkRoleAndPermission');
 
-    //Patient
+    // Patient
     Route::post('/patient', 'PatientsController@storePatient');
     Route::get('/patient/{section_id}/{patient_id}', 'SectionsController@showQuestionsAnswers');
     Route::put('/patientsection/{patient_id}', 'PatientsController@updateFinalSubmit');
@@ -84,8 +77,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/generatePDF/{patient_id}', 'PatientsController@generatePatientPDF');
     Route::post('/uploadFile', 'PatientsController@uploadFile');
 
-
-    //Questions
+    // Questions
     Route::get('/questions', 'QuestionsController@index');
     Route::post('/questions', 'QuestionsController@store');
     Route::get('/questions/{section_id}', 'QuestionsController@show');
@@ -93,53 +85,35 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/questions/{id}', 'QuestionsController@update');
     Route::delete('/questions/{id}', 'QuestionsController@destroy');
 
-//    //Section
-//    Route::get('/section', 'SectionController@index');
-//    Route::get('/section/{patient_id}', 'SectionController@show');
-//    Route::delete('/section/{id}', 'SectionController@destroy');
-//    Route::put('/section/{patient_id}', 'SectionController@updateFinalSubmit');
-//    Route::put('/section/{section_id}/{patient_id}', 'SectionController@update');
-
-    //Comment
+    // Comment
     Route::get('/comment', 'CommentController@index');
     Route::post('/comment', 'CommentController@store');
     Route::get('/comment/{patient_id}', 'CommentController@show');
     Route::put('/comment/{patient_id}', 'CommentController@update');
     Route::delete('/comment/{patient_id}', 'CommentController@destroy');
-//    Route::post('/like', 'LikesController@like');
-//    Route::post('/unlike', 'LikesController@unlike');
 
-    //contact
+    // Contact
     Route::get('/contact', 'ContactController@index');
     Route::post('/contact', 'ContactController@store');
     Route::get('/contact/{id}', 'ContactController@show');
     Route::put('/contact/{id}', 'ContactController@update');
     Route::delete('/contact/{id}', 'ContactController@destroy');
 
-
-//    //Outcome
-//    Route::get('/outcome', 'OutcomeController@index');
-//    Route::post('/outcome', 'OutcomeController@store');
-//    Route::get('/outcome/{patient_id}', 'OutcomeController@show');
-//    Route::put('/outcome/{patient_id}', 'OutcomeController@update');
-//    Route::delete('/outcome/{patient_id}', 'OutcomeController@destroy');
-
-    //Post
+    // Post
     Route::get('/post', 'PostsController@index');
     Route::post('/post', 'PostsController@store');
     Route::get('/post/{id}', 'PostsController@show');
     Route::put('/post/{id}', 'PostsController@update');
     Route::delete('/post/{id}', 'PostsController@destroy');
 
-    //PostComments
+    // PostComments
     Route::get('/Postcomments', 'PostCommentsController@index');
     Route::post('/Postcomments', 'PostCommentsController@store');
     Route::get('/Postcomments/{id}', 'PostCommentsController@show');
     Route::put('/Postcomments/{id}', 'PostCommentsController@update');
     Route::delete('/Postcomments/{id}', 'PostCommentsController@destroy');
 
-    //AppNotification
-    //Route::get('/notification','NotificationController@index');
+    // AppNotification
     Route::post('/notification', 'NotificationController@store');
     Route::get('/notification', 'NotificationController@show');
     Route::get('/shownotification', 'NotificationController@showNew');
@@ -147,14 +121,14 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/notification', 'NotificationController@markAllAsRead');
     Route::delete('/notification/{id}', 'NotificationController@destroy');
 
-    //Dose
+    // Dose
     Route::get('/dose', 'DoseController@index');
     Route::post('/dose', 'DoseController@store');
     Route::get('/dose/{id}', 'DoseController@show');
     Route::put('/dose/{id}', 'DoseController@update');
     Route::delete('/dose/{id}', 'DoseController@destroy');
 
-    //Achievement
+    // Achievement
     Route::get('/achievement', 'AchievementController@index');
     Route::post('/achievement', 'AchievementController@store');
     Route::get('/achievement/{id}', 'AchievementController@show');

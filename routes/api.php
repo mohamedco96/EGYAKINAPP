@@ -25,6 +25,8 @@ Route::post('/forgotpassword', 'ForgetPasswordController@forgotPassword');
 Route::post('/resetpasswordverification', 'ResetPasswordController@resetpasswordverification');
 Route::post('/resetpassword', 'ResetPasswordController@resetpassword');
 
+Route::get('/generatePDF/{patient_id}', 'PatientsController@generatePatientPDF');
+
 Route::get('/userPatient', 'AuthController@userPatient');
 
 Route::post('/send-notification', 'NotificationController@send');
@@ -74,7 +76,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/currentPatientsNew', 'PatientsController@doctorPatientGet');
     Route::get('/allPatientsNew', 'PatientsController@doctorPatientGetAll');
     Route::get('/test', 'PatientsController@test');
-    Route::get('/generatePDF/{patient_id}', 'PatientsController@generatePatientPDF');
+//    Route::get('/generatePDF/{patient_id}', 'PatientsController@generatePatientPDF');
     Route::post('/uploadFile', 'PatientsController@uploadFile');
 
     // Questions

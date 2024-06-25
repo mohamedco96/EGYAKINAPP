@@ -110,7 +110,10 @@
             </div>
         </div>
     </div>
-
+    @php
+        // Debugging the values to ensure they are strings
+        dd($patient->answers);
+    @endphp
 {{--Patient history--}}
     <div class="row">
         <div class="col-md-12">
@@ -184,7 +187,7 @@
                     @endif
                 @endforeach
                 <p>Phone: <strong>{{ $patientPhone ?? 'None' }}</strong> </p>
-                <p>Email: <b>{{ $patientEmail ?? 'None' }}</b> </p>
+                <p>Email: <strong>{{ $patientEmail ?? 'None' }}</strong> </p>
             </div>
         </div>
     </div>
@@ -197,16 +200,13 @@
                     @if($data['section_id'] === 2)
                         <p>Q{{ $data['id'] }}: {{ $data['question'] }}</p>
                         @if($data['type'] === 'multiple')
-                            <p>Answer:</p>
-                            <ul>
+                            <p>Answer:
                                 @foreach($data['answer']['answers'] as $answer)
-                                    <li>
                                         @foreach($answer as $value)
-                                            {{ $value }},
+                                            <strong>{{ $value }}</strong>,
                                         @endforeach
-                                    </li>
                                 @endforeach
-                            </ul>
+                            </p>
                             @if($data['answer']['other_field'])
                                 <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
                             @endif
@@ -232,16 +232,16 @@
                                 @foreach($data['answer']['answers'] as $answer)
                                     <li>
                                         @foreach($answer as $value)
-                                            {{ $value }},
+                                            <strong>{{ $value }}</strong>,
                                         @endforeach
                                     </li>
                                 @endforeach
                             </ul>
                             @if($data['answer']['other_field'])
-                                <p>Other Field: {{ $data['answer']['other_field'] }}</p>
+                                <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
                             @endif
                         @else
-                            <p>Answer: {{ $data['answer'] }}</p>
+                            <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
                         @endif
                     @endif
                 @endforeach
@@ -261,16 +261,16 @@
                                 @foreach($data['answer']['answers'] as $answer)
                                     <li>
                                         @foreach($answer as $value)
-                                            {{ $value }},
+                                            <strong>{{ $value }}</strong>,
                                         @endforeach
                                     </li>
                                 @endforeach
                             </ul>
                             @if($data['answer']['other_field'])
-                                <p>Other Field: {{ $data['answer']['other_field'] }}</p>
+                                <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
                             @endif
                         @else
-                            <p>Answer: {{ $data['answer'] }}</p>
+                            <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
                         @endif
                     @endif
                 @endforeach
@@ -290,16 +290,16 @@
                                 @foreach($data['answer']['answers'] as $answer)
                                     <li>
                                         @foreach($answer as $value)
-                                            {{ $value }},
+                                            <strong>{{ $value }}</strong>,
                                         @endforeach
                                     </li>
                                 @endforeach
                             </ul>
                             @if($data['answer']['other_field'])
-                                <p>Other Field: {{ $data['answer']['other_field'] }}</p>
+                                <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
                             @endif
                         @else
-                            <p>Answer: {{ $data['answer'] }}</p>
+                            <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
                         @endif
                     @endif
                 @endforeach
@@ -319,16 +319,16 @@
                                 @foreach($data['answer']['answers'] as $answer)
                                     <li>
                                         @foreach($answer as $value)
-                                            {{ $value }},
+                                            <strong>{{ $value }}</strong>,
                                         @endforeach
                                     </li>
                                 @endforeach
                             </ul>
                             @if($data['answer']['other_field'])
-                                <p>Other Field: {{ $data['answer']['other_field'] }}</p>
+                                <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</p>
                             @endif
                         @else
-                            <p>Answer: {{ $data['answer'] }}</p>
+                            <p>Answer: <strong>{{ $data['answer'] }}</p>
                         @endif
                     @endif
                 @endforeach
@@ -348,16 +348,16 @@
                                 @foreach($data['answer']['answers'] as $answer)
                                     <li>
                                         @foreach($answer as $value)
-                                            {{ $value }},
+                                            <strong>{{ $value }}</strong>,
                                         @endforeach
                                     </li>
                                 @endforeach
                             </ul>
                             @if($data['answer']['other_field'])
-                                <p>Other Field: {{ $data['answer']['other_field'] }}</p>
+                                <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
                             @endif
                         @else
-                            <p>Answer: {{ $data['answer'] }}</p>
+                            <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
                         @endif
                     @endif
                 @endforeach
@@ -377,16 +377,16 @@
                                 @foreach($data['answer']['answers'] as $answer)
                                     <li>
                                         @foreach($answer as $value)
-                                            {{ $value }},
+                                            <strong>{{ $value }}</strong>,
                                         @endforeach
                                     </li>
                                 @endforeach
                             </ul>
                             @if($data['answer']['other_field'])
-                                <p>Other Field: {{ $data['answer']['other_field'] }}</p>
+                                <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
                             @endif
                         @else
-                            <p>Answer: {{ $data['answer'] }}</p>
+                            <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
                         @endif
                     @endif
                 @endforeach

@@ -29,7 +29,6 @@ Route::post('/resetpasswordverification', 'ResetPasswordController@resetpassword
 Route::post('/resetpassword', 'ResetPasswordController@resetpassword');
 
 Route::get('/userPatient', 'AuthController@userPatient');
-Route::post('/chat', 'ChatController@chat');
 
 
 Route::post('/send-notification', 'NotificationController@send');
@@ -94,12 +93,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/questions/{id}', 'QuestionsController@update');
     Route::delete('/questions/{id}', 'QuestionsController@destroy');
 
-    //Section
-    Route::get('/section', 'SectionController@index');
-    Route::get('/section/{patient_id}', 'SectionController@show');
-    Route::delete('/section/{id}', 'SectionController@destroy');
-    Route::put('/section/{patient_id}', 'SectionController@updateFinalSubmit');
-    Route::put('/section/{section_id}/{patient_id}', 'SectionController@update');
+//    //Section
+//    Route::get('/section', 'SectionController@index');
+//    Route::get('/section/{patient_id}', 'SectionController@show');
+//    Route::delete('/section/{id}', 'SectionController@destroy');
+//    Route::put('/section/{patient_id}', 'SectionController@updateFinalSubmit');
+//    Route::put('/section/{section_id}/{patient_id}', 'SectionController@update');
 
     //Comment
     Route::get('/comment', 'CommentController@index');
@@ -107,8 +106,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/comment/{patient_id}', 'CommentController@show');
     Route::put('/comment/{patient_id}', 'CommentController@update');
     Route::delete('/comment/{patient_id}', 'CommentController@destroy');
-    Route::post('/like', 'LikesController@like');
-    Route::post('/unlike', 'LikesController@unlike');
+//    Route::post('/like', 'LikesController@like');
+//    Route::post('/unlike', 'LikesController@unlike');
 
     //contact
     Route::get('/contact', 'ContactController@index');
@@ -118,12 +117,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::delete('/contact/{id}', 'ContactController@destroy');
 
 
-    //Outcome
-    Route::get('/outcome', 'OutcomeController@index');
-    Route::post('/outcome', 'OutcomeController@store');
-    Route::get('/outcome/{patient_id}', 'OutcomeController@show');
-    Route::put('/outcome/{patient_id}', 'OutcomeController@update');
-    Route::delete('/outcome/{patient_id}', 'OutcomeController@destroy');
+//    //Outcome
+//    Route::get('/outcome', 'OutcomeController@index');
+//    Route::post('/outcome', 'OutcomeController@store');
+//    Route::get('/outcome/{patient_id}', 'OutcomeController@show');
+//    Route::put('/outcome/{patient_id}', 'OutcomeController@update');
+//    Route::delete('/outcome/{patient_id}', 'OutcomeController@destroy');
 
     //Post
     Route::get('/post', 'PostsController@index');

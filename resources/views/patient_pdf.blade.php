@@ -8,6 +8,9 @@
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
+        .strong{
+            color: #0d1116;
+        }
         .section {
             margin-bottom: 30px;
             padding: 20px;
@@ -79,7 +82,7 @@
         <div class="col-md-12">
             <div class="section">
                 <h2>EGYAKIN</h2>
-                <p>Report is generted for Dr.{{ $patient->doctor->name }}</p>
+                <p>Report is generted for Dr.<strong>{{ $patient->doctor->name }}</strong></p>
             </div>
         </div>
     </div>
@@ -91,47 +94,97 @@
                 <h2>Patient Information</h2>
                 @foreach($patient->answers as $answer)
                     @if($answer->question_id === 1)
-                        <p>Patient Name: {{ $answer->answer }}</p>
+                        <p>Patient Name: <strong>{{ $answer->answer }}</strong></p>
                     @endif
                     @if($answer->question_id === 2)
-                        <p>Hospital: {{ $answer->answer }}</p>
+                        <p>Hospital: <strong>{{ $answer->answer }}</strong></p>
                     @endif
                     @if($answer->question_id === 7)
-                        <p>Age: {{ $answer->answer }}</p>
+                        <p>Age: <strong>{{ $answer->answer }}</strong></p>
                     @endif
                     @if($answer->question_id === 8)
-                        <p>Gender: {{ $answer->answer }}</p>
+                        <p>Gender: <strong>{{ $answer->answer }}</strong></p>
                     @endif
                 @endforeach
-                <p>Doctor: Dr.{{ $patient->doctor->name }}</p>
+                <p>Doctor: Dr.<strong>{{ $patient->doctor->name }}</strong></p>
             </div>
         </div>
     </div>
 
-
+{{--Patient history--}}
     <div class="row">
         <div class="col-md-12">
             <div class="section">
                 <h2>Patient History</h2>
-                @php
-                    $question8Answer = '';
-                    $question1Answer = '';
-                    $question7Answer = '';
-                @endphp
+
                 @foreach($patient->answers as $answer)
                     @if($answer->question_id === 1)
-                        <p>Patient ID: {{ $patient->id }}</p>
-                    @endif
-                    @if($answer->question_id === 8)
-                        {{ $answer->answer }} Patient &nbsp;
+                        <p>Patient ID: <strong>{{ $patient->id }}</strong></p>
                     @endif
                     @if($answer->question_id === 1)
-                        Named {{ $answer->answer }} &nbsp;
+                        @php
+                            $patientName = $answer->answer;
+                        @endphp
+                    @endif
+                    @if($answer->question_id === 8)
+                        @php
+                            $patientGender = $answer->answer;
+                        @endphp
                     @endif
                     @if($answer->question_id === 7)
-                        Aged {{ $answer->answer }}&nbsp;
+                        @php
+                            $patientAge = $answer->answer;
+                        @endphp
+                    @endif
+                    @if($answer->question_id === 14 && $answer->type === null)
+                        @php
+                            $patientHabit = is_array($answer->answer) ? implode(', ', $answer->answer) : $answer->answer;
+                        @endphp
+                    @endif
+                    @if($answer->question_id === 14 && $answer->type === 'other')
+                        @php
+                            $patientHabitOther = $answer->answer;
+                        @endphp
+                    @endif
+                    @if($answer->question_id === 16)
+                        @php
+                            $patientDM = $answer->answer;
+                        @endphp
+                    @endif
+                    @if($answer->question_id === 18)
+                        @php
+                            $patientHTN = $answer->answer;
+                        @endphp
                     @endif
                 @endforeach
+
+                <p><strong>{{ $patientGender ?? 'Unknown' }}</strong> Patient Named <strong>{{ $patientName ?? 'Unknown' }}</strong> Aged <strong>{{ $patientAge ?? 'Unknown' }}</strong></p>
+                <p>His special habit <strong>{{ $patientHabit ?? 'None' }}</strong> and <strong>{{ $patientHabitOther ?? '' }} </strong> </p>
+                <p>DM, <strong>{{ $patientDM ?? 'None' }}</strong> </p>
+                <p>HTN, <strong>{{ $patientHTN ?? 'None' }}</strong> </p>
+            </div>
+        </div>
+    </div>
+
+{{--Contact information--}}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <h2>Contact information</h2>
+                @foreach($patient->answers as $answer)
+                    @if($answer->question_id === 5)
+                        @php
+                        $patientPhone = $answer->answer;
+                        @endphp
+                    @endif
+                    @if($answer->question_id === 6)
+                        @php
+                            $patientEmail = $answer->answer;
+                        @endphp
+                    @endif
+                @endforeach
+                <p>Phone: <strong>{{ $patientPhone ?? 'None' }}</strong> </p>
+                <p>Email: <b>{{ $patientEmail ?? 'None' }}</b> </p>
             </div>
         </div>
     </div>
@@ -155,10 +208,10 @@
                                 @endforeach
                             </ul>
                             @if($data['answer']['other_field'])
-                                <p>Other Field: {{ $data['answer']['other_field'] }}</p>
+                                <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
                             @endif
                         @else
-                            <p>Answer: {{ $data['answer'] }}</p>
+                            <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
                         @endif
                     @endif
                 @endforeach
@@ -343,39 +396,39 @@
 
     <!-- Additional Sections -->
     <!-- Charts and Graphs Section -->
-    <div class="row">
-        <div class="col-md-12">
-            <div class="section">
-                <h2>Charts and Graphs</h2>
-                <!-- Add charts and graphs here -->
-            </div>
-        </div>
-    </div>
+{{--    <div class="row">--}}
+{{--        <div class="col-md-12">--}}
+{{--            <div class="section">--}}
+{{--                <h2>Charts and Graphs</h2>--}}
+{{--                <!-- Add charts and graphs here -->--}}
+{{--            </div>--}}
+{{--        </div>--}}
+{{--    </div>--}}
 
     <!-- Medications Section -->
-    <div class="row">
-        <div class="col-md-12">
-            <div class="section">
-                <h2>Medications</h2>
-                <!-- Add medications list here -->
-            </div>
-        </div>
-    </div>
+{{--    <div class="row">--}}
+{{--        <div class="col-md-12">--}}
+{{--            <div class="section">--}}
+{{--                <h2>Medications</h2>--}}
+{{--                <!-- Add medications list here -->--}}
+{{--            </div>--}}
+{{--        </div>--}}
+{{--    </div>--}}
 
     <!-- Lab Results Section -->
-    <div class="row">
-        <div class="col-md-12">
-            <div class="section">
-                <h2>Lab Results</h2>
-                <!-- Add lab results table here -->
-            </div>
-        </div>
-    </div>
+{{--    <div class="row">--}}
+{{--        <div class="col-md-12">--}}
+{{--            <div class="section">--}}
+{{--                <h2>Lab Results</h2>--}}
+{{--                <!-- Add lab results table here -->--}}
+{{--            </div>--}}
+{{--        </div>--}}
+{{--    </div>--}}
 
     <!-- Footer -->
     <div class="footer">
-        <p>Generated on: </p>
-        <p>Page 1 of 1</p>
+        <p>Thank you for using our application!</p>
+        <p>EGYAKIN Scientific Team.</p>
     </div>
 </div>
 

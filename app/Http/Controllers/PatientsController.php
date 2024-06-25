@@ -1131,8 +1131,10 @@ class PatientsController extends Controller
             // Ensure the 'pdfs' directory exists in the public disk
             Storage::disk('public')->makeDirectory('pdfs');
 
+            $patientName = $patient->answers->where('question_id', '1')->first();
+
             // Generate a unique filename for the PDF
-            $pdfFileName = 'filename2.pdf';
+            $pdfFileName = $patientName->answer .'_'. date("dmy_His"). '.pdf';
 
             // Save the PDF file to the public disk
             Storage::disk('public')->put('pdfs/' . $pdfFileName, $pdf->output());

@@ -112,7 +112,7 @@
     </div>
     @php
         // Debugging the values to ensure they are strings
-        dd($patient->answers);
+        //dd($patient->answers);
     @endphp
 {{--Patient history--}}
     <div class="row">

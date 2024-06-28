@@ -10,6 +10,7 @@ use App\Models\Score;
 use App\Models\ScoreHistory;
 use App\Models\SectionsInfo;
 use App\Models\Answers;
+use App\Notifications\ReachingSpecificPoints;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use PDF;
@@ -21,6 +22,55 @@ class SectionsController extends Controller
     public function __construct(Patients $Patients)
     {
         $this->Patients = $Patients;
+    }
+
+    /**
+     * Calculate GFR for CKD.
+     *
+     * @param bool|null $isMale
+     * @param int|null $age
+     * @param float|null $creatinine
+     * @return float
+     */
+    public function calculateGFRForCKD($gender, $age, $creatinine)
+    {
+        if (is_null($gender) || $age === 0 || $creatinine === 0) {
+            return 0;
+        }
+
+        if ($gender === 'Male') {
+            $A = 0.9;
+            $B = ($creatinine <= 0.9) ? -0.302 : -1.200;
+            $gfr = 142 * pow($creatinine / $A, $B) * pow(0.9938, $age);
+        } else {
+            $A = 0.7;
+            $B = ($creatinine <= 0.7) ? -0.241 : -1.200;
+            $gfr = 142 * pow($creatinine / $A, $B) * pow(0.9938, $age) * 1.012;
+        }
+
+        return number_format($gfr, 2, '.', '');
+    }
+    /**
+     * Calculate Sobh Ccr.
+     *
+     * @param int|null $age
+     * @param float|null $weight
+     * @param float|null $height
+     * @param float|null $serumCreatinine
+     * @return float
+     */
+    public function calculateSobhCcr($age, $weight, $height, $serumCreatinine)
+    {
+        if (is_null($age) || is_null($weight) || is_null($height) || is_null($serumCreatinine)) {
+            return 0;
+        }
+
+        $ccr = ((140 - $age) / $serumCreatinine) *
+            pow($weight, 0.54) *
+            pow($height, 0.40) *
+            0.014;
+
+        return number_format($ccr, 2, '.', '');
     }
 
     /**
@@ -160,7 +210,7 @@ class SectionsController extends Controller
                 ->where('patient_id', $patient_id)
                 ->where('key', 'outcome_status')
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
+                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
                 }])
                 ->first(); // Use first() instead of get() to get a single record
 
@@ -270,12 +320,74 @@ class SectionsController extends Controller
             $data[] = $section;
         }
 
+        // Calculate GFR
+        $gender = Answers::where('patient_id', $patient_id)
+            ->where('question_id', '8')->value('answer');
+
+        $age = Answers::where('patient_id', $patient_id)
+            ->where('question_id', '7')->value('answer');
+
+        $height = Answers::where('patient_id', $patient_id)
+            ->where('question_id', '140')->value('answer');
+
+        $weight = Answers::where('patient_id', $patient_id)
+            ->where('question_id', '141')->value('answer');
+
+        $CurrentCreatinine = Answers::where('patient_id', $patient_id)
+            ->where('question_id', '71')->value('answer');
+
+        $BasalCreatinine = Answers::where('patient_id', $patient_id)
+            ->where('question_id', '72')->value('answer');
+
+        $CreatinineOnDischarge = Answers::where('patient_id', $patient_id)
+            ->where('question_id', '80')->value('answer');
+
+        // Check if any of the parameters are null or 0
+        if (is_null($gender) || is_null($age) || $age == 0) {
+            $CurrentGFR = '0';
+            $CurrentGFR = '0';
+            $CurrentGFR = '0';
+
+        } else {
+            $c1 = floatval($CurrentCreatinine);
+            $c2 = floatval($BasalCreatinine);
+            $c3 = floatval($CreatinineOnDischarge);
+            $ageValue = floatval($age);
+            $heightValue = floatval($height);
+            $weightValue = floatval($weight);
+            $genderValue = $gender; // Assuming gender is not a numerical value
+
+            //CKD
+            $CKDCurrentGFR = $this->calculateGFRForCKD($genderValue, $ageValue, $c1);
+            $CKDBasalGFR = $this->calculateGFRForCKD($genderValue, $ageValue, $c2);
+            $CKDDischargeGFR = $this->calculateGFRForCKD($genderValue, $ageValue, $c3);
+
+            //Sobh
+            $SobhCurrentGFR = $this->calculateSobhCcr($ageValue,$weightValue,$heightValue, $c1);
+            $SobhBasalGFR = $this->calculateSobhCcr($ageValue,$weightValue,$heightValue, $c2);
+            $SobhDischargeGFR = $this->calculateSobhCcr($ageValue,$weightValue,$heightValue, $c3);
+        }
+
+        $GFR= [
+                'ckd' => [
+                    'current_GFR' => $CKDCurrentGFR,
+                    'basal_creatinine_GFR' => $CKDBasalGFR,
+                    'creatinine_on_discharge_GFR' => $CKDDischargeGFR,
+                ],
+                'sobh' => [
+                    'current_GFR' => $SobhCurrentGFR,
+                    'basal_creatinine_GFR' => $SobhBasalGFR,
+                    'creatinine_on_discharge_GFR' => $SobhDischargeGFR,
+                ],
+        ];
+        //$GFR[] = $CKDGFR;
         if ($sections) {
             return response()->json([
                 'value' => true,
                 'submit_status' => $submit_status,
                 'patient_name' => $patient_name,
                 'doctor_Id' => $doctor_Id,
+                'gfr' => $GFR,
                 'data' => $data,
             ]);
         } else {

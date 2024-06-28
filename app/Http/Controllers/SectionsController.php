@@ -259,57 +259,64 @@ class SectionsController extends Controller
      */
     public function showSections($patient_id)
     {
+        // Fetch patient submit status
         $submit_status = PatientStatus::where('patient_id', $patient_id)
             ->where('key', 'submit_status')
             ->value('status');
 
-
+        // Fetch sections data
         $sections = PatientStatus::select('key', 'status', 'updated_at')
             ->where('patient_id', $patient_id)
             ->where('key', 'LIKE', 'section_%')
             ->get();
 
+        // Fetch patient name and doctor ID
         $patient_name = Answers::where('patient_id', $patient_id)
             ->where('question_id', '1')
             ->value('answer');
 
         $doctor_Id = Patients::where('id', $patient_id)->value('doctor_id');
 
+        // Handle case where patient name or sections are not found
         if (!$patient_name) {
+            Log::error("Patient name not found for patient ID: $patient_id");
             return response()->json([
                 'value' => false,
                 'message' => 'Patient not found for the given patient ID.',
             ], 404);
         }
 
-        if (!$sections) {
+        if ($sections->isEmpty()) {
+            Log::warning("Sections not found for patient ID: $patient_id");
             return response()->json([
                 'value' => false,
                 'message' => 'Sections not found for the given patient ID.',
             ], 404);
         }
 
-        $sectionInfos = SectionsInfo::all();
+        // Fetch section information from SectionsInfo model
+        $sectionInfos = SectionsInfo::where('id', '<>', 8)->get();
 
+        // Initialize data array for storing section information
         $data = [];
         foreach ($sectionInfos as $sectionInfo) {
-            if ($sectionInfo->id === 8) {
-                continue;
-            }
             $section_id = $sectionInfo->id;
             $section_name = $sectionInfo->section_name;
 
+            // Find section data in $sections collection
             $section_data = $sections->firstWhere('key', 'section_' . $section_id);
 
-            if (!$section_data) {
-                $updated_at_value = null;
-                $section_status = false;
-            } else {
-                $updated_at_value = $section_data->updated_at;
+            // Initialize variables for section status and updated_at value
+            $section_status = false;
+            $updated_at_value = null;
+
+            // Populate section status and updated_at if section data exists
+            if ($section_data) {
                 $section_status = $section_data->status;
+                $updated_at_value = $section_data->updated_at;
             }
 
-
+            // Construct section array and add to $data
             $section = [
                 'section_id' => $section_id,
                 'section_status' => $section_status,
@@ -320,7 +327,21 @@ class SectionsController extends Controller
             $data[] = $section;
         }
 
-        // Calculate GFR
+        // Initialize GFR values
+        $GFR = [
+            'ckd' => [
+                'current_GFR' => '0', // Default values
+                'basal_creatinine_GFR' => '0',
+                'creatinine_on_discharge_GFR' => '0',
+            ],
+            'sobh' => [
+                'current_GFR' => '0',
+                'basal_creatinine_GFR' => '0',
+                'creatinine_on_discharge_GFR' => '0',
+            ],
+        ];
+
+        // Fetch answers related to GFR calculation
         $gender = Answers::where('patient_id', $patient_id)
             ->where('question_id', '8')->value('answer');
 
@@ -342,13 +363,14 @@ class SectionsController extends Controller
         $CreatinineOnDischarge = Answers::where('patient_id', $patient_id)
             ->where('question_id', '80')->value('answer');
 
-        // Check if any of the parameters are null or 0
-        if (is_null($gender) || is_null($age) || $age == 0) {
-            $CurrentGFR = '0';
-            $CurrentGFR = '0';
-            $CurrentGFR = '0';
+        // Check if all necessary parameters are present and valid
+        if (!is_null($gender) && !is_null($age) && $age != 0 &&
+            !is_null($height) && !is_null($weight) &&
+            !is_null($CurrentCreatinine) && $CurrentCreatinine != 0 &&
+            !is_null($BasalCreatinine) && $BasalCreatinine != 0 &&
+            !is_null($CreatinineOnDischarge) && $CreatinineOnDischarge != 0) {
 
-        } else {
+            // Convert to float values
             $c1 = floatval($CurrentCreatinine);
             $c2 = floatval($BasalCreatinine);
             $c3 = floatval($CreatinineOnDischarge);
@@ -357,45 +379,35 @@ class SectionsController extends Controller
             $weightValue = floatval($weight);
             $genderValue = $gender; // Assuming gender is not a numerical value
 
-            //CKD
-            $CKDCurrentGFR = $this->calculateGFRForCKD($genderValue, $ageValue, $c1);
-            $CKDBasalGFR = $this->calculateGFRForCKD($genderValue, $ageValue, $c2);
-            $CKDDischargeGFR = $this->calculateGFRForCKD($genderValue, $ageValue, $c3);
+            // Calculate CKD GFR values
+            $GFR['ckd']['current_GFR'] = $this->calculateGFRForCKD($genderValue, $ageValue, $c1);
+            $GFR['ckd']['basal_creatinine_GFR'] = $this->calculateGFRForCKD($genderValue, $ageValue, $c2);
+            $GFR['ckd']['creatinine_on_discharge_GFR'] = $this->calculateGFRForCKD($genderValue, $ageValue, $c3);
 
-            //Sobh
-            $SobhCurrentGFR = $this->calculateSobhCcr($ageValue,$weightValue,$heightValue, $c1);
-            $SobhBasalGFR = $this->calculateSobhCcr($ageValue,$weightValue,$heightValue, $c2);
-            $SobhDischargeGFR = $this->calculateSobhCcr($ageValue,$weightValue,$heightValue, $c3);
+            // Calculate Sobh GFR values
+            $GFR['sobh']['current_GFR'] = $this->calculateSobhCcr($ageValue, $weightValue, $heightValue, $c1);
+            $GFR['sobh']['basal_creatinine_GFR'] = $this->calculateSobhCcr($ageValue, $weightValue, $heightValue, $c2);
+            $GFR['sobh']['creatinine_on_discharge_GFR'] = $this->calculateSobhCcr($ageValue, $weightValue, $heightValue, $c3);
         }
 
-        $GFR= [
-                'ckd' => [
-                    'current_GFR' => $CKDCurrentGFR,
-                    'basal_creatinine_GFR' => $CKDBasalGFR,
-                    'creatinine_on_discharge_GFR' => $CKDDischargeGFR,
-                ],
-                'sobh' => [
-                    'current_GFR' => $SobhCurrentGFR,
-                    'basal_creatinine_GFR' => $SobhBasalGFR,
-                    'creatinine_on_discharge_GFR' => $SobhDischargeGFR,
-                ],
-        ];
-        //$GFR[] = $CKDGFR;
-        if ($sections) {
-            return response()->json([
-                'value' => true,
-                'submit_status' => $submit_status,
-                'patient_name' => $patient_name,
-                'doctor_Id' => $doctor_Id,
-                'gfr' => $GFR,
-                'data' => $data,
-            ]);
-        } else {
-            return response()->json([
-                'value' => false,
-                'message' => 'Sections not found for the given patient ID.',
-            ], 404);
-        }
+        // Log the final response information
+        Log::info("Showing sections for patient ID: $patient_id", [
+            'submit_status' => $submit_status,
+            'patient_name' => $patient_name,
+            'doctor_id' => $doctor_Id,
+            'sections_count' => count($data),
+            'gfr' => $GFR,
+        ]);
+
+        // Return JSON response
+        return response()->json([
+            'value' => true,
+            'submit_status' => $submit_status,
+            'patient_name' => $patient_name,
+            'doctor_Id' => $doctor_Id,
+            'gfr' => $GFR,
+            'data' => $data,
+        ]);
     }
 
 }

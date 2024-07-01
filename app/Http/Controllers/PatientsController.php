@@ -75,6 +75,31 @@ class PatientsController extends Controller
         ], 400);
     }
 
+
+    public function uploadFileNew(Request $request)
+    {
+        // Access the nested "21" key
+        $fileData = $request->input('21.file_data'); // Get base64 data from request
+        $fileName = $request->input('21.file_name'); // Get file name from request
+
+        // Check if both file name and data are present
+        if (!$fileData || !$fileName) {
+            return response()->json([
+                'message' => 'File name or data is missing',
+            ], 400);
+        }
+
+        // Decode base64 data
+        $fileContent = base64_decode($fileData);
+
+        // Save file to storage or public folder
+        Storage::disk('public')->put($fileName, $fileContent);
+
+        return response()->json([
+            'message' => 'File uploaded successfully',
+        ]);
+    }
+
     /**
      * Display a listing of the resource.
      */

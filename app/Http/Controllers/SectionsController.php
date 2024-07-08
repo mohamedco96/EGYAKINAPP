@@ -76,6 +76,36 @@ class SectionsController extends Controller
     }
 
     /**
+     * Calculate GFR using MDRD equation.
+     *
+     * @param float $serumCr Serum Creatinine level
+     * @param int $age Age of the patient
+     * @param bool $isBlack Whether the patient is black (true/false)
+     * @param bool $isFemale Whether the patient is female (true/false)
+     * @return float Calculated GFR
+     */
+    protected function calculateGFRforMDRD($serumCr, $age, $race, $gender)
+    {
+        if ($gender === 'Female') {
+            $genderFactor =0.742;
+        }else{
+            $genderFactor =1.0;
+        }
+
+        if ($race === 'yes') {
+            $raceFactor =1.212;
+        }else{
+            $raceFactor =1.0;
+        }
+
+        $constant = 175.0;
+        $ageFactor = pow($age, -0.203);
+        $serumCrFactor = pow($serumCr, -1.154);
+
+        return $constant * $serumCrFactor * $ageFactor * $raceFactor * $genderFactor;
+    }
+
+    /**
      * Update the final submit status for a patient.
      *
      * @param UpdatePatientsRequest $request
@@ -387,6 +417,11 @@ class SectionsController extends Controller
                     'basal_creatinine_GFR' => '0',
                     'creatinine_on_discharge_GFR' => '0',
                 ],
+                'mdrd' => [
+                    'current_GFR' => '0',
+                    'basal_creatinine_GFR' => '0',
+                    'creatinine_on_discharge_GFR' => '0',
+                ],
             ];
 
             // Fetch answers related to GFR calculation
@@ -411,9 +446,12 @@ class SectionsController extends Controller
             $CreatinineOnDischarge = Answers::where('patient_id', $patient_id)
                 ->where('question_id', '80')->value('answer');
 
+            $race = Answers::where('patient_id', $patient_id)
+                ->where('question_id', '149')->value('answer');
+
             // Check if all necessary parameters are present and valid
             if (!is_null($gender) && !is_null($age) && $age != 0 &&
-                !is_null($height) && !is_null($weight) &&
+                !is_null($height) && !is_null($weight) && !is_null($race) &&
                 !is_null($CurrentCreatinine) && $CurrentCreatinine != 0 &&
                 !is_null($BasalCreatinine) && $BasalCreatinine != 0 &&
                 !is_null($CreatinineOnDischarge) && $CreatinineOnDischarge != 0) {
@@ -426,6 +464,7 @@ class SectionsController extends Controller
                 $heightValue = floatval($height);
                 $weightValue = floatval($weight);
                 $genderValue = $gender; // Assuming gender is not a numerical value
+                $raceValue = $race;
 
                 // Calculate CKD GFR values
                 $GFR['ckd']['current_GFR'] = $this->calculateGFRForCKD($genderValue, $ageValue, $c1);
@@ -436,6 +475,12 @@ class SectionsController extends Controller
                 $GFR['sobh']['current_GFR'] = $this->calculateSobhCcr($ageValue, $weightValue, $heightValue, $c1);
                 $GFR['sobh']['basal_creatinine_GFR'] = $this->calculateSobhCcr($ageValue, $weightValue, $heightValue, $c2);
                 $GFR['sobh']['creatinine_on_discharge_GFR'] = $this->calculateSobhCcr($ageValue, $weightValue, $heightValue, $c3);
+
+                // Calculate MDRD GFR
+                $GFR['mdrd']['current_GFR'] = $this->calculateGFRforMDRD($c1, $ageValue, $raceValue, $genderValue);
+                $GFR['mdrd']['basal_creatinine_GFR'] = $this->calculateGFRforMDRD($c2, $ageValue, $raceValue, $genderValue);
+                $GFR['mdrd']['creatinine_on_discharge_GFR'] = $this->calculateGFRforMDRD($c3, $ageValue, $raceValue, $genderValue);
+
             }
 
             // Log successful retrieval of sections information
@@ -465,5 +510,7 @@ class SectionsController extends Controller
             ], 500);
         }
     }
+
+
 }
 

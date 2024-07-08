@@ -92,13 +92,21 @@ class PatientsController extends Controller
         // Decode base64 data
         $fileContent = base64_decode($fileData);
 
+        // Define the path to save the file in the medical_reports folder
+        $filePath = 'medical_reports/' . $fileName;
+
         // Save file to storage or public folder
-        Storage::disk('public')->put($fileName, $fileContent);
+        Storage::disk('public')->put($filePath, $fileContent);
+
+        // Generate file URL
+        $fileUrl = Storage::disk('public')->url($filePath);
 
         return response()->json([
             'message' => 'File uploaded successfully',
+            'file_url' => $fileUrl,
         ]);
     }
+
 
     /**
      * Display a listing of the resource.

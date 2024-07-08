@@ -899,29 +899,33 @@ class PatientsController extends Controller
 
     protected function updateAnswer($questionId, $answerText, $patientId, $isOtherField = false, $sectionId = null)
     {
-        $answerText = is_array($answerText) ? json_encode($answerText) : '"' . trim($answerText, '"') . '"';
+        // Check if the question is of 'files' type
+        $question = Questions::find($questionId);
+        if ($question && $question->type === 'files') {
+            // Encode file paths array into JSON format
+            $answerText = json_encode($answerText);
+        }
+
+        // Update the answer record based on whether it's for 'other' or normal type
         if ($isOtherField) {
-            // update other answer record
             Answers::where('patient_id', $patientId)
                 ->where('question_id', $questionId)
                 ->whereNotNull('type')
                 ->update([
-                    'answer' => is_array($answerText) ? json_encode($answerText) : $answerText, // Convert array to JSON string if it's an array
-                    // Use 'other_field' column if $isOtherField is true, otherwise use null
-                    'type' => $isOtherField ? 'other' : null,
+                    'answer' => $answerText,
+                    'type' => 'other',
                 ]);
         } else {
-            // update answer record
             Answers::where('patient_id', $patientId)
                 ->where('question_id', $questionId)
-                ->where('type', null)
+                ->whereNull('type')
                 ->update([
-                    'answer' => is_array($answerText) ? json_encode($answerText) : $answerText, // Convert array to JSON string if it's an array
-                    // Use 'other_field' column if $isOtherField is true, otherwise use null
-                    'type' => $isOtherField ? 'other' : null,
+                    'answer' => $answerText,
+                    'type' => null,
                 ]);
         }
     }
+
     /**
      * Remove the specified resource from storage.
      */

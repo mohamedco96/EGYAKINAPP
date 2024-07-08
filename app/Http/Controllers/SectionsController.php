@@ -27,7 +27,7 @@ class SectionsController extends Controller
     /**
      * Calculate GFR for CKD.
      *
-     * @param bool|null $isMale
+     * @param string|null $gender
      * @param int|null $age
      * @param float|null $creatinine
      * @return float
@@ -50,6 +50,7 @@ class SectionsController extends Controller
 
         return number_format($gfr, 2, '.', '');
     }
+
     /**
      * Calculate Sobh Ccr.
      *
@@ -74,66 +75,84 @@ class SectionsController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update the final submit status for a patient.
+     *
+     * @param UpdatePatientsRequest $request
+     * @param int $patient_id
+     * @return \Illuminate\Http\JsonResponse
      */
     public function updateFinalSubmit(UpdatePatientsRequest $request, $patient_id)
     {
-        $patientSubmitStatus = PatientStatus::where('patient_id', $patient_id)
-            ->where('key', 'submit_status')->first();
+        try {
+            // Fetch patient submit status
+            $patientSubmitStatus = PatientStatus::where('patient_id', $patient_id)
+                ->where('key', 'submit_status')
+                ->first();
 
-        if (!$patientSubmitStatus) {
+            // Handle case where patient submit status is not found
+            if (!$patientSubmitStatus) {
+                Log::error("Patient submit status not found for patient ID: $patient_id");
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Patient not found',
+                ], 404);
+            }
+
+            // Update submit status to true
+            $patientSubmitStatus->update(['status' => true]);
+
+            // Scoring system
+            $doctorId = Auth::id();
+            $incrementAmount = 4;
+            $action = 'Final Submit';
+
+            // Fetch or create score record for the doctor
+            $score = Score::firstOrNew(['doctor_id' => $doctorId]);
+            $score->score += $incrementAmount;
+            $score->threshold += $incrementAmount;
+            $newThreshold = $score->threshold;
+
+            // Send notification if score threshold reaches 50 or its multiples
+            if ($newThreshold >= 50) {
+                $user = Auth::user();
+                $user->notify(new ReachingSpecificPoints($score));
+                $score->threshold = 0;
+            }
+
+            $score->save();
+
+            // Log score history
+            ScoreHistory::create([
+                'doctor_id' => $doctorId,
+                'score' => $incrementAmount,
+                'action' => $action,
+                'timestamp' => now(),
+            ]);
+
+            // Return success response
             $response = [
-                'value' => false,
-                'message' => 'Patient not found',
+                'value' => true,
+                'message' => 'Final Submit Updated Successfully',
             ];
 
-            return response()->json($response, 404);
+            return response()->json($response, 201);
+        } catch (\Exception $e) {
+            // Log and return error response
+            Log::error("Error updating final submit for patient ID: $patient_id. Error: " . $e->getMessage());
+            return response()->json([
+                'value' => false,
+                'message' => 'Error updating final submit.',
+            ], 500);
         }
-
-        // Update submit status
-        $patientSubmitStatus->update(['status' => true]);
-
-        // Scoring system
-        $doctorId = Auth::id();
-        $incrementAmount = 4;
-        $action = 'Final Submit';
-
-        $score = Score::firstOrNew(['doctor_id' => $doctorId]);
-        $score->score += $incrementAmount;
-        $score->threshold += $incrementAmount;
-        $newThreshold = $score->threshold;
-
-        // Send notification if the new score exceeds 50 or its multiples
-        if ($newThreshold >= 50) {
-            // Load user object
-            $user = Auth::user();
-            // Send notification
-            $user->notify(new ReachingSpecificPoints($score));
-            $score->threshold = 0;
-        }
-
-        $score->save();
-
-        // Log score history
-        ScoreHistory::create([
-            'doctor_id' => $doctorId,
-            'score' => $incrementAmount,
-            'action' => $action,
-            'timestamp' => now(),
-        ]);
-
-        $response = [
-            'value' => true,
-            'message' => 'Final Submit Updated Successfully',
-        ];
-
-        return response()->json($response, 201);
     }
 
     /**
      * Show questions and answers for a specific section and patient.
+     *
+     * @param int $section_id
+     * @param int $patient_id
+     * @return \Illuminate\Http\JsonResponse
      */
-
     public function showQuestionsAnswers($section_id, $patient_id)
     {
         try {
@@ -146,26 +165,27 @@ class SectionsController extends Controller
                 ], 404);
             }
 
-            // Fetch questions dynamically based on section_id
+            // Fetch questions for the specified section
             $questions = Questions::where('section_id', $section_id)
                 ->orderBy('id')
                 ->get();
 
-            // Fetch all answers for the patient in one query
+            // Fetch all answers for the patient related to these questions
             $answers = Answers::where('patient_id', $patient_id)
                 ->whereIn('question_id', $questions->pluck('id'))
                 ->get();
 
-            // Initialize data array to store questions and answers
+            // Initialize array to store questions and answers
             $data = [];
 
             foreach ($questions as $question) {
-                // Skip questions with certain IDs
+                // Skip questions flagged with 'skip'
                 if ($question->skip) {
                     Log::info("Question with ID {$question->id} skipped as per skip flag.");
                     continue;
                 }
 
+                // Prepare question data
                 $questionData = [
                     'id' => $question->id,
                     'question' => $question->question,
@@ -176,44 +196,45 @@ class SectionsController extends Controller
                     'updated_at' => $question->updated_at,
                 ];
 
-                // Find the answer for this question from the fetched answers
+                // Find answer for this question
                 $answer = $answers->where('question_id', $question->id)->first();
 
+                // Handle multiple choice questions
                 if ($question->type === 'multiple') {
-                    // Initialize the answer array
                     $questionData['answer'] = [
-                        'answers' => [], // Initialize answers as an empty array
-                        'other_field' => null // Set other_field to null by default
+                        'answers' => [], // Initialize answers array
+                        'other_field' => null, // Initialize other_field as null
                     ];
 
-                    // Find answers for this question from the fetched answers
+                    // Collect answers for the question
                     $questionAnswers = $answers->where('question_id', $question->id);
-
-                    // Populate the answers array
                     foreach ($questionAnswers as $answer) {
                         if ($answer->type !== 'other') {
-                            $questionData['answer']['answers'] = $answer->answer;
+                            $questionData['answer']['answers'][] = $answer->answer; // Add answer to answers array
                         }
                         if ($answer->type === 'other') {
-                            $questionData['answer']['other_field'] = $answer->answer;
+                            $questionData['answer']['other_field'] = $answer->answer; // Set other_field value
                         }
                     }
                 } else {
-                    // For other types of questions, return the answer directly
+                    // For other types, directly set the answer
                     $questionData['answer'] = $answer ? $answer->answer : null;
                 }
 
+                // Add question data to main data array
                 $data[] = $questionData;
             }
 
+            // Fetch submitter information for section 8
             $submitter = PatientStatus::select('id', 'doctor_id')
                 ->where('patient_id', $patient_id)
                 ->where('key', 'outcome_status')
                 ->with(['doctor' => function ($query) {
                     $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
                 }])
-                ->first(); // Use first() instead of get() to get a single record
+                ->first();
 
+            // Prepare response based on section 8 or other sections
             if ($section_id == 8) {
                 if ($submitter && $submitter->doctor) {
                     $doctor = $submitter->doctor;
@@ -223,7 +244,7 @@ class SectionsController extends Controller
                             'name' => $doctor->name . ' ' . $doctor->lname,
                             'image' => $doctor->image,
                         ],
-                        'data' => $data
+                        'data' => $data,
                     ];
                 } else {
                     $response = [
@@ -232,7 +253,7 @@ class SectionsController extends Controller
                             'name' => null,
                             'image' => null,
                         ],
-                        'data' => $data
+                        'data' => $data,
                     ];
                 }
             } else {
@@ -242,10 +263,12 @@ class SectionsController extends Controller
                 ];
             }
 
+            // Log successful retrieval of questions and answers
             Log::info("Questions and answers retrieved successfully for section ID {$section_id} and patient ID {$patient_id}.");
 
             return response()->json($response, 200);
         } catch (\Exception $e) {
+            // Log and return error response
             Log::error("Error while fetching questions and answers: " . $e->getMessage());
             return response()->json([
                 'value' => false,
@@ -255,159 +278,171 @@ class SectionsController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Show sections and their statuses for a patient.
+     *
+     * @param int $patient_id
+     * @return \Illuminate\Http\JsonResponse
      */
     public function showSections($patient_id)
     {
-        // Fetch patient submit status
-        $submit_status = PatientStatus::where('patient_id', $patient_id)
-            ->where('key', 'submit_status')
-            ->value('status');
+        try {
+            // Fetch patient submit status
+            $submit_status = PatientStatus::where('patient_id', $patient_id)
+                ->where('key', 'submit_status')
+                ->value('status');
 
-        // Fetch sections data
-        $sections = PatientStatus::select('key', 'status', 'updated_at')
-            ->where('patient_id', $patient_id)
-            ->where('key', 'LIKE', 'section_%')
-            ->get();
+            // Fetch sections data related to the patient
+            $sections = PatientStatus::select('key', 'status', 'updated_at')
+                ->where('patient_id', $patient_id)
+                ->where('key', 'LIKE', 'section_%')
+                ->get();
 
-        // Fetch patient name and doctor ID
-        $patient_name = Answers::where('patient_id', $patient_id)
-            ->where('question_id', '1')
-            ->value('answer');
+            // Fetch patient name and doctor ID
+            $patient_name = Answers::where('patient_id', $patient_id)
+                ->where('question_id', '1')
+                ->value('answer');
 
-        $doctor_Id = Patients::where('id', $patient_id)->value('doctor_id');
+            $doctor_Id = Patients::where('id', $patient_id)->value('doctor_id');
 
-        // Handle case where patient name or sections are not found
-        if (!$patient_name) {
-            Log::error("Patient name not found for patient ID: $patient_id");
-            return response()->json([
-                'value' => false,
-                'message' => 'Patient not found for the given patient ID.',
-            ], 404);
-        }
-
-        if ($sections->isEmpty()) {
-            Log::warning("Sections not found for patient ID: $patient_id");
-            return response()->json([
-                'value' => false,
-                'message' => 'Sections not found for the given patient ID.',
-            ], 404);
-        }
-
-        // Fetch section information from SectionsInfo model
-        $sectionInfos = SectionsInfo::where('id', '<>', 8)->get();
-
-        // Initialize data array for storing section information
-        $data = [];
-        foreach ($sectionInfos as $sectionInfo) {
-            $section_id = $sectionInfo->id;
-            $section_name = $sectionInfo->section_name;
-
-            // Find section data in $sections collection
-            $section_data = $sections->firstWhere('key', 'section_' . $section_id);
-
-            // Initialize variables for section status and updated_at value
-            $section_status = false;
-            $updated_at_value = null;
-
-            // Populate section status and updated_at if section data exists
-            if ($section_data) {
-                $section_status = $section_data->status;
-                $updated_at_value = $section_data->updated_at;
+            // Handle cases where patient name or sections are not found
+            if (!$patient_name) {
+                Log::error("Patient name not found for patient ID: $patient_id");
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Patient not found for the given patient ID.',
+                ], 404);
             }
 
-            // Construct section array and add to $data
-            $section = [
-                'section_id' => $section_id,
-                'section_status' => $section_status,
-                'updated_at' => $updated_at_value,
-                'section_name' => $section_name,
+            if ($sections->isEmpty()) {
+                Log::warning("Sections not found for patient ID: $patient_id");
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Sections not found for the given patient ID.',
+                ], 404);
+            }
+
+            // Fetch section information from SectionsInfo model
+            $sectionInfos = SectionsInfo::where('id', '<>', 8)->get();
+
+            // Initialize array for storing section information
+            $data = [];
+            foreach ($sectionInfos as $sectionInfo) {
+                $section_id = $sectionInfo->id;
+                $section_name = $sectionInfo->section_name;
+
+                // Find section data in $sections collection
+                $section_data = $sections->firstWhere('key', 'section_' . $section_id);
+
+                // Initialize variables for section status and updated_at value
+                $section_status = false;
+                $updated_at_value = null;
+
+                // Populate section status and updated_at if section data exists
+                if ($section_data) {
+                    $section_status = $section_data->status;
+                    $updated_at_value = $section_data->updated_at;
+                }
+
+                // Construct section array and add to $data
+                $section = [
+                    'section_id' => $section_id,
+                    'section_status' => $section_status,
+                    'updated_at' => $updated_at_value,
+                    'section_name' => $section_name,
+                ];
+
+                $data[] = $section;
+            }
+
+            // Initialize GFR values
+            $GFR = [
+                'ckd' => [
+                    'current_GFR' => '0',
+                    'basal_creatinine_GFR' => '0',
+                    'creatinine_on_discharge_GFR' => '0',
+                ],
+                'sobh' => [
+                    'current_GFR' => '0',
+                    'basal_creatinine_GFR' => '0',
+                    'creatinine_on_discharge_GFR' => '0',
+                ],
             ];
 
-            $data[] = $section;
+            // Fetch answers related to GFR calculation
+            $gender = Answers::where('patient_id', $patient_id)
+                ->where('question_id', '8')->value('answer');
+
+            $age = Answers::where('patient_id', $patient_id)
+                ->where('question_id', '7')->value('answer');
+
+            $height = Answers::where('patient_id', $patient_id)
+                ->where('question_id', '140')->value('answer');
+
+            $weight = Answers::where('patient_id', $patient_id)
+                ->where('question_id', '141')->value('answer');
+
+            $CurrentCreatinine = Answers::where('patient_id', $patient_id)
+                ->where('question_id', '71')->value('answer');
+
+            $BasalCreatinine = Answers::where('patient_id', $patient_id)
+                ->where('question_id', '72')->value('answer');
+
+            $CreatinineOnDischarge = Answers::where('patient_id', $patient_id)
+                ->where('question_id', '80')->value('answer');
+
+            // Check if all necessary parameters are present and valid
+            if (!is_null($gender) && !is_null($age) && $age != 0 &&
+                !is_null($height) && !is_null($weight) &&
+                !is_null($CurrentCreatinine) && $CurrentCreatinine != 0 &&
+                !is_null($BasalCreatinine) && $BasalCreatinine != 0 &&
+                !is_null($CreatinineOnDischarge) && $CreatinineOnDischarge != 0) {
+
+                // Convert to float values
+                $c1 = floatval($CurrentCreatinine);
+                $c2 = floatval($BasalCreatinine);
+                $c3 = floatval($CreatinineOnDischarge);
+                $ageValue = floatval($age);
+                $heightValue = floatval($height);
+                $weightValue = floatval($weight);
+                $genderValue = $gender; // Assuming gender is not a numerical value
+
+                // Calculate CKD GFR values
+                $GFR['ckd']['current_GFR'] = $this->calculateGFRForCKD($genderValue, $ageValue, $c1);
+                $GFR['ckd']['basal_creatinine_GFR'] = $this->calculateGFRForCKD($genderValue, $ageValue, $c2);
+                $GFR['ckd']['creatinine_on_discharge_GFR'] = $this->calculateGFRForCKD($genderValue, $ageValue, $c3);
+
+                // Calculate Sobh GFR values
+                $GFR['sobh']['current_GFR'] = $this->calculateSobhCcr($ageValue, $weightValue, $heightValue, $c1);
+                $GFR['sobh']['basal_creatinine_GFR'] = $this->calculateSobhCcr($ageValue, $weightValue, $heightValue, $c2);
+                $GFR['sobh']['creatinine_on_discharge_GFR'] = $this->calculateSobhCcr($ageValue, $weightValue, $heightValue, $c3);
+            }
+
+            // Log successful retrieval of sections information
+            Log::info("Showing sections for patient ID: $patient_id", [
+                'submit_status' => $submit_status,
+                'patient_name' => $patient_name,
+                'doctor_id' => $doctor_Id,
+                'sections_count' => count($data),
+                'gfr' => $GFR,
+            ]);
+
+            // Return JSON response with sections information
+            return response()->json([
+                'value' => true,
+                'submit_status' => $submit_status,
+                'patient_name' => $patient_name,
+                'doctor_Id' => $doctor_Id,
+                'gfr' => $GFR,
+                'data' => $data,
+            ]);
+        } catch (\Exception $e) {
+            // Log and return error response
+            Log::error("Error while showing sections for patient ID: $patient_id. Error: " . $e->getMessage());
+            return response()->json([
+                'value' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
         }
-
-        // Initialize GFR values
-        $GFR = [
-            'ckd' => [
-                'current_GFR' => '0', // Default values
-                'basal_creatinine_GFR' => '0',
-                'creatinine_on_discharge_GFR' => '0',
-            ],
-            'sobh' => [
-                'current_GFR' => '0',
-                'basal_creatinine_GFR' => '0',
-                'creatinine_on_discharge_GFR' => '0',
-            ],
-        ];
-
-        // Fetch answers related to GFR calculation
-        $gender = Answers::where('patient_id', $patient_id)
-            ->where('question_id', '8')->value('answer');
-
-        $age = Answers::where('patient_id', $patient_id)
-            ->where('question_id', '7')->value('answer');
-
-        $height = Answers::where('patient_id', $patient_id)
-            ->where('question_id', '140')->value('answer');
-
-        $weight = Answers::where('patient_id', $patient_id)
-            ->where('question_id', '141')->value('answer');
-
-        $CurrentCreatinine = Answers::where('patient_id', $patient_id)
-            ->where('question_id', '71')->value('answer');
-
-        $BasalCreatinine = Answers::where('patient_id', $patient_id)
-            ->where('question_id', '72')->value('answer');
-
-        $CreatinineOnDischarge = Answers::where('patient_id', $patient_id)
-            ->where('question_id', '80')->value('answer');
-
-        // Check if all necessary parameters are present and valid
-        if (!is_null($gender) && !is_null($age) && $age != 0 &&
-            !is_null($height) && !is_null($weight) &&
-            !is_null($CurrentCreatinine) && $CurrentCreatinine != 0 &&
-            !is_null($BasalCreatinine) && $BasalCreatinine != 0 &&
-            !is_null($CreatinineOnDischarge) && $CreatinineOnDischarge != 0) {
-
-            // Convert to float values
-            $c1 = floatval($CurrentCreatinine);
-            $c2 = floatval($BasalCreatinine);
-            $c3 = floatval($CreatinineOnDischarge);
-            $ageValue = floatval($age);
-            $heightValue = floatval($height);
-            $weightValue = floatval($weight);
-            $genderValue = $gender; // Assuming gender is not a numerical value
-
-            // Calculate CKD GFR values
-            $GFR['ckd']['current_GFR'] = $this->calculateGFRForCKD($genderValue, $ageValue, $c1);
-            $GFR['ckd']['basal_creatinine_GFR'] = $this->calculateGFRForCKD($genderValue, $ageValue, $c2);
-            $GFR['ckd']['creatinine_on_discharge_GFR'] = $this->calculateGFRForCKD($genderValue, $ageValue, $c3);
-
-            // Calculate Sobh GFR values
-            $GFR['sobh']['current_GFR'] = $this->calculateSobhCcr($ageValue, $weightValue, $heightValue, $c1);
-            $GFR['sobh']['basal_creatinine_GFR'] = $this->calculateSobhCcr($ageValue, $weightValue, $heightValue, $c2);
-            $GFR['sobh']['creatinine_on_discharge_GFR'] = $this->calculateSobhCcr($ageValue, $weightValue, $heightValue, $c3);
-        }
-
-        // Log the final response information
-        Log::info("Showing sections for patient ID: $patient_id", [
-            'submit_status' => $submit_status,
-            'patient_name' => $patient_name,
-            'doctor_id' => $doctor_Id,
-            'sections_count' => count($data),
-            'gfr' => $GFR,
-        ]);
-
-        // Return JSON response
-        return response()->json([
-            'value' => true,
-            'submit_status' => $submit_status,
-            'patient_name' => $patient_name,
-            'doctor_Id' => $doctor_Id,
-            'gfr' => $GFR,
-            'data' => $data,
-        ]);
     }
-
 }
+

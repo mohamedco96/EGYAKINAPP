@@ -840,12 +840,12 @@ class PatientsController extends Controller
     {
         // Add logic to determine if the question is of file type based on question ID
         $question = Questions::find($questionId);
-        return $question && $question->type === 'file';
+        return $question && $question->type === 'files';
     }
 
     protected function handleFileUploads($files)
     {
-        $fileUrls = [];
+        $filePaths = [];
 
         foreach ($files as $file) {
             // Get file data and name from the request
@@ -857,23 +857,30 @@ class PatientsController extends Controller
                 throw new \Exception('File name or data is missing');
             }
 
-            // Decode base64 data
-            $fileContent = base64_decode($fileData);
+            try {
+                // Decode base64 data
+                $fileContent = base64_decode($fileData);
 
-            // Define the path to save the file in the medical_reports folder
-            $filePath = 'medical_reports/' . $fileName;
+                // Define the path to save the file in the medical_reports folder
+                $filePath = 'medical_reports/' . $fileName;
 
-            // Save file to storage or public folder
-            Storage::disk('public')->put($filePath, $fileContent);
+                // Save file to storage or public folder
+                Storage::disk('public')->put($filePath, $fileContent);
 
-            // Generate file URL
-            $fileUrl = Storage::disk('public')->url($filePath);
+                // Log successful upload
+                \Log::info("File uploaded successfully: $fileName");
 
-            // Add the file URL to the response array
-            $fileUrls[] = $fileUrl;
+                // Add the file path to the response array
+                $filePaths[] = $filePath;
+            } catch (\Exception $e) {
+                // Log upload failure
+                \Log::error("Failed to upload file $fileName: " . $e->getMessage());
+                // You might want to handle or rethrow the exception based on your application logic
+                // throw new \Exception("Failed to upload file $fileName: " . $e->getMessage());
+            }
         }
 
-        return $fileUrls;
+        return $filePaths;
     }
 
     protected function saveAnswer($doctor_id, $questionId, $answerText, $patientId, $isOtherField = false, $sectionId = null)

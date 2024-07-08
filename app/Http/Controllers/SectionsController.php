@@ -211,7 +211,7 @@ class SectionsController extends Controller
                     $questionAnswers = $answers->where('question_id', $question->id);
                     foreach ($questionAnswers as $ans) {
                         if ($ans->type !== 'other') {
-                            $questionData['answer']['answers'][] = $ans->answer; // Add answer to answers array
+                            $questionData['answer']['answers'] = $ans->answer; // Add answer to answers array
                         }
                         if ($ans->type === 'other') {
                             $questionData['answer']['other_field'] = $ans->answer; // Set other_field value

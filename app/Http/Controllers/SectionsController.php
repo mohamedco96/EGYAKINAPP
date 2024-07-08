@@ -13,6 +13,7 @@ use App\Models\Answers;
 use App\Notifications\ReachingSpecificPoints;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use PDF;
 
 class SectionsController extends Controller
@@ -214,6 +215,20 @@ class SectionsController extends Controller
                         }
                         if ($answer->type === 'other') {
                             $questionData['answer']['other_field'] = $answer->answer; // Set other_field value
+                        }
+                    }
+                } elseif ($question->type === 'files') {
+                    // Handle file type questions
+                    $questionData['answer'] = [];
+
+                    // Decode JSON-encoded file paths array
+                    $filePaths = json_decode($answer->answer);
+
+                    if (is_array($filePaths)) {
+                        // Construct absolute paths for each file
+                        foreach ($filePaths as $filePath) {
+                            $absolutePath = Storage::disk('public')->url($filePath);
+                            $questionData['answer'][] = $absolutePath;
                         }
                     }
                 } else {

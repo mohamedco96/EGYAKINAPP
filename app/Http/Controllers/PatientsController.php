@@ -664,47 +664,37 @@ class PatientsController extends Controller
                             ->first();
 
                         if ($questionIsExists) {
-                            // Handle file upload if question type is files
-                            if ($this->isFileTypeQuestion($questionId)) {
-                                $fileUrls = $this->handleFileUploads($value);
-                                $this->updateAnswer($questionId, json_encode($fileUrls), $patient_id, false, $section_id);
-                            } else {
-                                // Check if the question has already been processed
-                                if (isset($value['answers']) && is_array($value['answers'])) {
-                                    // Process the answer for the question
-                                    $answers = $value['answers'];
-                                    $otherFieldAnswer = $value['other_field'] ?? null;
+                            // Check if the question has already been processed
+                            if (isset($value['answers']) && is_array($value['answers'])) {
+                                // Process the answer for the question
+                                $answers = $value['answers'];
+                                $otherFieldAnswer = $value['other_field'] ?? null;
 
-                                    $this->updateAnswer($questionId, $answers, $patient_id, false, $section_id);
-                                    $this->updateAnswer($questionId, $otherFieldAnswer, $patient_id, true, $section_id);
-                                } elseif (isset($questionSectionIds[$questionId])) {
-                                    // Save the answer along with the corresponding section ID
-                                    $this->updateAnswer($questionId, $value, $patient_id, false, $section_id);
-                                }
+                                $this->updateAnswer($questionId, $answers, $patient_id, false, $section_id);
+                                $this->updateAnswer($questionId, $otherFieldAnswer, $patient_id, true, $section_id);
+                            } elseif (isset($questionSectionIds[$questionId])) {
+                                // Save the answer along with the corresponding section ID
+                                $this->updateAnswer($questionId, $value, $patient_id, false, $section_id);
                             }
                         } else {
-                            // Handle file upload if question type is files
-                            if ($this->isFileTypeQuestion($questionId)) {
-                                $fileUrls = $this->handleFileUploads($value);
-                                $this->saveAnswer($doctor_id, $questionId, json_encode($fileUrls), $patient_id, false, $section_id);
-                            } else {
-                                // Check if the question has already been processed
-                                if (isset($value['answers']) && is_array($value['answers'])) {
-                                    // Process the answer for the question
-                                    $answers = $value['answers'];
-                                    $otherFieldAnswer = $value['other_field'] ?? null;
+                            // Check if the question has already been processed
+                            if (isset($value['answers']) && is_array($value['answers'])) {
+                                // Process the answer for the question
+                                $answers = $value['answers'];
+                                $otherFieldAnswer = $value['other_field'] ?? null;
 
-                                    $this->saveAnswer($doctor_id, $questionId, $answers, $patient_id, false, $section_id);
-                                    $this->saveAnswer($doctor_id, $questionId, $otherFieldAnswer, $patient_id, true, $section_id);
-                                } elseif (isset($questionSectionIds[$questionId])) {
-                                    // Save the answer along with the corresponding section ID
-                                    $this->saveAnswer($doctor_id, $questionId, $value, $patient_id, false, $section_id);
-                                }
+                                $this->saveAnswer($doctor_id, $questionId, $answers, $patient_id, false, $section_id);
+                                $this->saveAnswer($doctor_id, $questionId, $otherFieldAnswer, $patient_id, true, $section_id);
+                            } elseif (isset($questionSectionIds[$questionId])) {
+                                // Save the answer along with the corresponding section ID
+                                $this->saveAnswer($doctor_id, $questionId, $value, $patient_id, false, $section_id);
                             }
                         }
+
                     }
                     $patientSectionStatus->update(['updated_at' => now()]);
                 }
+
             } else {
                 // Iterate over the request data to handle questions dynamically
                 foreach ($request->all() as $key => $value) {
@@ -719,42 +709,30 @@ class PatientsController extends Controller
                             ->where('question_id', $questionId)
                             ->first();
                         if ($questionIsExists) {
-                            // Handle file upload if question type is files
-                            if ($this->isFileTypeQuestion($questionId)) {
-                                $fileUrls = $this->handleFileUploads($value);
-                                $this->updateAnswer($questionId, json_encode($fileUrls), $patient_id, false, $section_id);
-                            } else {
-                                // Check if the question has already been processed
-                                if (isset($value['answers']) && is_array($value['answers'])) {
-                                    // Process the answer for the question
-                                    $answers = $value['answers'];
-                                    $otherFieldAnswer = $value['other_field'] ?? null;
+                            // Check if the question has already been processed
+                            if (isset($value['answers']) && is_array($value['answers'])) {
+                                // Process the answer for the question
+                                $answers = $value['answers'];
+                                $otherFieldAnswer = $value['other_field'] ?? null;
 
-                                    $this->updateAnswer($questionId, $answers, $patient_id, false, $section_id);
-                                    $this->updateAnswer($questionId, $otherFieldAnswer, $patient_id, true, $section_id);
-                                } elseif (isset($questionSectionIds[$questionId])) {
-                                    // Save the answer along with the corresponding section ID
-                                    $this->updateAnswer($questionId, $value, $patient_id, false, $section_id);
-                                }
+                                $this->updateAnswer($questionId, $answers, $patient_id, false, $section_id);
+                                $this->updateAnswer($questionId, $otherFieldAnswer, $patient_id, true, $section_id);
+                            } elseif (isset($questionSectionIds[$questionId])) {
+                                // Save the answer along with the corresponding section ID
+                                $this->updateAnswer($questionId, $value, $patient_id, false, $section_id);
                             }
                         } else {
-                            // Handle file upload if question type is files
-                            if ($this->isFileTypeQuestion($questionId)) {
-                                $fileUrls = $this->handleFileUploads($value);
-                                $this->saveAnswer($doctor_id, $questionId, json_encode($fileUrls), $patient_id, false, $section_id);
-                            } else {
-                                // Check if the question has already been processed
-                                if (isset($value['answers']) && is_array($value['answers'])) {
-                                    // Process the answer for the question
-                                    $answers = $value['answers'];
-                                    $otherFieldAnswer = $value['other_field'] ?? null;
+                            // Check if the question has already been processed
+                            if (isset($value['answers']) && is_array($value['answers'])) {
+                                // Process the answer for the question
+                                $answers = $value['answers'];
+                                $otherFieldAnswer = $value['other_field'] ?? null;
 
-                                    $this->saveAnswer($doctor_id, $questionId, $answers, $patient_id, false, $section_id);
-                                    $this->saveAnswer($doctor_id, $questionId, $otherFieldAnswer, $patient_id, true, $section_id);
-                                } elseif (isset($questionSectionIds[$questionId])) {
-                                    // Save the answer along with the corresponding section ID
-                                    $this->saveAnswer($doctor_id, $questionId, $value, $patient_id, false, $section_id);
-                                }
+                                $this->saveAnswer($doctor_id, $questionId, $answers, $patient_id, false, $section_id);
+                                $this->saveAnswer($doctor_id, $questionId, $otherFieldAnswer, $patient_id, true, $section_id);
+                            } elseif (isset($questionSectionIds[$questionId])) {
+                                // Save the answer along with the corresponding section ID
+                                $this->saveAnswer($doctor_id, $questionId, $value, $patient_id, false, $section_id);
                             }
                         }
                     }
@@ -773,12 +751,15 @@ class PatientsController extends Controller
                 ->where('key', 'outcome_status')->first();
 
             if (!$patientOutcomeStatus && $section_id == 8) {
-                PatientStatus::create([
-                    'doctor_id' => $doctor_id,
-                    'patient_id' => $patient_id,
-                    'key' => 'outcome_status',
-                    'status' => true
-                ]);
+
+                PatientStatus::create(
+                    [
+                        'doctor_id' => $doctor_id,
+                        'patient_id' => $patient_id,
+                        'key' => 'outcome_status',
+                        'status' => true
+                    ]
+                );
 
                 // Scoring system
                 $doctorId = Auth::id();
@@ -813,6 +794,7 @@ class PatientsController extends Controller
             // Logging successful patient creation
             Log::info('Section_' . $section_id . 'updated successfully', ['doctor_id' => $doctor_id, 'patient_id' => $patient_id]);
 
+
             // Commit the transaction
             DB::commit();
 
@@ -836,46 +818,6 @@ class PatientsController extends Controller
         }
     }
 
-    protected function isFileTypeQuestion($questionId)
-    {
-        // Add logic to determine if the question is of file type based on question ID
-        $question = Questions::find($questionId);
-        return $question && $question->type === 'file';
-    }
-
-    protected function handleFileUploads($files)
-    {
-        $fileUrls = [];
-
-        foreach ($files as $file) {
-            // Get file data and name from the request
-            $fileData = $file['file_data'];
-            $fileName = $file['file_name'];
-
-            // Check if both file name and data are present
-            if (!$fileData || !$fileName) {
-                throw new \Exception('File name or data is missing');
-            }
-
-            // Decode base64 data
-            $fileContent = base64_decode($fileData);
-
-            // Define the path to save the file in the medical_reports folder
-            $filePath = 'medical_reports/' . $fileName;
-
-            // Save file to storage or public folder
-            Storage::disk('public')->put($filePath, $fileContent);
-
-            // Generate file URL
-            $fileUrl = Storage::disk('public')->url($filePath);
-
-            // Add the file URL to the response array
-            $fileUrls[] = $fileUrl;
-        }
-
-        return $fileUrls;
-    }
-
     protected function saveAnswer($doctor_id, $questionId, $answerText, $patientId, $isOtherField = false, $sectionId = null)
     {
         // Create a new answer record
@@ -884,7 +826,7 @@ class PatientsController extends Controller
             'section_id' => $sectionId, // Pass section ID
             'question_id' => $questionId,
             'patient_id' => $patientId,
-            'answer' => is_array($answerText) ? json_encode($answerText) : $answerText, // Convert array to JSON string if it's an array
+            'answer' => is_array($answerText) ? $answerText : $answerText, // Convert array to JSON string if it's an array
             // Use 'other_field' column if $isOtherField is true, otherwise use null
             'type' => $isOtherField ? 'other' : null,
         ]);
@@ -899,7 +841,7 @@ class PatientsController extends Controller
                 ->where('question_id', $questionId)
                 ->whereNotNull('type')
                 ->update([
-                    'answer' => is_array($answerText) ? json_encode($answerText) : $answerText, // Convert array to JSON string if it's an array
+                    'answer' => is_array($answerText) ? $answerText : $answerText, // Convert array to JSON string if it's an array
                     // Use 'other_field' column if $isOtherField is true, otherwise use null
                     'type' => $isOtherField ? 'other' : null,
                 ]);
@@ -909,12 +851,13 @@ class PatientsController extends Controller
                 ->where('question_id', $questionId)
                 ->where('type', null)
                 ->update([
-                    'answer' => is_array($answerText) ? json_encode($answerText) : $answerText, // Convert array to JSON string if it's an array
+                    'answer' => is_array($answerText) ? $answerText : $answerText, // Convert array to JSON string if it's an array
                     // Use 'other_field' column if $isOtherField is true, otherwise use null
                     'type' => $isOtherField ? 'other' : null,
                 ]);
         }
     }
+
     /**
      * Remove the specified resource from storage.
      */

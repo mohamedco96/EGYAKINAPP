@@ -102,7 +102,10 @@ class SectionsController extends Controller
         $ageFactor = pow($age, -0.203);
         $serumCrFactor = pow($serumCr, -1.154);
 
-        return $constant * $serumCrFactor * $ageFactor * $raceFactor * $genderFactor;
+        $mdrd = $constant * $serumCrFactor * $ageFactor * $raceFactor * $genderFactor;
+
+        return number_format($mdrd, 2, '.', '');
+
     }
 
     /**

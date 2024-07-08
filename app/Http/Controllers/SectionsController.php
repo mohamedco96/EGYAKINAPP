@@ -209,26 +209,32 @@ class SectionsController extends Controller
 
                     // Collect answers for the question
                     $questionAnswers = $answers->where('question_id', $question->id);
-                    foreach ($questionAnswers as $answer) {
-                        if ($answer->type !== 'other') {
-                            $questionData['answer']['answers'][] = $answer->answer; // Add answer to answers array
+                    foreach ($questionAnswers as $ans) {
+                        if ($ans->type !== 'other') {
+                            $questionData['answer']['answers'][] = $ans->answer; // Add answer to answers array
                         }
-                        if ($answer->type === 'other') {
-                            $questionData['answer']['other_field'] = $answer->answer; // Set other_field value
+                        if ($ans->type === 'other') {
+                            $questionData['answer']['other_field'] = $ans->answer; // Set other_field value
                         }
                     }
                 } elseif ($question->type === 'files') {
                     // Handle file type questions
                     $questionData['answer'] = [];
 
-                    // Decode JSON-encoded file paths array
-                    $filePaths = json_decode($answer->answer);
+                    // Check if $answer is null or not found
+                    if ($answer === null) {
+                        // If answer is null, return empty array for files type question
+                        $questionData['answer'] = [];
+                    } else {
+                        // Decode JSON-encoded file paths array
+                        $filePaths = json_decode($answer->answer);
 
-                    if (is_array($filePaths)) {
-                        // Construct absolute paths for each file
-                        foreach ($filePaths as $filePath) {
-                            $absolutePath = Storage::disk('public')->url($filePath);
-                            $questionData['answer'][] = $absolutePath;
+                        if (is_array($filePaths)) {
+                            // Construct absolute paths for each file
+                            foreach ($filePaths as $filePath) {
+                                $absolutePath = Storage::disk('public')->url($filePath);
+                                $questionData['answer'][] = $absolutePath;
+                            }
                         }
                     }
                 } else {

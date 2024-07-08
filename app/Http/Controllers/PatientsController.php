@@ -78,44 +78,41 @@ class PatientsController extends Controller
 
     public function uploadFileNew(Request $request)
     {
-        // Access the nested "21" key which contains an array of files
-        $files = $request->input('21');
+        // Initialize an array to store the file URLs grouped by keys
+        $fileUrls = [];
 
-        // Check if files array is present and not empty
-        if (empty($files)) {
-            return response()->json([
-                'message' => 'No files provided',
-            ], 400);
-        }
+        // Loop through each key in the request
+        foreach ($request->all() as $key => $files) {
+            // Check if the value is an array of files
+            if (is_array($files)) {
+                foreach ($files as $file) {
+                    // Get file data and name from the request
+                    $fileData = $file['file_data'];
+                    $fileName = $file['file_name'];
 
-        $fileUrls = []; // Array to hold the URLs of uploaded files
+                    // Check if both file name and data are present
+                    if (!$fileData || !$fileName) {
+                        return response()->json([
+                            'message' => 'File name or data is missing',
+                        ], 400);
+                    }
 
-        // Iterate over each file entry in the array
-        foreach ($files as $file) {
-            $fileData = $file['file_data']; // Get base64 data
-            $fileName = $file['file_name']; // Get file name
+                    // Decode base64 data
+                    $fileContent = base64_decode($fileData);
 
-            // Check if both file name and data are present
-            if (!$fileData || !$fileName) {
-                return response()->json([
-                    'message' => 'File name or data is missing for one or more files',
-                ], 400);
+                    // Define the path to save the file in the medical_reports folder
+                    $filePath = 'medical_reports/' . $fileName;
+
+                    // Save file to storage or public folder
+                    Storage::disk('public')->put($filePath, $fileContent);
+
+                    // Generate file URL
+                    $fileUrl = Storage::disk('public')->url($filePath);
+
+                    // Add the file URL to the response array grouped by key
+                    $fileUrls[$key][] = $fileUrl;
+                }
             }
-
-            // Decode base64 data
-            $fileContent = base64_decode($fileData);
-
-            // Define the path to save the file in the medical_reports folder
-            $filePath = 'medical_reports/' . $fileName;
-
-            // Save file to storage or public folder
-            Storage::disk('public')->put($filePath, $fileContent);
-
-            // Generate file URL
-            $fileUrl = Storage::disk('public')->url($filePath);
-
-            // Add the file URL to the array
-            $fileUrls[] = $fileUrl;
         }
 
         return response()->json([
@@ -123,8 +120,6 @@ class PatientsController extends Controller
             'file_urls' => $fileUrls,
         ]);
     }
-
-
     /**
      * Display a listing of the resource.
      */

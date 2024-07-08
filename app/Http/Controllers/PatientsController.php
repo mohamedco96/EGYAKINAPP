@@ -78,32 +78,49 @@ class PatientsController extends Controller
 
     public function uploadFileNew(Request $request)
     {
-        // Access the nested "21" key
-        $fileData = $request->input('21.file_data'); // Get base64 data from request
-        $fileName = $request->input('21.file_name'); // Get file name from request
+        // Access the nested "21" key which contains an array of files
+        $files = $request->input('21');
 
-        // Check if both file name and data are present
-        if (!$fileData || !$fileName) {
+        // Check if files array is present and not empty
+        if (empty($files)) {
             return response()->json([
-                'message' => 'File name or data is missing',
+                'message' => 'No files provided',
             ], 400);
         }
 
-        // Decode base64 data
-        $fileContent = base64_decode($fileData);
+        $fileUrls = []; // Array to hold the URLs of uploaded files
 
-        // Define the path to save the file in the medical_reports folder
-        $filePath = 'medical_reports/' . $fileName;
+        // Iterate over each file entry in the array
+        foreach ($files as $file) {
+            $fileData = $file['file_data']; // Get base64 data
+            $fileName = $file['file_name']; // Get file name
 
-        // Save file to storage or public folder
-        Storage::disk('public')->put($filePath, $fileContent);
+            // Check if both file name and data are present
+            if (!$fileData || !$fileName) {
+                return response()->json([
+                    'message' => 'File name or data is missing for one or more files',
+                ], 400);
+            }
 
-        // Generate file URL
-        $fileUrl = Storage::disk('public')->url($filePath);
+            // Decode base64 data
+            $fileContent = base64_decode($fileData);
+
+            // Define the path to save the file in the medical_reports folder
+            $filePath = 'medical_reports/' . $fileName;
+
+            // Save file to storage or public folder
+            Storage::disk('public')->put($filePath, $fileContent);
+
+            // Generate file URL
+            $fileUrl = Storage::disk('public')->url($filePath);
+
+            // Add the file URL to the array
+            $fileUrls[] = $fileUrl;
+        }
 
         return response()->json([
-            'message' => 'File uploaded successfully',
-            'file_url' => $fileUrl,
+            'message' => 'Files uploaded successfully',
+            'file_urls' => $fileUrls,
         ]);
     }
 

@@ -82,11 +82,10 @@
         <div class="col-md-12">
             <div class="section">
                 <h2>EGYAKIN</h2>
-                <p>Report is generted for Dr.<strong>{{ $patient->doctor->name }}</strong></p>
+                <p>Report is generated for Dr.<strong>{{ $patient->doctor->name }}</strong></p>
             </div>
         </div>
     </div>
-
 
     <!-- Patient Information Section -->
     <div class="row">
@@ -94,48 +93,176 @@
             <div class="section">
                 <h2>Patient Information</h2>
                 @php
-                    // Debugging the value of $patient->answers
-                    dd($patient->answers);
-                @endphp
-
-                @if(is_string($patient->answers))
-                    @php
+                    if (is_string($patient->answers)) {
                         $patient->answers = json_decode($patient->answers, true);
-                    @endphp
-                @endif
+                    }
+                @endphp
 
                 @if(is_array($patient->answers) || is_object($patient->answers))
                     @foreach($patient->answers as $answer)
-                        @if($answer->question_id === 1)
-                            <p>Patient Name: <strong>{{ $answer->answer }}</strong></p>
+                        @if($answer['question_id'] === 1)
+                            <p>Patient Name: <strong>{{ $answer['answer'] }}</strong></p>
                         @endif
-                        @if($answer->question_id === 2)
-                            <p>Hospital: <strong>{{ $answer->answer }}</strong></p>
+                        @if($answer['question_id'] === 2)
+                            <p>Hospital: <strong>{{ $answer['answer'] }}</strong></p>
                         @endif
-                        @if($answer->question_id === 7)
-                            <p>Age: <strong>{{ $answer->answer }}</strong></p>
+                        @if($answer['question_id'] === 7)
+                            <p>Age: <strong>{{ $answer['answer'] }}</strong></p>
                         @endif
-                        @if($answer->question_id === 8)
-                            <p>Gender: <strong>{{ $answer->answer }}</strong></p>
+                        @if($answer['question_id'] === 8)
+                            <p>Gender: <strong>{{ $answer['answer'] }}</strong></p>
                         @endif
                     @endforeach
                 @endif
 
+                <p>Doctor: Dr.<strong>{{ $patient->doctor->name }}</strong></p>
+            </div>
+        </div>
+    </div>
+
+@php
+    // Debugging the values to ensure they are correct
+    // dd($patient->answers);
+@endphp
+
+<!-- Patient History Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <h2>Patient History</h2>
+                @if(is_array($patient->answers) || is_object($patient->answers))
+                    @foreach($patient->answers as $answer)
+                        @if($answer['question_id'] === 1)
+                            <p>Patient ID: <strong>{{ $patient->id }}</strong></p>
+                            @php $patientName = $answer['answer']; @endphp
+                        @endif
+                        @if($answer['question_id'] === 8)
+                            @php $patientGender = $answer['answer']; @endphp
+                        @endif
+                        @if($answer['question_id'] === 7)
+                            @php $patientAge = $answer['answer']; @endphp
+                        @endif
+                        @if($answer['question_id'] === 14 && !isset($answer['type']))
+                            @php $patientHabit = is_array($answer['answer']) ? implode(', ', $answer['answer']) : $answer['answer']; @endphp
+                        @endif
+                        @if($answer['question_id'] === 14 && isset($answer['type']) && $answer['type'] === 'other')
+                            @php $patientHabitOther = $answer['answer']; @endphp
+                        @endif
+                        @if($answer['question_id'] === 16)
+                            @php $patientDM = $answer['answer']; @endphp
+                        @endif
+                        @if($answer['question_id'] === 18)
+                            @php $patientHTN = $answer['answer']; @endphp
+                        @endif
+                    @endforeach
+                @endif
+
+                <p><strong>{{ $patientGender ?? 'Unknown' }}</strong> Patient Named <strong>{{ $patientName ?? 'Unknown' }}</strong> Aged <strong>{{ $patientAge ?? 'Unknown' }}</strong></p>
+                <p>His special habit <strong>{{ $patientHabit ?? 'None' }}</strong> and <strong>{{ $patientHabitOther ?? '' }}</strong></p>
+                <p>DM, <strong>{{ $patientDM ?? 'None' }}</strong></p>
+                <p>HTN, <strong>{{ $patientHTN ?? 'None' }}</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Information Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <h2>Contact Information</h2>
+                @if(is_array($patient->answers) || is_object($patient->answers))
+                    @foreach($patient->answers as $answer)
+                        @if($answer['question_id'] === 5)
+                            @php $patientPhone = $answer['answer']; @endphp
+                        @endif
+                        @if($answer['question_id'] === 6)
+                            @php $patientEmail = $answer['answer']; @endphp
+                        @endif
+                    @endforeach
+                @endif
+                <p>Phone: <strong>{{ $patientPhone ?? 'None' }}</strong></p>
+                <p>Email: <strong>{{ $patientEmail ?? 'None' }}</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Complaint Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <h2>Complaint</h2>
+                @if(is_array($questionData) || is_object($questionData))
+                    @foreach($questionData as $data)
+                        @if($data['section_id'] === 2)
+                            <p>Q{{ $data['id'] }}: {{ $data['question'] }}</p>
+                            @if($data['type'] === 'multiple')
+                                <p>Answer:
+                                    @if(is_array($data['answer']['answers']))
+                                        @foreach($data['answer']['answers'] as $answer)
+                                            @if(is_array($answer))
+                                                @foreach($answer as $value)
+                                                    <strong>{{ $value }}</strong>,
+                                                @endforeach
+                                            @else
+                                                <strong>{{ $answer }}</strong>,
+                                            @endif
+                                        @endforeach
+                                    @endif
+                                </p>
+                                @if(isset($data['answer']['other_field']))
+                                    <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
+                                @endif
+                            @else
+                                <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
+                            @endif
+                        @endif
+                    @endforeach
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <!-- Cause of AKI Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <h2>Cause of AKI</h2>
+                @if(is_array($questionData) || is_object($questionData))
+                    @foreach($questionData as $data)
+                        @if($data['section_id'] === 3)
+                            <p>Q{{ $data['id'] }}: {{ $data['question'] }}</p>
+                            @if($data['type'] === 'multiple')
+                                <p>Answer:
+                                    @if(is_array($data['answer']['answers']))
+                                        @foreach($data['answer']['answers'] as $answer)
+                                            @if(is_array($answer))
+                                                @foreach($answer as $value)
+                                                    <strong>{{ $value }}</strong>,
+                                                @endforeach
+                                            @else
+                                                <strong>{{ $answer }}</strong>,
+                                            @endif
+                                        @endforeach
+                                    @endif
+                                </p>
+                                @if(isset($data['answer']['other_field']))
+                                    <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
+                                @endif
+                            @else
+                                <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
+                            @endif
+                        @endif
+                    @endforeach
+                @endif
             </div>
         </div>
     </div>
 
     <!-- Footer -->
     <div class="footer">
-        <p>Thank you for using our application!</p>
-        <p>EGYAKIN Scientific Team.</p>
+        <p>&copy; 2024 Patient Report Summary. All rights reserved.</p>
     </div>
 </div>
-
-<!-- Bootstrap JS (optional) -->
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 
 </html>

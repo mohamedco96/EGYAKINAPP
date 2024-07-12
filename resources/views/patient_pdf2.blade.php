@@ -120,16 +120,16 @@
                     @if(is_array($patient->answers) || is_object($patient->answers))
                         @foreach($patient->answers as $answer)
                             @if($answer['question_id'] === 1 && !empty($answer['answer']))
-                                <p>Patient Name: <strong>{{ $answer['answer'] }}</strong></p>
+                                <p>Patient Name: <strong>{{ is_array($answer['answer']) ? implode(', ', $answer['answer']) : $answer['answer'] }}</strong></p>
                             @endif
                             @if($answer['question_id'] === 2 && !empty($answer['answer']))
-                                <p>Hospital: <strong>{{ $answer['answer'] }}</strong></p>
+                                <p>Hospital: <strong>{{ is_array($answer['answer']) ? implode(', ', $answer['answer']) : $answer['answer'] }}</strong></p>
                             @endif
                             @if($answer['question_id'] === 7 && !empty($answer['answer']))
-                                <p>Age: <strong>{{ $answer['answer'] }}</strong></p>
+                                <p>Age: <strong>{{ is_array($answer['answer']) ? implode(', ', $answer['answer']) : $answer['answer'] }}</strong></p>
                             @endif
                             @if($answer['question_id'] === 8 && !empty($answer['answer']))
-                                <p>Gender: <strong>{{ $answer['answer'] }}</strong></p>
+                                <p>Gender: <strong>{{ is_array($answer['answer']) ? implode(', ', $answer['answer']) : $answer['answer'] }}</strong></p>
                             @endif
                         @endforeach
                     @endif
@@ -168,25 +168,25 @@
                         @foreach($patient->answers as $answer)
                             @if($answer['question_id'] === 1 && !empty($answer['answer']))
                                 <p>Patient ID: <strong>{{ $patient->id }}</strong></p>
-                                @php $patientName = $answer['answer']; @endphp
+                                @php $patientName = is_array($answer['answer']) ? implode(', ', $answer['answer']) : $answer['answer']; @endphp
                             @endif
                             @if($answer['question_id'] === 8 && !empty($answer['answer']))
-                                @php $patientGender = $answer['answer']; @endphp
+                                @php $patientGender = is_array($answer['answer']) ? implode(', ', $answer['answer']) : $answer['answer']; @endphp
                             @endif
                             @if($answer['question_id'] === 7 && !empty($answer['answer']))
-                                @php $patientAge = $answer['answer']; @endphp
+                                @php $patientAge = is_array($answer['answer']) ? implode(', ', $answer['answer']) : $answer['answer']; @endphp
                             @endif
                             @if($answer['question_id'] === 14 && !isset($answer['type']) && !empty($answer['answer']))
                                 @php $patientHabit = is_array($answer['answer']) ? implode(', ', $answer['answer']) : $answer['answer']; @endphp
                             @endif
                             @if($answer['question_id'] === 14 && isset($answer['type']) && $answer['type'] === 'other' && !empty($answer['answer']))
-                                @php $patientHabitOther = $answer['answer']; @endphp
+                                @php $patientHabitOther = is_array($answer['answer']) ? implode(', ', $answer['answer']) : $answer['answer']; @endphp
                             @endif
                             @if($answer['question_id'] === 16 && !empty($answer['answer']))
-                                @php $patientDM = $answer['answer']; @endphp
+                                @php $patientDM = is_array($answer['answer']) ? implode(', ', $answer['answer']) : $answer['answer']; @endphp
                             @endif
                             @if($answer['question_id'] === 18 && !empty($answer['answer']))
-                                @php $patientHTN = $answer['answer']; @endphp
+                                @php $patientHTN = is_array($answer['answer']) ? implode(', ', $answer['answer']) : $answer['answer']; @endphp
                             @endif
                         @endforeach
                     @endif
@@ -223,15 +223,13 @@
                     @if(is_array($patient->answers) || is_object($patient->answers))
                         @foreach($patient->answers as $answer)
                             @if($answer['question_id'] === 5 && !empty($answer['answer']))
-                                @php $patientPhone = $answer['answer']; @endphp
+                                <p>Patient Contact Number: <strong>{{ is_array($answer['answer']) ? implode(', ', $answer['answer']) : $answer['answer'] }}</strong></p>
                             @endif
                             @if($answer['question_id'] === 6 && !empty($answer['answer']))
-                                @php $patientEmail = $answer['answer']; @endphp
+                                <p>Patient Email: <strong>{{ is_array($answer['answer']) ? implode(', ', $answer['answer']) : $answer['answer'] }}</strong></p>
                             @endif
                         @endforeach
                     @endif
-                    <p>Phone: <strong>{{ $patientPhone ?? 'None' }}</strong></p>
-                    <p>Email: <strong>{{ $patientEmail ?? 'None' }}</strong></p>
                 </div>
             </div>
         </div>
@@ -279,7 +277,7 @@
                                 @endif
                             </p>
                             @if(isset($data['answer']['other_field']))
-                                <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
+                                <p>Other Field: <strong>{{ is_array($data['answer']['other_field']) ? implode(', ', $data['answer']['other_field']) : $data['answer']['other_field'] }}</strong></p>
                             @endif
                         @endif
                     @endforeach

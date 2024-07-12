@@ -8,22 +8,33 @@
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            border: 1px solid black;
-            text-align: left;
-            padding: 8px;
-        }
-        th {
-            background-color: #f2f2f2;
+        /* Watermark */
+        body {
+            background-image: url('https://i.ibb.co/N20YgRz/logo.jpg');
+            background-repeat: no-repeat; /* No repeat */
+            background-attachment: fixed; /* Fixed position */
+            background-size: contain; /* Adjust size as needed */
+            background-position: center; /* Centered positioning */
+            opacity: 0.80; /* Adjust opacity as needed */
         }
 
+        /* General styling */
+        .container {
+            padding: 20px;
+        }
 
-        .strong {
-            color: #0d1116;
+        .header {
+            background-color: #6f42c1; /* Purple header */
+            color: white;
+            padding: 10px;
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+            border-radius: 5px;
+        }
+
+        .header h1 {
+            margin-bottom: 0;
         }
 
         .section {
@@ -47,45 +58,40 @@
         .section p {
             font-size: 16px;
             margin-bottom: 5px;
-            color: #6c757d; /* Gray text */
-        }
-
-        .logo {
-            max-width: 150px;
-            margin-bottom: 20px;
-            margin-right: 20px;
-        }
-
-        .header {
-            background-color: #6f42c1; /* Purple header */
-            color: white;
-            padding: 10px;
-            text-align: center;
-            margin-bottom: 30px;
-            position: relative;
-            border-radius: 5px;
-        }
-
-        .header img {
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            width: 100px;
+            /*color: #6c757d; !* Gray text *!*/
         }
 
         .footer {
             background-color: #6f42c1; /* Purple footer */
-            color: white;
+            color: #101010;
             padding: 10px;
             text-align: center;
             margin-top: 30px;
             border-radius: 5px;
+        }
+
+        /* Table styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        th, td {
+            border: 1px solid black;
+            text-align: left;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f2f2f2;
         }
     </style>
 </head>
 
 <body>
 <div class="container">
+
     <!-- Header -->
     <div class="header">
         <!--<img src="https://via.placeholder.com/150" alt="Logo" class="logo">-->
@@ -605,6 +611,10 @@
         <p>&copy; 2024 Patient Report Summary. All rights reserved.</p>
     </div>
 </div>
+<!-- Bootstrap JS (optional) -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 
 </html>

@@ -8,6 +8,20 @@
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            text-align: left;
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+
+
         .strong {
             color: #0d1116;
         }
@@ -155,11 +169,24 @@
                         @if($answer['question_id'] === 18)
                             @php $patientHTN = $answer['answer']; @endphp
                         @endif
+                        @if($answer['question_id'] === 11)
+                            @php $governorate = $answer['answer']; @endphp
+                        @endif
+                        @if($answer['question_id'] === 12)
+                            @php $maritalStatus = $answer['answer']; @endphp
+                        @endif
                     @endforeach
                 @endif
 
-                <p><strong>{{ $patientGender ?? 'Unknown' }}</strong> Patient Named <strong>{{ $patientName ?? 'Unknown' }}</strong> Aged <strong>{{ $patientAge ?? 'Unknown' }}</strong></p>
-                <p>His special habit <strong>{{ $patientHabit ?? 'None' }}</strong> and <strong>{{ $patientHabitOther ?? '' }}</strong></p>
+                <p>
+                    <strong>{{ $patientGender ?? 'Unknown' }}</strong> Patient Named
+                    <strong>{{ $patientName ?? 'Unknown' }}</strong> Aged
+                    <strong>{{ $patientAge ?? 'Unknown' }}</strong> From
+                    <strong>{{ $governorate ?? 'Unknown' }}</strong> --
+                    <strong>{{ $maritalStatus ?? 'Unknown' }}</strong>
+                </p>
+                <p>His special habit <strong>{{ $patientHabit ?? 'None' }}</strong> and
+                    <strong>{{ $patientHabitOther ?? '' }}</strong></p>
                 <p>DM, <strong>{{ $patientDM ?? 'None' }}</strong></p>
                 <p>HTN, <strong>{{ $patientHTN ?? 'None' }}</strong></p>
             </div>
@@ -194,30 +221,41 @@
                 <h2>Complaint</h2>
                 @if(is_array($questionData) || is_object($questionData))
                     @foreach($questionData as $data)
+                        @php
+                            // Debugging the values to ensure they are correct
+                        //dd($data);
+                        @endphp
                         @if($data['section_id'] === 2)
-                            <p>Q{{ $data['id'] }}: {{ $data['question'] }}</p>
-                            @if($data['type'] === 'multiple')
-                                <p>Answer:
-                                    @if(is_array($data['answer']['answers']))
-                                        @foreach($data['answer']['answers'] as $answer)
-                                            @if(is_array($answer))
-                                                @foreach($answer as $value)
-                                                    <strong>{{ $value }}</strong>,
-                                                @endforeach
-                                            @else
-                                                <strong>{{ $answer }}</strong>,
-                                            @endif
-                                        @endforeach
+                            @php $displaySection = false; @endphp
+                            @if(!is_null($data['answer']))
+                                @php $displaySection = true; @endphp                                <p>
+                                    Q{{ $data['id'] }}: {{ $data['question'] }}</p>
+                                @if($data['type'] === 'multiple')
+                                    <p>Answer:
+                                        @if(is_array($data['answer']['answers']))
+                                            @foreach($data['answer']['answers'] as $answer)
+                                                @if(is_array($answer))
+                                                    @foreach($answer as $value)
+                                                        <strong>{{ $value }}</strong>,
+                                                    @endforeach
+                                                @else
+                                                    <strong>{{ $answer }}</strong>,
+                                                @endif
+                                            @endforeach
+                                        @endif
+                                    </p>
+                                    @if(isset($data['answer']['other_field']))
+                                        <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
                                     @endif
-                                </p>
-                                @if(isset($data['answer']['other_field']))
-                                    <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
+                                @else
+                                    <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
                                 @endif
-                            @else
-                                <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
                             @endif
                         @endif
                     @endforeach
+                    @if(!$displaySection)
+                        <p>No information available.</p>
+                    @endif
                 @endif
             </div>
         </div>
@@ -235,36 +273,333 @@
                         //dd($data);
                         @endphp
                         @if($data['section_id'] === 3)
-                            @if(!is_null($data['answer']) || isset($data['answer']['answers']) && is_array($data['answer']['answers']) && count($data['answer']['answers']) > 0)
-                            <p>Q{{ $data['id'] }}: {{ $data['question'] }}</p>
-                            @if($data['type'] === 'multiple')
-                                <p>Answer:
-                                    @if(is_array($data['answer']['answers']))
-                                        @foreach($data['answer']['answers'] as $answer)
-                                            @if(is_array($answer))
-                                                @foreach($answer as $value)
-                                                    <strong>{{ $value }}</strong>,
-                                                @endforeach
-                                            @else
-                                                <strong>{{ $answer }}</strong>,
-                                            @endif
-                                        @endforeach
+                            @php $displaySection = false; @endphp
+                            @if(!is_null($data['answer']))
+                                @php $displaySection = true; @endphp                            <p>Q{{ $data['id'] }}
+                                    : {{ $data['question'] }}</p>
+                                @if($data['type'] === 'multiple')
+                                    <p>Answer:
+                                        @if(is_array($data['answer']['answers']))
+                                            @foreach($data['answer']['answers'] as $answer)
+                                                @if(is_array($answer))
+                                                    @foreach($answer as $value)
+                                                        <strong>{{ $value }}</strong>,
+                                                    @endforeach
+                                                @else
+                                                    <strong>{{ $answer }}</strong>,
+                                                @endif
+                                            @endforeach
+                                        @endif
+                                    </p>
+                                    @if(isset($data['answer']['other_field']))
+                                        <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
                                     @endif
-                                </p>
-                                @if(isset($data['answer']['other_field']))
-                                    <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
+                                @else
+                                    <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
                                 @endif
-                            @else
-                                <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
                             @endif
                         @endif
-                        @endif
                     @endforeach
+                    @if(!$displaySection)
+                        <p>No information available.</p>
+                    @endif
                 @endif
             </div>
         </div>
     </div>
 
+    <!-- Risk factors for AKI Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <h2>Risk factors for AKI</h2>
+                @if(is_array($questionData) || is_object($questionData))
+                    @foreach($questionData as $data)
+                        @php
+                            // Debugging the values to ensure they are correct
+                        //dd($data);
+                        @endphp
+                        @if($data['section_id'] === 4)
+                            @php $displaySection = false; @endphp
+                            @if(!is_null($data['answer']))
+                                @php $displaySection = true; @endphp                                <p>
+                                    Q{{ $data['id'] }}: {{ $data['question'] }}</p>
+                                @if($data['type'] === 'multiple')
+                                    <p>Answer:
+                                        @if(is_array($data['answer']['answers']))
+                                            @foreach($data['answer']['answers'] as $answer)
+                                                @if(is_array($answer))
+                                                    @foreach($answer as $value)
+                                                        <strong>{{ $value }}</strong>,
+                                                    @endforeach
+                                                @else
+                                                    <strong>{{ $answer }}</strong>,
+                                                @endif
+                                            @endforeach
+                                        @endif
+                                    </p>
+                                    @if(isset($data['answer']['other_field']))
+                                        <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
+                                    @endif
+                                @else
+                                    <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
+                                @endif
+                            @endif
+                        @endif
+                    @endforeach
+                    @if(!$displaySection)
+                        <p>No information available.</p>
+                    @endif
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <!-- Medical decision Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <h2>Medical decision</h2>
+                @if(is_array($questionData) || is_object($questionData))
+                    @foreach($questionData as $data)
+                        @php
+                            // Debugging the values to ensure they are correct
+                        //dd($data);
+                        @endphp
+                        @if($data['section_id'] === 7)
+                            @php $displaySection = false; @endphp
+                            @if(!is_null($data['answer']))
+                                @php $displaySection = true; @endphp                                <p>
+                                    Q{{ $data['id'] }}: {{ $data['question'] }}</p>
+                                @if($data['type'] === 'multiple')
+                                    <p>Answer:
+                                        @if(is_array($data['answer']['answers']))
+                                            @foreach($data['answer']['answers'] as $answer)
+                                                @if(is_array($answer))
+                                                    @foreach($answer as $value)
+                                                        <strong>{{ $value }}</strong>,
+                                                    @endforeach
+                                                @else
+                                                    <strong>{{ $answer }}</strong>,
+                                                @endif
+                                            @endforeach
+                                        @endif
+                                    </p>
+                                    @if(isset($data['answer']['other_field']))
+                                        <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
+                                    @endif
+                                @else
+                                    <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
+                                @endif
+                            @endif
+                        @endif
+                    @endforeach
+                    @if(!$displaySection)
+                        <p>No information available.</p>
+                    @endif
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <!-- Outcome Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <h2>Outcome</h2>
+                @if(is_array($questionData) || is_object($questionData))
+                    @foreach($questionData as $data)
+                        @php
+                            // Debugging the values to ensure they are correct
+                        //dd($data);
+                        @endphp
+                        @if($data['section_id'] === 8)
+                            @php $displaySection = false; @endphp
+                            @if(!is_null($data['answer']))
+                                @php $displaySection = true; @endphp
+                                <p>Q{{ $data['id'] }}: {{ $data['question'] }}</p>
+                                @if($data['type'] === 'multiple')
+                                    <p>Answer:
+                                        @if(is_array($data['answer']['answers']))
+                                            @foreach($data['answer']['answers'] as $answer)
+                                                @if(is_array($answer))
+                                                    @foreach($answer as $value)
+                                                        <strong>{{ $value }}</strong>,
+                                                    @endforeach
+                                                @else
+                                                    <strong>{{ $answer }}</strong>,
+                                                @endif
+                                            @endforeach
+                                        @endif
+                                    </p>
+                                    @if(isset($data['answer']['other_field']))
+                                        <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
+                                    @endif
+                                @else
+                                    <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
+                                @endif
+                            @endif
+                        @endif
+                    @endforeach
+                    @if(!$displaySection)
+                        <p>No information available.</p>
+                    @endif
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <table>
+        @if(is_array($patient->answers) || is_object($patient->answers))
+            @foreach($patient->answers as $answer)
+                @if($answer['question_id'] === 92)
+                    @php $pHmmhg_admission = $answer['answer']; @endphp
+                @endif
+                @if($answer['question_id'] === 116)
+                    @php $pHmmhg_discharge = $answer['answer']; @endphp
+                @endif
+            @endforeach
+        @endif
+        <thead>
+        <tr>
+            <th>Laboratory Parameters</th>
+            <th>On admission</th>
+            <th>On discharge</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>pH /mmhg</td>
+            <td>{{ $pHmmhg_admission ?? '0' }}</td>
+            <td>{{ $pHmmhg_discharge ?? '0' }}</td>
+        </tr>
+        <tr>
+            <td>HCO3 /mmhg</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>pCO2 /mmhg</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>K mg/dl</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>SGOT u/l</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>SGPT u/l</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Albumin mg/dl</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>HCV Ab</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>HBs Ag</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>HIV Ab</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Hemoglobin gm/dl</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>WBCs count</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Platelets count</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Neutrophil count</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Lymphocytes count</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Creatinine (mg/dl)</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Urea mg/dl</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>BUN mg/dl</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>CRP mg/l</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Specific gravity (Urine)</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Clarity (Urine)</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Epithelial cells (Urine)</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Crystals types (Urine)</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Casts (Urine)</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>WBCs (Urine)</td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>RBCs (Urine)</td>
+            <td></td>
+            <td></td>
+        </tr>
+        </tbody>
+    </table>
     <!-- Footer -->
     <div class="footer">
         <p>&copy; 2024 Patient Report Summary. All rights reserved.</p>

@@ -1239,7 +1239,7 @@ class PatientsController extends Controller
             ];
 
             // Generate the PDF using the blade view and data
-            $pdf = PDF::loadView('patient_pdf', $pdfData);
+            $pdf = PDF::loadView('patient_pdf2', $pdfData);
 
             // Ensure the 'pdfs' directory exists in the public disk
             Storage::disk('public')->makeDirectory('pdfs');

@@ -8,9 +8,10 @@
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
-        .strong{
+        .strong {
             color: #0d1116;
         }
+
         .section {
             margin-bottom: 30px;
             padding: 20px;

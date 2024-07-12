@@ -230,7 +230,12 @@
                 <h2>Cause of AKI</h2>
                 @if(is_array($questionData) || is_object($questionData))
                     @foreach($questionData as $data)
+                        @php
+                            // Debugging the values to ensure they are correct
+                        //dd($data);
+                        @endphp
                         @if($data['section_id'] === 3)
+                            @if(!is_null($data['answer']) || isset($data['answer']['answers']) && is_array($data['answer']['answers']) && count($data['answer']['answers']) > 0)
                             <p>Q{{ $data['id'] }}: {{ $data['question'] }}</p>
                             @if($data['type'] === 'multiple')
                                 <p>Answer:
@@ -252,6 +257,7 @@
                             @else
                                 <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
                             @endif
+                        @endif
                         @endif
                     @endforeach
                 @endif

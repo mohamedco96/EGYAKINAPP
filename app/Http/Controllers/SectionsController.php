@@ -457,6 +457,11 @@ class SectionsController extends Controller
             $race = Answers::where('patient_id', $patient_id)
                 ->where('question_id', '149')->value('answer');
 
+            // Check if all necessary parameters are present and valid
+            if (!is_null($gender) && !is_null($age) && $age != 0 &&
+                !is_null($height) && !is_null($weight) && !is_null($race) &&
+                !is_null($CurrentCreatinine) && $CurrentCreatinine != 0 &&
+                !is_null($CreatinineOnDischarge) && $CreatinineOnDischarge != 0) {
 
                 // Convert to float values
                 $c1 = floatval($CurrentCreatinine);
@@ -483,6 +488,7 @@ class SectionsController extends Controller
                 $GFR['mdrd']['basal_creatinine_GFR'] = $this->calculateGFRforMDRD($c2, $ageValue, $raceValue, $genderValue);
                 $GFR['mdrd']['creatinine_on_discharge_GFR'] = $this->calculateGFRforMDRD($c3, $ageValue, $raceValue, $genderValue);
 
+            }
 
             // Log successful retrieval of sections information
             Log::info("Showing sections for patient ID: $patient_id", [

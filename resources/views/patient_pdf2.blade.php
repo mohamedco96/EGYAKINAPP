@@ -1,3 +1,10 @@
+<?php
+// Increase maximum execution time
+set_time_limit(120);
+
+// Example data processing optimization
+$answers = collect($patient->answers)->keyBy('question_id');
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -10,7 +17,8 @@
     <style>
         /* Watermark */
         body {
-            background-image: url('{{ asset('images/logo.png') }}'); /* Path to the image in the public directory */
+            {{--background-image: url('{{ asset('images/logo.png') }}'); /* Path to the image in the public directory */--}}
+            background-image: url('https://i.ibb.co/8xJyVMt/Whats-App-Image-2024-07-15-at-11-38-02-PM-removebg-preview.png'); /* Path to the image in the public directory */
             background-repeat: no-repeat; /* No repeat */
             background-attachment: fixed; /* Fixed position */
             background-size: contain; /* Adjust size as needed */
@@ -46,7 +54,7 @@
         }
 
         .section:hover {
-            background-color: #e9ecef; /* Darker gray background on hover */
+            /*background-color: #e9ecef; !* Darker gray background on hover *!*/
         }
 
         .section h2 {
@@ -422,235 +430,6 @@
         <div class="col-md-12">
             <div class="section">
                 <table>
-                    @if(is_array($patient->answers) || is_object($patient->answers))
-                        @foreach($patient->answers as $answer)
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 92)
-                                @php $pHmmhg_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 116)
-                                @php $pHmmhg_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] ===93 )
-                                @php $HCO_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 117)
-                                @php $HCO_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] ===94 )
-                                @php $pCO_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 118)
-                                @php $pCO_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 95)
-                                @php $K_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] ===119 )
-                                @php $K_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 96)
-                                @php $SGOT_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 120)
-                                @php $SGOT_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] ===97 )
-                                @php $SGPT_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] ===121 )
-                                @php $SGPT_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 98)
-                                @php $Albumin_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 122)
-                                @php $Albumin_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 99)
-                                @php $HCV_admission = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 100)
-                                @php $HBs_admission = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 101)
-                                @php $HIV_admission = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 102)
-                                @php $Hemoglobin_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 126)
-                                @php $Hemoglobin_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 103)
-                                @php $WBCscount_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 127)
-                                @php $WBCscount_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 104)
-                                @php $Platelets_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 128)
-                                @php $Platelets_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 105)
-                                @php $Neutrophil_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 129)
-                                @php $Neutrophil_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 106)
-                                @php $Lymphocytes_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 130)
-                                @php $Lymphocytes_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 71)
-                                @php $Creatinine_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 80)
-                                @php $Creatinine_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 107)
-                                @php $Urea_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 131)
-                                @php $Urea_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 108)
-                                @php $BUN_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 132)
-                                @php $BUN_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 143)
-                                @php $CRP_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 144)
-                                @php $CRP_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 109)
-                                @php $Specific_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 133)
-                                @php $Specific_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 110)
-                                @php $Clarity_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 134)
-                                @php $Clarity_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 111)
-                                @php $Epithelial_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 135)
-                                @php $Epithelial_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 112)
-                                @php $Crystals_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 136)
-                                @php $Crystals_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 113)
-                                @php $Casts_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 137)
-                                @php $Casts_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 114)
-                                @php $WBCs_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 138)
-                                @php $WBCs_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                            {{--****************************--}}
-                            @if($answer['question_id'] === 115)
-                                @php $RBCs_admission = $answer['answer']; @endphp
-                            @endif
-                            @if($answer['question_id'] === 139)
-                                @php $RBCs_discharge = $answer['answer']; @endphp
-                            @endif
-                            {{--****************************--}}
-
-                        @endforeach
-                    @endif
                     <thead>
                     <tr>
                         <th>Laboratory Parameters</th>
@@ -659,136 +438,43 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr>
-                        <td>pH /mmhg</td>
-                        <td class="center-text"><strong>{{ $pHmmhg_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $pHmmhg_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>HCO3 /mmhg</td>
-                        <td class="center-text"><strong>{{ $HCO_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $HCO_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>pCO2 /mmhg</td>
-                        <td class="center-text"><strong>{{ $pCO_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $pCO_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>K mg/dl</td>
-                        <td class="center-text"><strong>{{ $K_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $K_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>SGOT u/l</td>
-                        <td class="center-text"><strong>{{ $SGOT_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $SGOT_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>SGPT u/l</td>
-                        <td class="center-text"><strong>{{ $SGPT_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $SGPT_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Albumin gm/dl</td>
-                        <td class="center-text"><strong>{{ $Albumin_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $Albumin_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>HCV Ab</td>
-                        <td class="center-text"><strong>{{ $HCV_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong></strong></td>
-                    </tr>
-                    <tr>
-                        <td>HBs Ag</td>
-                        <td class="center-text"><strong>{{ $HBs_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong></strong></td>
-                    </tr>
-                    <tr>
-                        <td>HIV Ab</td>
-                        <td class="center-text"><strong>{{ $HIV_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong></strong></td>
-                    </tr>
-                    <tr>
-                        <td>Hemoglobin gm/dl</td>
-                        <td class="center-text"><strong>{{ $Hemoglobin_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $Hemoglobin_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>WBCs count</td>
-                        <td class="center-text"><strong>{{ $WBCscount_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $WBCscount_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Platelets count</td>
-                        <td class="center-text"><strong>{{ $Platelets_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $Platelets_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Neutrophil count</td>
-                        <td class="center-text"><strong>{{ $Neutrophil_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $Neutrophil_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Lymphocytes count</td>
-                        <td class="center-text"><strong>{{ $Lymphocytes_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $Lymphocytes_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Creatinine (mg/dl)</td>
-                        <td class="center-text"><strong>{{ $Creatinine_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $Creatinine_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Urea mg/dl</td>
-                        <td class="center-text"><strong>{{ $Urea_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $Urea_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>BUN mg/dl</td>
-                        <td class="center-text"><strong>{{ $BUN_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $BUN_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>CRP mg/l</td>
-                        <td class="center-text"><strong>{{ $CRP_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $CRP_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Specific gravity (Urine)</td>
-                        <td class="center-text"><strong>{{ $Specific_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $Specific_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Clarity (Urine)</td>
-                        <td class="center-text"><strong>{{ $Clarity_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $Clarity_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Epithelial cells (Urine)</td>
-                        <td class="center-text"><strong>{{ $Epithelial_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $Epithelial_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Crystals types (Urine)</td>
-                        <td class="center-text"><strong>{{ $Crystals_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $Crystals_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Casts (Urine)</td>
-                        <td class="center-text"><strong>{{ $Casts_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $Casts_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>WBCs (Urine)</td>
-                        <td class="center-text"><strong>{{ $WBCs_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $WBCs_discharge ?? '-' }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>RBCs (Urine)</td>
-                        <td class="center-text"><strong>{{ $RBCs_admission ?? '-' }}</strong></td>
-                        <td class="center-text"><strong>{{ $RBCs_discharge ?? '-' }}</strong></td>
-                    </tr>
+                    @php
+                        $labParameters = [
+                            'pH /mmhg' => [92, 116],
+                            'HCO3 /mmhg' => [93, 117],
+                            'pCO2 /mmhg' => [94, 118],
+                            'K mg/dl' => [95, 119],
+                            'SGOT u/l' => [96, 120],
+                            'SGPT u/l' => [97, 121],
+                            'Albumin gm/dl' => [98, 122],
+                            'HCV Ab' => [99, null],
+                            'HBs Ag' => [100, null],
+                            'HIV Ab' => [101, null],
+                            'Hemoglobin gm/dl' => [102, 126],
+                            'WBCs count' => [103, 127],
+                            'Platelets count' => [104, 128],
+                            'Neutrophil count' => [105, 129],
+                            'Lymphocytes count' => [106, 130],
+                            'Creatinine (mg/dl)' => [71, 80],
+                            'Urea mg/dl' => [107, 131],
+                            'BUN mg/dl' => [108, 132],
+                            'CRP mg/l' => [143, 144],
+                            'Specific gravity (Urine)' => [109, 133],
+                            'Clarity (Urine)' => [110, 134],
+                            'Epithelial cells (Urine)' => [111, 135],
+                            'Crystals types (Urine)' => [112, 136],
+                            'Casts (Urine)' => [113, 137],
+                            'WBCs (Urine)' => [114, 138],
+                            'RBCs (Urine)' => [115, 139],
+                        ];
+                    @endphp
+                    @foreach($labParameters as $parameter => $ids)
+                        <tr>
+                            <td>{{ $parameter }}</td>
+                            <td class="center-text"><strong>{{ $answers[$ids[0]]['answer'] ?? '-' }}</strong></td>
+                            <td class="center-text"><strong>{{ $ids[1] ? $answers[$ids[1]]['answer'] ?? '-' : '' }}</strong></td>
+                        </tr>
+                    @endforeach
                     </tbody>
                 </table>
             </div>

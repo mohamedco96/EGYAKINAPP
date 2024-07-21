@@ -227,7 +227,7 @@ class PatientsController extends Controller
                 'isSyndicateCardRequired' => $isSyndicateCardRequired,
                 'all_patient_count' => (string)$allPatientCount,
                 'score_value' => (string)$scoreValue,
-                'role' => 'Admin',
+                'role' => 'User',
                 'data' => [
                     'topDoctors' => $topDoctors,
                     'all_patients' => $allPatientsResponseData,
@@ -1257,6 +1257,15 @@ class PatientsController extends Controller
 
             // Return the URL to download the PDF file along with patient data
             return response()->json(['pdf_url' => $pdfUrl]);
+
+            // Pass the data to the blade view
+//            $viewData = [
+//                'patient' => $patient,
+//                'questionData' => $data
+//                // Add more data here if needed
+//            ];
+//            // Return the view with the data
+//            return view('patient_pdf2', $viewData);
         } catch (\Exception $e) {
             // Log and return error if an exception occurs
             Log::error("Error while generating PDF: " . $e->getMessage());

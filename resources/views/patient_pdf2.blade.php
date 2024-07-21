@@ -10,7 +10,7 @@
     <style>
         /* Watermark */
         body {
-            background-image: url('https://i.ibb.co/N20YgRz/logo.jpg');
+            background-image: url('{{ asset('images/logo.png') }}'); /* Path to the image in the public directory */
             background-repeat: no-repeat; /* No repeat */
             background-attachment: fixed; /* Fixed position */
             background-size: contain; /* Adjust size as needed */
@@ -63,8 +63,9 @@
 
         .footer {
             background-color: #6f42c1; /* Purple footer */
-            color: #101010;
+            color: #ffffff;
             padding: 10px;
+            font-size: large;
             text-align: center;
             margin-top: 30px;
             border-radius: 5px;
@@ -85,6 +86,9 @@
 
         th {
             background-color: #f2f2f2;
+        }
+        .center-text {
+            text-align: center;
         }
     </style>
 </head>
@@ -108,55 +112,20 @@
         </div>
     </div>
 
-    <!-- Patient Information Section -->
+<!-- Patient Information Section -->
     <div class="row">
         <div class="col-md-12">
             <div class="section">
                 <h2>Patient Information</h2>
-                @php
-                    if (is_string($patient->answers)) {
-                        $patient->answers = json_decode($patient->answers, true);
-                    }
-                @endphp
-
-                @if(is_array($patient->answers) || is_object($patient->answers))
-                    @foreach($patient->answers as $answer)
-                        @if($answer['question_id'] === 1)
-                            <p>Patient Name: <strong>{{ $answer['answer'] }}</strong></p>
-                        @endif
-                        @if($answer['question_id'] === 2)
-                            <p>Hospital: <strong>{{ $answer['answer'] }}</strong></p>
-                        @endif
-                        @if($answer['question_id'] === 7)
-                            <p>Age: <strong>{{ $answer['answer'] }}</strong></p>
-                        @endif
-                        @if($answer['question_id'] === 8)
-                            <p>Gender: <strong>{{ $answer['answer'] }}</strong></p>
-                        @endif
-                    @endforeach
-                @endif
-
-                <p>Doctor: Dr.<strong>{{ $patient->doctor->name }}</strong></p>
-            </div>
-        </div>
-    </div>
-
-@php
-    // Debugging the values to ensure they are correct
-    // dd($patient->answers);
-@endphp
-
-<!-- Patient History Section -->
-    <div class="row">
-        <div class="col-md-12">
-            <div class="section">
-                <h2>Patient History</h2>
                 @if(is_array($patient->answers) || is_object($patient->answers))
                     @foreach($patient->answers as $answer)
                         @if($answer['question_id'] === 1)
                             <p>Patient ID: <strong>{{ $patient->id }}</strong></p>
                             @php $patientName = $answer['answer']; @endphp
                         @endif
+                            @if($answer['question_id'] === 2)
+                                @php $hospital = $answer['answer']; @endphp
+                            @endif
                         @if($answer['question_id'] === 8)
                             @php $patientGender = $answer['answer']; @endphp
                         @endif
@@ -191,6 +160,7 @@
                     <strong>{{ $governorate ?? 'Unknown' }}</strong> --
                     <strong>{{ $maritalStatus ?? 'Unknown' }}</strong>
                 </p>
+                <p>Hospital: <strong>{{ $hospital ?? 'Unknown' }}</strong></p>
                 <p>His special habit <strong>{{ $patientHabit ?? 'None' }}</strong> and
                     <strong>{{ $patientHabitOther ?? '' }}</strong></p>
                 <p>DM, <strong>{{ $patientDM ?? 'None' }}</strong></p>
@@ -226,18 +196,14 @@
             <div class="section">
                 <h2>Complaint</h2>
                 @if(is_array($questionData) || is_object($questionData))
+                    @php $displaySection = false; @endphp
                     @foreach($questionData as $data)
-                        @php
-                            // Debugging the values to ensure they are correct
-                        //dd($data);
-                        @endphp
-                        @if($data['section_id'] === 2)
-                            @php $displaySection = false; @endphp
+                        @if($data['section_id'] === 2 && $data['id'] === 24)
                             @if(!is_null($data['answer']))
-                                @php $displaySection = true; @endphp                                <p>
-                                    Q{{ $data['id'] }}: {{ $data['question'] }}</p>
+                                @php $displaySection = true; @endphp
+                                <p><strong>Q:</strong> {{ $data['question'] }}</p>
                                 @if($data['type'] === 'multiple')
-                                    <p>Answer:
+                                    <p><strong>A:</strong>
                                         @if(is_array($data['answer']['answers']))
                                             @foreach($data['answer']['answers'] as $answer)
                                                 @if(is_array($answer))
@@ -251,10 +217,10 @@
                                         @endif
                                     </p>
                                     @if(isset($data['answer']['other_field']))
-                                        <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
+                                        <p>Others: <strong>{{ $data['answer']['other_field'] }}</strong></p>
                                     @endif
                                 @else
-                                    <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
+                                    <p><strong>A:</strong> <strong>{{ $data['answer'] }}</strong></p>
                                 @endif
                             @endif
                         @endif
@@ -279,12 +245,11 @@
                         //dd($data);
                         @endphp
                         @if($data['section_id'] === 3)
-                            @php $displaySection = false; @endphp
                             @if(!is_null($data['answer']))
-                                @php $displaySection = true; @endphp                            <p>Q{{ $data['id'] }}
-                                    : {{ $data['question'] }}</p>
+                                @php $displaySection = true; @endphp
+                                <p> <strong>Q:</strong> {{ $data['question'] }}</p>
                                 @if($data['type'] === 'multiple')
-                                    <p>Answer:
+                                    <p><strong>A:</strong>
                                         @if(is_array($data['answer']['answers']))
                                             @foreach($data['answer']['answers'] as $answer)
                                                 @if(is_array($answer))
@@ -298,10 +263,10 @@
                                         @endif
                                     </p>
                                     @if(isset($data['answer']['other_field']))
-                                        <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
+                                        <p>Others: <strong>{{ $data['answer']['other_field'] }}</strong></p>
                                     @endif
                                 @else
-                                    <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
+                                    <p><strong>A:</strong> <strong>{{ $data['answer'] }}</strong></p>
                                 @endif
                             @endif
                         @endif
@@ -328,10 +293,10 @@
                         @if($data['section_id'] === 4)
                             @php $displaySection = false; @endphp
                             @if(!is_null($data['answer']))
-                                @php $displaySection = true; @endphp                                <p>
-                                    Q{{ $data['id'] }}: {{ $data['question'] }}</p>
+                                @php $displaySection = true; @endphp
+                                <p> <strong>Q:</strong> {{ $data['question'] }}</p>
                                 @if($data['type'] === 'multiple')
-                                    <p>Answer:
+                                    <p><strong>A:</strong>
                                         @if(is_array($data['answer']['answers']))
                                             @foreach($data['answer']['answers'] as $answer)
                                                 @if(is_array($answer))
@@ -345,10 +310,10 @@
                                         @endif
                                     </p>
                                     @if(isset($data['answer']['other_field']))
-                                        <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
+                                        <p>Others: <strong>{{ $data['answer']['other_field'] }}</strong></p>
                                     @endif
                                 @else
-                                    <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
+                                    <p><strong>A:</strong> <strong>{{ $data['answer'] }}</strong></p>
                                 @endif
                             @endif
                         @endif
@@ -375,10 +340,10 @@
                         @if($data['section_id'] === 7)
                             @php $displaySection = false; @endphp
                             @if(!is_null($data['answer']))
-                                @php $displaySection = true; @endphp                                <p>
-                                    Q{{ $data['id'] }}: {{ $data['question'] }}</p>
+                                @php $displaySection = true; @endphp
+                                <p> <strong>Q:</strong> {{ $data['question'] }}</p>
                                 @if($data['type'] === 'multiple')
-                                    <p>Answer:
+                                    <p><strong>A:</strong>
                                         @if(is_array($data['answer']['answers']))
                                             @foreach($data['answer']['answers'] as $answer)
                                                 @if(is_array($answer))
@@ -392,10 +357,10 @@
                                         @endif
                                     </p>
                                     @if(isset($data['answer']['other_field']))
-                                        <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
+                                        <p>Others: <strong>{{ $data['answer']['other_field'] }}</strong></p>
                                     @endif
                                 @else
-                                    <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
+                                    <p><strong>A:</strong> <strong>{{ $data['answer'] }}</strong></p>
                                 @endif
                             @endif
                         @endif
@@ -414,18 +379,14 @@
             <div class="section">
                 <h2>Outcome</h2>
                 @if(is_array($questionData) || is_object($questionData))
+                    @php $foundQuestion = false; @endphp
                     @foreach($questionData as $data)
-                        @php
-                            // Debugging the values to ensure they are correct
-                        //dd($data);
-                        @endphp
-                        @if($data['section_id'] === 8)
-                            @php $displaySection = false; @endphp
+                        @if($data['section_id'] === 8 && $data['id'] === 79)
                             @if(!is_null($data['answer']))
-                                @php $displaySection = true; @endphp
-                                <p>Q{{ $data['id'] }}: {{ $data['question'] }}</p>
+                                @php $foundQuestion = true; @endphp
+                                <p><strong>Q:</strong> {{ $data['question'] }}</p>
                                 @if($data['type'] === 'multiple')
-                                    <p>Answer:
+                                    <p><strong>A:</strong>
                                         @if(is_array($data['answer']['answers']))
                                             @foreach($data['answer']['answers'] as $answer)
                                                 @if(is_array($answer))
@@ -439,15 +400,15 @@
                                         @endif
                                     </p>
                                     @if(isset($data['answer']['other_field']))
-                                        <p>Other Field: <strong>{{ $data['answer']['other_field'] }}</strong></p>
+                                        <p>Others: <strong>{{ $data['answer']['other_field'] }}</strong></p>
                                     @endif
                                 @else
-                                    <p>Answer: <strong>{{ $data['answer'] }}</strong></p>
+                                    <p><strong>A:</strong> <strong>{{ $data['answer'] }}</strong></p>
                                 @endif
                             @endif
                         @endif
                     @endforeach
-                    @if(!$displaySection)
+                    @if(!$foundQuestion)
                         <p>No information available.</p>
                     @endif
                 @endif
@@ -455,157 +416,386 @@
         </div>
     </div>
 
-    <table>
-        @if(is_array($patient->answers) || is_object($patient->answers))
-            @foreach($patient->answers as $answer)
-                @if($answer['question_id'] === 92)
-                    @php $pHmmhg_admission = $answer['answer']; @endphp
-                @endif
-                @if($answer['question_id'] === 116)
-                    @php $pHmmhg_discharge = $answer['answer']; @endphp
-                @endif
-            @endforeach
-        @endif
-        <thead>
-        <tr>
-            <th>Laboratory Parameters</th>
-            <th>On admission</th>
-            <th>On discharge</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr>
-            <td>pH /mmhg</td>
-            <td>{{ $pHmmhg_admission ?? '0' }}</td>
-            <td>{{ $pHmmhg_discharge ?? '0' }}</td>
-        </tr>
-        <tr>
-            <td>HCO3 /mmhg</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>pCO2 /mmhg</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>K mg/dl</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>SGOT u/l</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>SGPT u/l</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Albumin mg/dl</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>HCV Ab</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>HBs Ag</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>HIV Ab</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Hemoglobin gm/dl</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>WBCs count</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Platelets count</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Neutrophil count</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Lymphocytes count</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Creatinine (mg/dl)</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Urea mg/dl</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>BUN mg/dl</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>CRP mg/l</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Specific gravity (Urine)</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Clarity (Urine)</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Epithelial cells (Urine)</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Crystals types (Urine)</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>Casts (Urine)</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>WBCs (Urine)</td>
-            <td></td>
-            <td></td>
-        </tr>
-        <tr>
-            <td>RBCs (Urine)</td>
-            <td></td>
-            <td></td>
-        </tr>
-        </tbody>
-    </table>
+
+    <!-- Laboratory Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <table>
+                    @if(is_array($patient->answers) || is_object($patient->answers))
+                        @foreach($patient->answers as $answer)
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 92)
+                                @php $pHmmhg_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 116)
+                                @php $pHmmhg_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] ===93 )
+                                @php $HCO_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 117)
+                                @php $HCO_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] ===94 )
+                                @php $pCO_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 118)
+                                @php $pCO_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 95)
+                                @php $K_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] ===119 )
+                                @php $K_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 96)
+                                @php $SGOT_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 120)
+                                @php $SGOT_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] ===97 )
+                                @php $SGPT_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] ===121 )
+                                @php $SGPT_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 98)
+                                @php $Albumin_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 122)
+                                @php $Albumin_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 99)
+                                @php $HCV_admission = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 100)
+                                @php $HBs_admission = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 101)
+                                @php $HIV_admission = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 102)
+                                @php $Hemoglobin_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 126)
+                                @php $Hemoglobin_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 103)
+                                @php $WBCscount_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 127)
+                                @php $WBCscount_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 104)
+                                @php $Platelets_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 128)
+                                @php $Platelets_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 105)
+                                @php $Neutrophil_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 129)
+                                @php $Neutrophil_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 106)
+                                @php $Lymphocytes_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 130)
+                                @php $Lymphocytes_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 71)
+                                @php $Creatinine_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 80)
+                                @php $Creatinine_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 107)
+                                @php $Urea_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 131)
+                                @php $Urea_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 108)
+                                @php $BUN_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 132)
+                                @php $BUN_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 143)
+                                @php $CRP_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 144)
+                                @php $CRP_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 109)
+                                @php $Specific_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 133)
+                                @php $Specific_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 110)
+                                @php $Clarity_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 134)
+                                @php $Clarity_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 111)
+                                @php $Epithelial_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 135)
+                                @php $Epithelial_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 112)
+                                @php $Crystals_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 136)
+                                @php $Crystals_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 113)
+                                @php $Casts_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 137)
+                                @php $Casts_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 114)
+                                @php $WBCs_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 138)
+                                @php $WBCs_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                            {{--****************************--}}
+                            @if($answer['question_id'] === 115)
+                                @php $RBCs_admission = $answer['answer']; @endphp
+                            @endif
+                            @if($answer['question_id'] === 139)
+                                @php $RBCs_discharge = $answer['answer']; @endphp
+                            @endif
+                            {{--****************************--}}
+
+                        @endforeach
+                    @endif
+                    <thead>
+                    <tr>
+                        <th>Laboratory Parameters</th>
+                        <th>On admission</th>
+                        <th>On discharge</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>pH /mmhg</td>
+                        <td class="center-text"><strong>{{ $pHmmhg_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $pHmmhg_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>HCO3 /mmhg</td>
+                        <td class="center-text"><strong>{{ $HCO_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $HCO_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>pCO2 /mmhg</td>
+                        <td class="center-text"><strong>{{ $pCO_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $pCO_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>K mg/dl</td>
+                        <td class="center-text"><strong>{{ $K_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $K_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>SGOT u/l</td>
+                        <td class="center-text"><strong>{{ $SGOT_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $SGOT_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>SGPT u/l</td>
+                        <td class="center-text"><strong>{{ $SGPT_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $SGPT_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Albumin gm/dl</td>
+                        <td class="center-text"><strong>{{ $Albumin_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $Albumin_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>HCV Ab</td>
+                        <td class="center-text"><strong>{{ $HCV_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong></strong></td>
+                    </tr>
+                    <tr>
+                        <td>HBs Ag</td>
+                        <td class="center-text"><strong>{{ $HBs_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong></strong></td>
+                    </tr>
+                    <tr>
+                        <td>HIV Ab</td>
+                        <td class="center-text"><strong>{{ $HIV_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong></strong></td>
+                    </tr>
+                    <tr>
+                        <td>Hemoglobin gm/dl</td>
+                        <td class="center-text"><strong>{{ $Hemoglobin_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $Hemoglobin_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>WBCs count</td>
+                        <td class="center-text"><strong>{{ $WBCscount_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $WBCscount_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Platelets count</td>
+                        <td class="center-text"><strong>{{ $Platelets_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $Platelets_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Neutrophil count</td>
+                        <td class="center-text"><strong>{{ $Neutrophil_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $Neutrophil_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Lymphocytes count</td>
+                        <td class="center-text"><strong>{{ $Lymphocytes_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $Lymphocytes_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Creatinine (mg/dl)</td>
+                        <td class="center-text"><strong>{{ $Creatinine_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $Creatinine_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Urea mg/dl</td>
+                        <td class="center-text"><strong>{{ $Urea_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $Urea_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>BUN mg/dl</td>
+                        <td class="center-text"><strong>{{ $BUN_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $BUN_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>CRP mg/l</td>
+                        <td class="center-text"><strong>{{ $CRP_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $CRP_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Specific gravity (Urine)</td>
+                        <td class="center-text"><strong>{{ $Specific_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $Specific_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Clarity (Urine)</td>
+                        <td class="center-text"><strong>{{ $Clarity_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $Clarity_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Epithelial cells (Urine)</td>
+                        <td class="center-text"><strong>{{ $Epithelial_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $Epithelial_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Crystals types (Urine)</td>
+                        <td class="center-text"><strong>{{ $Crystals_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $Crystals_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Casts (Urine)</td>
+                        <td class="center-text"><strong>{{ $Casts_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $Casts_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>WBCs (Urine)</td>
+                        <td class="center-text"><strong>{{ $WBCs_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $WBCs_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>RBCs (Urine)</td>
+                        <td class="center-text"><strong>{{ $RBCs_admission ?? '-' }}</strong></td>
+                        <td class="center-text"><strong>{{ $RBCs_discharge ?? '-' }}</strong></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
     <!-- Footer -->
     <div class="footer">
         <p>&copy; 2024 Patient Report Summary. All rights reserved.</p>

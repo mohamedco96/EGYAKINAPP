@@ -58,6 +58,11 @@ class CommentController extends Controller
             'content' => $request->content,
         ]);
 
+        Patients::where('patient_id', $request->patient_id)
+            ->update([
+                'updated_at' => now(),
+            ]);
+
         if (!$comment) {
             return response()->json([
                 'value' => false,

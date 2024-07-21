@@ -163,6 +163,11 @@ class SectionsController extends Controller
                 'timestamp' => now(),
             ]);
 
+            Patients::where('patient_id', $patient_id)
+                ->update([
+                    'updated_at' => now(),
+                ]);
+
             // Return success response
             $response = [
                 'value' => true,

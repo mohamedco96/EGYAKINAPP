@@ -889,7 +889,7 @@ class PatientsController extends Controller
             ->update([
                 'updated_at' => now(),
             ]);
-        
+
         // Create a new answer record
         Answers::create([
             'doctor_id' => $doctor_id,

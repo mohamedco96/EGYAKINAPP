@@ -461,7 +461,6 @@ class SectionsController extends Controller
             if (!is_null($gender) && !is_null($age) && $age != 0 &&
                 !is_null($height) && !is_null($weight) && !is_null($race) &&
                 !is_null($CurrentCreatinine) && $CurrentCreatinine != 0 &&
-                !is_null($BasalCreatinine) && $BasalCreatinine != 0 &&
                 !is_null($CreatinineOnDischarge) && $CreatinineOnDischarge != 0) {
 
                 // Convert to float values

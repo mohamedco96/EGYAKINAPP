@@ -885,6 +885,11 @@ class PatientsController extends Controller
 
     protected function saveAnswer($doctor_id, $questionId, $answerText, $patientId, $isOtherField = false, $sectionId = null)
     {
+        Patients::where('patient_id', $patientId)
+            ->update([
+                'updated_at' => now(),
+            ]);
+        
         // Create a new answer record
         Answers::create([
             'doctor_id' => $doctor_id,
@@ -905,6 +910,11 @@ class PatientsController extends Controller
             // Encode file paths array into JSON format
             $answerText = json_encode($answerText);
         }
+
+        Patients::where('patient_id', $patientId)
+            ->update([
+                'updated_at' => now(),
+            ]);
 
         // Update the answer record based on whether it's for 'other' or normal type
         if ($isOtherField) {

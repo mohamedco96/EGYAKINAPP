@@ -58,7 +58,7 @@ class CommentController extends Controller
             'content' => $request->content,
         ]);
 
-        Patients::where('patient_id', $request->patient_id)
+        Patients::where('id', $request->patient_id)
             ->update([
                 'updated_at' => now(),
             ]);

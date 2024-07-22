@@ -218,6 +218,9 @@ class PatientsController extends Controller
             $isSyndicateCardRequired = $user->isSyndicateCardRequired; //Not Required, Required, Pending,Verified
 
 
+            // Get the first role
+            $role = $user->roles->first();
+
             // Prepare response data
             $response = [
                 'value' => true,
@@ -227,7 +230,7 @@ class PatientsController extends Controller
                 'isSyndicateCardRequired' => $isSyndicateCardRequired,
                 'all_patient_count' => (string)$allPatientCount,
                 'score_value' => (string)$scoreValue,
-                'role' => 'User',
+                'role' => $role->name ?? "User",
                 'data' => [
                     'topDoctors' => $topDoctors,
                     'all_patients' => $allPatientsResponseData,

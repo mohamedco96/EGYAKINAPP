@@ -695,10 +695,10 @@ class PatientsController extends Controller
                                 if (isset($value['answers']) && is_array($value['answers'])) {
                                     // Process the answer for the question
                                     $answers = $value['answers'];
-                                    $encodedAnswers = json_encode($answers, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
                                     $otherFieldAnswer = $value['other_field'] ?? null;
 
-                                    $this->saveAnswer($doctor_id, $questionId, $encodedAnswers, $patient_id, false, $section_id);
+                                    // Save the answers and other field answer
+                                    $this->saveAnswer($doctor_id, $questionId, $answers, $patient_id, false, $section_id);
                                     $this->saveAnswer($doctor_id, $questionId, $otherFieldAnswer, $patient_id, true, $section_id);
                                 } elseif (isset($questionSectionIds[$questionId])) {
                                     // Save the answer along with the corresponding section ID
@@ -900,11 +900,11 @@ class PatientsController extends Controller
             'section_id' => $sectionId, // Pass section ID
             'question_id' => $questionId,
             'patient_id' => $patientId,
-            'answer' => is_array($answerText) ? json_encode($answerText) : $answerText, // Convert array to JSON string if it's an array
-            // Use 'other_field' column if $isOtherField is true, otherwise use null
+            'answer' => is_array($answerText) ? json_encode($answerText, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : $answerText, // Convert array to JSON string if it's an array
             'type' => $isOtherField ? 'other' : null,
         ]);
     }
+
 
     protected function updateAnswer($questionId, $answerText, $patientId, $isOtherField = false, $sectionId = null)
     {

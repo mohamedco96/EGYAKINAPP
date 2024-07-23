@@ -670,7 +670,7 @@ class PatientsController extends Controller
                             // Handle file upload if question type is files
                             if ($this->isFileTypeQuestion($questionId)) {
                                 $fileUrls = $this->handleFileUploads($value);
-                                $this->updateAnswer($questionId, json_encode($fileUrls), $patient_id, false, $section_id);
+                                $this->updateAnswer($questionId, $fileUrls, $patient_id, false, $section_id);
                             } else {
                                 // Check if the question has already been processed
                                 if (isset($value['answers']) && is_array($value['answers'])) {
@@ -678,18 +678,18 @@ class PatientsController extends Controller
                                     $answers = $value['answers'];
                                     $otherFieldAnswer = $value['other_field'] ?? null;
 
-                                    $this->updateAnswer($questionId, json_encode($answers), $patient_id, false, $section_id);
-                                    $this->updateAnswer($questionId, json_encode($otherFieldAnswer), $patient_id, true, $section_id);
+                                    $this->updateAnswer($questionId, $answers, $patient_id, false, $section_id);
+                                    $this->updateAnswer($questionId, $otherFieldAnswer, $patient_id, true, $section_id);
                                 } elseif (isset($questionSectionIds[$questionId])) {
                                     // Save the answer along with the corresponding section ID
-                                    $this->updateAnswer($questionId, json_encode($value), $patient_id, false, $section_id);
+                                    $this->updateAnswer($questionId, $value, $patient_id, false, $section_id);
                                 }
                             }
                         } else {
                             // Handle file upload if question type is files
                             if ($this->isFileTypeQuestion($questionId)) {
                                 $fileUrls = $this->handleFileUploads($value);
-                                $this->saveAnswer($doctor_id, $questionId, json_encode($fileUrls), $patient_id, false, $section_id);
+                                $this->saveAnswer($doctor_id, $questionId, $fileUrls, $patient_id, false, $section_id);
                             } else {
                                 // Check if the question has already been processed
                                 if (isset($value['answers']) && is_array($value['answers'])) {
@@ -726,7 +726,7 @@ class PatientsController extends Controller
                             // Handle file upload if question type is files
                             if ($this->isFileTypeQuestion($questionId)) {
                                 $fileUrls = $this->handleFileUploads($value);
-                                $this->updateAnswer($questionId, json_encode($fileUrls), $patient_id, false, $section_id);
+                                $this->updateAnswer($questionId, $fileUrls, $patient_id, false, $section_id);
                             } else {
                                 // Check if the question has already been processed
                                 if (isset($value['answers']) && is_array($value['answers'])) {
@@ -745,7 +745,7 @@ class PatientsController extends Controller
                             // Handle file upload if question type is files
                             if ($this->isFileTypeQuestion($questionId)) {
                                 $fileUrls = $this->handleFileUploads($value);
-                                $this->saveAnswer($doctor_id, $questionId, json_encode($fileUrls), $patient_id, false, $section_id);
+                                $this->saveAnswer($doctor_id, $questionId, $fileUrls, $patient_id, false, $section_id);
                             } else {
                                 // Check if the question has already been processed
                                 if (isset($value['answers']) && is_array($value['answers'])) {
@@ -904,7 +904,6 @@ class PatientsController extends Controller
             'type' => $isOtherField ? 'other' : null,
         ]);
     }
-
 
     protected function updateAnswer($questionId, $answerText, $patientId, $isOtherField = false, $sectionId = null)
     {

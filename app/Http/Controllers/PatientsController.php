@@ -695,13 +695,14 @@ class PatientsController extends Controller
                                 if (isset($value['answers']) && is_array($value['answers'])) {
                                     // Process the answer for the question
                                     $answers = $value['answers'];
+                                    $encodedAnswers = json_encode($answers, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
                                     $otherFieldAnswer = $value['other_field'] ?? null;
 
-                                    $this->saveAnswer($doctor_id, $questionId, json_encode($answers), $patient_id, false, $section_id);
-                                    $this->saveAnswer($doctor_id, $questionId, json_encode($otherFieldAnswer), $patient_id, true, $section_id);
+                                    $this->saveAnswer($doctor_id, $questionId, $encodedAnswers, $patient_id, false, $section_id);
+                                    $this->saveAnswer($doctor_id, $questionId, $otherFieldAnswer, $patient_id, true, $section_id);
                                 } elseif (isset($questionSectionIds[$questionId])) {
                                     // Save the answer along with the corresponding section ID
-                                    $this->saveAnswer($doctor_id, $questionId, json_encode($value), $patient_id, false, $section_id);
+                                    $this->saveAnswer($doctor_id, $questionId, $value, $patient_id, false, $section_id);
                                 }
                             }
                         }

@@ -678,11 +678,11 @@ class PatientsController extends Controller
                                     $answers = $value['answers'];
                                     $otherFieldAnswer = $value['other_field'] ?? null;
 
-                                    $this->updateAnswer($questionId, $answers, $patient_id, false, $section_id);
-                                    $this->updateAnswer($questionId, $otherFieldAnswer, $patient_id, true, $section_id);
+                                    $this->updateAnswer($questionId, json_encode($answers), $patient_id, false, $section_id);
+                                    $this->updateAnswer($questionId, json_encode($otherFieldAnswer), $patient_id, true, $section_id);
                                 } elseif (isset($questionSectionIds[$questionId])) {
                                     // Save the answer along with the corresponding section ID
-                                    $this->updateAnswer($questionId, $value, $patient_id, false, $section_id);
+                                    $this->updateAnswer($questionId, json_encode($value), $patient_id, false, $section_id);
                                 }
                             }
                         } else {

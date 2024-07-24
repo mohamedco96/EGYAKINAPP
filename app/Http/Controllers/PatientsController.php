@@ -698,7 +698,8 @@ class PatientsController extends Controller
                                     $otherFieldAnswer = $value['other_field'] ?? null;
 
                                     // Save the answers and other field answer
-                                    $this->saveAnswer($doctor_id, $questionId, json_encode($answers, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), $patient_id, false, $section_id);
+//                                    $this->saveAnswer($doctor_id, $questionId, json_encode($answers, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), $patient_id, false, $section_id);
+                                    $this->saveAnswer($doctor_id, $questionId, $answers, $patient_id, false, $section_id);
                                     $this->saveAnswer($doctor_id, $questionId, $otherFieldAnswer, $patient_id, true, $section_id);
                                 } elseif (isset($questionSectionIds[$questionId])) {
                                     // Save the answer along with the corresponding section ID
@@ -894,13 +895,20 @@ class PatientsController extends Controller
                 'updated_at' => now(),
             ]);
 
+        // Check if the question is of 'files' type
+        $question = Questions::find($questionId);
+        if ($question && $question->type === 'files') {
+            // Encode file paths array into JSON format
+            $answerText = json_encode($answerText);
+        }
+
         // Create a new answer record
         Answers::create([
             'doctor_id' => $doctor_id,
             'section_id' => $sectionId, // Pass section ID
             'question_id' => $questionId,
             'patient_id' => $patientId,
-            'answer' => is_array($answerText) ? json_encode($answerText, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : $answerText, // Convert array to JSON string if it's an array
+            'answer' => $answerText, // Convert array to JSON string if it's an array
             'type' => $isOtherField ? 'other' : null,
         ]);
     }

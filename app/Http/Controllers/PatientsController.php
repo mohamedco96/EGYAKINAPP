@@ -899,7 +899,8 @@ class PatientsController extends Controller
         $question = Questions::find($questionId);
         if ($question && $question->type === 'files') {
             // Encode file paths array into JSON format
-            $answerText = json_encode($answerText);
+            //$answerText = json_encode($answerText);
+            $answerText = is_array($answerText) ? json_encode($answerText, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : $answerText;
         }
 
         // Create a new answer record

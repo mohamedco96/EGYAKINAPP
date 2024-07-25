@@ -28,18 +28,18 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $fields = $request->validate([
-            'name' => 'required|string',
-            'lname' => 'required|string',
-            //'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
-            'email' => 'required|string|unique:users,email',
-            'password' => 'required|string|confirmed',
-            'age' => 'integer',
-            'specialty' => 'required|string',
-            'workingplace' => 'required|string',
-            'phone' => 'required|string',
-            'job' => 'required|string',
-            'highestdegree' => 'required|string',
-            'registration_number' => 'required|string',
+//            'name' => 'required|string',
+//            'lname' => 'required|string',
+//            //'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
+//            'email' => 'required|string|unique:users,email',
+//            'password' => 'required|string|confirmed',
+//            'age' => 'integer',
+//            'specialty' => 'required|string',
+//            'workingplace' => 'required|string',
+//            'phone' => 'required|string',
+//            'job' => 'required|string',
+//            'highestdegree' => 'required|string',
+//            'registration_number' => 'required|string',
         ]);
 
         $user = User::create([

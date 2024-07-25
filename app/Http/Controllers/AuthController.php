@@ -25,7 +25,95 @@ use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
+
     public function register(Request $request)
+    {
+        // Start a database transaction
+        DB::beginTransaction();
+
+        try {
+            // Create a new user
+            $user = $this->createUser($request);
+
+            // Generate an authentication token
+            $token = $user->createToken('apptoken')->plainTextToken;
+
+            // Send a welcome notification
+            $user->notify(new WelcomeMailNotification());
+
+            // Save FCM token if provided
+            if ($request->has('fcmToken')) {
+                $this->storeFcmToken($user->id, $request->fcmToken);
+            }
+
+            // Commit the transaction
+            DB::commit();
+
+            // Prepare the response
+            $response = [
+                'value' => true,
+                'data' => $user,
+                'token' => $token,
+            ];
+
+            return response($response, 200);
+        } catch (\Exception $e) {
+            // Rollback the transaction in case of error
+            DB::rollBack();
+            Log::error("Error registering user: " . $e->getMessage());
+
+            return response(['value' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Create a new user.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \App\Models\User
+     */
+    protected function createUser(Request $request)
+    {
+        return User::create([
+            'name' => $request->input('name'),
+            'lname' => $request->input('lname'),
+            'email' => $request->input('email'),
+            'password' => bcrypt($request->input('password')),
+            'age' => $request->input('age'),
+            'specialty' => $request->input('specialty'),
+            'workingplace' => $request->input('workingplace'),
+            'phone' => $request->input('phone'),
+            'job' => $request->input('job'),
+            'highestdegree' => $request->input('highestdegree'),
+            'registration_number' => $request->input('registration_number'),
+        ]);
+    }
+
+    /**
+     * Store the FCM token if it doesn't already exist.
+     *
+     * @param int $userId
+     * @param string $fcmToken
+     * @return void
+     */
+    protected function storeFcmToken(int $userId, string $fcmToken)
+    {
+        $existingToken = FcmToken::where('token', $fcmToken)->first();
+
+        if (!$existingToken) {
+            FcmToken::create([
+                'doctor_id' => $userId,
+                'token' => $fcmToken,
+            ]);
+
+            Log::info('FCM token stored successfully.', [
+                'doctor_id' => $userId,
+                'token' => $fcmToken,
+            ]);
+        }
+    }
+
+    public function registerbkp(Request $request)
     {
         $fields = $request->validate([
 //            'name' => 'required|string',

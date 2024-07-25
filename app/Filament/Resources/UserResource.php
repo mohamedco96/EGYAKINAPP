@@ -14,6 +14,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\FileUpload;
 
 class UserResource extends Resource
 {
@@ -50,6 +51,16 @@ class UserResource extends Resource
                 Forms\Components\DateTimePicker::make('email_verified_at'),
                 Forms\Components\Radio::make('blocked')->boolean(),
                 Forms\Components\Radio::make('limited')->boolean(),
+                Forms\Components\FileUpload::make('image')
+                    ->label('Profile Image')
+                    ->directory('profile_images')
+                    ->image()
+                    ->imageEditor()
+                    ->previewable(true)
+                    ->imageCropAspectRatio('1:1')
+                    ->imagePreviewHeight('250')
+                    ->required(),
+
 
             ]);
     }

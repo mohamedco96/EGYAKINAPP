@@ -138,6 +138,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/achievement/{id}', 'AchievementController@show');
     Route::put('/achievement/{id}', 'AchievementController@update');
     Route::delete('/achievement/{id}', 'AchievementController@destroy');
+
+    //Consultations
+    Route::post('/consultations', 'ConsultationController@store');
+    Route::get('/consultations/sent', 'ConsultationController@sentRequests');
+    Route::get('/consultations/received', 'ConsultationController@receivedRequests');
+    Route::put('/consultations/{id}','ConsultationController@update');
 });
 
 Route::fallback(function () {

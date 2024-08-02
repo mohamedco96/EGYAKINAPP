@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Achievement;
 use App\Models\Patients;
 use App\Http\Requests\UpdatePatientsRequest;
 use App\Models\PatientStatus;
@@ -10,6 +11,7 @@ use App\Models\Score;
 use App\Models\ScoreHistory;
 use App\Models\SectionsInfo;
 use App\Models\Answers;
+use App\Models\User;
 use App\Notifications\ReachingSpecificPoints;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -63,8 +65,14 @@ class SectionsController extends Controller
      */
     public function calculateSobhCcr($age, $weight, $height, $serumCreatinine)
     {
+        // Check for null values
         if (is_null($age) || is_null($weight) || is_null($height) || is_null($serumCreatinine)) {
             return 0;
+        }
+
+        // Check if serumCreatinine is zero to avoid division by zero
+        if ($serumCreatinine == 0) {
+            return 0; // or you can throw an exception or return an error message
         }
 
         $ccr = ((140 - $age) / $serumCreatinine) *
@@ -74,6 +82,7 @@ class SectionsController extends Controller
 
         return number_format($ccr, 2, '.', '');
     }
+
 
     /**
      * Calculate GFR using MDRD equation.
@@ -146,9 +155,10 @@ class SectionsController extends Controller
             $score->threshold += $incrementAmount;
             $newThreshold = $score->threshold;
 
+            $user = Auth::user();
+
             // Send notification if score threshold reaches 50 or its multiples
             if ($newThreshold >= 50) {
-                $user = Auth::user();
                 $user->notify(new ReachingSpecificPoints($score));
                 $score->threshold = 0;
             }
@@ -168,6 +178,8 @@ class SectionsController extends Controller
                     'updated_at' => now(),
                 ]);
 
+            $this->checkAndAssignAchievements($user);
+
             // Return success response
             $response = [
                 'value' => true,
@@ -185,6 +197,22 @@ class SectionsController extends Controller
         }
     }
 
+
+    public function checkAndAssignAchievements(User $user)
+    {
+        $userScore = $user->score->score;
+        $achievements = Achievement::all();
+
+        foreach ($achievements as $achievement) {
+            $existingAchievement = $user->achievements()->where('achievement_id', $achievement->id)->first();
+            if (!$existingAchievement) {
+                $achieved = $userScore >= $achievement->score;
+                $user->achievements()->attach($achievement->id, ['achieved' => $achieved]);
+            } elseif ($existingAchievement->pivot->achieved == false && $userScore >= $achievement->score) {
+                $user->achievements()->updateExistingPivot($achievement->id, ['achieved' => true]);
+            }
+        }
+    }
     /**
      * Show questions and answers for a specific section and patient.
      *

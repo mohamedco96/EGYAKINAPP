@@ -125,52 +125,52 @@ class PatientsController extends Controller
      */
     public function homeGetAllData()
     {
-        /*$user = Auth::user();
-        if ($user->hasRole('Tester')) {
-            return response()->json('user have Tester role', 200);
-        }else{
-            return response()->json('user not have Tester role', 200);
-        }*/
-
         try {
+            // Retrieve the authenticated user
+            $user = Auth::user();
+            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+
             // Return all posts
             $posts = Posts::select('id', 'title', 'image', 'content', 'hidden', 'doctor_id', 'updated_at')
                 ->where('hidden', false)
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
+                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
                 }])
                 ->get();
 
             // Return current patients
-            $user = Auth::user();
             $currentPatients = $user->patients()
-                ->where('hidden', false)
+                ->when(!$isAdminOrTester, function ($query) {
+                    return $query->where('hidden', false);
+                })
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
+                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
                 }])
                 ->latest('updated_at')
-                ->limit(5) // Add limit here
+                ->limit(5)
                 ->get();
 
             // Return all patients
-            $allPatients = Patients::where('hidden', false)
+            $allPatients = Patients::when(!$isAdminOrTester, function ($query) {
+                return $query->where('hidden', false);
+            })
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
+                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
                 }])
                 ->latest('updated_at')
-                ->limit(5) // Add limit here
+                ->limit(5)
                 ->get();
 
-            //Return Top Doctors
-            $topDoctors = User::select('id', 'name','image','syndicate_card','isSyndicateCardRequired')
+            // Return Top Doctors
+            $topDoctors = User::select('id', 'name', 'image', 'syndicate_card', 'isSyndicateCardRequired')
                 ->withCount('patients')
                 ->selectSub(function ($query) {
-                    $query->selectRaw('COALESCE(score, 0)') // Coalesce to handle null scores
-                    ->from('scores')
+                    $query->selectRaw('COALESCE(score, 0)')
+                        ->from('scores')
                         ->whereColumn('users.id', 'scores.doctor_id')
                         ->limit(1);
                 }, 'score')
-                ->orderByRaw('COALESCE(score, 0) DESC,patients_count DESC')
+                ->orderByRaw('COALESCE(score, 0) DESC, patients_count DESC')
                 ->limit(5)
                 ->get()
                 ->map(function ($user) {
@@ -178,7 +178,7 @@ class PatientsController extends Controller
                     return $user;
                 });
 
-            // Transform the response
+            // Transform the patient data
             $transformPatientData = function ($patient) {
                 $submit_status = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
                 $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
@@ -199,9 +199,6 @@ class PatientsController extends Controller
             };
 
             $currentPatientsResponseData = $currentPatients->map($transformPatientData);
-
-
-            // Transform the response
             $allPatientsResponseData = $allPatients->map($transformPatientData);
 
             // Get patient count and score value
@@ -214,9 +211,8 @@ class PatientsController extends Controller
             $unreadCount = AppNotification::where('doctor_id', $user->id)
                 ->where('read', false)->count();
 
-            //get SyndicateCard value
-            $isSyndicateCardRequired = $user->isSyndicateCardRequired; //Not Required, Required, Pending,Verified
-
+            // Get SyndicateCard value
+            $isSyndicateCardRequired = $user->isSyndicateCardRequired;
 
             // Get the first role
             $role = $user->roles->first();
@@ -259,11 +255,18 @@ class PatientsController extends Controller
     public function doctorPatientGetAll()
     {
         try {
+            // Retrieve the authenticated user
+            $user = Auth::user();
+            // Check if the user is an Admin or Tester
+            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+
             // Return all patients
             $allPatients = Patients::select('id', 'doctor_id', 'updated_at')
-                ->where('hidden', false)
+                ->when(!$isAdminOrTester, function ($query) {
+                    return $query->where('hidden', false); // Non-admin/tester users only see non-hidden patients
+                })
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
+                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
                 }])
                 ->with(['status' => function ($query) {
                     $query->select('id', 'patient_id', 'key', 'status');
@@ -325,13 +328,19 @@ class PatientsController extends Controller
     public function doctorPatientGet()
     {
         try {
-            // Return all patients
+            // Retrieve the authenticated user
             $user = Auth::user();
+            // Check if the user is an Admin or Tester
+            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+
+            // Return current patients for the user
             $currentPatients = $user->patients()
                 ->select('id', 'doctor_id', 'updated_at')
-                ->where('hidden', false)
+                ->when(!$isAdminOrTester, function ($query) {
+                    return $query->where('hidden', false); // Non-admin/tester users only see non-hidden patients
+                })
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
+                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
                 }])
                 ->with(['status' => function ($query) {
                     $query->select('id', 'patient_id', 'key', 'status');
@@ -400,13 +409,19 @@ class PatientsController extends Controller
     public function doctorProfileGetPatients()
     {
         try {
-            // Return all patients
+            // Retrieve the authenticated user
             $user = Auth::user();
+            // Check if the user is an Admin or Tester
+            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+
+            // Return current patients for the user
             $currentPatients = $user->patients()
                 ->select('id', 'doctor_id', 'updated_at')
-                ->where('hidden', false)
+                ->when(!$isAdminOrTester, function ($query) {
+                    return $query->where('hidden', false); // Non-admin/tester users only see non-hidden patients
+                })
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
+                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
                 }])
                 ->with(['status' => function ($query) {
                     $query->select('id', 'patient_id', 'key', 'status');
@@ -477,12 +492,23 @@ class PatientsController extends Controller
 
             $doctor_id = Auth::id();
 
+            // Retrieve the authenticated user
+            $user = Auth::user();
+            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+
             // Retrieve question IDs and their corresponding section IDs from the database
             $questionSectionIds = Questions::pluck('section_id', 'id')->toArray();
+
+            if ($isAdminOrTester){
+                $hidden = true;
+            }else{
+                $hidden = false;
+            }
 
             // Create a new patient record
             $patient = Patients::create([
                 'doctor_id' => $doctor_id,
+                'hidden' => $hidden,
             ]);
 
             // Initialize arrays to store data for batch operations

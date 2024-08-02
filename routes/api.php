@@ -144,6 +144,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/consultations/sent', 'ConsultationController@sentRequests');
     Route::get('/consultations/received', 'ConsultationController@receivedRequests');
     Route::put('/consultations/{id}','ConsultationController@update');
+    Route::post('/consultationDoctorSearch/{data}', 'ConsultationController@consultationSearch');
 });
 
 Route::fallback(function () {

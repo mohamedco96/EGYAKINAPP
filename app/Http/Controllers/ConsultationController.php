@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Models\Consultation;
 use App\Models\ConsultationDoctor;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ConsultationController extends Controller
 {
@@ -82,4 +84,43 @@ class ConsultationController extends Controller
 
         return response()->json(['message' => 'Consultation request updated successfully']);
     }
+
+    public function consultationSearch($data)
+    {
+        try {
+            // Retrieve Users
+            $users = User::select('id', 'name', 'email', 'phone', 'specialty', 'workingplace', 'image', 'syndicate_card', 'isSyndicateCardRequired')
+                ->where('name', 'like', '%' . $data . '%')
+                ->orwhere('email', 'like', '%' . $data . '%')
+                ->orwhere('phone', 'like', '%' . $data . '%')
+                ->withCount('patients')
+                ->selectSub(function ($query) {
+                    $query->selectRaw('COALESCE(score, 0)')
+                        ->from('scores')
+                        ->whereColumn('users.id', 'scores.doctor_id')
+                        ->limit(1);
+                }, 'score')
+                ->orderByRaw('COALESCE(score, 0) DESC, patients_count DESC')
+                ->limit(5)
+                ->get()
+                ->map(function ($user) {
+                    $user->patients_count = strval($user->patients_count);
+                    return $user;
+                });
+
+            return response()->json([
+                'value' => true,
+                'data' => $users ], 200);
+
+        } catch (\Exception $e) {
+            // Log error
+            Log::error('Error searching for data.', ['exception' => $e]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to search for data.',
+            ], 500);
+        }
+    }
+
 }

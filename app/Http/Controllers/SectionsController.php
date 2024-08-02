@@ -70,12 +70,20 @@ class SectionsController extends Controller
             return 0;
         }
 
-        $ccr = ((140 - $age) / $serumCreatinine) *
-            pow($weight, 0.54) *
-            pow($height, 0.40) *
-            0.014;
+        // Check if serumCreatinine is zero to avoid division by zero
+        if ($serumCreatinine == 0) {
+            return 0; // or you can throw an exception or return an error message
+        }else{
+            $ccr = ((140 - $age) / $serumCreatinine) *
+                pow($weight, 0.54) *
+                pow($height, 0.40) *
+                0.014;
 
-        return number_format($ccr, 2, '.', '');
+            return number_format($ccr, 2, '.', '');
+        }
+
+
+
     }
 
 

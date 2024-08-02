@@ -89,7 +89,7 @@ class ConsultationController extends Controller
     {
         try {
             // Retrieve Users
-            $users = User::select('id', 'name', 'email', 'phone', 'specialty', 'workingplace', 'image', 'syndicate_card', 'isSyndicateCardRequired')
+            $users = User::select('id', 'name', 'lname', 'email', 'phone', 'specialty', 'workingplace', 'image', 'syndicate_card', 'isSyndicateCardRequired')
                 ->where('name', 'like', '%' . $data . '%')
                 ->orwhere('email', 'like', '%' . $data . '%')
                 ->orwhere('phone', 'like', '%' . $data . '%')

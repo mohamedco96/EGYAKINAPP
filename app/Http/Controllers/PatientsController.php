@@ -1309,7 +1309,7 @@ class PatientsController extends Controller
             // Return the URL to download the PDF file along with patient data
             return response()->json([
                 'pdf_url' => $pdfUrl,
-                'data' => $pdfData
+               // 'data' => $pdfData
             ]);
 
             // Pass the data to the blade view

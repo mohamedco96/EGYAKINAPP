@@ -140,7 +140,7 @@ $answers = collect($patient->answers)->keyBy('question_id');
                     @endphp
                     @foreach($patient->answers as $answer)
                         <strong>Test 1</strong>
-                        @if($answer['question_id'] === 1)
+                        @if($answer['question_id'] === "1")
                             <p>Patient ID: <strong>{{ $patient->id }}</strong></p>
                             @php $patientName = $answer['answer']; @endphp
                             <strong>Test 2</strong>

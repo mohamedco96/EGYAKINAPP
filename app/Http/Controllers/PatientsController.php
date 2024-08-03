@@ -1304,10 +1304,12 @@ class PatientsController extends Controller
             // Generate the URL for downloading the PDF file
             $pdfUrl = config('app.url') . '/' . 'storage/pdfs/' . $pdfFileName;
 
+            \Log::info('Patient Answers:', ['answers' => $patient->answers]);
+
             // Return the URL to download the PDF file along with patient data
             return response()->json([
                 'pdf_url' => $pdfUrl,
-                'data' => $pdfData
+                //'data' => $pdfData
             ]);
 
             // Pass the data to the blade view

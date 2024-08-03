@@ -190,6 +190,7 @@ $answers = collect($patient->answers)->keyBy('question_id');
     </div>
 
 
+
     <!-- Contact Information Section -->
     <div class="row">
         <div class="col-md-12">

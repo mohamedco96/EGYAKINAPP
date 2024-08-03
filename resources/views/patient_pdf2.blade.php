@@ -139,37 +139,35 @@ $answers = collect($patient->answers)->keyBy('question_id');
                         $maritalStatus = null;
                     @endphp
                     @foreach($patient->answers as $answer)
-                        <strong>Test 1</strong>
                         @if($answer['question_id'] === "1")
                             <p>Patient ID: <strong>{{ $patient->id }}</strong></p>
                             @php $patientName = $answer['answer']; @endphp
-                            <strong>Test 2</strong>
                         @endif
-                        @if($answer['question_id'] === 2)
+                        @if($answer['question_id'] === "2")
                             @php $hospital = $answer['answer']; @endphp
                         @endif
-                        @if($answer['question_id'] === 8)
+                        @if($answer['question_id'] === "8")
                             @php $patientGender = $answer['answer']; @endphp
                         @endif
-                        @if($answer['question_id'] === 7)
+                        @if($answer['question_id'] === "7")
                             @php $patientAge = $answer['answer']; @endphp
                         @endif
-                        @if($answer['question_id'] === 14 && !isset($answer['type']))
+                        @if($answer['question_id'] === "14" && !isset($answer['type']))
                             @php $patientHabit = is_array($answer['answer']) ? implode(', ', $answer['answer']) : $answer['answer']; @endphp
                         @endif
-                        @if($answer['question_id'] === 14 && isset($answer['type']) && $answer['type'] === 'other')
+                        @if($answer['question_id'] === "14" && isset($answer['type']) && $answer['type'] === 'other')
                             @php $patientHabitOther = $answer['answer']; @endphp
                         @endif
-                        @if($answer['question_id'] === 16)
+                        @if($answer['question_id'] === "16")
                             @php $patientDM = $answer['answer']; @endphp
                         @endif
-                        @if($answer['question_id'] === 18)
+                        @if($answer['question_id'] === "18")
                             @php $patientHTN = $answer['answer']; @endphp
                         @endif
-                        @if($answer['question_id'] === 11)
+                        @if($answer['question_id'] === "11")
                             @php $governorate = $answer['answer']; @endphp
                         @endif
-                        @if($answer['question_id'] === 12)
+                        @if($answer['question_id'] === "12")
                             @php $maritalStatus = $answer['answer']; @endphp
                         @endif
                     @endforeach
@@ -200,10 +198,10 @@ $answers = collect($patient->answers)->keyBy('question_id');
                 <h2>Contact Information</h2>
                 @if(is_array($patient->answers) || is_object($patient->answers))
                     @foreach($patient->answers as $answer)
-                        @if($answer['question_id'] === 5)
+                        @if($answer['question_id'] === "5")
                             @php $patientPhone = $answer['answer']; @endphp
                         @endif
-                        @if($answer['question_id'] === 6)
+                        @if($answer['question_id'] === "6")
                             @php $patientEmail = $answer['answer']; @endphp
                         @endif
                     @endforeach

@@ -120,26 +120,35 @@ $answers = collect($patient->answers)->keyBy('question_id');
         </div>
     </div>
 
-<!-- Patient Information Section -->
+    <!-- Patient Information Section -->
     <div class="row">
         <div class="col-md-12">
             <div class="section">
                 <h2>Patient Information</h2>
                 @if(is_array($patient->answers) || is_object($patient->answers))
+                    @php
+                        $patientName = null;
+                        $hospital = null;
+                        $patientGender = null;
+                        $patientAge = null;
+                        $patientHabit = null;
+                        $patientHabitOther = null;
+                        $patientDM = null;
+                        $patientHTN = null;
+                        $governorate = null;
+                        $maritalStatus = null;
+                    @endphp
                     @foreach($patient->answers as $answer)
                         @if($answer['question_id'] === 1)
                             <p>Patient ID: <strong>{{ $patient->id }}</strong></p>
                             @php $patientName = $answer['answer']; @endphp
-                            <strong>Test 1</strong>
                         @endif
-                            @if($answer['question_id'] === 2)
-                                @php $hospital = $answer['answer']; @endphp
-                                <strong>Test 2/strong>
-                            @endif
+                        @if($answer['question_id'] === 2)
+                            @php $hospital = $answer['answer']; @endphp
+                        @endif
                         @if($answer['question_id'] === 8)
                             @php $patientGender = $answer['answer']; @endphp
-                                        <strong>Test 3</strong>
-                                    @endif
+                        @endif
                         @if($answer['question_id'] === 7)
                             @php $patientAge = $answer['answer']; @endphp
                         @endif
@@ -179,6 +188,7 @@ $answers = collect($patient->answers)->keyBy('question_id');
             </div>
         </div>
     </div>
+
 
     <!-- Contact Information Section -->
     <div class="row">

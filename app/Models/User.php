@@ -155,6 +155,11 @@ class User extends Authenticatable
         return $this->hasOne(ScoreHistory::class, 'doctor_id');
     }
 
+    public function achievements()
+    {
+        return $this->belongsToMany(Achievement::class, 'user_achievements')->withPivot('achieved')->withTimestamps();
+    }
+
     public function comments()
     {
         return $this->hasMany(Comment::class);
@@ -183,11 +188,6 @@ class User extends Authenticatable
     public function notification()
     {
         return $this->hasMany(AppNotification::class, 'doctor_id');
-    }
-
-    public function achievements(): \Illuminate\Database\Eloquent\Relations\HasMany
-    {
-        return $this->hasMany(Achievement::class);
     }
 
     public function PatientStatus(): \Illuminate\Database\Eloquent\Relations\HasMany

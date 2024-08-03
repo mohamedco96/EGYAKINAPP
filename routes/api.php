@@ -145,6 +145,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/consultations/received', 'ConsultationController@receivedRequests');
     Route::put('/consultations/{id}','ConsultationController@update');
     Route::post('/consultationDoctorSearch/{data}', 'ConsultationController@consultationSearch');
+
+    //Achievements
+    Route::post('/achievements', 'AchievementController@createAchievement');
+    Route::get('/achievements', 'AchievementController@listAchievements');
+    Route::get('/users/{user}/achievements', 'AchievementController@getUserAchievements');
 });
 
 Route::fallback(function () {

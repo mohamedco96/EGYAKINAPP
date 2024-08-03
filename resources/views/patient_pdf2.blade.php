@@ -126,7 +126,9 @@ $answers = collect($patient->answers)->keyBy('question_id');
             <div class="section">
                 <h2>Patient Information</h2>
                 @if(is_array($patient->answers) || is_object($patient->answers))
+                    <strong>Test 1</strong>
                     @foreach($patient->answers as $answer)
+                        <strong>Test 2</strong>
                         @if($answer['question_id'] === 1)
                             <p>Patient ID: <strong>{{ $patient->id }}</strong></p>
                             @php $patientName = $answer['answer']; @endphp

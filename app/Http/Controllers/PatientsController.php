@@ -582,7 +582,7 @@ class PatientsController extends Controller
             ];
 
             // Retrieve all doctors with role 'admin' or 'tester' except the authenticated user
-            $doctors = User::role(['admin', 'tester'])
+            $doctors = User::role(['Admin', 'Tester'])
                 ->where('id', '!=', Auth::id())
                 ->get();
 

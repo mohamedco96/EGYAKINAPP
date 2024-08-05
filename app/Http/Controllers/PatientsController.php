@@ -581,8 +581,9 @@ class PatientsController extends Controller
                 'message' => 'Patient Created Successfully',
             ];
 
-            // Retrieve all doctors except the authenticated user
-            $doctors = User::where('id', '!=', Auth::id())
+            // Retrieve all doctors with role 'admin' or 'tester' except the authenticated user
+            $doctors = User::role(['admin', 'tester'])
+                ->where('id', '!=', Auth::id())
                 ->get();
 
             // Create a new patient notification

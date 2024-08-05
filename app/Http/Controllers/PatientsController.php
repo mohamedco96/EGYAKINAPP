@@ -581,6 +581,20 @@ class PatientsController extends Controller
                 'message' => 'Patient Created Successfully',
             ];
 
+            // Retrieve all doctors except the authenticated user
+            $doctors = User::where('id', '!=', Auth::id())
+                ->get();
+
+            // Create a new patient notification
+            foreach ($doctors as $doctor) {
+                AppNotification::create([
+                    'doctor_id' => $doctor->id,
+                    'type' => 'New Patient',
+                    'content' => 'New Patient was created',
+                    'patient_id' => $patient->id
+                ]);
+            }
+
             return response()->json($response, 200);
         } catch (\Exception $e) {
             // Rollback the transaction

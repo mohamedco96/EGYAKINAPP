@@ -58,8 +58,7 @@ class UserResource extends Resource
                     ->imageEditor()
                     ->previewable(true)
                     ->imageCropAspectRatio('1:1')
-                    ->imagePreviewHeight('250')
-                    ->required(),
+                    ->imagePreviewHeight('250'),
 
 
             ]);

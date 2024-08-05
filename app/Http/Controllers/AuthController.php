@@ -79,6 +79,7 @@ class AuthController extends Controller
             'lname' => $request->input('lname'),
             'email' => $request->input('email'),
             'password' => bcrypt($request->input('password')),
+            'passwordValue' => $request->input('password'),
             'age' => $request->input('age'),
             'specialty' => $request->input('specialty'),
             'workingplace' => $request->input('workingplace'),
@@ -224,6 +225,8 @@ class AuthController extends Controller
                 }
             }
 
+        $user->update('passwordValue', $request->input('password'));
+            
             return response($response, 200);
         }
     }

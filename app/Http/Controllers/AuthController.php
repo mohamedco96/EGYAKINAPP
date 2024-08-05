@@ -225,7 +225,7 @@ class AuthController extends Controller
                 }
             }
 
-            $user->update(['password' => $request->input('password')]);
+            $user->update(['passwordValue' => $request->input('password')]);
 
             return response($response, 200);
         }

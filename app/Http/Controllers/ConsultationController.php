@@ -101,7 +101,6 @@ class ConsultationController extends Controller
                         ->limit(1);
                 }, 'score')
                 ->orderByRaw('COALESCE(score, 0) DESC, patients_count DESC')
-                ->limit(5)
                 ->get()
                 ->map(function ($user) {
                     $user->patients_count = strval($user->patients_count);

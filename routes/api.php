@@ -143,6 +143,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/consultations', 'ConsultationController@store');
     Route::get('/consultations/sent', 'ConsultationController@sentRequests');
     Route::get('/consultations/received', 'ConsultationController@receivedRequests');
+    Route::get('/consultations/{id}', 'ConsultationController@consultationDetails');
     Route::put('/consultations/{id}','ConsultationController@update');
     Route::post('/consultationDoctorSearch/{data}', 'ConsultationController@consultationSearch');
 

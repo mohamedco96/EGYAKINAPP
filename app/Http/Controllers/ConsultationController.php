@@ -11,6 +11,7 @@ use App\Models\ConsultationDoctor;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class ConsultationController extends Controller
 {
@@ -34,7 +35,7 @@ class ConsultationController extends Controller
             ConsultationDoctor::create([
                 'consultation_id' => $consultation->id,
                 'consult_doctor_id' => $consult_doctor_id,
-                'status' => 'pending',
+                'status' => 'not replied',
             ]);
         }
 
@@ -137,32 +138,112 @@ class ConsultationController extends Controller
         return response()->json($response);
     }
 
-    public function update(Request $request, $id)
+    public function consultationDetails()
     {
-        $request->validate([
-            'reply' => 'required|string',
-            'status' => 'required|string|in:accepted,rejected,replied',
-        ]);
+        // Fetch consultations with associated doctor, patient, and consultationDoctors data
+        $consultations = Consultation::where('doctor_id', Auth::id())
+            ->with('consultationDoctors')
+            ->with('doctor')
+            ->with('patient')
+            ->get();
 
-        $consultationDoctor = ConsultationDoctor::where('consultation_id', $id)
-            ->where('consult_doctor_id', Auth::id())
-            ->firstOrFail();
+        // Initialize an array to hold the final response
+        $response = [];
 
-        $consultationDoctor->reply = $request->reply;
-        $consultationDoctor->status = $request->status;
-        $consultationDoctor->save();
+        // Iterate through each consultation to extract the required details
+        foreach ($consultations as $consultation) {
+            // Get patient ID and fetch the patient's name
+            $patientId = $consultation->patient_id;
+            $patientName = Answers::where('patient_id', $patientId)
+                ->where('question_id', '1')
+                ->pluck('answer')
+                ->first();
 
-        // Check if all consultation doctors have replied
-        $allReplied = ConsultationDoctor::where('consultation_id', $id)
-                ->where('status', '!=', 'replied')
-                ->count() === 0;
+            // Prepare the consultation object with required details including consultationDoctors
+            $consultationData = [
+                'id' => strval($consultation->id),
+                'doctor_id' => strval($consultation->doctor_id),
+                'doctor_fname' => $consultation->doctor->name,
+                'doctor_lname' => $consultation->doctor->lname,
+                'workingplace' => $consultation->doctor->workingplace,
+                'image' => $consultation->doctor->image,
+                'isVerified' => $consultation->doctor->isSyndicateCardRequired === 'Verified',
+                'patient_id' => strval($consultation->patient_id),
+                'patient_name' => $patientName,
+                'status' => $consultation->status,
+                'consult_message' => $consultation->consult_message,
+                'created_at' => $consultation->created_at,
+                'updated_at' => $consultation->updated_at,
+                'consultationDoctors' => $consultation->consultationDoctors->map(function($consultationDoctor) {
+                    return [
+                        'id' => strval($consultationDoctor->id),
+                        'consultation_id' => strval($consultationDoctor->consultation_id),
+                        'consult_doctor_id' => strval($consultationDoctor->consult_doctor_id),
+                        'consult_doctor_fname' => $consultationDoctor->consultDoctor->name,
+                        'consult_doctor_lname' => $consultationDoctor->consultDoctor->lname,
+                        'consult_doctor_image' => $consultationDoctor->consultDoctor->image,
+                        'workingplace' => $consultationDoctor->consultDoctor->workingplace,
+                        'isVerified' => $consultationDoctor->consultDoctor->isSyndicateCardRequired === 'Verified',
+                        'reply' => $consultationDoctor->reply ?? 'No reply available',
+                        'status' => $consultationDoctor->status,
+                        'created_at' => $consultationDoctor->created_at,
+                        'updated_at' => $consultationDoctor->updated_at,
+                    ];
+                })
+            ];
 
-        if ($allReplied) {
-            $consultationDoctor->consultation->status = 'complete';
-            $consultationDoctor->consultation->save();
+            // Add the consultation object to the response array
+            $response[] = $consultationData;
         }
 
-        return response()->json(['message' => 'Consultation request updated successfully']);
+        // Return the response as JSON
+        return response()->json($response);
+    }
+
+
+    public function update(Request $request, $id)
+    {
+        try {
+            // Validate the incoming request
+//            $request->validate([
+//                'reply' => 'required|string',
+//                'status' => 'required|string|in:accepted,rejected,replied',
+//            ]);
+
+            // Attempt to find the ConsultationDoctor record
+            $consultationDoctor = ConsultationDoctor::where('consultation_id', $id)
+                ->where('consult_doctor_id', Auth::id())
+                ->firstOrFail();
+
+            // Update the reply and status fields
+            $consultationDoctor->reply = $request->reply;
+            $consultationDoctor->status = 'replied';
+            $consultationDoctor->save();
+
+            // Check if all consultation doctors have replied
+            $allReplied = ConsultationDoctor::where('consultation_id', $id)
+                    ->where('status', '!=', 'replied')
+                    ->count() === 0;
+
+            if ($allReplied) {
+                $consultationDoctor->consultation->status = 'complete';
+                $consultationDoctor->consultation->save();
+            }
+
+            return response()->json(['message' => 'Consultation request updated successfully']);
+
+        } catch (ModelNotFoundException $e) {
+            // Handle the case where the consultation doctor was not found
+            return response()->json([
+                'message' => 'Consultation doctor not found for the provided consultation ID.',
+            ], 404);
+        } catch (\Exception $e) {
+            // Handle any other exceptions that might occur
+            return response()->json([
+                'message' => 'An error occurred while updating the consultation request.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function consultationSearch($data)

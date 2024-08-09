@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Answers;
+use App\Models\Patients;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Models\Consultation;
@@ -47,14 +49,92 @@ class ConsultationController extends Controller
 
     public function sentRequests()
     {
-        $consultations = Consultation::where('doctor_id', Auth::id())->with('consultationDoctors')->get();
-        return response()->json($consultations);
+        // Fetch consultations with associated doctor and patient data
+        $consultations = Consultation::where('doctor_id', Auth::id())
+            ->with('doctor')
+            ->with('patient')
+            ->get();
+
+        // Initialize an array to hold the final response
+        $response = [];
+
+        // Iterate through each consultation to extract the required details
+        foreach ($consultations as $consultation) {
+            // Get patient ID and fetch the patient's name
+            $patientId = $consultation->patient_id;
+            $patientName = Answers::where('patient_id', $patientId)
+                ->where('question_id', '1')
+                ->pluck('answer')
+                ->first();
+
+            // Prepare the consultation object with required details
+            $consultationData = [
+                'id' => strval($consultation->id),
+                'doctor_id' => strval($consultation->doctor_id),
+                'doctor_fname' => $consultation->doctor->name,
+                'doctor_lname' => $consultation->doctor->lname,
+                'workingplace' => $consultation->doctor->workingplace,
+                'image' => $consultation->doctor->image,
+                'isVerified' => $consultation->doctor->isSyndicateCardRequired === 'Verified',
+                'patient_id' => strval($consultation->patient_id),
+                'patient_name' => $patientName,
+                'status' => $consultation->status,
+                'created_at' => $consultation->created_at,
+                'updated_at' => $consultation->updated_at,
+            ];
+
+            // Add the consultation object to the response array
+            $response[] = $consultationData;
+        }
+
+        // Return the response as JSON
+        return response()->json($response);
     }
+
 
     public function receivedRequests()
     {
-        $consultations = ConsultationDoctor::where('consult_doctor_id', Auth::id())->with('consultation')->get();
-        return response()->json($consultations);
+        //$consultations = ConsultationDoctor::where('consult_doctor_id', Auth::id())->with('consultation')->get();
+        // Fetch consultations with associated doctor and patient data
+        $ConsultationDoctor = ConsultationDoctor::where('consult_doctor_id', Auth::id())
+            ->with('consultation')
+            ->with('consultDoctor')
+            ->get();
+
+        // Initialize an array to hold the final response
+        $response = [];
+
+        // Iterate through each consultation to extract the required details
+        foreach ($ConsultationDoctor as $ConsultationDoctor) {
+            // Get patient ID and fetch the patient's name
+            $patientId = $ConsultationDoctor->consultation->patient_id;
+            $patientName = Answers::where('patient_id', $patientId)
+                ->where('question_id', '1')
+                ->pluck('answer')
+                ->first();
+
+            // Prepare the consultation object with required details
+            $consultationData = [
+                'id' => strval($ConsultationDoctor->consultation->id),
+                'doctor_id' => strval($ConsultationDoctor->consultDoctor->id),
+                'doctor_fname' => $ConsultationDoctor->consultDoctor->name,
+                'doctor_lname' => $ConsultationDoctor->consultDoctor->lname,
+                'workingplace' => $ConsultationDoctor->consultDoctor->workingplace,
+                'image' => $ConsultationDoctor->consultDoctor->image,
+                'isVerified' => $ConsultationDoctor->consultDoctor->isSyndicateCardRequired === 'Verified',
+                'patient_id' => strval($ConsultationDoctor->consultation->patient_id),
+                'patient_name' => $patientName,
+                'status' => $ConsultationDoctor->consultation->status,
+                'created_at' => $ConsultationDoctor->consultation->created_at,
+                'updated_at' => $ConsultationDoctor->consultation->updated_at,
+            ];
+
+            // Add the consultation object to the response array
+            $response[] = $consultationData;
+        }
+
+        // Return the response as JSON
+        return response()->json($response);
     }
 
     public function update(Request $request, $id)

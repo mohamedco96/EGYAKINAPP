@@ -138,14 +138,21 @@ class ConsultationController extends Controller
         return response()->json($response);
     }
 
-    public function consultationDetails()
+    public function consultationDetails($id)
     {
         // Fetch consultations with associated doctor, patient, and consultationDoctors data
-        $consultations = Consultation::where('doctor_id', Auth::id())
-            ->with('consultationDoctors')
+        $consultations = Consultation::where('id', $id)
+            ->with(['consultationDoctors' => function ($query) {
+                // Retrieve all consultationDoctors for each Consultation
+            }])
+            ->whereHas('consultationDoctors', function ($query) {
+                // Only include Consultations where the authenticated user has a record
+                $query->where('consult_doctor_id', Auth::id());
+            })
             ->with('doctor')
             ->with('patient')
             ->get();
+
 
         // Initialize an array to hold the final response
         $response = [];

@@ -154,6 +154,8 @@ class ConsultationController extends Controller
             ->get();
 
 
+
+
         // Initialize an array to hold the final response
         $response = [];
 
@@ -166,6 +168,42 @@ class ConsultationController extends Controller
                 ->pluck('answer')
                 ->first();
 
+            $Patient = Patients::select('id', 'doctor_id', 'updated_at')
+                ->where('id',$consultation->patient_id)
+                ->with(['doctor' => function ($query) {
+                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
+                }])
+                ->with(['status' => function ($query) {
+                    $query->select('id', 'patient_id', 'key', 'status');
+                }])
+                ->with(['answers' => function ($query) {
+                    $query->select('id', 'patient_id', 'answer', 'question_id');
+                }])
+                ->latest('updated_at')
+                ->get();
+
+            $transformedPatients = $Patient->map(function ($patient) {
+                $submitStatus = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
+                $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
+
+                $nameAnswer = optional($patient->answers->where('question_id', 1)->first())->answer;
+                $hospitalAnswer = optional($patient->answers->where('question_id', 2)->first())->answer;
+
+                return [
+                    'id' => $patient->id,
+                    'doctor_id' => $patient->doctor_id,
+                    'name' => $nameAnswer,
+                    'hospital' => $hospitalAnswer,
+                    'updated_at' => $patient->updated_at,
+                    'doctor' => $patient->doctor,
+                    'sections' => [
+                        'patient_id' => $patient->id,
+                        'submit_status' => $submitStatus ?? false,
+                        'outcome_status' => $outcomeStatus ?? false,
+                    ]
+                ];
+            });
+
             // Prepare the consultation object with required details including consultationDoctors
             $consultationData = [
                 'id' => strval($consultation->id),
@@ -175,12 +213,11 @@ class ConsultationController extends Controller
                 'workingplace' => $consultation->doctor->workingplace,
                 'image' => $consultation->doctor->image,
                 'isVerified' => $consultation->doctor->isSyndicateCardRequired === 'Verified',
-                'patient_id' => strval($consultation->patient_id),
-                'patient_name' => $patientName,
                 'status' => $consultation->status,
                 'consult_message' => $consultation->consult_message,
                 'created_at' => $consultation->created_at,
                 'updated_at' => $consultation->updated_at,
+                'patient_info' => $transformedPatients,
                 'consultationDoctors' => $consultation->consultationDoctors->map(function($consultationDoctor) {
                     return [
                         'id' => strval($consultationDoctor->id),

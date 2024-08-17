@@ -200,7 +200,7 @@ class ConsultationController extends Controller
             ];
 
             // Add the consultation object to the response array
-            $response[] = $consultationData;
+            $response = $consultationData;
         }
 
         // Return the response as JSON

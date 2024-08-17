@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Dose;
+use App\Models\FcmToken;
 use App\Models\Patients;
 use App\Http\Requests\UpdatePatientsRequest;
 use App\Models\PatientStatus;
@@ -20,15 +21,18 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use PDF;
+use App\Http\Controllers\NotificationController;
 
 
 class PatientsController extends Controller
 {
-    protected $Patients;
+    protected $notificationController;
+    protected $patients;
 
-    public function __construct(Patients $Patients)
+    public function __construct(NotificationController $notificationController, Patients $patients)
     {
-        $this->Patients = $Patients;
+        $this->notificationController = $notificationController;
+        $this->patients = $patients;
     }
 
     /**
@@ -584,17 +588,25 @@ class PatientsController extends Controller
             // Retrieve all doctors with role 'admin' or 'tester' except the authenticated user
             $doctors = User::role(['Admin', 'Tester'])
                 ->where('id', '!=', Auth::id())
-                ->get();
+                ->pluck('id'); // Get only the IDs of the users
 
             // Create a new patient notification
-            foreach ($doctors as $doctor) {
+            foreach ($doctors as $doctorId) {
                 AppNotification::create([
-                    'doctor_id' => $doctor->id,
+                    'doctor_id' => $doctorId,
                     'type' => 'New Patient',
                     'content' => 'New Patient was created',
                     'patient_id' => $patient->id
                 ]);
             }
+
+            $title = 'New Patient was created 📣';
+            $body = 'Dr. '. $user->name .' Add New Patient named ' . $patientName;
+            $tokens = FcmToken::whereIn('doctor_id', $doctors)
+                ->pluck('token')
+                ->toArray();
+
+            $this->notificationController->sendPushNotification($title,$body,$tokens);
 
             return response()->json($response, 200);
         } catch (\Exception $e) {

@@ -170,7 +170,7 @@ class PatientsController extends Controller
                         ->whereColumn('users.id', 'scores.doctor_id')
                         ->limit(1);
                 }, 'score')
-                ->orderByRaw('COALESCE(score, 0) DESC, patients_count DESC')
+                ->orderByRaw('patients_count DESC, COALESCE(score, 0) DESC')
                 ->limit(5)
                 ->get()
                 ->map(function ($user) {

@@ -168,8 +168,8 @@ class ConsultationController extends Controller
                 ->pluck('answer')
                 ->first();
 
-            $Patient = Patients::select('id', 'doctor_id', 'updated_at')
-                ->where('id',$consultation->patient_id)
+            $patient = Patients::select('id', 'doctor_id', 'updated_at')
+                ->where('id', $consultation->patient_id)
                 ->with(['doctor' => function ($query) {
                     $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
                 }])
@@ -180,16 +180,19 @@ class ConsultationController extends Controller
                     $query->select('id', 'patient_id', 'answer', 'question_id');
                 }])
                 ->latest('updated_at')
-                ->get();
+                ->first(); // Use first() to get a single object
 
-            $transformedPatients = $Patient->map(function ($patient) {
+// Transform the single patient
+            $transformedPatient = null;
+
+            if ($patient) {
                 $submitStatus = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
                 $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
 
                 $nameAnswer = optional($patient->answers->where('question_id', 1)->first())->answer;
                 $hospitalAnswer = optional($patient->answers->where('question_id', 2)->first())->answer;
 
-                return [
+                $transformedPatient = [
                     'id' => $patient->id,
                     'doctor_id' => $patient->doctor_id,
                     'name' => $nameAnswer,
@@ -202,7 +205,7 @@ class ConsultationController extends Controller
                         'outcome_status' => $outcomeStatus ?? false,
                     ]
                 ];
-            });
+            }
 
             // Prepare the consultation object with required details including consultationDoctors
             $consultationData = [
@@ -217,7 +220,7 @@ class ConsultationController extends Controller
                 'consult_message' => $consultation->consult_message,
                 'created_at' => $consultation->created_at,
                 'updated_at' => $consultation->updated_at,
-                'patient_info' => $transformedPatients,
+                'patient_info' => $transformedPatient,
                 'consultationDoctors' => $consultation->consultationDoctors->map(function($consultationDoctor) {
                     return [
                         'id' => strval($consultationDoctor->id),

@@ -71,12 +71,13 @@ class ConsultationController extends Controller
             // Prepare the consultation object with required details
             $consultationData = [
                 'id' => strval($consultation->id),
+                'consult_message' => $consultation->consult_message,
                 'doctor_id' => strval($consultation->doctor_id),
                 'doctor_fname' => $consultation->doctor->name,
                 'doctor_lname' => $consultation->doctor->lname,
                 'workingplace' => $consultation->doctor->workingplace,
                 'image' => $consultation->doctor->image,
-                'isVerified' => $consultation->doctor->isSyndicateCardRequired === 'Verified',
+                'isSyndicateCard' => $consultation->doctor->isSyndicateCardRequired === 'Verified' ? 'true' : 'false',
                 'patient_id' => strval($consultation->patient_id),
                 'patient_name' => $patientName,
                 'status' => $consultation->status,
@@ -117,12 +118,13 @@ class ConsultationController extends Controller
             // Prepare the consultation object with required details
             $consultationData = [
                 'id' => strval($ConsultationDoctor->consultation->id),
+                'consult_message' => $ConsultationDoctor->consultation->consult_message,
                 'doctor_id' => strval($ConsultationDoctor->consultDoctor->id),
                 'doctor_fname' => $ConsultationDoctor->consultDoctor->name,
                 'doctor_lname' => $ConsultationDoctor->consultDoctor->lname,
                 'workingplace' => $ConsultationDoctor->consultDoctor->workingplace,
                 'image' => $ConsultationDoctor->consultDoctor->image,
-                'isVerified' => $ConsultationDoctor->consultDoctor->isSyndicateCardRequired === 'Verified',
+                'isSyndicateCard' => $ConsultationDoctor->consultDoctor->isSyndicateCardRequired === 'Verified' ? 'true' : 'false',
                 'patient_id' => strval($ConsultationDoctor->consultation->patient_id),
                 'patient_name' => $patientName,
                 'status' => $ConsultationDoctor->consultation->status,

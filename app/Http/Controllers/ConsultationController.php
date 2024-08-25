@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Answers;
+use App\Models\AppNotification;
+use App\Models\FcmToken;
 use App\Models\Patients;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -12,9 +14,20 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use App\Http\Controllers\NotificationController;
 
 class ConsultationController extends Controller
 {
+
+    protected $notificationController;
+    protected $patients;
+
+    public function __construct(NotificationController $notificationController, Patients $patients)
+    {
+        $this->notificationController = $notificationController;
+        $this->patients = $patients;
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -24,6 +37,7 @@ class ConsultationController extends Controller
             'consult_doctor_ids.*' => 'exists:users,id',
         ]);
 
+
         $consultation = Consultation::create([
             'doctor_id' => Auth::id(),
             'patient_id' => $request->patient_id,
@@ -31,7 +45,9 @@ class ConsultationController extends Controller
             'status' => 'pending',
         ]);
 
-        foreach ($request->consult_doctor_ids as $consult_doctor_id) {
+        $doctors = $request->consult_doctor_ids;
+
+        foreach ($doctors as $consult_doctor_id) {
             ConsultationDoctor::create([
                 'consultation_id' => $consultation->id,
                 'consult_doctor_id' => $consult_doctor_id,
@@ -44,6 +60,28 @@ class ConsultationController extends Controller
             'data' => $consultation,
             'message' => 'Consultation Created Successfully',
         ];
+
+
+
+        // Create a new patient notification
+        foreach ($doctors as $doctorId) {
+            AppNotification::create([
+                'doctor_id' => $doctorId,
+                'type' => 'Consultation',
+                'type_id' => $consultation->id,
+                'content' => 'New consultation request was created',
+                'patient_id' => $request->patient_id
+            ]);
+        }
+
+        $user = Auth::user();
+        $title = 'New consultation request was created 📣';
+        $body = 'Dr. '. $user->name .' is seeking your advice for his patient';
+        $tokens = FcmToken::whereIn('doctor_id', $doctors)
+            ->pluck('token')
+            ->toArray();
+
+        $this->notificationController->sendPushNotification($title,$body,$tokens);
 
         return response($response, 201);
     }
@@ -92,7 +130,6 @@ class ConsultationController extends Controller
         // Return the response as JSON
         return response()->json($response);
     }
-
 
     public function receivedRequests()
     {
@@ -249,7 +286,6 @@ class ConsultationController extends Controller
         // Return the response as JSON
         return response()->json($response);
     }
-
 
     public function update(Request $request, $id)
     {

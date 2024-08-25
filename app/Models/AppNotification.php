@@ -23,7 +23,7 @@ class AppNotification extends Model
      *
      * @var array
      */
-    protected $fillable = ['content', 'read', 'patient_id', 'type', 'doctor_id'];
+    protected $fillable = ['content', 'read', 'patient_id', 'type', 'type_id', 'doctor_id'];
 
     /**
      * The attributes that should be cast.

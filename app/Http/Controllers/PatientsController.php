@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Consultation;
+use App\Models\ConsultationDoctor;
 use App\Models\Dose;
 use App\Models\FcmToken;
 use App\Models\Patients;
@@ -1008,59 +1009,63 @@ class PatientsController extends Controller
      */
     public function destroyPatient($id)
     {
-        // Get the authenticated user
-        $user = auth()->user();
+        DB::beginTransaction(); // Start a transaction
 
-        // Find the patient by ID
-        $patient = Patients::find($id);
+        try {
+            // Find the patient
+            $patient = Patients::findOrFail($id);
 
-        // If patient is found, proceed with deletion
-        if ($patient) {
-            try {
-                // Log the start of the deletion process
-                Log::info('Patient deletion process started', ['patient_id' => $id, 'deleted_by' => $user->id]);
+            // Log the patient details for debugging
+            Log::info('Deleting patient', ['patient_id' => $id]);
 
-                // Delete all consultations related to the patient
-                Consultation::where('patient_id', $id)->delete();
+            // Delete related consultation_doctors records
+            ConsultationDoctor::whereIn('consultation_id', function($query) use ($id) {
+                $query->select('id')
+                    ->from('consultations')
+                    ->where('patient_id', $id);
+            })->delete();
 
-                // Delete the patient record
-                $patient->delete();
+            // Log the deletion of consultation_doctors
+            Log::info('Deleted consultation_doctors records for patient', ['patient_id' => $id]);
 
-                // Log the successful deletion
-                Log::info('Patient deleted successfully', ['patient_id' => $id, 'deleted_by' => $user->id]);
+            // Delete related consultations records
+            Consultation::where('patient_id', $id)->delete();
 
-                // Prepare success response
-                $response = [
-                    'value' => true,
-                    'message' => 'Patient deleted successfully',
-                ];
+            // Log the deletion of consultations
+            Log::info('Deleted consultations records for patient', ['patient_id' => $id]);
 
-                return response()->json($response, 200);
+            // Delete the patient
+            $patient->delete();
 
-            } catch (\Exception $e) {
-                // Log any errors during deletion
-                Log::error('Error deleting patient', ['patient_id' => $id, 'error' => $e->getMessage()]);
+            // Log successful patient deletion
+            Log::info('Patient deleted successfully', ['patient_id' => $id]);
 
-                // Prepare error response
-                $response = [
-                    'value' => false,
-                    'message' => 'An error occurred while deleting the patient',
-                ];
+            // Commit the transaction if everything is successful
+            DB::commit();
 
-                return response()->json($response, 500);
-            }
-
-        } else {
-            // Log if patient is not found
-            Log::warning('Patient not found for deletion', ['patient_id' => $id]);
-
-            // Prepare not found response
             $response = [
-                'value' => false,
-                'message' => 'No patient was found',
+                'value' => true,
+                'message' => 'Patient and related data deleted successfully',
             ];
 
-            return response()->json($response, 404);
+            return response($response, 200);
+
+        } catch (\Exception $e) {
+            // Rollback the transaction if something goes wrong
+            DB::rollBack();
+
+            // Log the error
+            Log::error('Error deleting patient', [
+                'patient_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            $response = [
+                'value' => false,
+                'message' => 'Error occurred while deleting patient: ' . $e->getMessage(),
+            ];
+
+            return response($response, 500);
         }
     }
 

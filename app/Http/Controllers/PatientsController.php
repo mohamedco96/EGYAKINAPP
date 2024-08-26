@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Consultation;
 use App\Models\Dose;
 use App\Models\FcmToken;
 use App\Models\Patients;
@@ -1007,34 +1008,60 @@ class PatientsController extends Controller
      */
     public function destroyPatient($id)
     {
+        // Get the authenticated user
         $user = auth()->user();
-        // Check if the user has permission to edit articles
-        //if ($user->hasPermissionTo('delete patient', 'web')) {
-        $Patient = Patients::find($id);
 
-        if ($Patient != null) {
-            Patients::destroy($id);
+        // Find the patient by ID
+        $patient = Patients::find($id);
 
-            $response = [
-                'value' => true,
-                'message' => 'Patient Deleted Successfully',
-            ];
+        // If patient is found, proceed with deletion
+        if ($patient) {
+            try {
+                // Log the start of the deletion process
+                Log::info('Patient deletion process started', ['patient_id' => $id, 'deleted_by' => $user->id]);
 
-            return response($response, 200);
+                // Delete all consultations related to the patient
+                Consultation::where('patient_id', $id)->delete();
+
+                // Delete the patient record
+                $patient->delete();
+
+                // Log the successful deletion
+                Log::info('Patient deleted successfully', ['patient_id' => $id, 'deleted_by' => $user->id]);
+
+                // Prepare success response
+                $response = [
+                    'value' => true,
+                    'message' => 'Patient deleted successfully',
+                ];
+
+                return response()->json($response, 200);
+
+            } catch (\Exception $e) {
+                // Log any errors during deletion
+                Log::error('Error deleting patient', ['patient_id' => $id, 'error' => $e->getMessage()]);
+
+                // Prepare error response
+                $response = [
+                    'value' => false,
+                    'message' => 'An error occurred while deleting the patient',
+                ];
+
+                return response()->json($response, 500);
+            }
+
         } else {
+            // Log if patient is not found
+            Log::warning('Patient not found for deletion', ['patient_id' => $id]);
+
+            // Prepare not found response
             $response = [
                 'value' => false,
-                'message' => 'No Patient was found',
+                'message' => 'No patient was found',
             ];
 
-            return response($response, 404);
+            return response()->json($response, 404);
         }
-        /*} else {
-            return response()->json(['value' => false,
-                    'message' => 'User does not have permission to delete Patient']
-                , 404);
-        }*/
-
     }
 
     public function searchNewold(Request $request)

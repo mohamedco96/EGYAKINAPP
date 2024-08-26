@@ -173,6 +173,7 @@ class SectionsController extends Controller
                 'doctor_id' => $doctorId,
                 'score' => $incrementAmount,
                 'action' => $action,
+                'patient_id' => $patient_id,
                 'timestamp' => now(),
             ]);
 

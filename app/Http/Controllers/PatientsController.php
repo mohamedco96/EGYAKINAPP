@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Comment;
 use App\Models\Consultation;
 use App\Models\ConsultationDoctor;
 use App\Models\Dose;
@@ -866,6 +867,7 @@ class PatientsController extends Controller
                     'doctor_id' => $doctorId,
                     'score' => $incrementAmount,
                     'action' => $action,
+                    'patient_id' => $patient_id,
                     'timestamp' => now(),
                 ]);
             }
@@ -1012,6 +1014,8 @@ class PatientsController extends Controller
         DB::beginTransaction(); // Start a transaction
 
         try {
+            $doctorId = Auth::id();
+
             // Find the patient
             $patient = Patients::findOrFail($id);
 
@@ -1033,6 +1037,30 @@ class PatientsController extends Controller
 
             // Log the deletion of consultations
             Log::info('Deleted consultations records for patient', ['patient_id' => $id]);
+
+
+//            Comment::where('patient_id', $id)->delete();
+//
+//            AppNotification::where('patient_id', $id)->delete();
+
+            // Get the total points to be deducted for the given patient
+            $decrementAmount = ScoreHistory::where('patient_id', $id)->sum('score');
+
+            if ($decrementAmount > 0) {
+                // Find or create the score record for the doctor
+                $score = Score::firstOrNew(['doctor_id' => $doctorId]);
+
+                // Deduct the points from both the score and threshold
+                $score->score -= $decrementAmount;
+                $score->threshold -= $decrementAmount;
+
+                // Ensure the score and threshold are not negative
+                $score->score = max(0, $score->score);
+                $score->threshold = max(0, $score->threshold);
+
+                // Save the updated score
+                $score->save();
+            }
 
             // Delete the patient
             $patient->delete();

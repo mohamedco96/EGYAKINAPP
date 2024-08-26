@@ -88,10 +88,11 @@ class ConsultationController extends Controller
 
     public function sentRequests()
     {
-        // Fetch consultations with associated doctor and patient data
+        // Fetch consultations with associated doctor and patient data, ordered by updated_at in descending order
         $consultations = Consultation::where('doctor_id', Auth::id())
             ->with('doctor')
             ->with('patient')
+            ->orderBy('updated_at', 'desc') // Order by updated_at in descending order
             ->get();
 
         // Initialize an array to hold the final response
@@ -138,6 +139,7 @@ class ConsultationController extends Controller
         $ConsultationDoctor = ConsultationDoctor::where('consult_doctor_id', Auth::id())
             ->with('consultation')
             ->with('consultDoctor')
+            ->orderBy('updated_at', 'desc')
             ->get();
 
         // Initialize an array to hold the final response
@@ -173,6 +175,11 @@ class ConsultationController extends Controller
             // Add the consultation object to the response array
             $response[] = $consultationData;
         }
+
+//        // Sort the response array by updated_at in descending order (in case you want additional sorting)
+//        usort($response, function ($a, $b) {
+//            return strtotime($b['updated_at']) - strtotime($a['updated_at']);
+//        });
 
         // Return the response as JSON
         return response()->json($response);

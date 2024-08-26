@@ -187,7 +187,7 @@ class ConsultationController extends Controller
             }])
             ->whereHas('consultationDoctors', function ($query) {
                 // Only include Consultations where the authenticated user has a record
-                $query->where('consult_doctor_id', Auth::id());
+                //$query->where('consult_doctor_id', Auth::id());
             })
             ->with('doctor')
             ->with('patient')

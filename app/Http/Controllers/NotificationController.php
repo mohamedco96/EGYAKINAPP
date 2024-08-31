@@ -329,6 +329,7 @@ class NotificationController extends Controller
                     'id' => $notification->id,
                     'read' => $notification->read,
                     'type' => $notification->type,
+                    'type_id' => $notification->type_id,
                     'patient_id' => $notification->patient_id,
                     'doctor_id' => $notification->doctor_id,
                     'created_at' => $notification->created_at,

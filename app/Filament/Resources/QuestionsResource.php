@@ -118,6 +118,20 @@ class QuestionsResource extends Resource
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
+                Tables\Filters\SelectFilter::make('section_name')
+                    ->label('Section Name')
+                    ->options([
+                        'Patient History' => 'Patient History',
+                        'Complaint' => 'Complaint',
+                        'Cause of AKI' => 'Cause of AKI',
+                        'Risk factors for AKI' => 'Risk factors for AKI',
+                        'Assessment of the patient' => 'Assessment of the patient',
+                        'Laboratory and radiology results' => 'Laboratory and radiology results',
+                        'Medical decision' => 'Medical decision',
+                        'Outcome' => 'Outcome',
+                        'Medical Reports' => 'Medical Reports',
+                    ])
+                    ->query(fn (Builder $query, $value) => $query->where('section_name', $value)),
             ])
             ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action

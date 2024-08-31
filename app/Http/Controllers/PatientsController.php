@@ -138,7 +138,7 @@ class PatientsController extends Controller
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
 
             // Return all posts
-            $posts = Posts::select('id', 'title', 'image', 'content', 'hidden', 'doctor_id', 'updated_at')
+            $posts = Posts::select('id', 'title', 'image', 'content', 'hidden', 'post_type', 'webinar_date', 'url', 'doctor_id', 'updated_at')
                 ->where('hidden', false)
                 ->with(['doctor' => function ($query) {
                     $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');

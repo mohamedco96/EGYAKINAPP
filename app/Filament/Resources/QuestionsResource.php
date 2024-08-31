@@ -62,6 +62,7 @@ class QuestionsResource extends Resource
                     ])->required(),
                 Forms\Components\TextInput::make('question')->required(),
                 Forms\Components\TextInput::make('values'),
+                Forms\Components\TextInput::make('sort'),
                 Forms\Components\Select::make('type')
                     ->options([
                         'string' => 'String',
@@ -89,6 +90,7 @@ class QuestionsResource extends Resource
                 Tables\Columns\TextColumn::make('section_id')->toggleable(isToggledHiddenByDefault: false)->label('Section ID')->searchable(),
                 Tables\Columns\TextColumn::make('section_name')->toggleable(isToggledHiddenByDefault: false)->label('Section Name')->searchable(),
                 Tables\Columns\TextColumn::make('question')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('sort')->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('values')->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('type')->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('keyboard_type')->toggleable(isToggledHiddenByDefault: false),

@@ -17,6 +17,9 @@ return new class extends Migration
             $table->string('image');
             $table->text('content');
             $table->boolean('hidden')->default(false);
+            $table->enum('post_type', ['post', 'webinar', 'article'])->default('post');
+            $table->date('webinar_date')->nullable();
+            $table->string('url')->nullable();
             $table->bigInteger('doctor_id')->unsigned()->index();
             $table->foreign('doctor_id')->references('id')->on('users')->onDelete('cascade');
             $table->timestamps();

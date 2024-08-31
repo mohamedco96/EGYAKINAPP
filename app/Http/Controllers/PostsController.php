@@ -15,7 +15,7 @@ class PostsController extends Controller
      */
     public function index()
     {
-        $post = Posts::select('id', 'title', 'image', 'content', 'hidden', 'doctor_id', 'updated_at')
+        $post = Posts::select('id', 'title', 'image', 'content', 'hidden','post_type', 'webinar_date', 'url', 'doctor_id', 'updated_at')
             ->where('hidden', 0)
             ->with('doctor:id,name,lname')
             ->get();
@@ -101,7 +101,7 @@ class PostsController extends Controller
         //$post->load('postcomments.doctor');
 
         $post = Posts::where('id', $id)
-            ->select('id', 'title', 'image', 'content', 'hidden', 'doctor_id', 'updated_at')
+            ->select('id', 'title', 'image', 'content', 'hidden', 'post_type', 'webinar_date', 'url', 'doctor_id', 'updated_at')
             ->with('doctor:id,name,lname')
         //->with('postcomments:id,content,doctor_id,post_id')
             ->get();

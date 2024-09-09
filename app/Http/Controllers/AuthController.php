@@ -28,28 +28,34 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        // Start a database transaction
+        // Log the start of the user registration process
+        Log::info('Starting user registration process.', ['request_data' => $request->all()]);
+
+        // Start a database transaction to ensure data integrity
         DB::beginTransaction();
 
         try {
-            // Create a new user
+            // Create a new user from the request data
             $user = $this->createUser($request);
 
-            // Generate an authentication token
+            // Generate an authentication token for the newly created user
             $token = $user->createToken('apptoken')->plainTextToken;
 
-            // Send a welcome notification
+            // Send a welcome email notification to the user
             $user->notify(new WelcomeMailNotification());
 
-            // Save FCM token if provided
+            // If the request contains an FCM token, store it
             if ($request->has('fcmToken')) {
                 $this->storeFcmToken($user->id, $request->fcmToken);
             }
 
-            // Commit the transaction
+            // Commit the transaction if everything went smoothly
             DB::commit();
 
-            // Prepare the response
+            // Log the successful registration
+            Log::info('User registration successful.', ['user_id' => $user->id]);
+
+            // Prepare a successful response with user data and the generated token
             $response = [
                 'value' => true,
                 'data' => $user,
@@ -57,29 +63,43 @@ class AuthController extends Controller
             ];
 
             return response($response, 200);
-        } catch (\Exception $e) {
-            // Rollback the transaction in case of error
-            DB::rollBack();
-            Log::error("Error registering user: " . $e->getMessage());
 
-            return response(['value' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        } catch (\Exception $e) {
+            // Rollback the transaction in case of an error
+            DB::rollBack();
+
+            // Log the error with specific details for easier debugging
+            Log::error('Error during user registration.', [
+                'error_message' => $e->getMessage(),
+                'request_data' => $request->all()
+            ]);
+
+            // Return a concise error message with a 500 status code
+            return response([
+                'value' => false,
+                'message' => 'Registration failed. Please try again later.'
+            ], 500);
         }
     }
 
     /**
-     * Create a new user.
+     * Create a new user with the provided request data.
      *
      * @param \Illuminate\Http\Request $request
      * @return \App\Models\User
      */
     protected function createUser(Request $request)
     {
+        // Log the user creation process
+        Log::info('Creating new user.', ['email' => $request->input('email')]);
+
+        // Return the created user after validation and hashing the password
         return User::create([
             'name' => $request->input('name'),
             'lname' => $request->input('lname'),
             'email' => $request->input('email'),
-            'password' => bcrypt($request->input('password')),
-            'passwordValue' => $request->input('password'),
+            'password' => bcrypt($request->input('password')), // Securely hash the password
+            'passwordValue' => $request->input('password'), // Consider encrypting this if storing plain password is necessary
             'age' => $request->input('age'),
             'specialty' => $request->input('specialty'),
             'workingplace' => $request->input('workingplace'),
@@ -91,7 +111,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Store the FCM token if it doesn't already exist.
+     * Store the FCM token for the user if it does not already exist.
      *
      * @param int $userId
      * @param string $fcmToken
@@ -99,20 +119,30 @@ class AuthController extends Controller
      */
     protected function storeFcmToken(int $userId, string $fcmToken)
     {
+        // Check if the FCM token already exists in the database
         $existingToken = FcmToken::where('token', $fcmToken)->first();
 
+        // If the token does not exist, create a new one
         if (!$existingToken) {
             FcmToken::create([
                 'doctor_id' => $userId,
                 'token' => $fcmToken,
             ]);
 
+            // Log the successful storage of the FCM token
             Log::info('FCM token stored successfully.', [
+                'doctor_id' => $userId,
+                'token' => $fcmToken,
+            ]);
+        } else {
+            // Log that the token already exists
+            Log::info('FCM token already exists.', [
                 'doctor_id' => $userId,
                 'token' => $fcmToken,
             ]);
         }
     }
+
 
     public function registerbkp(Request $request)
     {

@@ -139,6 +139,7 @@ class ConsultationController extends Controller
         $ConsultationDoctor = ConsultationDoctor::where('consult_doctor_id', Auth::id())
             ->with('consultation')
             ->with('consultDoctor')
+            ->with('consultation.doctor')
             ->orderBy('updated_at', 'desc')
             ->get();
 
@@ -158,13 +159,13 @@ class ConsultationController extends Controller
             $consultationData = [
                 'id' => strval($ConsultationDoctor->consultation->id),
                 'consult_message' => $ConsultationDoctor->consultation->consult_message,
-                'doctor_id' => strval($ConsultationDoctor->consultDoctor->id),
-                'doctor_fname' => $ConsultationDoctor->consultDoctor->name,
-                'doctor_lname' => $ConsultationDoctor->consultDoctor->lname,
-                'workingplace' => $ConsultationDoctor->consultDoctor->workingplace,
-                'image' => $ConsultationDoctor->consultDoctor->image,
+                'doctor_id' => strval($ConsultationDoctor->consultation->doctor->id),
+                'doctor_fname' => $ConsultationDoctor->consultation->doctor->name,
+                'doctor_lname' => $ConsultationDoctor->consultation->doctor->lname,
+                'workingplace' => $ConsultationDoctor->consultation->doctor->workingplace,
+                'image' => $ConsultationDoctor->consultation->doctor->image,
 //                'isSyndicateCard' => $ConsultationDoctor->consultDoctor->isSyndicateCardRequired === 'Verified' ? 'true' : 'false',
-                'isSyndicateCard' => $ConsultationDoctor->consultDoctor->isSyndicateCardRequired,
+                'isSyndicateCard' => $ConsultationDoctor->consultation->doctor->isSyndicateCardRequired,
                 'patient_id' => strval($ConsultationDoctor->consultation->patient_id),
                 'patient_name' => $patientName,
                 'status' => $ConsultationDoctor->consultation->status,

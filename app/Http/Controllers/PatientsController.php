@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Achievement;
 use App\Models\Comment;
 use App\Models\Consultation;
 use App\Models\ConsultationDoctor;
@@ -25,17 +26,22 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use PDF;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\AchievementController;
 
 
 class PatientsController extends Controller
 {
     protected $notificationController;
     protected $patients;
+    protected $achievement;
 
-    public function __construct(NotificationController $notificationController, Patients $patients)
+
+    public function __construct(NotificationController $notificationController, Patients $patients, AchievementController $achievement)
     {
         $this->notificationController = $notificationController;
         $this->patients = $patients;
+        $this->achievement = $achievement;
+
     }
 
     /**
@@ -610,6 +616,7 @@ class PatientsController extends Controller
                 ->toArray();
 
             $this->notificationController->sendPushNotification($title,$body,$tokens);
+            $this->achievement->checkAndAssignAchievements($user);
 
             return response()->json($response, 200);
         } catch (\Exception $e) {

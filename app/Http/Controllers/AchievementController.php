@@ -33,8 +33,8 @@ class AchievementController extends Controller
     public function checkAndAssignAchievements(User $user)
     {
         // Retrieve the user's total score and patient count
-        $userScore = $user->score->score;
-        $userPatientCount = $user->patients->count();
+        $userScore = $user->score->score ?? 0;
+        $userPatientCount = $user->patients->count() ?? 0;
 
         // Fetch all achievements from the database
         $achievements = Achievement::all();

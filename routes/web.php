@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ChatController;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,3 +25,9 @@ Route::get('/pdf', function () {
 Route::get('/policy', function () {
     return view('policy');
 });
+
+Route::get('/ChatGPT', function () {
+    return view('chat');
+});
+
+Route::post('/chat', [ChatController::class, 'chat']);

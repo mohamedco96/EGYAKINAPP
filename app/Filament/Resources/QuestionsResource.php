@@ -34,16 +34,8 @@ class QuestionsResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('section_id')
-                    ->label('Section ID')
-                    ->options(function () {
-                        return \App\Models\SectionsInfo::get()->mapWithKeys(function ($section) {
-                            return [$section->id => $section->id . ' : ' . $section->section_name];  // Display section_id : section_name
-                        })->toArray();
-                    })
-                    ->reactive()
-                    ->required()
-                    ->helperText('Select the section by ID'),
+                Forms\Components\Hidden::make('section_id')
+                    ->required(), // Make sure it's required
 
                 Forms\Components\Select::make('section_name')
                     ->label('Section Name')
@@ -52,7 +44,14 @@ class QuestionsResource extends Resource
                     })
                     ->reactive()
                     ->required()
-                    ->helperText('Select the section by name'),
+                    ->helperText('Select the section by name')
+                    ->afterStateUpdated(function ($set, $get, $state) {
+                        // Set section_id based on the selected section_name
+                        $sectionId = \App\Models\SectionsInfo::where('section_name', $state)->value('id');
+                        if ($sectionId) {
+                            $set('section_id', $sectionId);
+                        }
+                    }),
 
                 Forms\Components\TextInput::make('question')
                     ->label('Question')
@@ -152,7 +151,7 @@ class QuestionsResource extends Resource
                     ->sortable()
                     ->toggleable(),
             ])
-            ->defaultSort('section_name')  // Default sort by 'section_name' in ascending order
+            ->defaultSort('section_id')  // Default sort by 'section_name' in ascending order
             ->filters([
                 Tables\Filters\SelectFilter::make('section_id')
                     ->label('Section ID')

@@ -35,15 +35,21 @@ class QuestionsResource extends Resource
         return $form
             ->schema([
                 // Hidden field for section_id
-                Forms\Components\TextInput::make('section_id')
-                    ->label('Section ID')
-                    ->required(),  // Make sure it's required
+                Forms\Components\Select::make('section_id')  // Save section_id
+                ->label('Section ID')
+                    ->options(function () {
+                        return \App\Models\SectionsInfo::get()->mapWithKeys(function ($section) {
+                            return [$section->id => $section->id . ' : ' . $section->section_name];  // Display section_id : section_name
+                        })->toArray();
+                    })
+                    ->reactive()  // React to changes in section selection
+                    ->required(),  // Make it required
 
-                // Fetch section names from sections_infos table
+                // Fetch section names from sections_infos table and save section_name directly
                 Forms\Components\Select::make('section_name')
                     ->label('Section Name')
                     ->options(function () {
-                        return \App\Models\SectionsInfo::pluck('section_name', 'id')->toArray();  // Fetch section_name and id from sections_infos table
+                        return \App\Models\SectionsInfo::pluck('section_name', 'section_name')->toArray();  // Fetch section_name and use it for both key and value
                     })
                     ->reactive()  // React to changes in section_name
                     ->required(),
@@ -91,51 +97,75 @@ class QuestionsResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')->toggleable(isToggledHiddenByDefault: false)->searchable(),
-                Tables\Columns\TextColumn::make('section_id')->toggleable(isToggledHiddenByDefault: false)->label('Section ID')->searchable(),
-                Tables\Columns\TextColumn::make('section_name')->toggleable(isToggledHiddenByDefault: false)->label('Section Name')->searchable(),
+                Tables\Columns\TextColumn::make('section_id')->toggleable(isToggledHiddenByDefault: false)->label('Section ID')
+                    ->sortable()  // Make the column sortable
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('section_name')
+                    ->toggleable(isToggledHiddenByDefault: false)
+                    ->label('Section Name')
+                    ->sortable()  // Make the column sortable
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('question')->toggleable(isToggledHiddenByDefault: false),
-                Tables\Columns\TextColumn::make('sort')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('sort')->toggleable(isToggledHiddenByDefault: false)
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('values')->toggleable(isToggledHiddenByDefault: false),
-                Tables\Columns\TextColumn::make('type')->toggleable(isToggledHiddenByDefault: false),
-                Tables\Columns\TextColumn::make('keyboard_type')->toggleable(isToggledHiddenByDefault: false),
-                Tables\Columns\ToggleColumn::make('mandatory')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('type')->toggleable(isToggledHiddenByDefault: false)
+                    ->sortable()  // Make the column sortable
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('keyboard_type')->toggleable(isToggledHiddenByDefault: false)
+                    ->sortable()  // Make the column sortable
+                    ->searchable(),
+                Tables\Columns\ToggleColumn::make('mandatory')->toggleable(isToggledHiddenByDefault: false)
+                    ->sortable()  // Make the column sortable
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false)->label('Created At'),
                 Tables\Columns\TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: false)->label('Updated At'),
             ])
             ->persistSearchInSession()
             ->persistColumnSearchesInSession()
             ->persistSortInSession()
+            ->defaultSort('section_id')  // Default sort by section_name in ascending order
             ->filters([
-                Tables\Filters\Filter::make('created_at')
-                    ->form([
-                        DatePicker::make('created_from'),
-                        DatePicker::make('created_until'),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when(
-                                $data['created_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
-                            )
-                            ->when(
-                                $data['created_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
-                            );
+                // Filter by section_id
+                Tables\Filters\SelectFilter::make('section_id')
+                    ->label('Section ID')
+                    ->options(function () {
+                        return \App\Models\SectionsInfo::pluck('id', 'id')->toArray(); // Fetch section IDs
                     }),
-//                Tables\Filters\SelectFilter::make('section_name')
-//                    ->label('Section Name')
-//                    ->options([
-//                        'Patient History' => 'Patient History',
-//                        'Complaint' => 'Complaint',
-//                        'Cause of AKI' => 'Cause of AKI',
-//                        'Risk factors for AKI' => 'Risk factors for AKI',
-//                        'Assessment of the patient' => 'Assessment of the patient',
-//                        'Laboratory and radiology results' => 'Laboratory and radiology results',
-//                        'Medical decision' => 'Medical decision',
-//                        'Outcome' => 'Outcome',
-//                        'Medical Reports' => 'Medical Reports',
-//                    ])
-//                    ->query(fn (Builder $query, $value) => $query->where('section_name', $value)),
+
+                // Filter by section_name
+                Tables\Filters\SelectFilter::make('section_name')
+                    ->label('Section Name')
+                    ->options(function () {
+                        return \App\Models\SectionsInfo::pluck('section_name', 'section_name')->toArray(); // Fetch section names
+                    }),
+
+                // Filter by type
+                Tables\Filters\SelectFilter::make('type')
+                    ->label('Type')
+                    ->options([
+                        'string' => 'String',
+                        'select' => 'Select',
+                        'multiple' => 'Multiple Select',
+                        'date' => 'Date',
+                    ]),
+
+                // Filter by keyboard_type
+                Tables\Filters\SelectFilter::make('keyboard_type')
+                    ->label('Keyboard Type')
+                    ->options([
+                        'text' => 'Text',
+                        'number' => 'Number',
+                        'email' => 'Email',
+                    ]),
+
+                // Filter by mandatory (boolean)
+                Tables\Filters\SelectFilter::make('mandatory')
+                    ->label('Mandatory')
+                    ->options([
+                        1 => 'Yes',  // True
+                        0 => 'No',   // False
+                    ]),
             ])
             ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action

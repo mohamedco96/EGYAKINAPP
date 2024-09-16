@@ -37,7 +37,8 @@ class User extends Authenticatable
         'image',
         'birth_date',
         'role',
-        'registration_number'
+        'registration_number',
+        'version'
     ];
 
     /**

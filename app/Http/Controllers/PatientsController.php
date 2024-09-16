@@ -147,7 +147,7 @@ class PatientsController extends Controller
             $posts = Posts::select('id', 'title', 'image', 'content', 'hidden', 'post_type', 'webinar_date', 'url', 'doctor_id', 'updated_at')
                 ->where('hidden', false)
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
+                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
                 }])
                 ->get();
 
@@ -157,7 +157,7 @@ class PatientsController extends Controller
                     return $query->where('hidden', false);
                 })
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
+                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
                 }])
                 ->latest('updated_at')
                 ->limit(5)
@@ -168,14 +168,14 @@ class PatientsController extends Controller
                 return $query->where('hidden', false);
             })
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
+                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
                 }])
                 ->latest('updated_at')
                 ->limit(5)
                 ->get();
 
             // Return Top Doctors
-            $topDoctors = User::select('id', 'name', 'image', 'syndicate_card', 'isSyndicateCardRequired')
+            $topDoctors = User::select('id', 'name', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version')
                 ->withCount('patients')
                 ->selectSub(function ($query) {
                     $query->selectRaw('COALESCE(score, 0)')
@@ -230,9 +230,12 @@ class PatientsController extends Controller
             // Get the first role
             $role = $user->roles->first();
 
+            $update_message = '<ul><li><strong>Doctor Consultations</strong>: Doctors can now consult one or more colleagues for advice on their patients.</li><li><strong>User Achievements</strong>: Earn achievements by adding a set number of patients or completing specific outcomes.</li></ul>';
+
             // Prepare response data
             $response = [
                 'value' => true,
+                'app_update_message' => $update_message,
                 'verified' => $isVerified,
                 'unreadCount' => (string)$unreadCount,
                 'doctor_patient_count' => (string)$userPatientCount,
@@ -279,7 +282,7 @@ class PatientsController extends Controller
                     return $query->where('hidden', false); // Non-admin/tester users only see non-hidden patients
                 })
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
+                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
                 }])
                 ->with(['status' => function ($query) {
                     $query->select('id', 'patient_id', 'key', 'status');
@@ -353,7 +356,7 @@ class PatientsController extends Controller
                     return $query->where('hidden', false); // Non-admin/tester users only see non-hidden patients
                 })
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
+                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
                 }])
                 ->with(['status' => function ($query) {
                     $query->select('id', 'patient_id', 'key', 'status');
@@ -434,7 +437,7 @@ class PatientsController extends Controller
                     return $query->where('hidden', false); // Non-admin/tester users only see non-hidden patients
                 })
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
+                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
                 }])
                 ->with(['status' => function ($query) {
                     $query->select('id', 'patient_id', 'key', 'status');
@@ -1433,7 +1436,7 @@ class PatientsController extends Controller
             ->where('hidden', false)
             ->where('id', 132)
             ->with(['doctor' => function ($query) {
-                $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
+                $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired', 'version');
             }])
             ->with(['status' => function ($query) {
                 $query->select('id', 'patient_id', 'key', 'status');

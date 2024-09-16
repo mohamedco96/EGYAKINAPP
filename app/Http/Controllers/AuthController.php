@@ -423,6 +423,7 @@ class AuthController extends Controller
                 'job' => 'string',
                 'highestdegree' => 'string',
                 'registration_number' => 'string',
+                'version' => 'string',
             ]);
 
             // Check if the email address is being updated

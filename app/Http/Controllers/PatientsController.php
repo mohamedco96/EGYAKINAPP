@@ -235,7 +235,7 @@ class PatientsController extends Controller
             // Prepare response data
             $response = [
                 'value' => true,
-                'app_update_message' => $update_message,
+                //'app_update_message' => $update_message,
                 'verified' => $isVerified,
                 'unreadCount' => (string)$unreadCount,
                 'doctor_patient_count' => (string)$userPatientCount,

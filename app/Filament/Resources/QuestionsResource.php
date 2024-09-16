@@ -34,49 +34,53 @@ class QuestionsResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('section_id')
+                // Hidden field for section_id
+                Forms\Components\TextInput::make('section_id')
                     ->label('Section ID')
-                    ->options([
-                        '1' => '1',
-                        '2' => '2',
-                        '3' => '3',
-                        '4' => '4',
-                        '5' => '5',
-                        '6' => '6',
-                        '7' => '7',
-                        '8' => '8',
-                        '9' => '9',
-                    ])->required(),
+                    ->required(),  // Make sure it's required
+
+                // Fetch section names from sections_infos table
                 Forms\Components\Select::make('section_name')
                     ->label('Section Name')
-                    ->options([
-                        'Patient History' => 'Patient History',
-                        'Complaint' => 'Complaint',
-                        'Cause of AKI' => 'Cause of AKI',
-                        'Risk factors for AKI' => 'Risk factors for AKI',
-                        'Assessment of the patient' => 'Assessment of the patient',
-                        'Laboratory and radiology results' => 'Laboratory and radiology results',
-                        'Medical decision' => 'Medical decision',
-                        'Outcome' => 'Outcome',
-                        'Medical Reports' => 'Medical Reports',
-                    ])->required(),
+                    ->options(function () {
+                        return \App\Models\SectionsInfo::pluck('section_name', 'id')->toArray();  // Fetch section_name and id from sections_infos table
+                    })
+                    ->reactive()  // React to changes in section_name
+                    ->required(),
+
                 Forms\Components\TextInput::make('question')->required(),
-                Forms\Components\TextInput::make('values'),
+
                 Forms\Components\TextInput::make('sort'),
+
                 Forms\Components\Select::make('type')
+                    ->label('Type')
                     ->options([
                         'string' => 'String',
                         'select' => 'Select',
                         'multiple' => 'Multiple Select',
                         'date' => 'Date',
-                    ])->required(),
+                    ])
+                    ->reactive()  // React to changes in type
+                    ->required(),
+
+                // Use TagsInput and make it visible only if type is Select or Multiple Select
+                Forms\Components\TagsInput::make('values')
+                    ->label('Values')
+                    ->placeholder('Enter question options')
+                    ->reactive()  // React to changes in type
+                    ->visible(fn ($get) => in_array($get('type'), ['select', 'multiple'])) // Conditional visibility
+                    ->required(),
+
                 Forms\Components\Select::make('keyboard_type')
+                    ->label('Keyboard Type')
                     ->options([
                         'text' => 'Text',
                         'number' => 'Number',
                         'email' => 'Email',
                     ]),
+
                 Forms\Components\Radio::make('mandatory')
+                    ->label('Mandatory')
                     ->required()
                     ->boolean(),
             ]);

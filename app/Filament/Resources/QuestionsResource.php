@@ -34,29 +34,32 @@ class QuestionsResource extends Resource
     {
         return $form
             ->schema([
-                // Hidden field for section_id
-                Forms\Components\Select::make('section_id')  // Save section_id
-                ->label('Section ID')
+                Forms\Components\Select::make('section_id')
+                    ->label('Section ID')
                     ->options(function () {
                         return \App\Models\SectionsInfo::get()->mapWithKeys(function ($section) {
                             return [$section->id => $section->id . ' : ' . $section->section_name];  // Display section_id : section_name
                         })->toArray();
                     })
-                    ->reactive()  // React to changes in section selection
-                    ->required(),  // Make it required
+                    ->reactive()
+                    ->required()
+                    ->helperText('Select the section by ID'),
 
-                // Fetch section names from sections_infos table and save section_name directly
                 Forms\Components\Select::make('section_name')
                     ->label('Section Name')
                     ->options(function () {
-                        return \App\Models\SectionsInfo::pluck('section_name', 'section_name')->toArray();  // Fetch section_name and use it for both key and value
+                        return \App\Models\SectionsInfo::pluck('section_name', 'section_name')->toArray();
                     })
-                    ->reactive()  // React to changes in section_name
+                    ->reactive()
+                    ->required()
+                    ->helperText('Select the section by name'),
+
+                Forms\Components\TextInput::make('question')
+                    ->label('Question')
                     ->required(),
 
-                Forms\Components\TextInput::make('question')->required(),
-
-                Forms\Components\TextInput::make('sort'),
+                Forms\Components\TextInput::make('sort')
+                    ->label('Sort Order'),
 
                 Forms\Components\Select::make('type')
                     ->label('Type')
@@ -66,15 +69,14 @@ class QuestionsResource extends Resource
                         'multiple' => 'Multiple Select',
                         'date' => 'Date',
                     ])
-                    ->reactive()  // React to changes in type
+                    ->reactive()
                     ->required(),
 
-                // Use TagsInput and make it visible only if type is Select or Multiple Select
                 Forms\Components\TagsInput::make('values')
                     ->label('Values')
                     ->placeholder('Enter question options')
-                    ->reactive()  // React to changes in type
-                    ->visible(fn ($get) => in_array($get('type'), ['select', 'multiple'])) // Conditional visibility
+                    ->reactive()
+                    ->visible(fn ($get) => in_array($get('type'), ['select', 'multiple']))
                     ->required(),
 
                 Forms\Components\Select::make('keyboard_type')
@@ -96,51 +98,70 @@ class QuestionsResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->toggleable(isToggledHiddenByDefault: false)->searchable(),
-                Tables\Columns\TextColumn::make('section_id')->toggleable(isToggledHiddenByDefault: false)->label('Section ID')
-                    ->sortable()  // Make the column sortable
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('section_name')
-                    ->toggleable(isToggledHiddenByDefault: false)
-                    ->label('Section Name')
-                    ->sortable()  // Make the column sortable
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('question')->toggleable(isToggledHiddenByDefault: false),
-                Tables\Columns\TextColumn::make('sort')->toggleable(isToggledHiddenByDefault: false)
+                Tables\Columns\TextColumn::make('id')
+                    ->toggleable()
+                    ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('values')->toggleable(isToggledHiddenByDefault: false),
-                Tables\Columns\TextColumn::make('type')->toggleable(isToggledHiddenByDefault: false)
-                    ->sortable()  // Make the column sortable
+
+                Tables\Columns\TextColumn::make('section_id')
+                    ->label('Section ID')
+                    ->sortable()
                     ->searchable(),
-                Tables\Columns\TextColumn::make('keyboard_type')->toggleable(isToggledHiddenByDefault: false)
-                    ->sortable()  // Make the column sortable
+
+                Tables\Columns\TextColumn::make('section_name')
+                    ->label('Section Name')
+                    ->sortable()
                     ->searchable(),
-                Tables\Columns\ToggleColumn::make('mandatory')->toggleable(isToggledHiddenByDefault: false)
-                    ->sortable()  // Make the column sortable
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false)->label('Created At'),
-                Tables\Columns\TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: false)->label('Updated At'),
+
+                Tables\Columns\TextColumn::make('question')
+                    ->label('Question')
+                    ->sortable()
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('sort')
+                    ->label('Sort Order')
+                    ->sortable()
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('values')
+                    ->label('Values')
+                    ->sortable()
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('type')
+                    ->label('Type')
+                    ->sortable()
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('keyboard_type')
+                    ->label('Keyboard Type')
+                    ->sortable()
+                    ->toggleable(),
+
+                Tables\Columns\ToggleColumn::make('mandatory')
+                    ->label('Mandatory')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Created At')
+                    ->sortable()
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Updated At')
+                    ->sortable()
+                    ->toggleable(),
             ])
-            ->persistSearchInSession()
-            ->persistColumnSearchesInSession()
-            ->persistSortInSession()
-            ->defaultSort('section_id')  // Default sort by section_name in ascending order
+            ->defaultSort('section_name')  // Default sort by 'section_name' in ascending order
             ->filters([
-                // Filter by section_id
                 Tables\Filters\SelectFilter::make('section_id')
                     ->label('Section ID')
-                    ->options(function () {
-                        return \App\Models\SectionsInfo::pluck('id', 'id')->toArray(); // Fetch section IDs
-                    }),
+                    ->options(\App\Models\SectionsInfo::pluck('id', 'id')->toArray()),
 
-                // Filter by section_name
                 Tables\Filters\SelectFilter::make('section_name')
                     ->label('Section Name')
-                    ->options(function () {
-                        return \App\Models\SectionsInfo::pluck('section_name', 'section_name')->toArray(); // Fetch section names
-                    }),
+                    ->options(\App\Models\SectionsInfo::pluck('section_name', 'section_name')->toArray()),
 
-                // Filter by type
                 Tables\Filters\SelectFilter::make('type')
                     ->label('Type')
                     ->options([
@@ -150,7 +171,6 @@ class QuestionsResource extends Resource
                         'date' => 'Date',
                     ]),
 
-                // Filter by keyboard_type
                 Tables\Filters\SelectFilter::make('keyboard_type')
                     ->label('Keyboard Type')
                     ->options([
@@ -159,35 +179,20 @@ class QuestionsResource extends Resource
                         'email' => 'Email',
                     ]),
 
-                // Filter by mandatory (boolean)
                 Tables\Filters\SelectFilter::make('mandatory')
                     ->label('Mandatory')
                     ->options([
-                        1 => 'Yes',  // True
-                        0 => 'No',   // False
+                        1 => 'Yes',
+                        0 => 'No',
                     ]),
             ])
-            ->toggleColumnsTriggerAction(
-                fn (Action $action) => $action
-                    ->button()
-                    ->label('Toggle columns'),
-            )
-            ->persistFiltersInSession()
-            ->deselectAllRecordsWhenFiltered(true)
-            ->filtersTriggerAction(
-                fn (Action $action) => $action
-                    ->button()
-                    ->label('Filter'),
-            )
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()->icon('heroicon-o-pencil'),
+                Tables\Actions\DeleteAction::make()->icon('heroicon-o-trash'),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    ExportBulkAction::make(),
-                ]),
+                ExportBulkAction::make(),
+                Tables\Actions\DeleteBulkAction::make(),
             ])
             ->emptyStateActions([
                 Tables\Actions\CreateAction::make(),
@@ -197,7 +202,7 @@ class QuestionsResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            // Add relevant relationships
         ];
     }
 

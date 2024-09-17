@@ -94,8 +94,6 @@ class NotificationController extends Controller
 
     public function sendPushNotification($title,$body,$tokens)
     {
-
-
         try {
             // Retrieve all tokens from the fcm_tokens table
 //            $tokens = FcmToken::pluck('token')->toArray();

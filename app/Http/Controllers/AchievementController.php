@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Achievement;
+use App\Models\AppNotification;
 use App\Models\FcmToken;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -79,12 +80,30 @@ class AchievementController extends Controller
                     $user->achievements()->attach($achievement->id, ['achieved' => true]);
                     $status = 'achieved (new)';
                     $this->notificationController->sendPushNotification($title,$body,$tokens);
+                    // Create a new achievement notification
+                    foreach ($doctors as $doctorId) {
+                        AppNotification::create([
+                            'doctor_id' => $doctorId,
+                            'type' => 'Achievement',
+                            'type_id' => $achievement->id,
+                            'content' => 'Dr. '. $user->name . ' earned a new achievement.',
+                        ]);
+                    }
                 }
                 // If the user has the achievement but it wasn't achieved, update it
                 elseif (!$existingAchievement->pivot->achieved) {
                     $user->achievements()->updateExistingPivot($achievement->id, ['achieved' => true]);
                     $status = 'achieved (updated)';
                     $this->notificationController->sendPushNotification($title,$body,$tokens);
+                    // Create a new achievement notification
+                    foreach ($doctors as $doctorId) {
+                        AppNotification::create([
+                            'doctor_id' => $doctorId,
+                            'type' => 'Achievement',
+                            'type_id' => $achievement->id,
+                            'content' => 'Dr. '. $user->name . ' earned a new achievement.',
+                        ]);
+                    }
                 } else {
                     $status = 'already achieved';
                 }

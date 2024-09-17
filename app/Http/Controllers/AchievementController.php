@@ -11,13 +11,6 @@ class AchievementController extends Controller
 {
     public function createAchievement(Request $request)
     {
-//        $request->validate([
-//            'name' => 'required|string|max:255',
-//            'description' => 'nullable|string',
-//            'score' => 'required|integer',
-//            'image' => 'nullable|image|max:2048'
-//        ]);
-
         $achievement = new Achievement($request->all());
 
         if ($request->hasFile('image')) {
@@ -127,7 +120,10 @@ class AchievementController extends Controller
 
     public function getUserAchievements(User $user)
     {
-        $user->load('achievements');
-        return response()->json($user->achievements, 200);
+        // Load only the achievements where 'pivot.achieved' is 1
+        $achievedAchievements = $user->achievements()->wherePivot('achieved', 1)->get();
+
+        return response()->json($achievedAchievements, 200);
     }
+
 }

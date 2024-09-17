@@ -63,31 +63,31 @@ class AchievementController extends Controller
                     break;
             }
 
+            $doctors = User::role(['Admin', 'Tester'])
+                //->where('id', '!=', Auth::id())
+                ->pluck('id'); // Get only the IDs of the users
+
+            $title = 'Achievement Unlocked! 🎉';
+            $tokens = FcmToken::whereIn('doctor_id', $doctors)
+                ->pluck('token')
+                ->toArray();
+
             // Only assign or update if the user qualifies
             if ($qualifies) {
                 // If the user doesn't have the achievement, assign it
                 if (!$existingAchievement) {
                     $user->achievements()->attach($achievement->id, ['achieved' => true]);
                     $status = 'achieved (new)';
+                    $this->notificationController->sendPushNotification($title,$body,$tokens);
                 }
                 // If the user has the achievement but it wasn't achieved, update it
                 elseif (!$existingAchievement->pivot->achieved) {
                     $user->achievements()->updateExistingPivot($achievement->id, ['achieved' => true]);
                     $status = 'achieved (updated)';
+                    $this->notificationController->sendPushNotification($title,$body,$tokens);
                 } else {
                     $status = 'already achieved';
                 }
-
-                $doctors = User::role(['Admin', 'Tester'])
-                    //->where('id', '!=', Auth::id())
-                    ->pluck('id'); // Get only the IDs of the users
-
-                $title = 'Achievement Unlocked! 🎉';
-                $tokens = FcmToken::whereIn('doctor_id', $doctors)
-                    ->pluck('token')
-                    ->toArray();
-
-                $this->notificationController->sendPushNotification($title,$body,$tokens);
 
                 // Log the achievement status
                 $achievementLog[] = [

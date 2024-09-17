@@ -3,12 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\Achievement;
+use App\Models\FcmToken;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\NotificationController;
 
 class AchievementController extends Controller
 {
+    protected $notificationController;
+
+    public function __construct(NotificationController $notificationController)
+    {
+        $this->notificationController = $notificationController;
+    }
+
     public function createAchievement(Request $request)
     {
         $achievement = new Achievement($request->all());
@@ -49,6 +59,7 @@ class AchievementController extends Controller
 
                 case 'patient':
                     $qualifies = $userPatientCount >= $achievement->score;
+                    $body = 'Dr. '. $user->name .' successfully added ' . $achievement->score . ' patients and earned a new achievement. Keep up the great work!" ';
                     break;
             }
 
@@ -66,6 +77,17 @@ class AchievementController extends Controller
                 } else {
                     $status = 'already achieved';
                 }
+
+                $doctors = User::role(['Admin', 'Tester'])
+                    //->where('id', '!=', Auth::id())
+                    ->pluck('id'); // Get only the IDs of the users
+
+                $title = 'Achievement Unlocked! 🎉';
+                $tokens = FcmToken::whereIn('doctor_id', $doctors)
+                    ->pluck('token')
+                    ->toArray();
+
+                $this->notificationController->sendPushNotification($title,$body,$tokens);
 
                 // Log the achievement status
                 $achievementLog[] = [

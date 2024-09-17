@@ -298,11 +298,8 @@ class ConsultationController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            // Validate the incoming request
-//            $request->validate([
-//                'reply' => 'required|string',
-//                'status' => 'required|string|in:accepted,rejected,replied',
-//            ]);
+            // Retrieve the authenticated user
+            $user = Auth::user();
 
             // Attempt to find the ConsultationDoctor record
             $consultationDoctor = ConsultationDoctor::where('consultation_id', $id)
@@ -323,6 +320,18 @@ class ConsultationController extends Controller
                 $consultationDoctor->consultation->status = 'complete';
                 $consultationDoctor->consultation->save();
             }
+
+
+            $doctors = Consultation::where('id', $id)
+                        ->pluck('doctor_id');
+
+            $title = 'New Reply on Consultation Request 🔔';
+            $body = 'Dr. '. $user->name .' has replied to your consultation request. 📩';
+            $tokens = FcmToken::whereIn('doctor_id', $doctors)
+                ->pluck('token')
+                ->toArray();
+
+            $this->notificationController->sendPushNotification($title,$body,$tokens);
 
             return response()->json(['message' => 'Consultation request updated successfully']);
 

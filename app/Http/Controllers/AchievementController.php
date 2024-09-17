@@ -40,67 +40,43 @@ class AchievementController extends Controller
             // Check if the user already has this achievement
             $existingAchievement = $user->achievements()->where('achievement_id', $achievement->id)->first();
 
-            // Determine the type of achievement (score-based or patient-based)
+            // Determine whether the user qualifies for the achievement
+            $qualifies = false;
             switch ($achievement->type) {
                 case 'score':
-                    // If achievement doesn't exist, check if the user qualifies and attach it
-                    if (!$existingAchievement) {
-                        $achieved = $userScore >= $achievement->score;
-                        $user->achievements()->attach($achievement->id, ['achieved' => $achieved]);
-
-                        // Log the newly attached achievement
-                        $achievementLog[] = [
-                            'achievement_id' => $achievement->id,
-                            'type' => 'score',
-                            'status' => $achieved,
-                            'user_score' => $userScore,
-                            'required_score' => $achievement->score
-                        ];
-                    }
-                    // Update achievement status if the user now qualifies
-                    elseif ($existingAchievement->pivot->achieved == false && $userScore >= $achievement->score) {
-                        $user->achievements()->updateExistingPivot($achievement->id, ['achieved' => true]);
-
-                        // Log the updated achievement
-                        $achievementLog[] = [
-                            'achievement_id' => $achievement->id,
-                            'type' => 'score',
-                            'status' => 'achieved (updated)',
-                            'user_score' => $userScore,
-                            'required_score' => $achievement->score
-                        ];
-                    }
+                    $qualifies = $userScore >= $achievement->score;
                     break;
 
                 case 'patient':
-                    // If achievement doesn't exist, check if the user qualifies and attach it
-                    if (!$existingAchievement) {
-                        $achieved = $userPatientCount >= $achievement->score;
-                        $user->achievements()->attach($achievement->id, ['achieved' => $achieved]);
-
-                        // Log the newly attached achievement
-                        $achievementLog[] = [
-                            'achievement_id' => $achievement->id,
-                            'type' => 'patient',
-                            'status' => $achieved,
-                            'user_patient_count' => $userPatientCount,
-                            'required_patient_count' => $achievement->score
-                        ];
-                    }
-                    // Update achievement status if the user now qualifies
-                    elseif ($existingAchievement->pivot->achieved == false && $userPatientCount >= $achievement->score) {
-                        $user->achievements()->updateExistingPivot($achievement->id, ['achieved' => true]);
-
-                        // Log the updated achievement
-                        $achievementLog[] = [
-                            'achievement_id' => $achievement->id,
-                            'type' => 'patient',
-                            'status' => 'achieved (updated)',
-                            'user_patient_count' => $userPatientCount,
-                            'required_patient_count' => $achievement->score
-                        ];
-                    }
+                    $qualifies = $userPatientCount >= $achievement->score;
                     break;
+            }
+
+            // Only assign or update if the user qualifies
+            if ($qualifies) {
+                // If the user doesn't have the achievement, assign it
+                if (!$existingAchievement) {
+                    $user->achievements()->attach($achievement->id, ['achieved' => true]);
+                    $status = 'achieved (new)';
+                }
+                // If the user has the achievement but it wasn't achieved, update it
+                elseif (!$existingAchievement->pivot->achieved) {
+                    $user->achievements()->updateExistingPivot($achievement->id, ['achieved' => true]);
+                    $status = 'achieved (updated)';
+                } else {
+                    $status = 'already achieved';
+                }
+
+                // Log the achievement status
+                $achievementLog[] = [
+                    'achievement_id' => $achievement->id,
+                    'type' => $achievement->type,
+                    'status' => $status,
+                    'user_score' => $userScore,
+                    'required_score' => $achievement->score,
+                    'user_patient_count' => $userPatientCount,
+                    'required_patient_count' => $achievement->score,
+                ];
             }
         }
 

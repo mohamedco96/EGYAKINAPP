@@ -301,47 +301,80 @@ class ConsultationController extends Controller
             // Retrieve the authenticated user
             $user = Auth::user();
 
-            // Attempt to find the ConsultationDoctor record
+            // Attempt to find the ConsultationDoctor record for the given consultation and doctor
             $consultationDoctor = ConsultationDoctor::where('consultation_id', $id)
-                ->where('consult_doctor_id', Auth::id())
+                ->where('consult_doctor_id', $user->id)
                 ->firstOrFail();
 
             // Update the reply and status fields
-            $consultationDoctor->reply = $request->reply;
+            $consultationDoctor->reply = $request->input('reply');
             $consultationDoctor->status = 'replied';
             $consultationDoctor->save();
 
-            // Check if all consultation doctors have replied
+            // Check if all doctors involved in the consultation have replied
             $allReplied = ConsultationDoctor::where('consultation_id', $id)
                     ->where('status', '!=', 'replied')
                     ->count() === 0;
 
             if ($allReplied) {
-                $consultationDoctor->consultation->status = 'complete';
-                $consultationDoctor->consultation->save();
+                // Mark the consultation as complete if all doctors have replied
+                $consultation = $consultationDoctor->consultation;
+                $consultation->status = 'complete';
+                $consultation->save();
             }
 
-
+            // Prepare notification details
             $doctors = Consultation::where('id', $id)
-                        ->pluck('doctor_id');
-
+                ->pluck('doctor_id');
             $title = 'New Reply on Consultation Request 🔔';
-            $body = 'Dr. '. $user->name .' has replied to your consultation request. 📩';
+            $body = 'Dr. ' . $user->name . ' has replied to your consultation request. 📩';
             $tokens = FcmToken::whereIn('doctor_id', $doctors)
                 ->pluck('token')
                 ->toArray();
 
-            $this->notificationController->sendPushNotification($title,$body,$tokens);
+            // Send push notifications to relevant doctors
+            $this->notificationController->sendPushNotification($title, $body, $tokens);
 
-            return response()->json(['message' => 'Consultation request updated successfully']);
+            // Return success response with detailed log
+            Log::info('Consultation request updated successfully.', [
+                'consultation_id' => $id,
+                'doctor_id' => $user->id,
+                'reply' => $request->input('reply'),
+                'all_replied' => $allReplied,
+                'notification_tokens' => $tokens,
+                'notification_body' => $body,
+            ]);
+
+            return response()->json([
+                'message' => 'Consultation request updated successfully',
+                'data' => [
+                    'consultation_id' => $id,
+                    'doctor_id' => $user->id,
+                    'reply' => $request->input('reply'),
+                    'all_replied' => $allReplied
+                ]
+            ]);
 
         } catch (ModelNotFoundException $e) {
-            // Handle the case where the consultation doctor was not found
+            // Handle the case where the consultation doctor record was not found
+            Log::warning('Consultation doctor not found.', [
+                'consultation_id' => $id,
+                'doctor_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'message' => 'Consultation doctor not found for the provided consultation ID.',
             ], 404);
         } catch (\Exception $e) {
             // Handle any other exceptions that might occur
+            Log::error('An error occurred while updating the consultation request.', [
+                'consultation_id' => $id,
+                'doctor_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'message' => 'An error occurred while updating the consultation request.',
                 'error' => $e->getMessage(),

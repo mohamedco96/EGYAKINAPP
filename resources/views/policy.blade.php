@@ -33,8 +33,6 @@
 <body>
     <h1>Privacy Policy</h1>
 
-    <p>Last updated: [Date]</p>
-
     <p>This Privacy Policy governs the manner in which EGYAKIN we collects, uses, maintains, and discloses information collected from users of our website https://egyakin.com/. This Privacy Policy applies to the Site and all products and services offered by EGYAKIN.</p>
 
     <h2>1. Information we collect</h2>

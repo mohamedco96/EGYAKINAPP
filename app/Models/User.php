@@ -38,7 +38,8 @@ class User extends Authenticatable
         'birth_date',
         'role',
         'registration_number',
-        'version'
+        'version',
+        'isSyndicateCardRequired'
     ];
 
     /**

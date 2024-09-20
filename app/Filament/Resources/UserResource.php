@@ -63,8 +63,8 @@ class UserResource extends Resource
                     ->imageEditor()
                     ->previewable(true)
                     ->imageCropAspectRatio('1:1')
-                    ->imagePreviewHeight('250')
-                    ->default(fn ($record) => $record->image ? asset('storage/profile_images/' . $record->image) : null),
+                    ->imagePreviewHeight('250'),
+//                    ->default(fn ($record) => $record->image ? asset('storage/profile_images/' . $record->image) : null),
 
                 FileUpload::make('syndicate_card')
                     ->label('Syndicate Card')
@@ -73,8 +73,8 @@ class UserResource extends Resource
                     ->imageEditor()
                     ->previewable(true)
                     ->imageCropAspectRatio('1:1')
-                    ->imagePreviewHeight('250')
-                    ->default(fn ($record) => $record->syndicate_card ? asset('storage/syndicate_card/' . $record->syndicate_card) : ''),
+                    ->imagePreviewHeight('250'),
+//                    ->default(fn ($record) => $record->syndicate_card ? asset('storage/syndicate_card/' . $record->syndicate_card) : ''),
 
 
                 Forms\Components\Select::make('isSyndicateCardRequired')

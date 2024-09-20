@@ -457,8 +457,7 @@ class AuthController extends Controller
 
             $response = [
                 'value' => true,
-                //'syndicate_card' => $imageUrl,
-                'data' => $user,
+                //'data' => $user,
                 'message' => 'User Updated Successfully',
             ];
 

@@ -24,7 +24,9 @@ class PostsResource extends Resource
 
     protected static ?string $navigationLabel = 'Posts';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?string $navigationGroup = 'Other';
+
+    protected static ?int $navigationSort = 1;
 
     public static function getNavigationBadge(): ?string
     {

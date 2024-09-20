@@ -20,11 +20,11 @@ class CommentResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    protected static ?string $navigationLabel = 'Comments';
+    protected static ?string $navigationLabel = 'Patient Comments';
 
-    protected static ?string $navigationGroup = 'Patient Sections';
+    protected static ?string $navigationGroup = 'Patients';
 
-    protected static ?int $navigationSort = 12;
+    protected static ?int $navigationSort = 3;
 
     public static function getNavigationBadge(): ?string
     {

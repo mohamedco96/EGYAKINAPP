@@ -23,8 +23,9 @@ class AchievementResource extends Resource
 
     protected static ?string $navigationLabel = 'Achievements';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?string $navigationGroup = 'App Data';
 
+    protected static ?int $navigationSort = 5;
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::count();

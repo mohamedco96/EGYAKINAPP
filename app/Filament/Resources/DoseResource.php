@@ -26,9 +26,9 @@ class DoseResource extends Resource
 
     protected static ?string $navigationLabel = 'Dose modifier';
 
-    protected static ?string $navigationGroup = 'Other';
+    protected static ?string $navigationGroup = 'App Data';
 
-    protected static ?int $navigationSort = 8;
+    protected static ?int $navigationSort = 4;
 
     public static function getNavigationBadge(): ?string
     {

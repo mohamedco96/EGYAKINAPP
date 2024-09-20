@@ -22,6 +22,12 @@ class PatientsResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    protected static ?string $navigationGroup = 'Patients';
+
+    protected static ?string $navigationLabel = 'Patients info.';
+
+    protected static ?int $navigationSort = 2;
+
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::count();

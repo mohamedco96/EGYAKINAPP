@@ -22,7 +22,12 @@ class UserResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-s-user';
 
-    protected static ?string $navigationLabel = 'Doctors';
+    protected static ?string $navigationLabel = 'Doctors info.';
+
+    protected static ?string $navigationGroup = 'Doctors';
+
+    protected static ?int $navigationSort = 1;
+
 
     public static function getNavigationBadge(): ?string
     {

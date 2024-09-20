@@ -24,7 +24,7 @@ class ContactResource extends Resource
 
     protected static ?string $navigationGroup = 'Other';
 
-    protected static ?int $navigationSort = 8;
+    protected static ?int $navigationSort = 11;
 
     public static function getNavigationBadge(): ?string
     {

@@ -22,7 +22,7 @@ class ScoreHistoryResource extends Resource
 
     protected static ?string $navigationLabel = 'ScoreHistory';
 
-    protected static ?string $navigationGroup = 'Other';
+    protected static ?string $navigationGroup = 'Doctors';
 
     protected static ?int $navigationSort = 10;
 

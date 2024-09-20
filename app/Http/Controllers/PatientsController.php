@@ -228,7 +228,7 @@ class PatientsController extends Controller
             // Get SyndicateCard value
             $isSyndicateCardRequired = $user->isSyndicateCardRequired;
 
-            $isUserBlcoked = $user->blocked;
+            $isUserBlocked = $user->blocked;
 
             // Get the first role
             $role = $user->roles->first();
@@ -243,7 +243,7 @@ class PatientsController extends Controller
                 'unreadCount' => (string)$unreadCount,
                 'doctor_patient_count' => (string)$userPatientCount,
                 'isSyndicateCardRequired' => $isSyndicateCardRequired,
-                'isUserBlcoked' => $isUserBlcoked,
+                'isUserBlocked' => $isUserBlocked,
                 'all_patient_count' => (string)$allPatientCount,
                 'score_value' => (string)$scoreValue,
                 'role' => $role->name ?? "User",

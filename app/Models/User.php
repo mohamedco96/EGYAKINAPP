@@ -39,7 +39,10 @@ class User extends Authenticatable
         'role',
         'registration_number',
         'version',
-        'isSyndicateCardRequired'
+        'isSyndicateCardRequired',
+        'blocked',
+        'email_verified_at'
+
     ];
 
     /**

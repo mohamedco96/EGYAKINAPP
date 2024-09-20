@@ -51,16 +51,35 @@ class UserResource extends Resource
                 Forms\Components\DateTimePicker::make('email_verified_at'),
                 Forms\Components\Radio::make('blocked')->boolean(),
                 Forms\Components\Radio::make('limited')->boolean(),
-                Forms\Components\FileUpload::make('image')
+                FileUpload::make('image')
                     ->label('Profile Image')
                     ->directory('profile_images')
                     ->image()
                     ->imageEditor()
                     ->previewable(true)
                     ->imageCropAspectRatio('1:1')
-                    ->imagePreviewHeight('250'),
+                    ->imagePreviewHeight('250')
+                    ->default(fn ($record) => $record->image ? asset('storage/profile_images/' . $record->image) : null),
+
+                FileUpload::make('syndicate_card')
+                    ->label('Syndicate Card')
+                    ->directory('syndicate_card')
+                    ->image()
+                    ->imageEditor()
+                    ->previewable(true)
+                    ->imageCropAspectRatio('1:1')
+                    ->imagePreviewHeight('250')
+                    ->default(fn ($record) => $record->syndicate_card ? asset('storage/syndicate_card/' . $record->syndicate_card) : ''),
 
 
+                Forms\Components\Select::make('isSyndicateCardRequired')
+                    ->label('Is Syndicate Card Required')
+                    ->options([
+                        'Not Required' => 'Not Required',
+                        'Required' => 'Required',
+                        'Pending' => 'Pending',
+                        'Verified' => 'Verified',
+                    ]),
             ]);
     }
 
@@ -72,7 +91,27 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('name')->label('First name')->searchable()->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('lname')->label('Last name')->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('email')->searchable()->toggleable(isToggledHiddenByDefault: false),
-                Tables\Columns\ImageColumn::make('image')->toggleable(isToggledHiddenByDefault: false)->circular(),
+                Tables\Columns\ImageColumn::make('image')
+                    ->toggleable(isToggledHiddenByDefault: false)
+                    ->circular()
+                    ->extraAttributes(['style' => 'cursor: pointer;'])
+                    ->action(function ($record) {
+                        // Action to open the image in a new tab
+                        return redirect()->away(asset('storage/profile_images/' . $record->image));
+                    }),
+                Tables\Columns\ImageColumn::make('syndicate_card')
+                    ->label('Syndicate Card')
+                    ->toggleable(isToggledHiddenByDefault: false)
+                    ->circular()
+                    ->extraAttributes(['style' => 'cursor: pointer;'])
+                    ->action(function ($record) {
+                        // Action to open the image in a new tab
+                        return redirect()->away(asset('storage/syndicate_card/' . $record->image));
+                    }),
+                Tables\Columns\TextColumn::make('isSyndicateCardRequired')
+                    ->label('Is Syndicate Card Required')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('age')->sortable()->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('specialty')->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('workingplace')->label('Working place')->toggleable(isToggledHiddenByDefault: false),

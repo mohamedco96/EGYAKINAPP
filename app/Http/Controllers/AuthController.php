@@ -459,6 +459,7 @@ class AuthController extends Controller
             $response = [
                 'value' => true,
                 //'data' => $user,
+                'data' => $request->input('isSyndicateCardRequired'),
                 'message' => 'User Updated Successfully',
             ];
 

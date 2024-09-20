@@ -403,12 +403,14 @@ class AuthController extends Controller
 
     public function update(Request $request)
     {
-        // Find the user by ID
+        // Retrieve the authenticated doctor's ID
         $doctor_id = Auth::id();
+
+        // Fetch the user by their doctor ID
         $user = User::find($doctor_id);
 
         // Check if the user exists
-        if ($user != null) {
+        if ($user) {
             // Validate the request data
             $request->validate([
                 'name' => 'string',
@@ -427,51 +429,62 @@ class AuthController extends Controller
                 'isSyndicateCardRequired' => 'string',
             ]);
 
-            // Check if the email address is being updated
+            // Check if the email is being updated and differs from the current one
             if ($request->has('email') && $request->email !== $user->email) {
-                // Update user's email and set email_verified_at to null
                 $user->email = $request->email;
-                $user->email_verified_at = null;
+                $user->email_verified_at = null; // Reset email verification status
             }
 
-            // Check if syndicate_card field is provided
+            // Handle syndicate card upload if provided
             if ($request->hasFile('syndicate_card')) {
-                // Get the image file
                 $image = $request->file('syndicate_card');
 
-                // Generate a unique file name using the original file name and a timestamp
+                // Create a unique filename with the current timestamp
                 $fileName = time() . '_' . $image->getClientOriginalName();
 
-                // Store the image in the specified directory with the generated file name
+                // Store the image in the 'syndicate_cards' directory within 'public' disk
                 $path = $image->storeAs('syndicate_cards', $fileName, 'public');
 
-                // Update user's profile image path in the database
+                // Update user's syndicate card path in the database
                 $user->syndicate_card = $path;
             }
 
-            // Update user's other fields except for email and syndicate_card
+            // Update the 'isSyndicateCardRequired' field based on the request value
+            if ($request->has('isSyndicateCardRequired')) {
+                $user->isSyndicateCardRequired = $request->isSyndicateCardRequired === 'Verified' ? 1 : 0;
+            }
+
+            // Update all other fields except email and syndicate card
             $user->fill($request->except(['email', 'syndicate_card']));
-            $user->save();
+            $user->save(); // Save the updated user information to the database
 
-            // Construct the full URL by appending the relative path to the APP_URL
-            $imageUrl = config('app.url') . '/' . 'storage/' . $user->syndicate_card;
+            // Construct the URL for the uploaded syndicate card image
+            $imageUrl = config('app.url') . '/storage/' . $user->syndicate_card;
 
+            // Return success response with details of the update
             $response = [
                 'value' => true,
-                //'data' => $user,
-                'data' => $request->input('isSyndicateCardRequired'),
                 'message' => 'User Updated Successfully',
+                'isSyndicateCardRequired' => $request->input('isSyndicateCardRequired'),
+                'syndicate_card_url' => $imageUrl,
             ];
+
+            // Log for debugging purposes
+            \Log::info("User {$user->id} updated successfully", $response);
 
             return response($response, 200);
-        } else {
-            $response = [
-                'value' => false,
-                'message' => 'No User was found',
-            ];
-
-            return response($response, 404);
         }
+
+        // Log if the user was not found
+        \Log::warning("No user found with ID {$doctor_id}");
+
+        // Return failure response if the user doesn't exist
+        $response = [
+            'value' => false,
+            'message' => 'No User was found',
+        ];
+
+        return response($response, 404);
     }
 
     /**

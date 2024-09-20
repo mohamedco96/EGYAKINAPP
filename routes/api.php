@@ -47,6 +47,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/doctorProfileGetPatients/{id}', 'AuthController@doctorProfileGetPatients');
     Route::get('/doctorProfileGetScoreHistory/{id}', 'AuthController@doctorProfileGetScoreHistory');
     Route::put('/users', 'AuthController@update');
+    Route::put('/users/{id}', 'AuthController@updateUserById');
     Route::delete('/users/{id}', 'AuthController@destroy');
     Route::post('/logout', 'AuthController@logout');
     Route::post('/changePassword', 'AuthController@changePassword');

@@ -426,7 +426,6 @@ class AuthController extends Controller
                 'highestdegree' => 'string',
                 'registration_number' => 'string',
                 'version' => 'string',
-                'isSyndicateCardRequired' => 'string',
             ]);
 
             // Check if the email is being updated and differs from the current one
@@ -449,11 +448,6 @@ class AuthController extends Controller
                 $user->syndicate_card = $path;
             }
 
-            // Update the 'isSyndicateCardRequired' field based on the request value
-            if ($request->has('isSyndicateCardRequired')) {
-                $user->isSyndicateCardRequired = $request->isSyndicateCardRequired === 'Verified' ? 1 : 0;
-            }
-
             // Update all other fields except email and syndicate card
             $user->fill($request->except(['email', 'syndicate_card']));
             $user->save(); // Save the updated user information to the database
@@ -465,8 +459,6 @@ class AuthController extends Controller
             $response = [
                 'value' => true,
                 'message' => 'User Updated Successfully',
-                'isSyndicateCardRequired' => $request->input('isSyndicateCardRequired'),
-                'syndicate_card_url' => $imageUrl,
             ];
 
             // Log for debugging purposes
@@ -485,6 +477,38 @@ class AuthController extends Controller
         ];
 
         return response($response, 404);
+    }
+
+    public function updateUserById(Request $request, $id)
+    {
+        // Find the user by ID
+        $user = User::find($id);
+
+        // Check if the user exists
+        if (!$user) {
+            \Log::warning("No user found with ID {$id}");
+
+            // Return failure response if user not found
+            return response([
+                'value' => false,
+                'message' => 'No User was found',
+            ], 404);
+        }
+
+        // Update the user's data with all values from the request
+        $user->fill($request->all());
+
+        // Save the updated user information to the database
+        $user->save();
+
+        // Log success with updated user details
+        \Log::info("User {$user->id} updated successfully", $user->toArray());
+
+        // Return success response with details
+        return response([
+            'value' => true,
+            'message' => 'User Updated Successfully',
+        ], 200);
     }
 
     /**

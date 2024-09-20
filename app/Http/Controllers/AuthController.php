@@ -410,21 +410,21 @@ class AuthController extends Controller
         // Check if the user exists
         if ($user != null) {
             // Validate the request data
-            $request->validate([
-                'name' => 'string',
-                'lname' => 'string',
-                'syndicate_card' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
-                'email' => 'string|email',
-                'password' => 'string',
-                'age' => 'integer',
-                'specialty' => 'string',
-                'workingplace' => 'string',
-                'phone' => 'string',
-                'job' => 'string',
-                'highestdegree' => 'string',
-                'registration_number' => 'string',
-                'version' => 'string',
-            ]);
+//            $request->validate([
+//                'name' => 'string',
+//                'lname' => 'string',
+//                'syndicate_card' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
+//                'email' => 'string|email',
+//                'password' => 'string',
+//                'age' => 'integer',
+//                'specialty' => 'string',
+//                'workingplace' => 'string',
+//                'phone' => 'string',
+//                'job' => 'string',
+//                'highestdegree' => 'string',
+//                'registration_number' => 'string',
+//                'version' => 'string',
+//            ]);
 
             // Check if the email address is being updated
             if ($request->has('email') && $request->email !== $user->email) {

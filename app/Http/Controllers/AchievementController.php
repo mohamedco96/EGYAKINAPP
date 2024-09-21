@@ -86,6 +86,7 @@ class AchievementController extends Controller
                             'doctor_id' => $doctorId,
                             'type' => 'Achievement',
                             'type_id' => $achievement->id,
+                            'patient_id' => '31', // to be changed
                             'content' => 'Dr. '. $user->name . ' earned a new achievement.',
                         ]);
                     }

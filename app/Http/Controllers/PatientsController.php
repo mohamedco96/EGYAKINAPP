@@ -1389,8 +1389,11 @@ class PatientsController extends Controller
             $data['patients'] = $transformedPatients;
             $data['doses'] = $doses;
 
-            // Return the view with the data
-            return view('search', compact('data'));
+            // Return JSON response for AJAX
+            return response()->json([
+                'value' => true,
+                'data' => $data,
+            ]);
 
         } catch (\Exception $e) {
             // Log error

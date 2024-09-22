@@ -388,9 +388,11 @@ class ConsultationController extends Controller
             // Retrieve Users
             $users = User::select('id', 'name', 'lname', 'email', 'phone', 'specialty', 'workingplace', 'image', 'syndicate_card', 'isSyndicateCardRequired')
                 ->where('id', '!=', Auth::id())
-                ->where('name', 'like', '%' . $data . '%')
-                ->orwhere('email', 'like', '%' . $data . '%')
-                ->orwhere('phone', 'like', '%' . $data . '%')
+                ->where(function ($query) use ($data) {
+                    $query->where('name', 'like', '%' . $data . '%')
+                        ->orWhere('email', 'like', '%' . $data . '%')
+                        ->orWhere('phone', 'like', '%' . $data . '%');
+                })
                 ->withCount('patients')
                 ->selectSub(function ($query) {
                     $query->selectRaw('COALESCE(score, 0)')
@@ -404,6 +406,7 @@ class ConsultationController extends Controller
                     $user->patients_count = strval($user->patients_count);
                     return $user;
                 });
+
 
             return response()->json([
                 'value' => true,

@@ -192,6 +192,14 @@ class PatientsController extends Controller
                     return $user;
                 });
 
+            // Return doctors with Pending Syndicate Card only for Admin or Tester
+            $pendingSyndicateCard = $isAdminOrTester
+                ? User::select('id', 'name', 'image', 'syndicate_card', 'isSyndicateCardRequired')
+                    ->where('isSyndicateCardRequired', 'Pending')
+                    ->limit(10)
+                    ->get()
+                : collect(); // Return empty list for other users
+
             // Transform the patient data
             $transformPatientData = function ($patient) {
                 $submit_status = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
@@ -249,6 +257,7 @@ class PatientsController extends Controller
                 'role' => $role->name ?? "User",
                 'data' => [
                     'topDoctors' => $topDoctors,
+                    'pendingSyndicateCard' => $pendingSyndicateCard,
                     'all_patients' => $allPatientsResponseData,
                     'current_patient' => $currentPatientsResponseData,
                     'posts' => $posts,

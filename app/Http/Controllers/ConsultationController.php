@@ -387,6 +387,7 @@ class ConsultationController extends Controller
         try {
             // Retrieve Users
             $users = User::select('id', 'name', 'lname', 'email', 'phone', 'specialty', 'workingplace', 'image', 'syndicate_card', 'isSyndicateCardRequired')
+                ->where('id', '!=', Auth::id())
                 ->where('name', 'like', '%' . $data . '%')
                 ->orwhere('email', 'like', '%' . $data . '%')
                 ->orwhere('phone', 'like', '%' . $data . '%')

@@ -624,6 +624,9 @@ class AuthController extends Controller
             // Find the user by ID
             $user = User::find($id);
 
+            // Check if the user is an Admin or Tester
+            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+
             // Check if the user exists
             if (!$user) {
                 return response()->json([
@@ -634,7 +637,9 @@ class AuthController extends Controller
 
             $currentPatients = $user->patients()
                 ->select('id', 'doctor_id', 'updated_at')
-                ->where('hidden', false)
+                ->when(!$isAdminOrTester, function ($query) {
+                    return $query->where('hidden', false); // Non-admin/tester users only see non-hidden patients
+                })
                 ->with(['doctor' => function ($query) {
                     $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
                 }])

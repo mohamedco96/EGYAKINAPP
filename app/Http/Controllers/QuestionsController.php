@@ -53,7 +53,7 @@ class QuestionsController extends Controller
     {
         // Fetch questions dynamically based on section_id
         $questions = Questions::where('section_id', $section_id)
-            ->orderBy('id')
+            ->orderBy('sort')
             ->get();
 
         // Check if questions are found

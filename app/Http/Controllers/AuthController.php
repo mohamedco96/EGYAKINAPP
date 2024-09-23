@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AppNotification;
 use App\Models\FcmToken;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -22,10 +23,16 @@ use App\Models\Examination;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\NotificationController;
 
 class AuthController extends Controller
 {
+    protected $notificationController;
 
+    public function __construct(NotificationController $notificationController)
+    {
+        $this->notificationController = $notificationController;
+    }
     public function register(Request $request)
     {
         // Log the start of the user registration process
@@ -360,6 +367,8 @@ class AuthController extends Controller
 
     public function uploadSyndicateCard(Request $request)
     {
+        $user = Auth::user();
+
         $request->validate([
             'syndicate_card' => 'required|image|mimes:jpeg,png,jpg,gif', // max 2MB
             //'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
@@ -386,6 +395,29 @@ class AuthController extends Controller
             // Construct the full URL by appending the relative path to the APP_URL
             //$imageUrl = config('app.url') . '/' . 'storage/app/public/' . $path;
             $imageUrl = config('app.url') . '/' . 'storage/' . $path;
+
+            // Retrieve all doctors with role 'admin' or 'tester' except the authenticated user
+            $doctors = User::role(['Admin', 'Tester'])
+                ->where('id', '!=', Auth::id())
+                ->pluck('id'); // Get only the IDs of the users
+
+            // Create a new patient notification
+            foreach ($doctors as $doctorId) {
+                AppNotification::create([
+                    'doctor_id' => $doctorId,
+                    'type' => 'Other',
+                    'content' => 'Dr. '. $user->name .' has uploaded a new Syndicate Card for approval.',
+                    'patient_id' => '31', // to be changed
+                ]);
+            }
+
+            $title = 'New Syndicate Card Pending Approval 📋';
+            $body = 'Dr. '. $user->name .' has uploaded a new Syndicate Card for approval.';
+            $tokens = FcmToken::whereIn('doctor_id', $doctors)
+                ->pluck('token')
+                ->toArray();
+
+            $this->notificationController->sendPushNotification($title,$body,$tokens);
 
             return response()->json([
                 'value' => true,

@@ -632,6 +632,7 @@ class PatientsController extends Controller
                 ->toArray();
 
             $this->notificationController->sendPushNotification($title,$body,$tokens);
+
             $this->achievement->checkAndAssignAchievements($user);
 
             return response()->json($response, 200);

@@ -405,7 +405,7 @@ class AuthController extends Controller
             foreach ($doctors as $doctorId) {
                 AppNotification::create([
                     'doctor_id' => $doctorId,
-                    'type' => 'Other',
+                    'type' => 'Syndicate Card',
                     'content' => 'Dr. '. $user->name .' has uploaded a new Syndicate Card for approval.',
                     'patient_id' => '31', // to be changed
                 ]);

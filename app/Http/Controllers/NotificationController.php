@@ -274,6 +274,7 @@ class NotificationController extends Controller
                 return [
                     'id' => $notification->id,
                     'read' => $notification->read,
+                    'content' => $notification->content,
                     'type' => $notification->type,
                     'type_id' => $notification->type_id,
                     'patient_id' => $notification->patient_id,
@@ -326,6 +327,7 @@ class NotificationController extends Controller
                 return [
                     'id' => $notification->id,
                     'read' => $notification->read,
+                    'content' => $notification->content,
                     'type' => $notification->type,
                     'type_id' => $notification->type_id,
                     'patient_id' => $notification->patient_id,

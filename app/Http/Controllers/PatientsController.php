@@ -1037,7 +1037,7 @@ class PatientsController extends Controller
         DB::beginTransaction(); // Start a transaction
 
         try {
-            $doctorId = Auth::id();
+            //$doctorId = Auth::id();
 
             // Find the patient
             $patient = Patients::findOrFail($id);
@@ -1062,27 +1062,31 @@ class PatientsController extends Controller
             Log::info('Deleted consultations records for patient', ['patient_id' => $id]);
 
 
-//            Comment::where('patient_id', $id)->delete();
-//
-//            AppNotification::where('patient_id', $id)->delete();
 
-            // Get the total points to be deducted for the given patient
-            $decrementAmount = ScoreHistory::where('patient_id', $id)->sum('score');
+            // Retrieve score histories related to the patient
+            $scoreHistories = ScoreHistory::where('patient_id', $id)->get();
 
-            if ($decrementAmount > 0) {
-                // Find or create the score record for the doctor
-                $score = Score::firstOrNew(['doctor_id' => $doctorId]);
+            // Group the histories by doctor and calculate the total points for each doctor
+            $doctorDecrementAmounts = $scoreHistories->groupBy('doctor_id')->map(function ($histories) {
+                return $histories->sum('score');
+            });
 
-                // Deduct the points from both the score and threshold
-                $score->score -= $decrementAmount;
-                $score->threshold -= $decrementAmount;
+            foreach ($doctorDecrementAmounts as $doctorId => $decrementAmount) {
+                if ($decrementAmount > 0) {
+                    // Find or create the score record for the doctor
+                    $score = Score::firstOrNew(['doctor_id' => $doctorId]);
 
-                // Ensure the score and threshold are not negative
-                $score->score = max(0, $score->score);
-                $score->threshold = max(0, $score->threshold);
+                    // Deduct the points from both the score and threshold
+                    $score->score -= $decrementAmount;
+                    $score->threshold -= $decrementAmount;
 
-                // Save the updated score
-                $score->save();
+                    // Ensure the score and threshold are not negative
+                    $score->score = max(0, $score->score);
+                    $score->threshold = max(0, $score->threshold);
+
+                    // Save the updated score
+                    $score->save();
+                }
             }
 
             // Delete the patient

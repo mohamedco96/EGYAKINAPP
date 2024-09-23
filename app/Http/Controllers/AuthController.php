@@ -521,7 +521,7 @@ class AuthController extends Controller
             \Log::warning("No user found with ID {$id}");
 
             // Return failure response if user not found
-            return response([
+            return response()->json([
                 'value' => false,
                 'message' => 'No User was found',
             ], 404);
@@ -530,6 +530,52 @@ class AuthController extends Controller
         // Update the user's data with all values from the request
         $user->fill($request->all());
 
+        // Initialize notification messages
+        $titleMessage = '';
+        $bodyMessage = '';
+
+        // Check for syndicate card requirement updates
+        if ($request->has('isSyndicateCardRequired')) {
+            // Check if the user's syndicate card requirement is 'Pending'
+            if ($user->isSyndicateCardRequired === 'Pending') {
+                // Determine the card status based on the request value
+                switch ($request->isSyndicateCardRequired) {
+                    case 'Required':
+                        $titleMessage = 'Syndicate Card Rejected ❌';
+                        $bodyMessage = 'Hello Dr. ' . $user->name . ', your Syndicate Card was rejected. Please upload the correct one.';
+                        break;
+
+                    case 'Verified':
+                        $titleMessage = 'Syndicate Card Approved ✅';
+                        $bodyMessage = 'Congratulations! Dr. ' . $user->name . ' 🎉 Your Syndicate Card has been approved.';
+                        break;
+
+                    default:
+                        // Optional: Handle unexpected values for isSyndicateCardRequired
+                        return response()->json([
+                            'value' => false,
+                            'message' => 'Invalid value for isSyndicateCardRequired.',
+                        ], 400);
+                }
+
+                // Create a new patient notification
+                AppNotification::create([
+                    'doctor_id' => $id, // Ensure correct doctor ID is used
+                    'type' => 'Other',
+                    'content' => $bodyMessage,
+                    'patient_id' => '31', // Placeholder: Update to the appropriate patient ID
+                ]);
+
+                // Retrieve FCM tokens for push notification
+                $tokens = FcmToken::where('doctor_id', $id) // Use the authenticated user's ID
+                ->pluck('token')
+                    ->toArray();
+
+                // Send the push notification
+                $this->notificationController->sendPushNotification($titleMessage, $bodyMessage, $tokens);
+            }
+        }
+
         // Save the updated user information to the database
         $user->save();
 
@@ -537,9 +583,10 @@ class AuthController extends Controller
         \Log::info("User {$user->id} updated successfully", $user->toArray());
 
         // Return success response with details
-        return response([
+        return response()->json([
             'value' => true,
             'message' => 'User Updated Successfully',
+            'user' => $user, // Optionally include updated user data in response
         ], 200);
     }
 

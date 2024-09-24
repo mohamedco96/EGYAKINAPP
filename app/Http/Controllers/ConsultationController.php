@@ -70,7 +70,8 @@ class ConsultationController extends Controller
                 'type' => 'Consultation',
                 'type_id' => $consultation->id,
                 'content' => 'New consultation request was created',
-                'patient_id' => $request->patient_id
+                'type_doctor_id' => Auth::id(),
+//                'patient_id' => $request->patient_id
             ]);
         }
 

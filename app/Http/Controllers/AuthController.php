@@ -407,7 +407,8 @@ class AuthController extends Controller
                     'doctor_id' => $doctorId,
                     'type' => 'Syndicate Card',
                     'content' => 'Dr. '. $user->name .' has uploaded a new Syndicate Card for approval.',
-                    'patient_id' => '31', // to be changed
+                    'type_doctor_id' => $user->id,
+                    //'patient_id' => '31', // to be changed
                 ]);
             }
 
@@ -563,7 +564,8 @@ class AuthController extends Controller
                     'doctor_id' => $id, // Ensure correct doctor ID is used
                     'type' => 'Other',
                     'content' => $bodyMessage,
-                    'patient_id' => '31', // Placeholder: Update to the appropriate patient ID
+                    //'patient_id' => '31', // Placeholder: Update to the appropriate patient ID
+                    'type_doctor_id' => $id,
                 ]);
 
                 // Retrieve FCM tokens for push notification

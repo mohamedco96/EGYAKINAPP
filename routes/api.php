@@ -29,7 +29,7 @@ Route::get('/generatePDF/{patient_id}', 'PatientsController@generatePatientPDF')
 
 Route::get('/userPatient', 'AuthController@userPatient');
 
-Route::post('/send-notification', 'NotificationController@send');
+Route::post('/send-notification', 'AuthController@sendPushNotificationTest');
 
 // Settings
 Route::get('/settings', 'SettingsController@index');

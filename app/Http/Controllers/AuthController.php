@@ -365,6 +365,22 @@ class AuthController extends Controller
         ], 400);
     }
 
+    public function sendPushNotificationTest()
+    {
+        // Retrieve all doctors with role 'admin' or 'tester' except the authenticated user
+        $doctors = User::role(['Admin', 'Tester'])
+            ->pluck('id'); // Get only the IDs of the users
+
+
+        $title = 'New Syndicate Card Pending Approval 📋';
+        $body = 'Test Message';
+        $tokens = FcmToken::whereIn('doctor_id', $doctors)
+            ->pluck('token')
+            ->toArray();
+
+        $this->notificationController->sendPushNotification($title,$body,$tokens);
+    }
+
     public function uploadSyndicateCard(Request $request)
     {
         $user = Auth::user();

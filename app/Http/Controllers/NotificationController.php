@@ -300,7 +300,7 @@ class NotificationController extends Controller
                         'submit_status' => $submitStatus ?? false,
                         'outcome_status' => $outcomeStatus ?? false,
                     ]
-                ] : [];  // Return empty array if patient is null
+                ] : null;  // Return empty array if patient is null
 
                 $typeDoctor = User::select('id', 'name', 'lname', 'workingplace', 'image', 'isSyndicateCardRequired')->where('id', $notification->type_doctor_id)->first();
 
@@ -374,7 +374,7 @@ class NotificationController extends Controller
                         'submit_status' => $submitStatus ?? false,
                         'outcome_status' => $outcomeStatus ?? false,
                     ]
-                ] : [];  // Return empty array if patient is null
+                ] : null;  // Return empty array if patient is null
 
                 $typeDoctor = User::select('id', 'name', 'lname', 'workingplace', 'image', 'isSyndicateCardRequired')->where('id', $notification->type_doctor_id)->first();
 

@@ -251,7 +251,7 @@ class NotificationController extends Controller
                         $query->select('id', 'doctor_id', 'updated_at');
                     },
                     'patient.doctor' => function ($query) {
-                        $query->select('id', 'name', 'lname', 'workingplace', 'image');
+                        $query->select('id', 'name', 'lname', 'workingplace', 'image', 'isSyndicateCardRequired');
                     },
                     'patient.answers' => function ($query) {
                         $query->select('id', 'patient_id', 'answer', 'question_id');
@@ -302,7 +302,7 @@ class NotificationController extends Controller
                     ]
                 ] : [];  // Return empty array if patient is null
 
-                $typeDoctor = User::select('id', 'name', 'lname', 'workingplace', 'image')->where('id', $notification->type_doctor_id)->first();
+                $typeDoctor = User::select('id', 'name', 'lname', 'workingplace', 'image', 'isSyndicateCardRequired')->where('id', $notification->type_doctor_id)->first();
 
                 return [
                     'id' => $notification->id,
@@ -326,7 +326,7 @@ class NotificationController extends Controller
                         $query->select('id', 'doctor_id', 'updated_at');
                     },
                     'patient.doctor' => function ($query) {
-                        $query->select('id', 'name', 'lname', 'workingplace', 'image');
+                        $query->select('id', 'name', 'lname', 'workingplace', 'image', 'isSyndicateCardRequired');
                     },
                     'patient.answers' => function ($query) {
                         $query->select('id', 'patient_id', 'answer', 'question_id');
@@ -376,7 +376,7 @@ class NotificationController extends Controller
                     ]
                 ] : [];  // Return empty array if patient is null
 
-                $typeDoctor = User::select('id', 'name', 'lname', 'workingplace', 'image')->where('id', $notification->type_doctor_id)->first();
+                $typeDoctor = User::select('id', 'name', 'lname', 'workingplace', 'image', 'isSyndicateCardRequired')->where('id', $notification->type_doctor_id)->first();
 
                 return [
                     'id' => $notification->id,

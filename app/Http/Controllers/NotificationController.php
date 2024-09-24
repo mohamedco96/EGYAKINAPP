@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppNotification;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -264,12 +265,44 @@ class NotificationController extends Controller
 
             // Transform today's records
             $transformedTodayRecords = $todayRecords->map(function ($notification) {
-                $name = optional($notification->patient->answers->where('question_id', 1)->first())->answer;
-                $hospital = optional($notification->patient->answers->where('question_id', 2)->first())->answer;
-                $governorate = optional($notification->patient->answers->where('question_id', 11)->first())->answer;
+                // Check if patient exists before accessing relationships
+                if ($notification->patient) {
+                    $name = optional($notification->patient->answers->where('question_id', 1)->first())->answer;
+                    $hospital = optional($notification->patient->answers->where('question_id', 2)->first())->answer;
+                    $governorate = optional($notification->patient->answers->where('question_id', 11)->first())->answer;
 
-                $submitStatus = optional($notification->patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
-                $outcomeStatus = optional($notification->patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
+                    $submitStatus = optional($notification->patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
+                    $outcomeStatus = optional($notification->patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
+
+                    $doctor = $notification->patient->doctor;
+                    $doctorDetails = [
+                        'id' => $doctor->id,
+                        'name' => $doctor->name,
+                        'lname' => $doctor->lname,
+                        'workingplace' => $doctor->workingplace,
+                        'image' => $doctor->image
+                    ];
+                } else {
+                    $name = $hospital = $governorate = null;
+                    $submitStatus = $outcomeStatus = false;
+                    $doctorDetails = null;
+                }
+
+                // Set patient details or empty array if patient is null
+                $patientDetails = $notification->patient ? [
+                    'id' => $notification->patient_id,
+                    'name' => $name,
+                    'hospital' => $hospital,
+                    'governorate' => $governorate,
+                    'doctor_id' => $notification->patient->doctor->id,
+                    'doctor' => $doctorDetails,
+                    'sections' => [
+                        'submit_status' => $submitStatus ?? false,
+                        'outcome_status' => $outcomeStatus ?? false,
+                    ]
+                ] : [];  // Return empty array if patient is null
+
+                $typeDoctor = User::select('id', 'name', 'lname', 'workingplace', 'image')->where('id', $notification->type_doctor_id)->first();
 
                 return [
                     'id' => $notification->id,
@@ -280,22 +313,12 @@ class NotificationController extends Controller
                     'patient_id' => $notification->patient_id,
                     'doctor_id' => $notification->doctor_id,
                     'created_at' => $notification->created_at,
-                    'patient' => [
-                        'id' => $notification->patient_id,
-                        'name' => $name,
-                        'hospital' => $hospital,
-                        'governorate' => $governorate,
-                        'doctor_id' => $notification->patient->doctor->id,
-                        'doctor' => $notification->patient->doctor,
-                        'sections' => [
-                            'submit_status' => $submitStatus ?? false,
-                            'outcome_status' => $outcomeStatus ?? false,
-                        ]
-                    ],
+                    'patient' => $patientDetails,
+                    'type_doctor' => $typeDoctor
                 ];
             });
 
-            // Fetch recent records
+            // Fetch recent records (same as today records but with different date range)
             $recentRecords = AppNotification::where('doctor_id', $doctorId)
                 ->whereDate('created_at', '<', $today)
                 ->with([
@@ -317,12 +340,43 @@ class NotificationController extends Controller
 
             // Transform recent records
             $transformedRecentRecords = $recentRecords->map(function ($notification) {
-                $name = optional($notification->patient->answers->where('question_id', 1)->first())->answer;
-                $hospital = optional($notification->patient->answers->where('question_id', 2)->first())->answer;
-                $governorate = optional($notification->patient->answers->where('question_id', 11)->first())->answer;
+                if ($notification->patient) {
+                    $name = optional($notification->patient->answers->where('question_id', 1)->first())->answer;
+                    $hospital = optional($notification->patient->answers->where('question_id', 2)->first())->answer;
+                    $governorate = optional($notification->patient->answers->where('question_id', 11)->first())->answer;
 
-                $submitStatus = optional($notification->patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
-                $outcomeStatus = optional($notification->patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
+                    $submitStatus = optional($notification->patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
+                    $outcomeStatus = optional($notification->patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
+
+                    $doctor = $notification->patient->doctor;
+                    $doctorDetails = [
+                        'id' => $doctor->id,
+                        'name' => $doctor->name,
+                        'lname' => $doctor->lname,
+                        'workingplace' => $doctor->workingplace,
+                        'image' => $doctor->image
+                    ];
+                } else {
+                    $name = $hospital = $governorate = null;
+                    $submitStatus = $outcomeStatus = false;
+                    $doctorDetails = null;
+                }
+
+                // Set patient details or empty array if patient is null
+                $patientDetails = $notification->patient ? [
+                    'id' => $notification->patient_id,
+                    'name' => $name,
+                    'hospital' => $hospital,
+                    'governorate' => $governorate,
+                    'doctor_id' => $notification->patient->doctor->id,
+                    'doctor' => $doctorDetails,
+                    'sections' => [
+                        'submit_status' => $submitStatus ?? false,
+                        'outcome_status' => $outcomeStatus ?? false,
+                    ]
+                ] : [];  // Return empty array if patient is null
+
+                $typeDoctor = User::select('id', 'name', 'lname', 'workingplace', 'image')->where('id', $notification->type_doctor_id)->first();
 
                 return [
                     'id' => $notification->id,
@@ -333,18 +387,8 @@ class NotificationController extends Controller
                     'patient_id' => $notification->patient_id,
                     'doctor_id' => $notification->doctor_id,
                     'created_at' => $notification->created_at,
-                    'patient' => [
-                        'id' => $notification->patient_id,
-                        'name' => $name,
-                        'hospital' => $hospital,
-                        'governorate' => $governorate,
-                        'doctor_id' => $notification->patient->doctor->id,
-                        'doctor' => $notification->patient->doctor,
-                        'sections' => [
-                            'submit_status' => $submitStatus ?? false,
-                            'outcome_status' => $outcomeStatus ?? false,
-                        ]
-                    ],
+                    'patient' => $patientDetails,
+                    'type_doctor' => $typeDoctor
                 ];
             });
 
@@ -353,8 +397,6 @@ class NotificationController extends Controller
             $perPage = 10;
             $slicedData = $transformedRecentRecords->slice(($currentPage - 1) * $perPage, $perPage);
             $transformedPatientsPaginated = new LengthAwarePaginator($slicedData->values(), count($transformedRecentRecords), $perPage);
-
-
 
             // Count unread notifications
             $unreadCount = AppNotification::where('doctor_id', $doctorId)->where('read', false)->count();
@@ -370,11 +412,11 @@ class NotificationController extends Controller
             // Log successful response
             Log::info('Successfully fetched new notifications.', ['doctor_id' => $doctorId]);
 
+            // Mark notifications as read
             AppNotification::where('doctor_id', $doctorId)->update(['read' => true]);
 
             return response()->json($response, 200);
 
-            // Update notifications as read
         } catch (\Exception $e) {
             // Log error
             Log::error('Error occurred while fetching new notifications: ' . $e->getMessage());

@@ -528,13 +528,6 @@ class AuthController extends Controller
             ], 404);
         }
 
-        // Update the user's data with all values from the request
-        $user->fill($request->all());
-
-        // Initialize notification messages
-        $titleMessage = '';
-        $bodyMessage = '';
-
         // Check for syndicate card requirement updates
         if ($request->has('isSyndicateCardRequired')) {
             // Check if the user's syndicate card requirement is 'Pending'
@@ -577,6 +570,14 @@ class AuthController extends Controller
                 $this->notificationController->sendPushNotification($titleMessage, $bodyMessage, $tokens);
             }
         }
+
+        // Update the user's data with all values from the request
+        $user->fill($request->all());
+
+        // Initialize notification messages
+        $titleMessage = '';
+        $bodyMessage = '';
+
 
         // Save the updated user information to the database
         $user->save();

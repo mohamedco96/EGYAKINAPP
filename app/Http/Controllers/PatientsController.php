@@ -601,6 +601,7 @@ class PatientsController extends Controller
             // Commit the transaction
             DB::commit();
 
+            //test
             $response = [
                 'value' => true,
                 'doctor_id' => $doctor_id,

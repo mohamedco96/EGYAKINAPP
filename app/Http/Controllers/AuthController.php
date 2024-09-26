@@ -552,12 +552,12 @@ class AuthController extends Controller
                 switch ($request->isSyndicateCardRequired) {
                     case 'Required':
                         $titleMessage = 'Syndicate Card Rejected ❌';
-                        $bodyMessage = 'Hello Dr. ' . $user->name . ', your Syndicate Card was rejected. Please upload the correct one.';
+                        $bodyMessage = 'Your Syndicate Card was rejected. Please upload the correct one.';
                         break;
 
                     case 'Verified':
                         $titleMessage = 'Syndicate Card Approved ✅';
-                        $bodyMessage = 'Congratulations! Dr. ' . $user->name . ' 🎉 Your Syndicate Card has been approved.';
+                        $bodyMessage = 'Congratulations! 🎉 Your Syndicate Card has been approved.';
                         break;
 
                     default:

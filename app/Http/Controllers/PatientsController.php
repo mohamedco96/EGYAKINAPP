@@ -626,7 +626,7 @@ class PatientsController extends Controller
             }
 
             $title = 'New Patient was created 📣';
-            $body = 'Dr. '. $user->name .' Add New Patient named ' . $patientName;
+            $body = 'Dr. ' . ucfirst($user->name) . ' added a new patient named ' . $patientName;
             $tokens = FcmToken::whereIn('doctor_id', $doctors)
                 ->pluck('token')
                 ->toArray();

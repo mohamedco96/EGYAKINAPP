@@ -225,11 +225,6 @@ class PatientsController extends Controller
                         'patient_id' => $patient->id,
                         'submit_status' => $submit_status ?? false,
                         'outcome_status' => $outcomeStatus ?? false,
-                        'submitter_id' => optional($submitter)->id,
-                        'submitter_name' => (optional($submitter)->name && optional($submitter)->lname)
-                            ? optional($submitter)->name . ' ' . optional($submitter)->lname
-                            : null,
-                        'submitter_SyndicateCard' => optional($submitter)->isSyndicateCardRequired
                     ],
                     'submitter' => [
                         'submitter_id' => optional($submitter)->id,

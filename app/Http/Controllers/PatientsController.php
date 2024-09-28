@@ -226,7 +226,9 @@ class PatientsController extends Controller
                         'submit_status' => $submit_status ?? false,
                         'outcome_status' => $outcomeStatus ?? false,
                         'submitter_id' => optional($submitter)->id,
-                        'submitter_name' => optional($submitter)->name . ' ' . optional($submitter)->lname,
+                        'submitter_name' => (optional($submitter)->name && optional($submitter)->lname)
+                            ? optional($submitter)->name . ' ' . optional($submitter)->lname
+                            : null,
                         'submitter_SyndicateCard' => optional($submitter)->isSyndicateCardRequired
                     ]
                 ];
@@ -1500,7 +1502,9 @@ class PatientsController extends Controller
                         'submit_status' => $submitStatus ?? false,
                         'outcome_status' => $outcomeStatus ?? false,
                         'submitter_id' => optional($submitter)->id,
-                        'submitter_name' => optional($submitter)->name . ' ' . optional($submitter)->lname,
+                        'submitter_name' => (optional($submitter)->name && optional($submitter)->lname)
+                            ? optional($submitter)->name . ' ' . optional($submitter)->lname
+                            : null,
                         'submitter_SyndicateCard' => optional($submitter)->isSyndicateCardRequired
                     ]
                 ];

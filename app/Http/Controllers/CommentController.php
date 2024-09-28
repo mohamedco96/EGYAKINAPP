@@ -86,6 +86,7 @@ class CommentController extends Controller
                 'type' => 'Comment',
                 'patient_id' => $request->patient_id,
                 'doctor_id' => $patientDoctorId,
+                'type_doctor_id' => Auth::id(),
             ]);
         } else {
             // Log that no notification was sent

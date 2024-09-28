@@ -1442,7 +1442,7 @@ class PatientsController extends Controller
                 ->latest('updated_at')
                 ->get();
 
-            // Retrieve patients
+// Retrieve patients
             $patients = Patients::select('id', 'doctor_id', 'updated_at')
                 ->where('hidden', false)
                 ->where(function ($query) use ($patientQuery) {
@@ -1455,7 +1455,7 @@ class PatientsController extends Controller
                 })
                 ->with([
                     'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired',
-                    'status:id,patient_id,key,status',
+                    'status:id,patient_id,key,status,doctor_id', // Add doctor_id in status
                     'answers:id,patient_id,answer,question_id'
                 ])
                 ->latest('updated_at')
@@ -1463,11 +1463,19 @@ class PatientsController extends Controller
 
             // Transform the patients data
             $transformedPatients = $patients->map(function ($patient) {
-                $submitStatus = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
-                $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
+                $submitStatus = optional($patient->status->where('key', 'submit_status')->first())->status;
+                $outcomeStatus = optional($patient->status->where('key', 'outcome_status')->first())->status;
 
                 $nameAnswer = optional($patient->answers->where('question_id', 1)->first())->answer;
                 $hospitalAnswer = optional($patient->answers->where('question_id', 2)->first())->answer;
+
+                // Get doctor_id of the submitter from outcome status
+                $outcomeSubmitterDoctorId = optional($patient->status->where('key', 'outcome_status')->first())->doctor_id;
+
+                // Fetch the submitter's details using the doctor_id
+                $submitter = User::select('id', 'name', 'lname', 'isSyndicateCardRequired')
+                    ->where('id', $outcomeSubmitterDoctorId)
+                    ->first(); // Use first() instead of get() to retrieve a single record
 
                 return [
                     'id' => $patient->id,
@@ -1480,9 +1488,13 @@ class PatientsController extends Controller
                         'patient_id' => $patient->id,
                         'submit_status' => $submitStatus ?? false,
                         'outcome_status' => $outcomeStatus ?? false,
+                        'submitter_id' => optional($submitter)->id,
+                        'submitter_name' => optional($submitter)->name . ' ' . optional($submitter)->lname,
+                        'submitter_SyndicateCard' => optional($submitter)->isSyndicateCardRequired
                     ]
                 ];
             });
+
 
             if (empty($patientQuery) && empty($doseQuery)) {
                 Log::info('No search term provided.');

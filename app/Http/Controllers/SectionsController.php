@@ -325,6 +325,7 @@ class SectionsController extends Controller
                 }])
                 ->first();
 
+
             // Prepare response based on section 8 or other sections
             if ($section_id == 8) {
                 if ($submitter && $submitter->doctor) {
@@ -332,8 +333,13 @@ class SectionsController extends Controller
                     $response = [
                         'value' => true,
                         'Submitter' => [
-                            'name' => $doctor->name . ' ' . $doctor->lname,
-                            'image' => $doctor->image,
+                            //'name' => $doctor->name . ' ' . $doctor->lname,
+                            'submitter_id' => optional($submitter)->doctor_id,
+                            'submitter_fname' => (optional($doctor)->name) ? optional($doctor)->name : null,
+                            'submitter_lname' => (optional($doctor)->lname) ? optional($doctor)->lname : null,
+                            'submitter_SyndicateCard' => optional($doctor)->image,
+                            'submitter_SyndicateCard' => optional($doctor)->isSyndicateCardRequired,
+//                            'image' => $doctor->image,
                         ],
                         'data' => $data,
                     ];

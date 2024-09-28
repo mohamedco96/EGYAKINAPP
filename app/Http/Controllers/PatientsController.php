@@ -230,6 +230,12 @@ class PatientsController extends Controller
                             ? optional($submitter)->name . ' ' . optional($submitter)->lname
                             : null,
                         'submitter_SyndicateCard' => optional($submitter)->isSyndicateCardRequired
+                    ],
+                    'submitter' => [
+                        'submitter_id' => optional($submitter)->id,
+                        'submitter_fname' => (optional($submitter)->name) ? optional($submitter)->name : null,
+                        'submitter_lname' => (optional($submitter)->lname) ? optional($submitter)->lname : null,
+                        'submitter_SyndicateCard' => optional($submitter)->isSyndicateCardRequired
                     ]
                 ];
             };

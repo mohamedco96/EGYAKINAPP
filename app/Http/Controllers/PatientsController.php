@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Storage;
 use PDF;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\AchievementController;
+use function PHPUnit\Framework\assertNotTrue;
 
 
 class PatientsController extends Controller
@@ -856,7 +857,9 @@ class PatientsController extends Controller
             }
 
             $patientOutcomeStatus = PatientStatus::where('patient_id', $patient_id)
-                ->where('key', 'outcome_status')->first();
+                ->where('key', 'outcome_status')
+                ->where('status', true)
+                ->first();
 
             if (!$patientOutcomeStatus && $section_id == 8) {
                 PatientStatus::create([

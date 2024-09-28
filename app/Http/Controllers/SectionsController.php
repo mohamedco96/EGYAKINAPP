@@ -333,16 +333,12 @@ class SectionsController extends Controller
                     $response = [
                         'value' => true,
                         'Submitter' => [
-                            'submitter_id' => optional($submitter)->doctor_id,
-//                            'name' => $doctor->name . ' ' . $doctor->lname,
+                            'id' => optional($submitter)->doctor_id,
                             'name' => (optional($doctor)->name && optional($doctor)->lname)
                                 ? optional($doctor)->name . ' ' . optional($doctor)->lname
                                 : null,
-//                            'submitter_fname' => (optional($doctor)->name) ? optional($doctor)->name : null,
-//                            'submitter_lname' => (optional($doctor)->lname) ? optional($doctor)->lname : null,
-                            'submitter_image' => optional($doctor)->image,
-                            'submitter_SyndicateCard' => optional($doctor)->isSyndicateCardRequired,
-//                            'image' => $doctor->image,
+                            'image' => optional($doctor)->image,
+                            'syndicateCard' => optional($doctor)->isSyndicateCardRequired,
                         ],
                         'data' => $data,
                     ];

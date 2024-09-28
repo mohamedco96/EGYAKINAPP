@@ -206,6 +206,14 @@ class PatientsController extends Controller
                 $submit_status = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
                 $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
 
+                // Get doctor_id of the submitter from outcome status
+                $outcomeSubmitterDoctorId = optional($patient->status->where('key', 'outcome_status')->first())->doctor_id;
+
+                // Fetch the submitter's details using the doctor_id
+                $submitter = User::select('id', 'name', 'lname', 'isSyndicateCardRequired')
+                    ->where('id', $outcomeSubmitterDoctorId)
+                    ->first(); // Use first() instead of get() to retrieve a single record
+
                 return [
                     'id' => $patient->id,
                     'doctor_id' => $patient->doctor_id,
@@ -217,6 +225,9 @@ class PatientsController extends Controller
                         'patient_id' => $patient->id,
                         'submit_status' => $submit_status ?? false,
                         'outcome_status' => $outcomeStatus ?? false,
+                        'submitter_id' => optional($submitter)->id,
+                        'submitter_name' => optional($submitter)->name . ' ' . optional($submitter)->lname,
+                        'submitter_SyndicateCard' => optional($submitter)->isSyndicateCardRequired
                     ]
                 ];
             };

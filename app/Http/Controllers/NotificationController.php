@@ -302,7 +302,16 @@ class NotificationController extends Controller
                     ]
                 ] : null;  // Return empty array if patient is null
 
-                $typeDoctor = User::select('id', 'name', 'lname', 'workingplace', 'image', 'isSyndicateCardRequired')->where('id', $notification->type_doctor_id)->first();
+                $typeDoctor = User::select('id', 'name', 'lname', 'workingplace', 'image', 'isSyndicateCardRequired')
+                        ->where('id', $notification->type_doctor_id)
+                        ->first() ?? (object) [
+                        'id' => null,
+                        'name' => null,
+                        'lname' => null,
+                        'workingplace' => null,
+                        'image' => null,
+                        'isSyndicateCardRequired' => null
+                    ];
 
                 return [
                     'id' => $notification->id,

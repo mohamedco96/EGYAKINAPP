@@ -340,9 +340,10 @@ class ConsultationController extends Controller
             // Prepare and send push notifications to relevant doctors
             $title = 'New Reply on Consultation Request 🔔';
             $body = 'Dr. ' . $user->name . ' has replied to your consultation request. 📩';
-            $tokens = FcmToken::whereIn('doctor_id', $doctorId)
-                ->pluck('token')
+            $tokens = FcmToken::whereIn('doctor_id', [$doctorId]) // Wrap $doctorId in an array
+            ->pluck('token')
                 ->toArray();
+
 
             // Send push notifications
             $this->notificationController->sendPushNotification($title, $body, $tokens);

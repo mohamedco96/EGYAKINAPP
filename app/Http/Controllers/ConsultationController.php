@@ -63,7 +63,6 @@ class ConsultationController extends Controller
 
 
 
-        // Create a new patient notification
         foreach ($doctors as $doctorId) {
             AppNotification::create([
                 'doctor_id' => $doctorId,
@@ -325,11 +324,22 @@ class ConsultationController extends Controller
             }
 
             // Prepare notification details
-            $doctors = Consultation::where('id', $id)
-                ->pluck('doctor_id');
+            $doctor = Consultation::where('id', $id)
+                ->select('doctor_id')->first();
+
+            //Send notification to doctor that created the consult request
+                AppNotification::create([
+                    'doctor_id' => $doctor,
+                    'type' => 'Consultation',
+                    'type_id' => $id,
+                    'content' => 'Dr. ' . $user->name . ' has replied to your consultation request. 📩',
+                    'type_doctor_id' => $user->id,
+                    'patient_id' => $request->patient_id
+                ]);
+
             $title = 'New Reply on Consultation Request 🔔';
             $body = 'Dr. ' . $user->name . ' has replied to your consultation request. 📩';
-            $tokens = FcmToken::whereIn('doctor_id', $doctors)
+            $tokens = FcmToken::whereIn('doctor_id', $doctor)
                 ->pluck('token')
                 ->toArray();
 

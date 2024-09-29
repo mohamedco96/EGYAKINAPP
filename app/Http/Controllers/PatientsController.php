@@ -21,6 +21,7 @@ use App\Models\Answers;
 use App\Models\AppNotification;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -589,21 +590,27 @@ class PatientsController extends Controller
             Answers::insert($answersToSave);
 
             // Create patient status records
+            $now = Carbon::now();
             $patientStatusesToCreate[] = [
                 'doctor_id' => $doctor_id,
                 'patient_id' => $patient->id,
                 'key' => 'section_' . ($questionSectionIds[1] ?? null),
-                'status' => true
+                'status' => true,
+                'created_at' => $now,
+                'updated_at' => $now
             ];
 
             $patientStatusesToCreate[] = [
                 'doctor_id' => $doctor_id,
                 'patient_id' => $patient->id,
                 'key' => 'submit_status',
-                'status' => false
+                'status' => false,
+                'created_at' => $now,
+                'updated_at' => $now
             ];
 
             PatientStatus::insert($patientStatusesToCreate);
+
 
             // Logging successful patient creation
             Log::info('New patient created', ['doctor_id' => $doctor_id, 'patient_id' => $patient->id]);

@@ -397,9 +397,15 @@ class ConsultationController extends Controller
     public function consultationSearch($data)
     {
         try {
+            // Retrieve the authenticated user
+            $user = Auth::user();
+            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
             // Retrieve Users
             $users = User::select('id', 'name', 'lname', 'email', 'phone', 'specialty', 'workingplace', 'image', 'syndicate_card', 'isSyndicateCardRequired')
-                ->where('id', '!=', Auth::id())
+//                ->where('id', '!=', Auth::id())
+                ->when(!$isAdminOrTester, function ($query) {
+                    return $query->where('id', '!=', Auth::id());
+                })
                 ->where(function ($query) use ($data) {
                     $query->where('name', 'like', '%' . $data . '%')
                         ->orWhere('email', 'like', '%' . $data . '%')

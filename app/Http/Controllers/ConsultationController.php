@@ -316,34 +316,35 @@ class ConsultationController extends Controller
                     ->where('status', '!=', 'replied')
                     ->count() === 0;
 
+            // If all doctors have replied, mark the consultation as complete
             if ($allReplied) {
-                // Mark the consultation as complete if all doctors have replied
                 $consultation = $consultationDoctor->consultation;
                 $consultation->status = 'complete';
                 $consultation->save();
             }
 
             // Prepare notification details
-            $doctor = Consultation::where('id', $id)
-                ->select('doctor_id')->first();
+            $doctorId = Consultation::where('id', $id)
+                ->value('doctor_id'); // Fetch only the doctor_id
 
-            //Send notification to doctor that created the consult request
-                AppNotification::create([
-                    'doctor_id' => $doctor,
-                    'type' => 'Consultation',
-                    'type_id' => $id,
-                    'content' => 'Dr. ' . $user->name . ' has replied to your consultation request. 📩',
-                    'type_doctor_id' => $user->id,
-                    'patient_id' => $request->patient_id
-                ]);
+            // Create a new notification for the doctor who created the consultation request
+            AppNotification::create([
+                'doctor_id' => $doctorId,
+                'type' => 'Consultation',
+                'type_id' => $id,
+                'content' => 'Dr. ' . $user->name . ' has replied to your consultation request. 📩',
+                'type_doctor_id' => $user->id,
+                'patient_id' => $request->patient_id
+            ]);
 
+            // Prepare and send push notifications to relevant doctors
             $title = 'New Reply on Consultation Request 🔔';
             $body = 'Dr. ' . $user->name . ' has replied to your consultation request. 📩';
-            $tokens = FcmToken::whereIn('doctor_id', $doctor)
+            $tokens = FcmToken::whereIn('doctor_id', $doctorId)
                 ->pluck('token')
                 ->toArray();
 
-            // Send push notifications to relevant doctors
+            // Send push notifications
             $this->notificationController->sendPushNotification($title, $body, $tokens);
 
             // Return success response with detailed log

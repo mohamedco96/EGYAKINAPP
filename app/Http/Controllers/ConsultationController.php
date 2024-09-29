@@ -330,7 +330,7 @@ class ConsultationController extends Controller
             // Create a new notification for the doctor who created the consultation request
             AppNotification::create([
                 'doctor_id' => $doctorId,
-                'type' => 'Consultation',
+                'type' => 'Other',
                 'type_id' => $id,
                 'content' => 'Dr. ' . $user->name . ' has replied to your consultation request. 📩',
                 'type_doctor_id' => $user->id,

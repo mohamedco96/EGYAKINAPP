@@ -381,19 +381,17 @@ class AuthController extends Controller
         $this->notificationController->sendPushNotification($title,$body,$tokens);
     }
 
-    public function sendAllPushNotification($title,$body,$tokens)
+    public function sendAllPushNotification($title,$body)
     {
         try {
             // Retrieve all tokens from the fcm_tokens table
-//            $tokens = FcmToken::pluck('token')->toArray();
+            $tokens = FcmToken::pluck('token')
+                ->toArray();
 
             if (empty($tokens)) {
                 Log::info('No FCM tokens found.');
                 return response()->json(['status' => 'No tokens found'], 404);
             }
-
-//            $title = $request->input('title');
-//            $body = $request->input('body');
 
             $notification = Notification::create($title, $body);
 

@@ -40,6 +40,13 @@ class AchievementController extends Controller
         $userScore = $user->score->score ?? 0;
         $userPatientCount = $user->patients->count() ?? 0;
 
+        // Log the initial score and patient count
+        Log::debug('Initial user data', [
+            'user_id' => $user->id,
+            'user_score' => $userScore,
+            'user_patient_count' => $userPatientCount,
+        ]);
+
         // Fetch all achievements from the database
         $achievements = Achievement::all();
 
@@ -51,22 +58,40 @@ class AchievementController extends Controller
             // Check if the user already has this achievement
             $existingAchievement = $user->achievements()->where('achievement_id', $achievement->id)->first();
 
+            // Log the existing achievement status
+            Log::debug('Checking achievement', [
+                'achievement_id' => $achievement->id,
+                'existing_achievement' => $existingAchievement ? 'exists' : 'does not exist',
+            ]);
+
             // Determine whether the user qualifies for the achievement
             $qualifies = false;
+            $body = ''; // Initialize body for notification
             switch ($achievement->type) {
                 case 'score':
                     $qualifies = $userScore >= $achievement->score;
+                    Log::debug('Score qualification check', [
+                        'achievement_id' => $achievement->id,
+                        'user_score' => $userScore,
+                        'required_score' => $achievement->score,
+                        'qualifies' => $qualifies,
+                    ]);
                     break;
 
                 case 'patient':
                     $qualifies = $userPatientCount >= $achievement->score;
-                    $body = 'Dr. '. $user->name .' successfully added ' . $achievement->score . ' patients and earned a new achievement. Keep up the great work!';
+                    $body = 'Dr. ' . $user->name . ' successfully added ' . $achievement->score . ' patients and earned a new achievement. Keep up the great work!';
+                    Log::debug('Patient qualification check', [
+                        'achievement_id' => $achievement->id,
+                        'user_patient_count' => $userPatientCount,
+                        'required_patient_count' => $achievement->score,
+                        'qualifies' => $qualifies,
+                    ]);
                     break;
             }
 
             // Get the IDs of doctors for notifications
             $doctors = User::role(['Admin', 'Tester'])->pluck('id');
-
             $title = 'Achievement Unlocked! 🎉';
             $tokens = FcmToken::whereIn('doctor_id', $doctors)->pluck('token')->toArray();
 
@@ -78,7 +103,6 @@ class AchievementController extends Controller
                     $status = 'achieved (new)';
                     $this->notificationController->sendPushNotification($title, $body, $tokens);
                     $this->createAchievementNotification($doctors, $user->name, $achievement->id);
-
                 }
                 // If the user has the achievement but it wasn't achieved, update it
                 elseif (!$existingAchievement->pivot->achieved) {
@@ -100,6 +124,13 @@ class AchievementController extends Controller
                     'user_patient_count' => $userPatientCount,
                     'required_patient_count' => $achievement->score,
                 ];
+
+                // Log the action taken for the achievement
+                Log::info('Achievement status updated', [
+                    'user_id' => $user->id,
+                    'achievement_id' => $achievement->id,
+                    'status' => $status,
+                ]);
             }
         }
 

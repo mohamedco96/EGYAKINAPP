@@ -381,6 +381,49 @@ class AuthController extends Controller
         $this->notificationController->sendPushNotification($title,$body,$tokens);
     }
 
+    public function sendAllPushNotification($title,$body,$tokens)
+    {
+        try {
+            // Retrieve all tokens from the fcm_tokens table
+//            $tokens = FcmToken::pluck('token')->toArray();
+
+            if (empty($tokens)) {
+                Log::info('No FCM tokens found.');
+                return response()->json(['status' => 'No tokens found'], 404);
+            }
+
+//            $title = $request->input('title');
+//            $body = $request->input('body');
+
+            $notification = Notification::create($title, $body);
+
+            $messages = [];
+            foreach ($tokens as $token) {
+                $messages[] = CloudMessage::withTarget('token', $token)
+                    ->withNotification($notification);
+            }
+
+            // Send messages in bulk
+            $this->messaging->sendAll($messages);
+
+            Log::info('Message sent successfully to all tokens.', [
+                'title' => $title,
+                'body' => $body,
+                'tokens_count' => count($tokens),
+            ]);
+
+            return response()->json(['status' => 'Message sent successfully to all tokens'], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Exception occurred while sending message.', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTrace(),
+            ]);
+
+            return response()->json(['status' => 'Failed to send message. Please try again later.'], 500);
+        }
+    }
+
     public function uploadSyndicateCard(Request $request)
     {
         $user = Auth::user();

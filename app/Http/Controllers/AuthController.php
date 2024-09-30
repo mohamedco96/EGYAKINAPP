@@ -20,6 +20,7 @@ use App\Models\Cause;
 use App\Models\Risk;
 use App\Models\Assessment;
 use App\Models\Examination;
+use Kreait\Firebase\Messaging\CloudMessage;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Validator;
@@ -418,52 +419,6 @@ class AuthController extends Controller
         $this->notificationController->sendPushNotification($title,$body,$tokens);
     }
 
-    public function sendAllPushNotification($title, $body)
-    {
-        try {
-            // Retrieve all tokens from the fcm_tokens table
-            $tokens = FcmToken::pluck('token')->toArray();
-
-            if (empty($tokens)) {
-                Log::info('No FCM tokens found.');
-                return response()->json(['status' => 'No tokens found'], 404);
-            }
-
-            // Firebase usually limits to 500 tokens per request
-            $batchSize = 500;
-            $tokenChunks = array_chunk($tokens, $batchSize);
-
-            foreach ($tokenChunks as $tokenChunk) {
-                $messages = [];
-                foreach ($tokenChunk as $token) {
-                    $messages[] = CloudMessage::withTarget('token', $token)
-                        ->withNotification([
-                            'title' => $title,
-                            'body' => $body,
-                        ]);
-                }
-
-                // Send messages in bulk
-                $this->messaging->sendAll($messages);
-            }
-
-            Log::info('Message sent successfully to all tokens.', [
-                'title' => $title,
-                'body' => $body,
-                'tokens_count' => count($tokens),
-            ]);
-
-            return response()->json(['status' => 'Message sent successfully to all tokens'], 200);
-
-        } catch (\Exception $e) {
-            Log::error('Exception occurred while sending message.', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTrace(),
-            ]);
-
-            return response()->json(['status' => 'Failed to send message. Please try again later.'], 500);
-        }
-    }
 
     public function uploadSyndicateCard(Request $request)
     {

@@ -270,13 +270,48 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        //auth()->user()->tokens()->delete();
-        $request->user()->currentAccessToken()->delete();
-        return [
-            'value' => true,
-            'message' => 'Logged out',
-        ];
+        try {
+            // Get the current authenticated user
+            $user = $request->user();
+
+            // Log the logout attempt
+            Log::info('User attempting to log out', ['user_id' => $user->id]);
+
+            // Remove the current access token for the user
+            $user->currentAccessToken()->delete();
+
+            // Remove the user's FCM token if it exists
+            $fcmToken = FcmToken::where('user_id', $user->id)->first();
+            if ($fcmToken) {
+                $fcmToken->delete();
+                Log::info('FCM token deleted for user', ['user_id' => $user->id]);
+            } else {
+                Log::info('No FCM token found for user', ['user_id' => $user->id]);
+            }
+
+            // Log the successful logout
+            Log::info('User logged out successfully', ['user_id' => $user->id]);
+
+            return response()->json([
+                'value' => true,
+                'message' => 'Logged out successfully',
+            ], 200);
+
+        } catch (\Exception $e) {
+            // Log any exceptions that occur during logout
+            Log::error('Error occurred during logout', [
+                'user_id' => $user->id,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to log out. Please try again later.',
+            ], 500);
+        }
     }
+
 
     /**
      * Change the authenticated user's password.

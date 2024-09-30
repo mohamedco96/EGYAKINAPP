@@ -62,19 +62,18 @@ class ConsultationController extends Controller
         ];
 
 
-
+        $user = Auth::user();
         foreach ($doctors as $doctorId) {
             AppNotification::create([
                 'doctor_id' => $doctorId,
                 'type' => 'Consultation',
                 'type_id' => $consultation->id,
-                'content' => 'New consultation request was created',
+                'content' => 'Dr. '. $user->name .' is seeking your advice for his patient',
                 'type_doctor_id' => Auth::id(),
                 'patient_id' => $request->patient_id
             ]);
         }
 
-        $user = Auth::user();
         $title = 'New consultation request was created 📣';
         $body = 'Dr. '. $user->name .' is seeking your advice for his patient';
         $tokens = FcmToken::whereIn('doctor_id', $doctors)

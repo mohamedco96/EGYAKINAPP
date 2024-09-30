@@ -381,28 +381,34 @@ class AuthController extends Controller
         $this->notificationController->sendPushNotification($title,$body,$tokens);
     }
 
-    public function sendAllPushNotification($title,$body)
+    public function sendAllPushNotification($title, $body)
     {
         try {
             // Retrieve all tokens from the fcm_tokens table
-            $tokens = FcmToken::pluck('token')
-                ->toArray();
+            $tokens = FcmToken::pluck('token')->toArray();
 
             if (empty($tokens)) {
                 Log::info('No FCM tokens found.');
                 return response()->json(['status' => 'No tokens found'], 404);
             }
 
-            $notification = Notification::create($title, $body);
+            // Firebase usually limits to 500 tokens per request
+            $batchSize = 500;
+            $tokenChunks = array_chunk($tokens, $batchSize);
 
-            $messages = [];
-            foreach ($tokens as $token) {
-                $messages[] = CloudMessage::withTarget('token', $token)
-                    ->withNotification($notification);
+            foreach ($tokenChunks as $tokenChunk) {
+                $messages = [];
+                foreach ($tokenChunk as $token) {
+                    $messages[] = CloudMessage::withTarget('token', $token)
+                        ->withNotification([
+                            'title' => $title,
+                            'body' => $body,
+                        ]);
+                }
+
+                // Send messages in bulk
+                $this->messaging->sendAll($messages);
             }
-
-            // Send messages in bulk
-            $this->messaging->sendAll($messages);
 
             Log::info('Message sent successfully to all tokens.', [
                 'title' => $title,

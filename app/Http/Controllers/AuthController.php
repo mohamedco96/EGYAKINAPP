@@ -280,13 +280,15 @@ class AuthController extends Controller
             // Remove the current access token for the user
             $user->currentAccessToken()->delete();
 
-            // Remove the user's FCM token if it exists
-            $fcmToken = FcmToken::where('doctor_id', $user->id)->first();
-            if ($fcmToken) {
-                $fcmToken->delete();
-                Log::info('FCM token deleted for user', ['doctor_id' => $user->id]);
+            // Remove all FCM tokens for the user
+            $fcmTokens = FcmToken::where('doctor_id', $user->id)->get();
+            if ($fcmTokens->isNotEmpty()) {
+                foreach ($fcmTokens as $fcmToken) {
+                    $fcmToken->delete();
+                }
+                Log::info('All FCM tokens deleted for user', ['doctor_id' => $user->id]);
             } else {
-                Log::info('No FCM token found for user', ['doctor_id' => $user->id]);
+                Log::info('No FCM tokens found for user', ['doctor_id' => $user->id]);
             }
 
             // Log the successful logout

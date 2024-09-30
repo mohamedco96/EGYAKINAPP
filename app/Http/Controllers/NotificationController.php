@@ -139,9 +139,12 @@ class NotificationController extends Controller
     public function sendAllPushNotification(Request $request)
     {
         try {
-            $title = $request->title;
-            $body = $request->body;
+//            // Use input() or get() to retrieve request data
+//            $title = $request->input('title');
+//            $body = $request->input('body');
 
+            $title = "✨ EgyAkin v1.0.21 is Here!";
+            $body  = "🚀 Request consultations, track achievements, and enjoy a smoother experience.🔄 Update now for the latest features!";
             // Retrieve all tokens from the fcm_tokens table
             $tokens = FcmToken::pluck('token')->toArray();
 

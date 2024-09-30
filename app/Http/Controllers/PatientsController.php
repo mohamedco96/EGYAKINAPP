@@ -544,11 +544,8 @@ class PatientsController extends Controller
             // Retrieve question IDs and their corresponding section IDs from the database
             $questionSectionIds = Questions::pluck('section_id', 'id')->toArray();
 
-            if ($isAdminOrTester){
-                $hidden = true;
-            }else{
-                $hidden = false;
-            }
+            // Set hidden based on user role
+            $hidden = $isAdminOrTester;
 
             // Create a new patient record
             $patient = Patients::create([
@@ -567,7 +564,7 @@ class PatientsController extends Controller
                     // Extract the question ID from the key
                     $questionId = (int)$key;
 
-                    // Retrieve the section ID for the question from $questionSectionIds array
+                    // Retrieve the section ID for the question
                     $sectionId = $questionSectionIds[$questionId] ?? null;
 
                     // Check if the question has already been processed
@@ -611,29 +608,16 @@ class PatientsController extends Controller
 
             PatientStatus::insert($patientStatusesToCreate);
 
-
             // Logging successful patient creation
             Log::info('New patient created', ['doctor_id' => $doctor_id, 'patient_id' => $patient->id]);
-
-            // Notifying other doctors (assuming this is optimized elsewhere)
 
             // Retrieve patient name using the updatedAnswersToSave array
             $patientName = $this->retrievePatientName($answersToSave, $patient->id);
 
-            // Commit the transaction
+            // Commit the transaction before checking achievements
             DB::commit();
 
-            //test
-            $response = [
-                'value' => true,
-                'doctor_id' => $doctor_id,
-                'id' => $patient->id,
-                'name' => $patientName, // Remove additional quotes
-                'submit_status' => false,
-                'message' => 'Patient Created Successfully',
-            ];
-
-            // Retrieve all doctors with role 'admin' or 'tester' except the authenticated user
+            // Notifying other doctors
             $doctors = User::role(['Admin', 'Tester'])
                 ->where('id', '!=', Auth::id())
                 ->pluck('id'); // Get only the IDs of the users
@@ -654,9 +638,19 @@ class PatientsController extends Controller
                 ->pluck('token')
                 ->toArray();
 
-            $this->notificationController->sendPushNotification($title,$body,$tokens);
+            $this->notificationController->sendPushNotification($title, $body, $tokens);
 
+            // Check and assign achievements after creating the patient
             $this->achievement->checkAndAssignAchievements($user);
+
+            $response = [
+                'value' => true,
+                'doctor_id' => $doctor_id,
+                'id' => $patient->id,
+                'name' => $patientName,
+                'submit_status' => false,
+                'message' => 'Patient Created Successfully',
+            ];
 
             return response()->json($response, 200);
         } catch (\Exception $e) {
@@ -664,7 +658,7 @@ class PatientsController extends Controller
             DB::rollback();
 
             // Handle and log errors
-            Log::error("Error while storing patient: " . $e->getMessage());
+            Log::error("Error while storing patient: " . $e->getMessage(), ['request' => $request->all()]);
             return response()->json([
                 'value' => false,
                 'message' => 'Error: ' . $e->getMessage(),

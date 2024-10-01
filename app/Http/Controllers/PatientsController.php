@@ -1722,4 +1722,55 @@ class PatientsController extends Controller
         // Return the URL to download the PDF file
         return response()->json(['pdf_url' => $pdfUrl]);
     }
+
+    public function patientFilterConditions(){
+        try {
+            // Fetch questions for the specified section
+            $questions = Questions::whereIn('id', [1, 2, 4, 8, 168, 162, 26, 86, 156, 79, 82])
+                ->orderBy('id')
+                ->get();
+
+            // Initialize array to store questions and answers
+            $data = [];
+
+            foreach ($questions as $question) {
+                // Skip questions flagged with 'skip'
+                if ($question->skip) {
+                    Log::info("Question with ID {$question->id} skipped as per skip flag.");
+                    continue;
+                }
+
+                // Prepare question data
+                $questionData = [
+                    'id' => $question->id,
+                    'condition' => $question->question,
+                    'values' => $question->values,
+                    'type' => $question->type,
+                    'keyboard_type' => $question->keyboard_type,
+                    'updated_at' => $question->updated_at,
+                ];
+
+                // Add question data to main data array
+                $data[] = $questionData;
+
+                $response = [
+                    'value' => true,
+                    'data' => $data,
+                ];
+
+                // Log successful retrieval of questions and answers
+                Log::info("Questions and answers retrieved successfully for section ID");
+
+                return response()->json($response, 200);
+            }
+
+        }catch (\Exception $e){
+            // Log and return error response
+            Log::error("Error while fetching questions and answers: " . $e->getMessage());
+            return response()->json([
+                'value' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

@@ -231,9 +231,9 @@ class SectionsController extends Controller
             $sectionExists = Questions::where('section_id', $section_id)->exists();
             if (!$sectionExists) {
                 return response()->json([
-                    'value' => false,
-                    'message' => "Section not found",
-                ], 404);
+                    'value' => true,
+                    'data' => [],
+                ], 200);
             }
 
             // Fetch questions for the specified section

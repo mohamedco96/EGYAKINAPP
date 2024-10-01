@@ -1804,4 +1804,89 @@ class PatientsController extends Controller
             ], 500);
         }
     }
+
+    public function filteredPatients(Request $request)
+    {
+        try {
+
+            // Retrieve patients
+            $patients = Patients::select('id', 'doctor_id', 'updated_at')
+                ->where('hidden', false)
+                ->where(function ($query) use ($questionID,$value) {
+                    ->WhereHas('answers', function ($query) use ($questionID) {
+                        $query->where('question_id', $questionID);
+                    });
+                        ->WhereHas('answers', function ($query) use ($value) {
+                            $query->where('answer', $value);
+                        });
+                })
+                ->with([
+                    'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired',
+                    'status:id,patient_id,key,status',
+                    'answers:id,patient_id,answer,question_id'
+                ])
+                ->latest('updated_at')
+                ->get();
+
+            // Transform the patients data
+            $transformedPatients = $patients->map(function ($patient) {
+                $submitStatus = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
+                $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
+
+                $nameAnswer = optional($patient->answers->where('question_id', 1)->first())->answer;
+                $hospitalAnswer = optional($patient->answers->where('question_id', 2)->first())->answer;
+
+                return [
+                    'id' => $patient->id,
+                    'doctor_id' => $patient->doctor_id,
+                    'name' => $nameAnswer,
+                    'hospital' => $hospitalAnswer,
+                    'updated_at' => $patient->updated_at,
+                    'doctor' => $patient->doctor,
+                    'sections' => [
+                        'patient_id' => $patient->id,
+                        'submit_status' => $submitStatus ?? false,
+                        'outcome_status' => $outcomeStatus ?? false,
+                    ]
+                ];
+            });
+
+            if (empty($patientQuery) && empty($doseQuery)) {
+                Log::info('No search term provided.');
+                return response()->json([
+                    'value' => true,
+                    'data' => [
+                        'patients' => [],
+                        'doses' => [],
+                    ],
+                ], 200);
+            } elseif (empty($patientQuery)) {
+                Log::info('No patient search term provided.');
+                $transformedPatients = collect(); // Return empty collection for patients
+            } elseif (empty($doseQuery)) {
+                Log::info('No dose search term provided.');
+                $doses = collect(); // Return empty collection for doses
+            }
+
+            // Log successful search
+            Log::info('Successfully retrieved data for the search term.', ['search_term' => $patientQuery]);
+            return response()->json([
+                'value' => true,
+                'data' => [
+                    'patients' => $transformedPatients,
+                    'doses' => $doses,
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+            // Log error
+            Log::error('Error searching for data.', ['exception' => $e]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to search for data.',
+            ], 500);
+        }
+    }
+
 }

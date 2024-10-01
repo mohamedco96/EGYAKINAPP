@@ -1723,50 +1723,81 @@ class PatientsController extends Controller
         return response()->json(['pdf_url' => $pdfUrl]);
     }
 
-    public function patientFilterConditions(){
+    public function patientFilterConditions()
+    {
         try {
-            // Fetch questions for the specified section
+            // Fetch questions for the specified section IDs
             $questions = Questions::whereIn('id', [1, 2, 4, 8, 168, 162, 26, 86, 156, 79, 82])
+                ->where('skip', false) // Directly filter out skipped questions
                 ->orderBy('id')
                 ->get();
 
-            // Initialize array to store questions and answers
+            // Check if no questions found
+            if ($questions->isEmpty()) {
+                // Log no questions found and return an appropriate response
+                Log::info("No questions found for the provided IDs.");
+                return response()->json([
+                    'value' => false,
+                    'message' => 'No questions found.',
+                ], 404);
+            }
+
+            // Initialize array to store question data
             $data = [];
 
+            // Add dynamic questions from the database to the data array
             foreach ($questions as $question) {
-                // Skip questions flagged with 'skip'
-                if ($question->skip) {
-                    Log::info("Question with ID {$question->id} skipped as per skip flag.");
-                    continue;
-                }
-
-                // Prepare question data
                 $questionData = [
                     'id' => $question->id,
                     'condition' => $question->question,
                     'values' => $question->values,
                     'type' => $question->type,
                     'keyboard_type' => $question->keyboard_type,
-                    'updated_at' => $question->updated_at,
                 ];
 
-                // Add question data to main data array
                 $data[] = $questionData;
-
-                $response = [
-                    'value' => true,
-                    'data' => $data,
-                ];
-
-                // Log successful retrieval of questions and answers
-                Log::info("Questions and answers retrieved successfully for section ID");
-
-                return response()->json($response, 200);
             }
 
-        }catch (\Exception $e){
-            // Log and return error response
-            Log::error("Error while fetching questions and answers: " . $e->getMessage());
+            // Add static values to the data array
+            $staticQuestions = [
+                [
+                    "id" => "001",
+                    "condition" => "Final submit",
+                    "values" => ["Yes", "No"],
+                    "type" => "checkbox",
+                    "keyboard_type" => null,
+                ],
+                [
+                    "id" => "002",
+                    "condition" => "Outcome",
+                    "values" => ["Yes", "No"],
+                    "type" => "checkbox",
+                    "keyboard_type" => null,
+                ]
+            ];
+
+            // Merge static questions with dynamic questions
+            $data = array_merge($data, $staticQuestions);
+
+            // Prepare the response with all the questions data
+            $response = [
+                'value' => true,
+                'data' => $data,
+            ];
+
+            // Log success message with question count
+            Log::info("Questions filter conditions retrieved successfully.", ['question_count' => count($data)]);
+
+            // Return successful response with the questions data
+            return response()->json($response, 200);
+
+        } catch (\Exception $e) {
+            // Log the exception with a detailed message
+            Log::error("Error while fetching questions filter conditions: " . $e->getMessage(), [
+                'exception' => $e
+            ]);
+
+            // Return error response with the exception message
             return response()->json([
                 'value' => false,
                 'message' => 'Error: ' . $e->getMessage(),

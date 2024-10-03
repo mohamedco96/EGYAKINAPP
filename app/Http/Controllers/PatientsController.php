@@ -1823,15 +1823,33 @@ class PatientsController extends Controller
                 }
 
                 if (!is_null($value)) {
-                    // Apply the filtering logic for partial matching using LIKE
-                    $patientsQuery->whereHas('answers', function ($query) use ($questionID, $value) {
-                        // Add double quotes around the value to match the stored value in the database
-                        $quotedValue = '"' . $value . '"';
+                    // Handle question_id = 9901 for submit_status
+                    if ($questionID == 9901) {
+                        $patientsQuery->whereHas('status', function ($query) use ($value) {
+                            $booleanValue = ($value === 'Yes') ? true : false;
+                            $query->where('key', 'submit_status')
+                                ->where('status', $booleanValue);
+                        });
+                    }
 
-                        $query->where('question_id', $questionID)
-                            ->where('answer', $quotedValue); // Match the value with quotes
-                    });
+                    // Handle question_id = 9902 for outcome_status
+                    elseif ($questionID == 9902) {
+                        $patientsQuery->whereHas('status', function ($query) use ($value) {
+                            $booleanValue = ($value === 'Yes') ? true : false;
+                            $query->where('key', 'outcome_status')
+                                ->where('status', $booleanValue);
+                        });
+                    }
 
+                    // Handle all other questions by matching answers with quotes
+                    else {
+                        $patientsQuery->whereHas('answers', function ($query) use ($questionID, $value) {
+                            // Add double quotes around the value to match the stored value in the database
+                            $quotedValue = '"' . $value . '"';
+                            $query->where('question_id', $questionID)
+                                ->where('answer', $quotedValue); // Match the value with quotes
+                        });
+                    }
                 }
             }
 

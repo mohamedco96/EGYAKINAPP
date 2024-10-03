@@ -82,6 +82,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/uploadFile', 'PatientsController@uploadFile');
     Route::post('/uploadFileNew', 'PatientsController@uploadFileNew');
     Route::get('/patientFilters', 'PatientsController@patientFilterConditions');
+    Route::post('/patientFilters', 'PatientsController@filteredPatients');
 
 
 

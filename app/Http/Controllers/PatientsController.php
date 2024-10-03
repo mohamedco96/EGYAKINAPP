@@ -1761,14 +1761,14 @@ class PatientsController extends Controller
             // Add static values to the data array
             $staticQuestions = [
                 [
-                    "id" => "001",
+                    "id" => 0001,
                     "condition" => "Final submit",
                     "values" => ["Yes", "No"],
                     "type" => "checkbox",
                     "keyboard_type" => null,
                 ],
                 [
-                    "id" => "002",
+                    "id" => 0002,
                     "condition" => "Outcome",
                     "values" => ["Yes", "No"],
                     "type" => "checkbox",
@@ -1808,30 +1808,42 @@ class PatientsController extends Controller
     public function filteredPatients(Request $request)
     {
         try {
+            // Extract the filter conditions sent from the frontend
+            $filters = $request->all(); // Get all question IDs and their corresponding values
 
-            // Retrieve patients
-            $patients = Patients::select('id', 'doctor_id', 'updated_at')
-                ->where('hidden', false)
-                ->where(function ($query) use ($questionID,$value) {
-                    ->WhereHas('answers', function ($query) use ($questionID) {
-                        $query->where('question_id', $questionID);
+            // Initialize the query to retrieve patients
+            $patientsQuery = Patients::select('id', 'doctor_id', 'updated_at')
+                ->where('hidden', false);
+
+            // Loop through each question ID and its value
+            foreach ($filters as $questionID => $value) {
+                // Skip questions with IDs starting with '00'
+                if (str_starts_with((string)$questionID, '00')) {
+                    continue; // Skip this iteration if questionID starts with '00'
+                }
+
+                if (!is_null($value)) {
+                    // Apply the filtering logic for partial matching using LIKE
+                    $patientsQuery->whereHas('answers', function ($query) use ($questionID, $value) {
+                        $query->where('question_id', $questionID)
+                            ->where('answer', 'LIKE', '%' . $value . '%'); // Partial match using LIKE
                     });
-                        ->WhereHas('answers', function ($query) use ($value) {
-                            $query->where('answer', $value);
-                        });
-                })
-                ->with([
-                    'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired',
-                    'status:id,patient_id,key,status',
-                    'answers:id,patient_id,answer,question_id'
-                ])
+                }
+            }
+
+            // Continue building the query with necessary relationships
+            $patients = $patientsQuery->with([
+                'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired',
+                'status:id,patient_id,key,status',
+                'answers:id,patient_id,answer,question_id'
+            ])
                 ->latest('updated_at')
                 ->get();
 
-            // Transform the patients data
+            // Transform the patients data for the response
             $transformedPatients = $patients->map(function ($patient) {
-                $submitStatus = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
-                $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
+                $submitStatus = optional($patient->status->where('key', 'submit_status')->first())->status;
+                $outcomeStatus = optional($patient->status->where('key', 'outcome_status')->first())->status;
 
                 $nameAnswer = optional($patient->answers->where('question_id', 1)->first())->answer;
                 $hospitalAnswer = optional($patient->answers->where('question_id', 2)->first())->answer;
@@ -1851,40 +1863,25 @@ class PatientsController extends Controller
                 ];
             });
 
-            if (empty($patientQuery) && empty($doseQuery)) {
-                Log::info('No search term provided.');
-                return response()->json([
-                    'value' => true,
-                    'data' => [
-                        'patients' => [],
-                        'doses' => [],
-                    ],
-                ], 200);
-            } elseif (empty($patientQuery)) {
-                Log::info('No patient search term provided.');
-                $transformedPatients = collect(); // Return empty collection for patients
-            } elseif (empty($doseQuery)) {
-                Log::info('No dose search term provided.');
-                $doses = collect(); // Return empty collection for doses
-            }
+            // Log successful data retrieval
+            Log::info('Successfully retrieved filtered patients.', ['filter_count' => count($filters)]);
 
-            // Log successful search
-            Log::info('Successfully retrieved data for the search term.', ['search_term' => $patientQuery]);
+            // Return successful response with transformed patient data
             return response()->json([
                 'value' => true,
                 'data' => [
                     'patients' => $transformedPatients,
-                    'doses' => $doses,
                 ],
             ], 200);
 
         } catch (\Exception $e) {
-            // Log error
-            Log::error('Error searching for data.', ['exception' => $e]);
+            // Log error details
+            Log::error('Error retrieving filtered patients.', ['exception' => $e]);
 
+            // Return error response
             return response()->json([
                 'value' => false,
-                'message' => 'Failed to search for data.',
+                'message' => 'Failed to retrieve filtered patients.',
             ], 500);
         }
     }

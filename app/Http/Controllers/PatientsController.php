@@ -1761,14 +1761,14 @@ class PatientsController extends Controller
             // Add static values to the data array
             $staticQuestions = [
                 [
-                    "id" => 0001,
+                    "id" => 9901,
                     "condition" => "Final submit",
                     "values" => ["Yes", "No"],
                     "type" => "checkbox",
                     "keyboard_type" => null,
                 ],
                 [
-                    "id" => 0002,
+                    "id" => 9902,
                     "condition" => "Outcome",
                     "values" => ["Yes", "No"],
                     "type" => "checkbox",
@@ -1825,9 +1825,13 @@ class PatientsController extends Controller
                 if (!is_null($value)) {
                     // Apply the filtering logic for partial matching using LIKE
                     $patientsQuery->whereHas('answers', function ($query) use ($questionID, $value) {
+                        // Add double quotes around the value to match the stored value in the database
+                        $quotedValue = '"' . $value . '"';
+
                         $query->where('question_id', $questionID)
-                            ->where('answer', 'LIKE', '%' . $value . '%'); // Partial match using LIKE
+                            ->where('answer', $quotedValue); // Match the value with quotes
                     });
+
                 }
             }
 

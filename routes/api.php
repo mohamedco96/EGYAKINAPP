@@ -30,6 +30,7 @@ Route::get('/generatePDF/{patient_id}', 'PatientsController@generatePatientPDF')
 Route::get('/userPatient', 'AuthController@userPatient');
 
 Route::post('/send-notification', 'AuthController@sendPushNotificationTest');
+Route::post('/sendAllPushNotification', 'NotificationController@sendAllPushNotification');
 
 // Settings
 Route::get('/settings', 'SettingsController@index');
@@ -80,6 +81,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 //    Route::get('/generatePDF/{patient_id}', 'PatientsController@generatePatientPDF');
     Route::post('/uploadFile', 'PatientsController@uploadFile');
     Route::post('/uploadFileNew', 'PatientsController@uploadFileNew');
+    Route::get('/patientFilters', 'PatientsController@patientFilterConditions');
+    Route::post('/patientFilters', 'PatientsController@filteredPatients');
+
 
 
     // Questions

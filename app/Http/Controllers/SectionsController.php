@@ -231,14 +231,14 @@ class SectionsController extends Controller
             $sectionExists = Questions::where('section_id', $section_id)->exists();
             if (!$sectionExists) {
                 return response()->json([
-                    'value' => false,
-                    'message' => "Section not found",
-                ], 404);
+                    'value' => true,
+                    'data' => [],
+                ], 200);
             }
 
             // Fetch questions for the specified section
             $questions = Questions::where('section_id', $section_id)
-                ->orderBy('id')
+                ->orderBy('sort')
                 ->get();
 
             // Fetch all answers for the patient related to these questions
@@ -325,6 +325,7 @@ class SectionsController extends Controller
                 }])
                 ->first();
 
+
             // Prepare response based on section 8 or other sections
             if ($section_id == 8) {
                 if ($submitter && $submitter->doctor) {
@@ -332,8 +333,12 @@ class SectionsController extends Controller
                     $response = [
                         'value' => true,
                         'Submitter' => [
-                            'name' => $doctor->name . ' ' . $doctor->lname,
-                            'image' => $doctor->image,
+                            'id' => optional($submitter)->doctor_id,
+                            'name' => (optional($doctor)->name && optional($doctor)->lname)
+                                ? optional($doctor)->name . ' ' . optional($doctor)->lname
+                                : null,
+                            'image' => optional($doctor)->image,
+                            'syndicateCard' => optional($doctor)->isSyndicateCardRequired,
                         ],
                         'data' => $data,
                     ];

@@ -62,20 +62,18 @@ class ConsultationController extends Controller
         ];
 
 
-
-        // Create a new patient notification
+        $user = Auth::user();
         foreach ($doctors as $doctorId) {
             AppNotification::create([
                 'doctor_id' => $doctorId,
                 'type' => 'Consultation',
                 'type_id' => $consultation->id,
-                'content' => 'New consultation request was created',
+                'content' => 'Dr. '. $user->name .' is seeking your advice for his patient',
                 'type_doctor_id' => Auth::id(),
-//                'patient_id' => $request->patient_id
+                'patient_id' => $request->patient_id
             ]);
         }
 
-        $user = Auth::user();
         $title = 'New consultation request was created 📣';
         $body = 'Dr. '. $user->name .' is seeking your advice for his patient';
         $tokens = FcmToken::whereIn('doctor_id', $doctors)
@@ -317,23 +315,36 @@ class ConsultationController extends Controller
                     ->where('status', '!=', 'replied')
                     ->count() === 0;
 
+            // If all doctors have replied, mark the consultation as complete
             if ($allReplied) {
-                // Mark the consultation as complete if all doctors have replied
                 $consultation = $consultationDoctor->consultation;
                 $consultation->status = 'complete';
                 $consultation->save();
             }
 
             // Prepare notification details
-            $doctors = Consultation::where('id', $id)
-                ->pluck('doctor_id');
+            $doctorId = Consultation::where('id', $id)
+                ->value('doctor_id'); // Fetch only the doctor_id
+
+            // Create a new notification for the doctor who created the consultation request
+            AppNotification::create([
+                'doctor_id' => $doctorId,
+                'type' => 'Consultation',
+                'type_id' => $id,
+                'content' => 'Dr. ' . $user->name . ' has replied to your consultation request. 📩',
+                'type_doctor_id' => $user->id,
+                'patient_id' => $request->patient_id
+            ]);
+
+            // Prepare and send push notifications to relevant doctors
             $title = 'New Reply on Consultation Request 🔔';
             $body = 'Dr. ' . $user->name . ' has replied to your consultation request. 📩';
-            $tokens = FcmToken::whereIn('doctor_id', $doctors)
-                ->pluck('token')
+            $tokens = FcmToken::whereIn('doctor_id', [$doctorId]) // Wrap $doctorId in an array
+            ->pluck('token')
                 ->toArray();
 
-            // Send push notifications to relevant doctors
+
+            // Send push notifications
             $this->notificationController->sendPushNotification($title, $body, $tokens);
 
             // Return success response with detailed log
@@ -386,9 +397,15 @@ class ConsultationController extends Controller
     public function consultationSearch($data)
     {
         try {
+            // Retrieve the authenticated user
+            $user = Auth::user();
+            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
             // Retrieve Users
             $users = User::select('id', 'name', 'lname', 'email', 'phone', 'specialty', 'workingplace', 'image', 'syndicate_card', 'isSyndicateCardRequired')
-                ->where('id', '!=', Auth::id())
+//                ->where('id', '!=', Auth::id())
+                ->when(!$isAdminOrTester, function ($query) {
+                    return $query->where('id', '!=', Auth::id());
+                })
                 ->where(function ($query) use ($data) {
                     $query->where('name', 'like', '%' . $data . '%')
                         ->orWhere('email', 'like', '%' . $data . '%')

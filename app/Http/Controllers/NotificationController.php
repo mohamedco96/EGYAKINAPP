@@ -136,6 +136,52 @@ class NotificationController extends Controller
         }
     }
 
+    public function sendAllPushNotification(Request $request)
+    {
+        try {
+//            // Use input() or get() to retrieve request data
+//            $title = $request->input('title');
+//            $body = $request->input('body');
+
+            $title = "✨ EgyAkin v1.0.21 is Here!";
+            $body  = "🚀 Request consultations, track achievements, and enjoy a smoother experience.🔄 Update now for the latest features!";
+            // Retrieve all tokens from the fcm_tokens table
+            $tokens = FcmToken::pluck('token')->toArray();
+
+            if (empty($tokens)) {
+                Log::info('No FCM tokens found.');
+                return response()->json(['status' => 'No tokens found'], 404);
+            }
+
+            $notification = Notification::create($title, $body);
+
+            $messages = [];
+            foreach ($tokens as $token) {
+                $messages[] = CloudMessage::withTarget('token', $token)
+                    ->withNotification($notification);
+            }
+
+            // Send messages in bulk
+            $this->messaging->sendAll($messages);
+
+            Log::info('Message sent successfully to all tokens.', [
+                'title' => $title,
+                'body' => $body,
+                'tokens_count' => count($tokens),
+            ]);
+
+            return response()->json(['status' => 'Message sent successfully to all tokens'], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Exception occurred while sending message.', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTrace(),
+            ]);
+
+            return response()->json(['status' => 'Failed to send message. Please try again later.'], 500);
+        }
+    }
+
     /**
      * Store a newly created FCM token.
      *
@@ -276,11 +322,11 @@ class NotificationController extends Controller
 
                     $doctor = $notification->patient->doctor;
                     $doctorDetails = [
-                        'id' => $doctor->id,
-                        'name' => $doctor->name,
-                        'lname' => $doctor->lname,
-                        'workingplace' => $doctor->workingplace,
-                        'image' => $doctor->image
+                        'id' => optional($doctor)->id,
+                        'name' => optional($doctor)->name,
+                        'lname' => optional($doctor)->lname,
+                        'workingplace' => optional($doctor)->workingplace,
+                        'image' => optional($doctor)->image
                     ];
                 } else {
                     $name = $hospital = $governorate = null;
@@ -288,21 +334,48 @@ class NotificationController extends Controller
                     $doctorDetails = null;
                 }
 
-                // Set patient details or empty array if patient is null
+                // Set patient details or null if patient is null
                 $patientDetails = $notification->patient ? [
                     'id' => $notification->patient_id,
                     'name' => $name,
                     'hospital' => $hospital,
                     'governorate' => $governorate,
-                    'doctor_id' => $notification->patient->doctor->id,
+                    'doctor_id' => optional($notification->patient->doctor)->id,
                     'doctor' => $doctorDetails,
                     'sections' => [
                         'submit_status' => $submitStatus ?? false,
                         'outcome_status' => $outcomeStatus ?? false,
                     ]
-                ] : null;  // Return empty array if patient is null
+                ] : (object)[
+                    'id' => null,
+                    'name' => null,
+                    'hospital' => null,
+                    'governorate' => null,
+                    'doctor_id' => null,
+                    'doctor' => (object)[
+                        'id' => null,
+                        'name' => null,
+                        'lname' => null,
+                        'workingplace' => null,
+                        'image' => null,
+                        'isSyndicateCardRequired' => null
+                    ],
+                    'sections' => [
+                        'submit_status' => false,
+                        'outcome_status' => false
+                    ]
+                ];
 
-                $typeDoctor = User::select('id', 'name', 'lname', 'workingplace', 'image', 'isSyndicateCardRequired')->where('id', $notification->type_doctor_id)->first();
+                $typeDoctor = User::select('id', 'name', 'lname', 'workingplace', 'image', 'isSyndicateCardRequired')
+                        ->where('id', $notification->type_doctor_id)
+                        ->first() ?? (object) [
+                        'id' => null,
+                        'name' => null,
+                        'lname' => null,
+                        'workingplace' => null,
+                        'image' => null,
+                        'isSyndicateCardRequired' => null
+                    ];
 
                 return [
                     'id' => $notification->id,
@@ -318,7 +391,7 @@ class NotificationController extends Controller
                 ];
             });
 
-            // Fetch recent records (same as today records but with different date range)
+            // Fetch recent records (same as today's but for past records)
             $recentRecords = AppNotification::where('doctor_id', $doctorId)
                 ->whereDate('created_at', '<', $today)
                 ->with([
@@ -350,11 +423,11 @@ class NotificationController extends Controller
 
                     $doctor = $notification->patient->doctor;
                     $doctorDetails = [
-                        'id' => $doctor->id,
-                        'name' => $doctor->name,
-                        'lname' => $doctor->lname,
-                        'workingplace' => $doctor->workingplace,
-                        'image' => $doctor->image
+                        'id' => optional($doctor)->id,
+                        'name' => optional($doctor)->name,
+                        'lname' => optional($doctor)->lname,
+                        'workingplace' => optional($doctor)->workingplace,
+                        'image' => optional($doctor)->image
                     ];
                 } else {
                     $name = $hospital = $governorate = null;
@@ -362,21 +435,48 @@ class NotificationController extends Controller
                     $doctorDetails = null;
                 }
 
-                // Set patient details or empty array if patient is null
+                // Set patient details or null if patient is null
                 $patientDetails = $notification->patient ? [
                     'id' => $notification->patient_id,
                     'name' => $name,
                     'hospital' => $hospital,
                     'governorate' => $governorate,
-                    'doctor_id' => $notification->patient->doctor->id,
+                    'doctor_id' => optional($notification->patient->doctor)->id,
                     'doctor' => $doctorDetails,
                     'sections' => [
                         'submit_status' => $submitStatus ?? false,
                         'outcome_status' => $outcomeStatus ?? false,
                     ]
-                ] : null;  // Return empty array if patient is null
+                ] : (object)[
+                    'id' => null,
+                    'name' => null,
+                    'hospital' => null,
+                    'governorate' => null,
+                    'doctor_id' => null,
+                    'doctor' => (object)[
+                        'id' => null,
+                        'name' => null,
+                        'lname' => null,
+                        'workingplace' => null,
+                        'image' => null,
+                        'isSyndicateCardRequired' => null
+                    ],
+                    'sections' => [
+                        'submit_status' => false,
+                        'outcome_status' => false
+                    ]
+                ];
 
-                $typeDoctor = User::select('id', 'name', 'lname', 'workingplace', 'image', 'isSyndicateCardRequired')->where('id', $notification->type_doctor_id)->first();
+                $typeDoctor = User::select('id', 'name', 'lname', 'workingplace', 'image', 'isSyndicateCardRequired')
+                        ->where('id', $notification->type_doctor_id)
+                        ->first() ?? (object) [
+                        'id' => null,
+                        'name' => null,
+                        'lname' => null,
+                        'workingplace' => null,
+                        'image' => null,
+                        'isSyndicateCardRequired' => null
+                    ];
 
                 return [
                     'id' => $notification->id,

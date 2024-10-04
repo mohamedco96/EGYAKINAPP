@@ -20,6 +20,7 @@ use App\Models\Cause;
 use App\Models\Risk;
 use App\Models\Assessment;
 use App\Models\Examination;
+use Kreait\Firebase\Messaging\CloudMessage;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Validator;
@@ -270,13 +271,50 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        //auth()->user()->tokens()->delete();
-        $request->user()->currentAccessToken()->delete();
-        return [
-            'value' => true,
-            'message' => 'Logged out',
-        ];
+        try {
+            // Get the current authenticated user
+            $user = $request->user();
+
+            // Log the logout attempt
+            Log::info('User attempting to log out', ['doctor_id' => $user->id]);
+
+            // Remove the current access token for the user
+            $user->currentAccessToken()->delete();
+
+            // Remove all FCM tokens for the user
+            $fcmTokens = FcmToken::where('doctor_id', $user->id)->get();
+            if ($fcmTokens->isNotEmpty()) {
+                foreach ($fcmTokens as $fcmToken) {
+                    $fcmToken->delete();
+                }
+                Log::info('All FCM tokens deleted for user', ['doctor_id' => $user->id]);
+            } else {
+                Log::info('No FCM tokens found for user', ['doctor_id' => $user->id]);
+            }
+
+            // Log the successful logout
+            Log::info('User logged out successfully', ['doctor_id' => $user->id]);
+
+            return response()->json([
+                'value' => true,
+                'message' => 'Logged out successfully',
+            ], 200);
+
+        } catch (\Exception $e) {
+            // Log any exceptions that occur during logout
+            Log::error('Error occurred during logout', [
+                'doctor_id' => $user->id,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to log out. Please try again later.',
+            ], 500);
+        }
     }
+
 
     /**
      * Change the authenticated user's password.
@@ -380,6 +418,7 @@ class AuthController extends Controller
 
         $this->notificationController->sendPushNotification($title,$body,$tokens);
     }
+
 
     public function uploadSyndicateCard(Request $request)
     {

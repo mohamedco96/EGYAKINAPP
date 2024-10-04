@@ -21,6 +21,7 @@ use App\Models\Answers;
 use App\Models\AppNotification;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -28,6 +29,7 @@ use Illuminate\Support\Facades\Storage;
 use PDF;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\AchievementController;
+use function PHPUnit\Framework\assertNotTrue;
 
 
 class PatientsController extends Controller
@@ -205,6 +207,14 @@ class PatientsController extends Controller
                 $submit_status = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
                 $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
 
+                // Get doctor_id of the submitter from outcome status
+                $outcomeSubmitterDoctorId = optional($patient->status->where('key', 'outcome_status')->first())->doctor_id;
+
+                // Fetch the submitter's details using the doctor_id
+                $submitter = User::select('id', 'name', 'lname', 'isSyndicateCardRequired')
+                    ->where('id', $outcomeSubmitterDoctorId)
+                    ->first(); // Use first() instead of get() to retrieve a single record
+
                 return [
                     'id' => $patient->id,
                     'doctor_id' => $patient->doctor_id,
@@ -216,6 +226,12 @@ class PatientsController extends Controller
                         'patient_id' => $patient->id,
                         'submit_status' => $submit_status ?? false,
                         'outcome_status' => $outcomeStatus ?? false,
+                    ],
+                    'submitter' => [
+                        'submitter_id' => optional($submitter)->id,
+                        'submitter_fname' => (optional($submitter)->name) ? optional($submitter)->name : null,
+                        'submitter_lname' => (optional($submitter)->lname) ? optional($submitter)->lname : null,
+                        'submitter_SyndicateCard' => optional($submitter)->isSyndicateCardRequired
                     ]
                 ];
             };
@@ -528,11 +544,8 @@ class PatientsController extends Controller
             // Retrieve question IDs and their corresponding section IDs from the database
             $questionSectionIds = Questions::pluck('section_id', 'id')->toArray();
 
-            if ($isAdminOrTester){
-                $hidden = true;
-            }else{
-                $hidden = false;
-            }
+            // Set hidden based on user role
+            $hidden = $isAdminOrTester;
 
             // Create a new patient record
             $patient = Patients::create([
@@ -551,7 +564,7 @@ class PatientsController extends Controller
                     // Extract the question ID from the key
                     $questionId = (int)$key;
 
-                    // Retrieve the section ID for the question from $questionSectionIds array
+                    // Retrieve the section ID for the question
                     $sectionId = $questionSectionIds[$questionId] ?? null;
 
                     // Check if the question has already been processed
@@ -574,18 +587,23 @@ class PatientsController extends Controller
             Answers::insert($answersToSave);
 
             // Create patient status records
+            $now = Carbon::now();
             $patientStatusesToCreate[] = [
                 'doctor_id' => $doctor_id,
                 'patient_id' => $patient->id,
                 'key' => 'section_' . ($questionSectionIds[1] ?? null),
-                'status' => true
+                'status' => true,
+                'created_at' => $now,
+                'updated_at' => $now
             ];
 
             $patientStatusesToCreate[] = [
                 'doctor_id' => $doctor_id,
                 'patient_id' => $patient->id,
                 'key' => 'submit_status',
-                'status' => false
+                'status' => false,
+                'created_at' => $now,
+                'updated_at' => $now
             ];
 
             PatientStatus::insert($patientStatusesToCreate);
@@ -593,25 +611,13 @@ class PatientsController extends Controller
             // Logging successful patient creation
             Log::info('New patient created', ['doctor_id' => $doctor_id, 'patient_id' => $patient->id]);
 
-            // Notifying other doctors (assuming this is optimized elsewhere)
-
             // Retrieve patient name using the updatedAnswersToSave array
             $patientName = $this->retrievePatientName($answersToSave, $patient->id);
 
-            // Commit the transaction
+            // Commit the transaction before checking achievements
             DB::commit();
 
-            //test
-            $response = [
-                'value' => true,
-                'doctor_id' => $doctor_id,
-                'id' => $patient->id,
-                'name' => $patientName, // Remove additional quotes
-                'submit_status' => false,
-                'message' => 'Patient Created Successfully',
-            ];
-
-            // Retrieve all doctors with role 'admin' or 'tester' except the authenticated user
+            // Notifying other doctors
             $doctors = User::role(['Admin', 'Tester'])
                 ->where('id', '!=', Auth::id())
                 ->pluck('id'); // Get only the IDs of the users
@@ -632,9 +638,19 @@ class PatientsController extends Controller
                 ->pluck('token')
                 ->toArray();
 
-            $this->notificationController->sendPushNotification($title,$body,$tokens);
+            $this->notificationController->sendPushNotification($title, $body, $tokens);
 
+            // Check and assign achievements after creating the patient
             $this->achievement->checkAndAssignAchievements($user);
+
+            $response = [
+                'value' => true,
+                'doctor_id' => $doctor_id,
+                'id' => $patient->id,
+                'name' => $patientName,
+                'submit_status' => false,
+                'message' => 'Patient Created Successfully',
+            ];
 
             return response()->json($response, 200);
         } catch (\Exception $e) {
@@ -642,7 +658,7 @@ class PatientsController extends Controller
             DB::rollback();
 
             // Handle and log errors
-            Log::error("Error while storing patient: " . $e->getMessage());
+            Log::error("Error while storing patient: " . $e->getMessage(), ['request' => $request->all()]);
             return response()->json([
                 'value' => false,
                 'message' => 'Error: ' . $e->getMessage(),
@@ -856,7 +872,9 @@ class PatientsController extends Controller
             }
 
             $patientOutcomeStatus = PatientStatus::where('patient_id', $patient_id)
-                ->where('key', 'outcome_status')->first();
+                ->where('key', 'outcome_status')
+                ->where('status', true)
+                ->first();
 
             if (!$patientOutcomeStatus && $section_id == 8) {
                 PatientStatus::create([
@@ -1439,7 +1457,7 @@ class PatientsController extends Controller
                 ->latest('updated_at')
                 ->get();
 
-            // Retrieve patients
+// Retrieve patients
             $patients = Patients::select('id', 'doctor_id', 'updated_at')
                 ->where('hidden', false)
                 ->where(function ($query) use ($patientQuery) {
@@ -1452,7 +1470,7 @@ class PatientsController extends Controller
                 })
                 ->with([
                     'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired',
-                    'status:id,patient_id,key,status',
+                    'status:id,patient_id,key,status,doctor_id', // Add doctor_id in status
                     'answers:id,patient_id,answer,question_id'
                 ])
                 ->latest('updated_at')
@@ -1460,11 +1478,19 @@ class PatientsController extends Controller
 
             // Transform the patients data
             $transformedPatients = $patients->map(function ($patient) {
-                $submitStatus = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
-                $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
+                $submitStatus = optional($patient->status->where('key', 'submit_status')->first())->status;
+                $outcomeStatus = optional($patient->status->where('key', 'outcome_status')->first())->status;
 
                 $nameAnswer = optional($patient->answers->where('question_id', 1)->first())->answer;
                 $hospitalAnswer = optional($patient->answers->where('question_id', 2)->first())->answer;
+
+                // Get doctor_id of the submitter from outcome status
+                $outcomeSubmitterDoctorId = optional($patient->status->where('key', 'outcome_status')->first())->doctor_id;
+
+                // Fetch the submitter's details using the doctor_id
+                $submitter = User::select('id', 'name', 'lname', 'isSyndicateCardRequired')
+                    ->where('id', $outcomeSubmitterDoctorId)
+                    ->first(); // Use first() instead of get() to retrieve a single record
 
                 return [
                     'id' => $patient->id,
@@ -1477,9 +1503,15 @@ class PatientsController extends Controller
                         'patient_id' => $patient->id,
                         'submit_status' => $submitStatus ?? false,
                         'outcome_status' => $outcomeStatus ?? false,
+                        'submitter_id' => optional($submitter)->id,
+                        'submitter_name' => (optional($submitter)->name && optional($submitter)->lname)
+                            ? optional($submitter)->name . ' ' . optional($submitter)->lname
+                            : null,
+                        'submitter_SyndicateCard' => optional($submitter)->isSyndicateCardRequired
                     ]
                 ];
             });
+
 
             if (empty($patientQuery) && empty($doseQuery)) {
                 Log::info('No search term provided.');
@@ -1690,4 +1722,190 @@ class PatientsController extends Controller
         // Return the URL to download the PDF file
         return response()->json(['pdf_url' => $pdfUrl]);
     }
+
+    public function patientFilterConditions()
+    {
+        try {
+            // Fetch questions for the specified section IDs
+            $questions = Questions::whereIn('id', [1, 2, 4, 8, 168, 162, 26, 86, 156, 79, 82])
+                ->where('skip', false) // Directly filter out skipped questions
+                ->orderBy('id')
+                ->get();
+
+            // Check if no questions found
+            if ($questions->isEmpty()) {
+                // Log no questions found and return an appropriate response
+                Log::info("No questions found for the provided IDs.");
+                return response()->json([
+                    'value' => false,
+                    'message' => 'No questions found.',
+                ], 404);
+            }
+
+            // Initialize array to store question data
+            $data = [];
+
+            // Add dynamic questions from the database to the data array
+            foreach ($questions as $question) {
+                $questionData = [
+                    'id' => $question->id,
+                    'condition' => $question->question,
+                    'values' => $question->values,
+                    'type' => $question->type,
+                    'keyboard_type' => $question->keyboard_type,
+                ];
+
+                $data[] = $questionData;
+            }
+
+            // Add static values to the data array
+            $staticQuestions = [
+                [
+                    "id" => 9901,
+                    "condition" => "Final submit",
+                    "values" => ["Yes", "No"],
+                    "type" => "checkbox",
+                    "keyboard_type" => null,
+                ],
+                [
+                    "id" => 9902,
+                    "condition" => "Outcome",
+                    "values" => ["Yes", "No"],
+                    "type" => "checkbox",
+                    "keyboard_type" => null,
+                ]
+            ];
+
+            // Merge static questions with dynamic questions
+            $data = array_merge($data, $staticQuestions);
+
+            // Prepare the response with all the questions data
+            $response = [
+                'value' => true,
+                'data' => $data,
+            ];
+
+            // Log success message with question count
+            Log::info("Questions filter conditions retrieved successfully.", ['question_count' => count($data)]);
+
+            // Return successful response with the questions data
+            return response()->json($response, 200);
+
+        } catch (\Exception $e) {
+            // Log the exception with a detailed message
+            Log::error("Error while fetching questions filter conditions: " . $e->getMessage(), [
+                'exception' => $e
+            ]);
+
+            // Return error response with the exception message
+            return response()->json([
+                'value' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function filteredPatients(Request $request)
+    {
+        try {
+            // Extract the filter conditions sent from the frontend
+            $filters = $request->all(); // Get all question IDs and their corresponding values
+
+            // Initialize the query to retrieve patients
+            $patientsQuery = Patients::select('id', 'doctor_id', 'updated_at')
+                ->where('hidden', false);
+
+            // Loop through each question ID and its value
+            foreach ($filters as $questionID => $value) {
+                // Skip questions with IDs starting with '00'
+                if (str_starts_with((string)$questionID, '00')) {
+                    continue; // Skip this iteration if questionID starts with '00'
+                }
+
+                if (!is_null($value)) {
+                    // Handle question_id = 9901 for submit_status
+                    if ($questionID == 9901) {
+                        $patientsQuery->whereHas('status', function ($query) use ($value) {
+                            $booleanValue = ($value === 'Yes') ? true : false;
+                            $query->where('key', 'submit_status')
+                                ->where('status', $booleanValue);
+                        });
+                    }
+
+                    // Handle question_id = 9902 for outcome_status
+                    elseif ($questionID == 9902) {
+                        $patientsQuery->whereHas('status', function ($query) use ($value) {
+                            $booleanValue = ($value === 'Yes') ? true : false;
+                            $query->where('key', 'outcome_status')
+                                ->where('status', $booleanValue);
+                        });
+                    }
+
+                    // Handle all other questions by matching answers with quotes
+                    else {
+                        $patientsQuery->whereHas('answers', function ($query) use ($questionID, $value) {
+                            // Add double quotes around the value to match the stored value in the database
+                            $quotedValue = '"' . $value . '"';
+                            $query->where('question_id', $questionID)
+                                ->where('answer', $quotedValue); // Match the value with quotes
+                        });
+                    }
+                }
+            }
+
+            // Continue building the query with necessary relationships
+            $patients = $patientsQuery->with([
+                'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired',
+                'status:id,patient_id,key,status',
+                'answers:id,patient_id,answer,question_id'
+            ])
+                ->latest('updated_at')
+                ->get();
+
+            // Transform the patients data for the response
+            $transformedPatients = $patients->map(function ($patient) {
+                $submitStatus = optional($patient->status->where('key', 'submit_status')->first())->status;
+                $outcomeStatus = optional($patient->status->where('key', 'outcome_status')->first())->status;
+
+                $nameAnswer = optional($patient->answers->where('question_id', 1)->first())->answer;
+                $hospitalAnswer = optional($patient->answers->where('question_id', 2)->first())->answer;
+
+                return [
+                    'id' => $patient->id,
+                    'doctor_id' => $patient->doctor_id,
+                    'name' => $nameAnswer,
+                    'hospital' => $hospitalAnswer,
+                    'updated_at' => $patient->updated_at,
+                    'doctor' => $patient->doctor,
+                    'sections' => [
+                        'patient_id' => $patient->id,
+                        'submit_status' => $submitStatus ?? false,
+                        'outcome_status' => $outcomeStatus ?? false,
+                    ]
+                ];
+            });
+
+            // Log successful data retrieval
+            Log::info('Successfully retrieved filtered patients.', ['filter_count' => count($filters)]);
+
+            // Return successful response with transformed patient data
+            return response()->json([
+                'value' => true,
+                'data' => [
+                    'patients' => $transformedPatients,
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+            // Log error details
+            Log::error('Error retrieving filtered patients.', ['exception' => $e]);
+
+            // Return error response
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to retrieve filtered patients.',
+            ], 500);
+        }
+    }
+
 }

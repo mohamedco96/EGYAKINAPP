@@ -238,7 +238,7 @@ class SectionsController extends Controller
 
             // Fetch questions for the specified section
             $questions = Questions::where('section_id', $section_id)
-                ->orderBy('id')
+                ->orderBy('sort')
                 ->get();
 
             // Fetch all answers for the patient related to these questions

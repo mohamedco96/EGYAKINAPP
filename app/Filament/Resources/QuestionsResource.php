@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
@@ -119,10 +120,15 @@ class QuestionsResource extends Resource
                     ->sortable()
                     ->toggleable(),
 
-                Tables\Columns\TextColumn::make('sort')
-                    ->label('Sort Order')
-                    ->sortable()
-                    ->toggleable(),
+//                Tables\Columns\TextColumn::make('sort')
+//                    ->label('Sort Order')
+//                    ->sortable()
+//                    ->toggleable(),
+
+                TextInputColumn::make('sort') // Editable column
+                ->label('Sort Order')
+                    ->rules(['required', 'max:255']) // Add validation if needed
+                    ->placeholder('Enter a name...'),
 
                 Tables\Columns\TextColumn::make('values')
                     ->label('Values')

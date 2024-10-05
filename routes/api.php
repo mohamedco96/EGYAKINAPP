@@ -156,6 +156,39 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/achievements', 'AchievementController@createAchievement');
     Route::get('/achievements', 'AchievementController@listAchievements');
     Route::get('/users/{user}/achievements', 'AchievementController@getUserAchievements');
+
+
+//    New
+
+
+        // Feed Post Routes
+        //Route::get('feed/posts', 'FeedPostController@index');
+        Route::get('feed/posts', 'FeedPostController@getFeedPosts');
+        Route::post('feed/posts', 'FeedPostController@store');
+        Route::put('feed/posts/{id}', 'FeedPostController@update');
+        Route::delete('feed/posts/{id}', 'FeedPostController@destroy');
+
+        // Like and Unlike Routes
+        Route::post('feed/posts/{id}/like', 'FeedPostController@likePost');
+        Route::delete('feed/posts/{id}/unlike', 'FeedPostController@unlikePost');
+
+        // Save and Unsave Routes
+        Route::post('feed/posts/{id}/save', 'FeedPostController@savePost');
+        Route::delete('feed/posts/{id}/unsave', 'FeedPostController@unsavePost');
+
+        // Comment Routes
+        Route::post('feed/posts/{id}/comment', 'FeedPostController@addComment');
+        Route::delete('feed/comments/{id}', 'FeedPostController@deleteComment');
+
+        // Get post likes
+        Route::get('posts/{postId}/likes', 'FeedPostController@getPostLikes');
+
+        // Get post comments
+        Route::get('posts/{postId}/comments', 'FeedPostController@getPostComments');
+
+        // Get post by id
+        Route::get('feed/posts/{id}', 'FeedPostController@getPostById');
+
 });
 
 Route::fallback(function () {

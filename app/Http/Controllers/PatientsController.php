@@ -322,6 +322,51 @@ class PatientsController extends Controller
                 ->latest('updated_at')
                 ->get();
 
+            //Return patient Filter Conditions
+            // Fetch questions for the specified section IDs
+            $questions = Questions::whereIn('id', [1, 2, 4, 8, 168, 162, 26, 86, 156, 79, 82])
+                ->where('skip', false) // Directly filter out skipped questions
+                ->orderBy('id')
+                ->get();
+
+            // Initialize array to store question data
+            $data = [];
+
+            // Add dynamic questions from the database to the data array
+            foreach ($questions as $question) {
+                $questionData = [
+                    'id' => $question->id,
+                    'condition' => $question->question,
+                    'values' => $question->values,
+                    'type' => $question->type,
+                    'keyboard_type' => $question->keyboard_type,
+                ];
+
+                $data[] = $questionData;
+            }
+
+            // Add static values to the data array
+            $staticQuestions = [
+                [
+                    "id" => 9901,
+                    "condition" => "Final submit",
+                    "values" => ["Yes", "No"],
+                    "type" => "checkbox",
+                    "keyboard_type" => null,
+                ],
+                [
+                    "id" => 9902,
+                    "condition" => "Outcome",
+                    "values" => ["Yes", "No"],
+                    "type" => "checkbox",
+                    "keyboard_type" => null,
+                ]
+            ];
+
+            // Merge static questions with dynamic questions
+            $data = array_merge($data, $staticQuestions);
+
+
             // Transform the response
             $transformedPatients = $allPatients->map(function ($patient) {
                 $submitStatus = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
@@ -353,6 +398,7 @@ class PatientsController extends Controller
             // Prepare response data
             $response = [
                 'value' => true,
+                'filter' => $data,
                 'data' => $transformedPatientsPaginated,
             ];
 

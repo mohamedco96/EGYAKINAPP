@@ -176,10 +176,10 @@ class User extends Authenticatable
         return $this->hasOne(Outcome::class, 'doctor_id');
     }
 
-    public function likess()
-    {
-        return $this->hasMany(Likes::class);
-    }
+//    public function likess()
+//    {
+//        return $this->hasMany(Likes::class);
+//    }
 
     public function posts()
     {
@@ -199,5 +199,22 @@ class User extends Authenticatable
     public function PatientStatus(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(PatientStatus::class);
+    }
+
+
+//    New
+    public function feedPosts()
+    {
+        return $this->hasMany(FeedPost::class);
+    }
+
+    public function likes()
+    {
+        return $this->hasMany(FeedPostLike::class);
+    }
+
+    public function saves()
+    {
+        return $this->hasMany(FeedSaveLike::class);
     }
 }

@@ -156,6 +156,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/achievements', 'AchievementController@createAchievement');
     Route::get('/achievements', 'AchievementController@listAchievements');
     Route::get('/users/{user}/achievements', 'AchievementController@getUserAchievements');
+    Route::post('/checkAndAssignAchievementsForAllUsers', 'AchievementController@checkAndAssignAchievementsForAllUsers');
+
 
 
 //    New

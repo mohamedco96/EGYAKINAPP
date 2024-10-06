@@ -687,7 +687,7 @@ class PatientsController extends Controller
             $this->notificationController->sendPushNotification($title, $body, $tokens);
 
             // Check and assign achievements after creating the patient
-            $this->achievement->checkAndAssignAchievements($user);
+//            $this->achievement->checkAndAssignAchievements($user);
 
             $response = [
                 'value' => true,

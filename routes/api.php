@@ -41,6 +41,10 @@ Route::delete('/settings/{id}', 'SettingsController@destroy');
 
 // Protected routes
 Route::group(['middleware' => ['auth:sanctum']], function () {
+    //General
+    Route::post('/uploadImage', 'MainController@uploadImage');
+    Route::post('/uploadVideo', 'MainController@uploadVideo');
+
     // Users
     Route::get('/users', 'AuthController@index');
     Route::get('/users/{id}', 'AuthController@show');

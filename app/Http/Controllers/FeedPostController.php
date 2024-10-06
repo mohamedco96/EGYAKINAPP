@@ -9,9 +9,17 @@ use App\Models\FeedSaveLike;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\MainController;
 
 class FeedPostController extends Controller
 {
+    protected $mainController;
+
+    public function __construct(MainController $mainController)
+    {
+        $this->mainController = $mainController;
+    }
+
     // Fetch all feed posts with proper response structure and logging
     public function index()
     {
@@ -224,42 +232,66 @@ class FeedPostController extends Controller
     public function store(Request $request)
     {
         try {
+            // Validate the incoming request
             $validatedData = $request->validate([
                 'content' => 'required|string|max:1000',
-                'media_type' => 'nullable|string',
-                'media_path' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,mkv',
-                'visibility' => 'required|string|in:Public,Friends,Only Me',
+                'media_type' => 'nullable|string|in:image,video',
+                'media_path' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,mkv|max:20480',
+                'visibility' => 'nullable|string|in:Public,Friends,Only Me',
             ]);
 
-            if ($request->hasFile('media')) {
-                $path = $request->file('media')->store('media', 'public');
-                $validatedData['media_path'] = $path;
+            // Initialize mediaPath as null
+            $mediaPath = null;
+
+            // Check if media_path is provided and the file is valid
+            if ($request->hasFile('media_path')) {
+                $media = $request->file('media_path');
+                $path = ($validatedData['media_type'] === 'image') ? 'media_images' : 'media_videos';
+
+                // Call the upload function to store the media and get the media URL
+                $uploadResponse = $this->mainController->uploadImageAndVideo($media, $path);
+
+                // Check if the upload was successful
+                if ($uploadResponse->getData()->value) {
+                    $mediaPath = $uploadResponse->getData()->image;  // Store the URL of the uploaded media
+                } else {
+                    // Handle upload error
+                    return response()->json([
+                        'value' => false,
+                        'message' => 'Media upload failed.'
+                    ], 500);
+                }
             }
 
+            // Create a new feed post
             $post = FeedPost::create([
                 'doctor_id' => Auth::id(),
                 'content' => $validatedData['content'],
                 'media_type' => $validatedData['media_type'] ?? null,
-                'media_path' => $validatedData['media_path'] ?? null,
+                'media_path' => $mediaPath,  // Save the media URL
                 'visibility' => $validatedData['visibility'] ?? 'Public',
             ]);
 
+            // Log the post creation
             Log::info("Post created by doctor " . Auth::id());
+
+            // Return success response
             return response()->json([
                 'value' => true,
                 'data' => $post,
                 'message' => 'Post created successfully'
             ]);
         } catch (\Exception $e) {
+            // Log error
             Log::error("Error creating post: " . $e->getMessage());
+
+            // Return error response
             return response()->json([
                 'value' => false,
-                'data' => [],
                 'message' => 'An error occurred while creating the post'
             ], 500);
         }
     }
-
     // Delete a post
     public function destroy($id)
     {

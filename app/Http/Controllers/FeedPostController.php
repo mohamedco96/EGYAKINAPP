@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\FeedPost;
 use App\Models\FeedPostComment;
+use App\Models\FeedPostCommentLike;
 use App\Models\FeedPostLike;
 use App\Models\FeedSaveLike;
 use Illuminate\Http\Request;
@@ -199,8 +200,24 @@ class FeedPostController extends Controller
     public function getPostComments($postId)
     {
         try {
+            // Get the comments with like and reply counts, including nested replies
             $comments = FeedPostComment::where('feed_post_id', $postId)
-                ->with(['doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired'])
+                ->whereNull('parent_id')  // Get only top-level comments
+                ->with([
+                    'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',  // Include doctor's details
+                    'replies' => function($query) {
+                        // For each reply, include doctor, likes, and recursively load nested replies
+                        $query->with([
+                            'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                            'likes',
+                            'replies' => function($query) {  // Nested replies
+                                $query->withCount(['likes as likes_count', 'replies as replies_count']);
+                            }
+                        ])->withCount(['likes as likes_count', 'replies as replies_count']);
+                    },
+                    'likes'  // Include likes for the top-level comment
+                ])
+                ->withCount(['likes as likes_count', 'replies as replies_count'])  // Count likes and replies for each comment
                 ->paginate(10);
 
             if ($comments->isEmpty()) {
@@ -520,12 +537,14 @@ class FeedPostController extends Controller
         try {
             $validatedData = $request->validate([
                 'comment' => 'required|string|max:500',
+                'parent_id' => 'nullable|exists:feed_post_comments,id',  // Validate parent_id if provided
             ]);
 
             $comment = FeedPostComment::create([
                 'feed_post_id' => $postId,
                 'doctor_id' => Auth::id(),
                 'comment' => $validatedData['comment'],
+                'parent_id' => $validatedData['parent_id'] ?? null,  // Set parent_id if it's a reply
             ]);
 
             Log::info("Comment added to post ID $postId by doctor " . Auth::id());
@@ -535,12 +554,6 @@ class FeedPostController extends Controller
                 'data' => $comment,
                 'message' => 'Comment added successfully'
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            Log::warning("Post ID $postId not found for comment");
-            return response()->json([
-                'value' => false,
-                'message' => 'Post not found'
-            ], 404);
         } catch (\Exception $e) {
             Log::error("Error adding comment to post ID $postId: " . $e->getMessage());
             return response()->json([
@@ -585,4 +598,62 @@ class FeedPostController extends Controller
             ], 500);
         }
     }
+
+    public function likeComment($commentId)
+    {
+        try {
+            $comment = FeedPostComment::findOrFail($commentId);
+
+            $like = FeedPostCommentLike::firstOrCreate([
+                'post_comment_id' => $commentId,
+                'doctor_id' => Auth::id(),
+            ]);
+
+            Log::info("Comment ID $commentId liked by doctor " . Auth::id());
+
+            return response()->json([
+                'value' => true,
+                'data' => $like,
+                'message' => 'Comment liked successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error liking comment ID $commentId: " . $e->getMessage());
+            return response()->json([
+                'value' => false,
+                'message' => 'An error occurred while liking the comment'
+            ], 500);
+        }
+    }
+
+    public function unlikeComment($commentId)
+    {
+        try {
+            $like = FeedPostCommentLike::where('comment_id', $commentId)
+                ->where('doctor_id', Auth::id())
+                ->first();
+
+            if ($like) {
+                $like->delete();
+                Log::info("Comment ID $commentId unliked by doctor " . Auth::id());
+
+                return response()->json([
+                    'value' => true,
+                    'message' => 'Comment unliked successfully'
+                ]);
+            }
+
+            Log::warning("Like not found for comment ID $commentId");
+            return response()->json([
+                'value' => false,
+                'message' => 'Like not found'
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error("Error unliking comment ID $commentId: " . $e->getMessage());
+            return response()->json([
+                'value' => false,
+                'message' => 'An error occurred while unliking the comment'
+            ], 500);
+        }
+    }
+
 }

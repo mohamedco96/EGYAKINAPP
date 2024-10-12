@@ -195,6 +195,16 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
         // Get post by id
         Route::get('feed/posts/{id}', 'FeedPostController@getPostById');
 
+        // Add comment or reply
+        Route::post('posts/{postId}/comments', 'FeedPostController@addComment');
+        // Fetch comments
+        Route::get('posts/{postId}/comments', 'FeedPostController@getPostComments');
+        // Like comment
+        Route::post('comments/{commentId}/like', 'FeedPostController@likeComment');
+        // Unlike comment
+        Route::delete('comments/{commentId}/unlike', 'FeedPostController@unlikeComment');
+
+
 });
 
 Route::fallback(function () {

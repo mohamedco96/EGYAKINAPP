@@ -84,19 +84,30 @@ class FeedPostController extends Controller
         try {
             $doctorId = auth()->id(); // Get the authenticated doctor's ID
 
+            // Fetch posts with necessary relationships and counts
             $feedPosts = FeedPost::with(['doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired'])
-                ->withCount(['likes', 'comments'])
+                ->withCount(['likes', 'comments'])  // Count likes and comments
                 ->with([
                     'saves' => function ($query) use ($doctorId) {
-                        $query->where('doctor_id', $doctorId); // Check if post is saved by the doctor
+                        $query->where('doctor_id', $doctorId); // Check if the post is saved by the doctor
+                    },
+                    'likes' => function ($query) use ($doctorId) {
+                        $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
                     }
                 ])
                 ->paginate(10); // Paginate 10 posts per page
 
-            // Add 'is_saved' field to each post
+            // Add 'is_saved' and 'is_liked' fields to each post
             $feedPosts->getCollection()->transform(function ($post) use ($doctorId) {
-                $post->is_saved = $post->saves->isNotEmpty();
-                unset($post->saves); // Remove unnecessary data
+                // Add 'is_saved' field (true if the doctor saved the post)
+                $post->isSaved = $post->saves->isNotEmpty();
+
+                // Add 'is_liked' field (true if the doctor liked the post)
+                $post->isLiked = $post->likes->isNotEmpty();
+
+                // Remove unnecessary data to clean up the response
+                unset($post->saves, $post->likes);
+
                 return $post;
             });
 

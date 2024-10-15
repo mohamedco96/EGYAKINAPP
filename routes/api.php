@@ -174,13 +174,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
         Route::put('feed/posts/{id}', 'FeedPostController@update');
         Route::delete('feed/posts/{id}', 'FeedPostController@destroy');
 
-        // Like and Unlike Routes
-        Route::post('feed/posts/{id}/like', 'FeedPostController@likePost');
-        Route::delete('feed/posts/{id}/unlike', 'FeedPostController@unlikePost');
+        // Like and Unlike Route
+        Route::post('feed/posts/{id}/likeOrUnlikePost', 'FeedPostController@likeOrUnlikePost');
 
-        // Save and Unsave Routes
-        Route::post('feed/posts/{id}/save', 'FeedPostController@savePost');
-        Route::delete('feed/posts/{id}/unsave', 'FeedPostController@unsavePost');
+        // Save and Unsave Route
+        Route::post('feed/posts/{id}/saveOrUnsavePost', 'FeedPostController@saveOrUnsavePost');
 
         // Comment Routes
         Route::post('feed/posts/{id}/comment', 'FeedPostController@addComment');
@@ -197,13 +195,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
         // Add comment or reply
         Route::post('posts/{postId}/comments', 'FeedPostController@addComment');
-        // Fetch comments
-        Route::get('posts/{postId}/comments', 'FeedPostController@getPostComments');
-        // Like comment
-        Route::post('comments/{commentId}/like', 'FeedPostController@likeComment');
-        // Unlike comment
-        Route::delete('comments/{commentId}/unlike', 'FeedPostController@unlikeComment');
 
+        // likeOrUnlikeComment
+        Route::post('comments/{commentId}/likeOrUnlikeComment', 'FeedPostController@likeOrUnlikeComment');
 
 });
 

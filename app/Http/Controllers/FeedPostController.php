@@ -370,6 +370,7 @@ class FeedPostController extends Controller
             ], 500);
         }
     }
+
     // Delete a post
     public function destroy($id)
     {
@@ -530,7 +531,6 @@ class FeedPostController extends Controller
         }
     }
 
-
     public function saveOrUnsavePost(Request $request, $postId)
     {
         try {
@@ -606,7 +606,6 @@ class FeedPostController extends Controller
             ], 500);
         }
     }
-
 
     // Add a comment to a post
     public function addComment(Request $request, $postId)
@@ -754,6 +753,5 @@ class FeedPostController extends Controller
             ], 500);
         }
     }
-
 
 }

@@ -31,4 +31,9 @@ class FeedPost extends Model
     {
         return $this->hasMany(FeedSaveLike::class);
     }
+
+    public function hashtags()
+    {
+        return $this->belongsToMany(Hashtag::class, 'post_hashtags','post_id');
+    }
 }

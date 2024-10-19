@@ -199,6 +199,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
         // likeOrUnlikeComment
         Route::post('comments/{commentId}/likeOrUnlikeComment', 'FeedPostController@likeOrUnlikeComment');
 
+        Route::get('/feed/trendingPosts', 'FeedPostController@trending');
+
+
 });
 
 Route::fallback(function () {

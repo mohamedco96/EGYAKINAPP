@@ -9,8 +9,10 @@ use App\Models\FeedPostLike;
 use App\Models\FeedSaveLike;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\MainController;
+use App\Models\Hashtag;
 
 class FeedPostController extends Controller
 {
@@ -19,6 +21,13 @@ class FeedPostController extends Controller
     public function __construct(MainController $mainController)
     {
         $this->mainController = $mainController;
+    }
+
+    // Helper function to extract hashtags from post content
+    public function extractHashtags($content)
+    {
+        preg_match_all('/#(\w+)/', $content, $matches);
+        return $matches[1]; // Return an array of hashtags
     }
 
     // Fetch all feed posts with proper response structure and logging
@@ -183,7 +192,7 @@ class FeedPostController extends Controller
         }
     }
 
-// Get likes for a post
+    // Get likes for a post
     public function getPostLikes($postId)
     {
         try {
@@ -220,7 +229,6 @@ class FeedPostController extends Controller
             ], 500);
         }
     }
-
 
     // Get comments for a post
     public function getPostComments($postId)
@@ -309,6 +317,7 @@ class FeedPostController extends Controller
     // Create a new post
     public function store(Request $request)
     {
+        DB::beginTransaction();  // Start a transaction
         try {
             // Validate the incoming request
             $validatedData = $request->validate([
@@ -350,6 +359,31 @@ class FeedPostController extends Controller
                 'visibility' => $validatedData['visibility'] ?? 'Public',
             ]);
 
+            // Ensure that the post creation is successful before proceeding
+            if (!$post) {
+                throw new \Exception('Post creation failed');
+            }
+
+            // Extract hashtags from content
+            $hashtags = $this->extractHashtags($request->input('content'));
+
+            foreach ($hashtags as $tag) {
+                // Check if the hashtag already exists
+                $hashtag = Hashtag::firstOrCreate(
+                    ['tag' => $tag],
+                    ['usage_count' => 0]
+                );
+
+                // Increment usage count
+                $hashtag->increment('usage_count');
+
+                // Attach the hashtag to the post
+                $post->hashtags()->attach($hashtag->id);  // Ensure post is successfully saved before this
+            }
+
+            // Commit the transaction
+            DB::commit();
+
             // Log the post creation
             Log::info("Post created by doctor " . Auth::id());
 
@@ -360,6 +394,9 @@ class FeedPostController extends Controller
                 'message' => 'Post created successfully'
             ]);
         } catch (\Exception $e) {
+            // Rollback transaction if an error occurs
+            DB::rollBack();
+
             // Log error
             Log::error("Error creating post: " . $e->getMessage());
 
@@ -754,4 +791,13 @@ class FeedPostController extends Controller
         }
     }
 
+
+    public function trending()
+    {
+        // Query the hashtags sorted by usage count, limit to top 10
+        $trendingHashtags = Hashtag::orderBy('usage_count', 'desc')->paginate(10);
+
+
+        return response()->json($trendingHashtags);
+    }
 }

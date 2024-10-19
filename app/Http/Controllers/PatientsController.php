@@ -1854,21 +1854,25 @@ class PatientsController extends Controller
     public function filteredPatients(Request $request)
     {
         try {
-            // Extract the filter conditions sent from the frontend
-            $filters = $request->all(); // Get all question IDs and their corresponding values
+            // Define all pagination-related parameters that should be excluded from filters
+            $paginationParams = ['page', 'per_page', 'sort', 'direction', 'offset', 'limit'];
 
-            // Get the pagination parameter, with a default of 15 items per page
+            // Extract pagination parameters with defaults
             $perPage = $request->input('per_page', 10);
+            $page = $request->input('page', 1);
+
+            // Get all filter conditions excluding pagination-related parameters
+            $filters = collect($request->except($paginationParams));
 
             // Initialize the query to retrieve patients
             $patientsQuery = Patients::select('id', 'doctor_id', 'updated_at')
                 ->where('hidden', false);
 
             // Loop through each question ID and its value
-            foreach ($filters as $questionID => $value) {
+            $filters->each(function ($value, $questionID) use ($patientsQuery) {
                 // Skip questions with IDs starting with '00'
                 if (str_starts_with((string)$questionID, '00')) {
-                    continue; // Skip this iteration if questionID starts with '00'
+                    return; // Skip this iteration if questionID starts with '00'
                 }
 
                 if (!is_null($value)) {
@@ -1900,7 +1904,7 @@ class PatientsController extends Controller
                         });
                     }
                 }
-            }
+            });
 
             // Continue building the query with necessary relationships
             $patients = $patientsQuery->with([
@@ -1909,7 +1913,7 @@ class PatientsController extends Controller
                 'answers:id,patient_id,answer,question_id'
             ])
                 ->latest('updated_at')
-                ->paginate($perPage); // Add pagination here
+                ->paginate($perPage, ['*'], 'page', $page); // Add pagination here with explicit page and perPage
 
             // Transform the patients data for the response
             $transformedPatients = $patients->map(function ($patient) {
@@ -1935,7 +1939,7 @@ class PatientsController extends Controller
             });
 
             // Log successful data retrieval
-            Log::info('Successfully retrieved filtered patients.', ['filter_count' => count($filters)]);
+            Log::info('Successfully retrieved filtered patients.', ['filter_count' => $filters->count()]);
 
             // Return successful response with transformed patient data and pagination details
             return response()->json([

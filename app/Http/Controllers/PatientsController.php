@@ -652,6 +652,15 @@ class PatientsController extends Controller
                 'updated_at' => $now
             ];
 
+            $patientStatusesToCreate[] = [
+                'doctor_id' => $doctor_id,
+                'patient_id' => $patient->id,
+                'key' => 'outcome_status',
+                'status' => false,
+                'created_at' => $now,
+                'updated_at' => $now
+            ];
+
             PatientStatus::insert($patientStatusesToCreate);
 
             // Logging successful patient creation

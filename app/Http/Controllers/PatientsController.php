@@ -928,10 +928,17 @@ class PatientsController extends Controller
 
             $patientOutcomeStatus = PatientStatus::where('patient_id', $patient_id)
                 ->where('key', 'outcome_status')
-                ->where('status', true)
                 ->first();
 
-            if (!$patientOutcomeStatus && $section_id == 8) {
+            if ($patientOutcomeStatus) {
+                // If the outcome status exists and is false, update it
+                if ($patientOutcomeStatus->status === false) {
+                    $patientOutcomeStatus->status = true;
+                    $patientOutcomeStatus->doctor_id = $doctor_id;
+                    $patientOutcomeStatus->save();
+                }
+            } elseif ($section_id == 8) {
+                // If the outcome status is not found, create a new record
                 PatientStatus::create([
                     'doctor_id' => $doctor_id,
                     'patient_id' => $patient_id,
@@ -969,6 +976,7 @@ class PatientsController extends Controller
                     'timestamp' => now(),
                 ]);
             }
+
 
             // Logging successful patient creation
             Log::info('Section_' . $section_id . 'updated successfully', ['doctor_id' => $doctor_id, 'patient_id' => $patient_id]);

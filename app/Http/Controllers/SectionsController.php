@@ -182,7 +182,7 @@ class SectionsController extends Controller
                     'updated_at' => now(),
                 ]);
 
-            $this->checkAndAssignAchievements($user);
+//            $this->checkAndAssignAchievements($user);
 
             // Return success response
             $response = [
@@ -202,21 +202,21 @@ class SectionsController extends Controller
     }
 
 
-    public function checkAndAssignAchievements(User $user)
-    {
-        $userScore = $user->score->score;
-        $achievements = Achievement::all();
-
-        foreach ($achievements as $achievement) {
-            $existingAchievement = $user->achievements()->where('achievement_id', $achievement->id)->first();
-            if (!$existingAchievement) {
-                $achieved = $userScore >= $achievement->score;
-                $user->achievements()->attach($achievement->id, ['achieved' => $achieved]);
-            } elseif ($existingAchievement->pivot->achieved == false && $userScore >= $achievement->score) {
-                $user->achievements()->updateExistingPivot($achievement->id, ['achieved' => true]);
-            }
-        }
-    }
+//    public function checkAndAssignAchievements(User $user)
+//    {
+//        $userScore = $user->score->score;
+//        $achievements = Achievement::all();
+//
+//        foreach ($achievements as $achievement) {
+//            $existingAchievement = $user->achievements()->where('achievement_id', $achievement->id)->first();
+//            if (!$existingAchievement) {
+//                $achieved = $userScore >= $achievement->score;
+//                $user->achievements()->attach($achievement->id, ['achieved' => $achieved]);
+//            } elseif ($existingAchievement->pivot->achieved == false && $userScore >= $achievement->score) {
+//                $user->achievements()->updateExistingPivot($achievement->id, ['achieved' => true]);
+//            }
+//        }
+//    }
     /**
      * Show questions and answers for a specific section and patient.
      *

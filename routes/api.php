@@ -41,6 +41,10 @@ Route::delete('/settings/{id}', 'SettingsController@destroy');
 
 // Protected routes
 Route::group(['middleware' => ['auth:sanctum']], function () {
+    //General
+    Route::post('/uploadImage', 'MainController@uploadImage');
+    Route::post('/uploadVideo', 'MainController@uploadVideo');
+
     // Users
     Route::get('/users', 'AuthController@index');
     Route::get('/users/{id}', 'AuthController@show');
@@ -170,13 +174,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
         Route::put('feed/posts/{id}', 'FeedPostController@update');
         Route::delete('feed/posts/{id}', 'FeedPostController@destroy');
 
-        // Like and Unlike Routes
-        Route::post('feed/posts/{id}/like', 'FeedPostController@likePost');
-        Route::delete('feed/posts/{id}/unlike', 'FeedPostController@unlikePost');
+        // Like and Unlike Route
+        Route::post('feed/posts/{id}/likeOrUnlikePost', 'FeedPostController@likeOrUnlikePost');
 
-        // Save and Unsave Routes
-        Route::post('feed/posts/{id}/save', 'FeedPostController@savePost');
-        Route::delete('feed/posts/{id}/unsave', 'FeedPostController@unsavePost');
+        // Save and Unsave Route
+        Route::post('feed/posts/{id}/saveOrUnsavePost', 'FeedPostController@saveOrUnsavePost');
 
         // Comment Routes
         Route::post('feed/posts/{id}/comment', 'FeedPostController@addComment');
@@ -190,6 +192,15 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
         // Get post by id
         Route::get('feed/posts/{id}', 'FeedPostController@getPostById');
+
+        // Add comment or reply
+        Route::post('posts/{postId}/comments', 'FeedPostController@addComment');
+
+        // likeOrUnlikeComment
+        Route::post('comments/{commentId}/likeOrUnlikeComment', 'FeedPostController@likeOrUnlikeComment');
+
+        Route::get('/feed/trendingPosts', 'FeedPostController@trending');
+
 
 });
 

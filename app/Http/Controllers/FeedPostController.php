@@ -4,14 +4,32 @@ namespace App\Http\Controllers;
 
 use App\Models\FeedPost;
 use App\Models\FeedPostComment;
+use App\Models\FeedPostCommentLike;
 use App\Models\FeedPostLike;
 use App\Models\FeedSaveLike;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\MainController;
+use App\Models\Hashtag;
 
 class FeedPostController extends Controller
 {
+    protected $mainController;
+
+    public function __construct(MainController $mainController)
+    {
+        $this->mainController = $mainController;
+    }
+
+    // Helper function to extract hashtags from post content
+    public function extractHashtags($content)
+    {
+        preg_match_all('/#(\w+)/', $content, $matches);
+        return $matches[1]; // Return an array of hashtags
+    }
+
     // Fetch all feed posts with proper response structure and logging
     public function index()
     {
@@ -75,19 +93,30 @@ class FeedPostController extends Controller
         try {
             $doctorId = auth()->id(); // Get the authenticated doctor's ID
 
+            // Fetch posts with necessary relationships and counts
             $feedPosts = FeedPost::with(['doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired'])
-                ->withCount(['likes', 'comments'])
+                ->withCount(['likes', 'comments'])  // Count likes and comments
                 ->with([
                     'saves' => function ($query) use ($doctorId) {
-                        $query->where('doctor_id', $doctorId); // Check if post is saved by the doctor
+                        $query->where('doctor_id', $doctorId); // Check if the post is saved by the doctor
+                    },
+                    'likes' => function ($query) use ($doctorId) {
+                        $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
                     }
                 ])
                 ->paginate(10); // Paginate 10 posts per page
 
-            // Add 'is_saved' field to each post
+            // Add 'is_saved' and 'is_liked' fields to each post
             $feedPosts->getCollection()->transform(function ($post) use ($doctorId) {
-                $post->is_saved = $post->saves->isNotEmpty();
-                unset($post->saves); // Remove unnecessary data
+                // Add 'is_saved' field (true if the doctor saved the post)
+                $post->isSaved = $post->saves->isNotEmpty();
+
+                // Add 'is_liked' field (true if the doctor liked the post)
+                $post->isLiked = $post->likes->isNotEmpty();
+
+                // Remove unnecessary data to clean up the response
+                unset($post->saves, $post->likes);
+
                 return $post;
             });
 
@@ -123,12 +152,21 @@ class FeedPostController extends Controller
             ])->withCount(['likes', 'comments'])
                 ->with([
                     'saves' => function ($query) use ($doctorId) {
-                        $query->where('doctor_id', $doctorId); // Check if post is saved
+                        $query->where('doctor_id', $doctorId); // Check if the post is saved by the doctor
+                    },
+                    'likes' => function ($query) use ($doctorId) {
+                        $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
                     }
-                ])->findOrFail($id);
+                ])
+                ->findOrFail($id);
 
-            $post->is_saved = $post->saves->isNotEmpty();
-            unset($post->saves);
+            $post->isSaved = $post->saves->isNotEmpty();
+
+            // Add 'is_liked' field (true if the doctor liked the post)
+            $post->isLiked = $post->likes->isNotEmpty();
+
+            // Remove unnecessary data to clean up the response
+            unset($post->saves, $post->likes);
 
             Log::info("Post ID $id retrieved successfully for doctor ID $doctorId");
 
@@ -165,16 +203,21 @@ class FeedPostController extends Controller
             if ($likes->isEmpty()) {
                 Log::info("No likes found for post ID $postId");
                 return response()->json([
-                    'value' => true,
+                    'value' => false,
                     'data' => [],
                     'message' => 'No likes found for this post'
                 ]);
             }
 
+            // Transform the likes collection to return only the doctor data
+            $doctorData = $likes->map(function($like) {
+                return $like->doctor;  // Returning only the doctor object
+            });
+
             Log::info("Likes retrieved for post ID $postId");
             return response()->json([
                 'value' => true,
-                'data' => $likes,
+                'data' => $doctorData,
                 'message' => 'Post likes retrieved successfully'
             ]);
         } catch (\Exception $e) {
@@ -191,9 +234,60 @@ class FeedPostController extends Controller
     public function getPostComments($postId)
     {
         try {
+            $doctorId = auth()->id();
+
+            // Get the comments with like and reply counts, including nested replies
             $comments = FeedPostComment::where('feed_post_id', $postId)
-                ->with(['doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired'])
+                ->whereNull('parent_id')  // Get only top-level comments
+                ->with([
+                    'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',  // Include doctor's details
+                    'replies' => function($query) use ($doctorId) {
+                        // For each reply, include doctor, likes, and recursively load nested replies
+                        $query->with([
+                            'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                            'likes' => function ($query) use ($doctorId) {
+                                $query->where('doctor_id', $doctorId);  // Check if reply is liked by the doctor
+                            },
+                            'replies' => function($query) use ($doctorId) {  // Nested replies
+                                $query->withCount(['likes as likes_count', 'replies as replies_count'])
+                                    ->with([
+                                        'likes' => function ($query) use ($doctorId) {
+                                            $query->where('doctor_id', $doctorId);  // Check if nested reply is liked by the doctor
+                                        }
+                                    ]);
+                            }
+                        ])->withCount(['likes as likes_count', 'replies as replies_count']);
+                    },
+                    'likes' => function ($query) use ($doctorId) {
+                        $query->where('doctor_id', $doctorId);  // Check if the comment is liked by the doctor
+                    }
+                ])
+                ->withCount(['likes as likes_count', 'replies as replies_count'])  // Count likes and replies for each comment
                 ->paginate(10);
+
+            // Add 'isLiked' for comments and replies
+            foreach ($comments as $comment) {
+                $comment->isLiked = $comment->likes->isNotEmpty();  // Check if the current doctor liked the comment
+
+                // Process replies to add 'isLiked'
+                foreach ($comment->replies as $reply) {
+                    $reply->isLiked = $reply->likes->isNotEmpty();  // Check if the current doctor liked the reply
+
+                    // Process nested replies (if any)
+                    foreach ($reply->replies as $nestedReply) {
+                        $nestedReply->isLiked = $nestedReply->likes->isNotEmpty();  // Check if the doctor liked the nested reply
+                    }
+                }
+
+                // Optionally remove the 'likes' relation to clean up the response
+                unset($comment->likes);
+                foreach ($comment->replies as $reply) {
+                    unset($reply->likes);
+                    foreach ($reply->replies as $nestedReply) {
+                        unset($nestedReply->likes);
+                    }
+                }
+            }
 
             if ($comments->isEmpty()) {
                 Log::info("No comments found for post ID $postId");
@@ -223,38 +317,92 @@ class FeedPostController extends Controller
     // Create a new post
     public function store(Request $request)
     {
+        DB::beginTransaction();  // Start a transaction
         try {
+            // Validate the incoming request
             $validatedData = $request->validate([
                 'content' => 'required|string|max:1000',
-                'media_type' => 'nullable|string',
-                'media_path' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,mkv',
-                'visibility' => 'required|string|in:Public,Friends,Only Me',
+                'media_type' => 'nullable|string|in:image,video',
+                'media_path' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,mkv|max:20480',
+                'visibility' => 'nullable|string|in:Public,Friends,Only Me',
             ]);
 
-            if ($request->hasFile('media')) {
-                $path = $request->file('media')->store('media', 'public');
-                $validatedData['media_path'] = $path;
+            // Initialize mediaPath as null
+            $mediaPath = null;
+
+            // Check if media_path is provided and the file is valid
+            if ($request->hasFile('media_path')) {
+                $media = $request->file('media_path');
+                $path = ($validatedData['media_type'] === 'image') ? 'media_images' : 'media_videos';
+
+                // Call the upload function to store the media and get the media URL
+                $uploadResponse = $this->mainController->uploadImageAndVideo($media, $path);
+
+                // Check if the upload was successful
+                if ($uploadResponse->getData()->value) {
+                    $mediaPath = $uploadResponse->getData()->image;  // Store the URL of the uploaded media
+                } else {
+                    // Handle upload error
+                    return response()->json([
+                        'value' => false,
+                        'message' => 'Media upload failed.'
+                    ], 500);
+                }
             }
 
+            // Create a new feed post
             $post = FeedPost::create([
                 'doctor_id' => Auth::id(),
                 'content' => $validatedData['content'],
                 'media_type' => $validatedData['media_type'] ?? null,
-                'media_path' => $validatedData['media_path'] ?? null,
+                'media_path' => $mediaPath,  // Save the media URL
                 'visibility' => $validatedData['visibility'] ?? 'Public',
             ]);
 
+            // Ensure that the post creation is successful before proceeding
+            if (!$post) {
+                throw new \Exception('Post creation failed');
+            }
+
+            // Extract hashtags from content
+            $hashtags = $this->extractHashtags($request->input('content'));
+
+            foreach ($hashtags as $tag) {
+                // Check if the hashtag already exists
+                $hashtag = Hashtag::firstOrCreate(
+                    ['tag' => $tag],
+                    ['usage_count' => 0]
+                );
+
+                // Increment usage count
+                $hashtag->increment('usage_count');
+
+                // Attach the hashtag to the post
+                $post->hashtags()->attach($hashtag->id);  // Ensure post is successfully saved before this
+            }
+
+            // Commit the transaction
+            DB::commit();
+
+            // Log the post creation
             Log::info("Post created by doctor " . Auth::id());
+
+            // Return success response
             return response()->json([
                 'value' => true,
                 'data' => $post,
                 'message' => 'Post created successfully'
             ]);
         } catch (\Exception $e) {
+            // Rollback transaction if an error occurs
+            DB::rollBack();
+
+            // Log error
             Log::error("Error creating post: " . $e->getMessage());
+
+            // Return error response
             return response()->json([
                 'value' => false,
-                'data' => [],
                 'message' => 'An error occurred while creating the post'
             ], 500);
         }
@@ -344,140 +492,154 @@ class FeedPostController extends Controller
         }
     }
 
-    // Like a post
-    public function likePost($postId)
+    public function likeOrUnlikePost(Request $request, $postId)
     {
         try {
+            $doctor_id = Auth::id();
+            $status = $request->input('status'); // 'like' or 'unlike'
+
+            // Check if the post exists
             $post = FeedPost::findOrFail($postId);
 
-            $like = FeedPostLike::firstOrCreate([
-                'feed_post_id' => $postId,
-                'doctor_id' => Auth::id(),
-            ]);
-
-            Log::info("Post ID $postId liked by doctor " . Auth::id());
-
-            return response()->json([
-                'value' => true,
-                'data' => $like,
-                'message' => 'Post liked successfully'
-            ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            Log::warning("Post ID $postId not found for like");
-            return response()->json([
-                'value' => false,
-                'message' => 'Post not found'
-            ], 404);
-        } catch (\Exception $e) {
-            Log::error("Error liking post ID $postId: " . $e->getMessage());
-            return response()->json([
-                'value' => false,
-                'message' => 'An error occurred while liking the post'
-            ], 500);
-        }
-    }
-
-    // Unlike a post
-    public function unlikePost($postId)
-    {
-        try {
-            $post = FeedPost::findOrFail($postId);
-
+            // Find if the like already exists
             $like = FeedPostLike::where('feed_post_id', $postId)
-                ->where('doctor_id', Auth::id())
+                ->where('doctor_id', $doctor_id)
                 ->first();
 
-            if ($like) {
-                $like->delete();
-                Log::info("Post ID $postId unliked by doctor " . Auth::id());
+            // Handle Like
+            if ($status === 'like') {
+                if ($like) {
+                    Log::warning("Post already liked PostID: $postId UserID: $doctor_id");
+                    return response()->json([
+                        'value' => false,
+                        'message' => 'Post already liked'
+                    ], 400);
+                }
 
+                // Create a new like entry
+                $newLike = FeedPostLike::create([
+                    'feed_post_id' => $postId,
+                    'doctor_id' => $doctor_id,
+                ]);
+
+                Log::info("Post ID $postId liked by doctor " . $doctor_id);
                 return response()->json([
                     'value' => true,
-                    'message' => 'Post unliked successfully'
+                    'data' => $newLike,
+                    'message' => 'Post liked successfully'
                 ]);
+
+                // Handle Unlike
+            } elseif ($status === 'unlike') {
+                if ($like) {
+                    $like->delete();
+                    Log::info("Post ID $postId unliked by doctor " . $doctor_id);
+                    return response()->json([
+                        'value' => true,
+                        'message' => 'Post unliked successfully'
+                    ]);
+                }
+
+                Log::warning("Like not found for post ID $postId");
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Like not found'
+                ], 404);
+            } else {
+                Log::warning("Invalid status for post like/unlike: $status");
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Invalid status. Use "like" or "unlike".'
+                ], 400);
             }
 
-            Log::warning("Like not found for post ID $postId");
-            return response()->json([
-                'value' => false,
-                'message' => 'Like not found'
-            ], 404);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            Log::warning("Post ID $postId not found for unlike");
+            Log::warning("Post ID $postId not found for like/unlike");
             return response()->json([
                 'value' => false,
                 'message' => 'Post not found'
             ], 404);
         } catch (\Exception $e) {
-            Log::error("Error unliking post ID $postId: " . $e->getMessage());
+            Log::error("Error processing like/unlike for post ID $postId: " . $e->getMessage());
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while unliking the post'
+                'message' => 'An error occurred while processing the request'
             ], 500);
         }
     }
 
-    // Save a post
-    public function savePost($postId)
+    public function saveOrUnsavePost(Request $request, $postId)
     {
         try {
+            $doctor_id = Auth::id();
+            $status = $request->input('status'); // 'save' or 'unsave'
+
+            // Check if the post exists
             $post = FeedPost::findOrFail($postId);
 
-            $save = FeedSaveLike::firstOrCreate([
-                'feed_post_id' => $postId,
-                'doctor_id' => Auth::id(),
-            ]);
+            // Find if the post is already saved
+            $save = FeedSaveLike::where('feed_post_id', $postId)
+                ->where('doctor_id', $doctor_id)
+                ->first();
 
-            Log::info("Post ID $postId saved by doctor " . Auth::id());
+            // Handle Save
+            if ($status === 'save') {
+                if ($save) {
+                    Log::warning("Post already saved PostID: $postId UserID: $doctor_id");
+                    return response()->json([
+                        'value' => false,
+                        'message' => 'Post already saved'
+                    ], 400);
+                }
 
-            return response()->json([
-                'value' => true,
-                'data' => $save,
-                'message' => 'Post saved successfully'
-            ]);
+                // Create a new save entry
+                $newSave = FeedSaveLike::create([
+                    'feed_post_id' => $postId,
+                    'doctor_id' => $doctor_id,
+                ]);
+
+                Log::info("Post ID $postId saved by doctor " . $doctor_id);
+                return response()->json([
+                    'value' => true,
+                    'data' => $newSave,
+                    'message' => 'Post saved successfully'
+                ]);
+
+                // Handle Unsave
+            } elseif ($status === 'unsave') {
+                if ($save) {
+                    $save->delete();
+                    Log::info("Post ID $postId unsaved by doctor " . $doctor_id);
+                    return response()->json([
+                        'value' => true,
+                        'message' => 'Post unsaved successfully'
+                    ]);
+                }
+
+                Log::warning("Save not found for post ID $postId");
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Save not found'
+                ], 404);
+            } else {
+                Log::warning("Invalid status for post save/unsave: $status");
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Invalid status. Use "save" or "unsave".'
+                ], 400);
+            }
+
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            Log::warning("Post ID $postId not found for save");
+            Log::warning("Post ID $postId not found for save/unsave");
             return response()->json([
                 'value' => false,
                 'message' => 'Post not found'
             ], 404);
         } catch (\Exception $e) {
-            Log::error("Error saving post ID $postId: " . $e->getMessage());
+            Log::error("Error processing save/unsave for post ID $postId: " . $e->getMessage());
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while saving the post'
-            ], 500);
-        }
-    }
-
-    // Remove saved post
-    public function unsavePost($postId)
-    {
-        try {
-            $save = FeedSaveLike::where('feed_post_id', $postId)
-                ->where('doctor_id', Auth::id())
-                ->first();
-
-            if ($save) {
-                $save->delete();
-                Log::info("Post ID $postId unsaved by doctor " . Auth::id());
-
-                return response()->json([
-                    'value' => true,
-                    'message' => 'Post unsaved successfully'
-                ]);
-            }
-
-            Log::warning("Save not found for post ID $postId");
-            return response()->json([
-                'value' => false,
-                'message' => 'Save not found'
-            ], 404);
-        } catch (\Exception $e) {
-            Log::error("Error unsaving post ID $postId: " . $e->getMessage());
-            return response()->json([
-                'value' => false,
-                'message' => 'An error occurred while unsaving the post'
+                'message' => 'An error occurred while processing the request'
             ], 500);
         }
     }
@@ -488,12 +650,14 @@ class FeedPostController extends Controller
         try {
             $validatedData = $request->validate([
                 'comment' => 'required|string|max:500',
+                'parent_id' => 'nullable|exists:feed_post_comments,id',  // Validate parent_id if provided
             ]);
 
             $comment = FeedPostComment::create([
                 'feed_post_id' => $postId,
                 'doctor_id' => Auth::id(),
                 'comment' => $validatedData['comment'],
+                'parent_id' => $validatedData['parent_id'] ?? null,  // Set parent_id if it's a reply
             ]);
 
             Log::info("Comment added to post ID $postId by doctor " . Auth::id());
@@ -503,12 +667,6 @@ class FeedPostController extends Controller
                 'data' => $comment,
                 'message' => 'Comment added successfully'
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            Log::warning("Post ID $postId not found for comment");
-            return response()->json([
-                'value' => false,
-                'message' => 'Post not found'
-            ], 404);
         } catch (\Exception $e) {
             Log::error("Error adding comment to post ID $postId: " . $e->getMessage());
             return response()->json([
@@ -552,5 +710,94 @@ class FeedPostController extends Controller
                 'message' => 'An error occurred while deleting the comment'
             ], 500);
         }
+    }
+
+    public function likeOrUnlikeComment(Request $request, $commentId)
+    {
+        try {
+            $doctor_id = Auth::id();
+            $status = $request->input('status'); // 'like' or 'unlike'
+
+            // Find if the comment exists
+            $comment = FeedPostComment::find($commentId);  // use find instead of findOrFail
+
+            if (!$comment) {
+                Log::error("No comment was found with ID: $commentId");
+                return response()->json([
+                    'value' => false,
+                    'message' => 'No comment was found with ID: '.$commentId
+                ], 404);
+            }
+
+            // Find if the comment is already liked
+            $like = FeedPostCommentLike::where('post_comment_id', $commentId)
+                ->where('doctor_id', $doctor_id)
+                ->first();
+
+            // Handle Like
+            if ($status === 'like') {
+                if ($like) {
+                    Log::warning("Comment already liked CommentID: $commentId UserID: $doctor_id");
+                    return response()->json([
+                        'value' => false,
+                        'message' => 'Comment already liked'
+                    ], 400);
+                }
+
+                // Create a new like entry
+                $newLike = FeedPostCommentLike::create([
+                    'post_comment_id' => $commentId,
+                    'doctor_id' => $doctor_id,
+                ]);
+
+                Log::info("Comment ID $commentId liked by doctor $doctor_id");
+                return response()->json([
+                    'value' => true,
+                    'data' => $newLike,
+                    'message' => 'Comment liked successfully'
+                ]);
+
+                // Handle Unlike
+            } elseif ($status === 'unlike') {
+                if ($like) {
+                    $like->delete();
+                    Log::info("Comment ID $commentId unliked by doctor $doctor_id");
+                    return response()->json([
+                        'value' => true,
+                        'message' => 'Comment unliked successfully'
+                    ]);
+                }
+
+                Log::warning("Like not found for comment ID $commentId");
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Like not found'
+                ], 404);
+
+            } else {
+                Log::warning("Invalid status for comment like/unlike: $status");
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Invalid status. Use "like" or "unlike".'
+                ], 400);
+            }
+
+        } catch (\Exception $e) {
+            Log::error("Error processing like/unlike for comment ID $commentId: " . $e->getMessage());
+            return response()->json([
+                'value' => false,
+                'message' => 'An error occurred while processing the request'
+            ], 500);
+        }
+    }
+
+
+    public function trending()
+    {
+        // Query the hashtags sorted by usage count, limit to top 10
+        $trendingHashtags = Hashtag::orderBy('usage_count', 'desc')->paginate(10);
+
+
+        return response()->json($trendingHashtags);
     }
 }

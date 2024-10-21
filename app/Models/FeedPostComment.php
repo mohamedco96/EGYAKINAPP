@@ -9,7 +9,9 @@ class FeedPostComment extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['feed_post_id', 'doctor_id', 'comment'];
+    protected $fillable = [
+        'feed_post_id', 'doctor_id', 'comment', 'parent_id'
+    ];
 
     public function post()
     {
@@ -19,6 +21,18 @@ class FeedPostComment extends Model
     public function doctor()
     {
         return $this->belongsTo(User::class, 'doctor_id');
+    }
+
+    // Relationship to get child comments
+    public function replies()
+    {
+        return $this->hasMany(FeedPostComment::class, 'parent_id')->with('replies'); // Recursive relation for nested comments
+    }
+
+    // Relationship to get likes for comments
+    public function likes()
+    {
+        return $this->hasMany(FeedPostCommentLike::class, 'post_comment_id');
     }
 
 }

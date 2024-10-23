@@ -930,7 +930,7 @@ class PatientsController extends Controller
                 ->where('key', 'outcome_status')
                 ->first();
 
-            if ($patientOutcomeStatus) {
+            if ($patientOutcomeStatus && $section_id == 8) {
                 // If the outcome status exists and is false, update it
                 if ($patientOutcomeStatus->status === false) {
                     $patientOutcomeStatus->status = true;

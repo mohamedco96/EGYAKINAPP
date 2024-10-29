@@ -1,3 +1,4 @@
+<?php
 /**
  * GroupController handles the management of groups including creation, updating, deletion,
  * member management, and fetching group details.
@@ -20,7 +21,6 @@
  * - fetchMyGroups(): Fetch groups owned by the authenticated user.
  * - fetchAllGroups(): Fetch all groups.
  */
-<?php
 
 namespace App\Http\Controllers;
 

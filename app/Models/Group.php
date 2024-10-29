@@ -29,6 +29,6 @@ class Group extends Model
     // Define relation with Post
     public function posts()
     {
-        return $this->hasMany(Post::class);
+        return $this->hasMany(FeedPost::class);
     }
 }

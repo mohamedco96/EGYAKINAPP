@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\MainController;
 use App\Models\Hashtag;
+use App\Models\Group;
+
 
 class FeedPostController extends Controller
 {
@@ -328,14 +330,14 @@ class FeedPostController extends Controller
                 'group_id' => 'nullable|exists:groups,id'
             ]);
 
-            $group = Group::find($validated['group_id']);
-            if ($group) {
-                if ($group->privacy == 'private' && !$group->members->contains(Auth::id())) {
-                    return response()->json(['error' => 'You cannot post in this private group'], 403);
-                }
+            // $group = Group::find($validatedData['group_id']);
+            // if ($group) {
+            //     if ($group->privacy == 'private' && !$group->members->contains(Auth::id())) {
+            //         return response()->json(['error' => 'You cannot post in this private group'], 403);
+            //     }
         
-                $validated['group_name'] = $group->name;
-            }
+            //     $validatedData['group_name'] = $group->name;
+            // }
 
             // Initialize mediaPath as null
             $mediaPath = null;
@@ -367,6 +369,7 @@ class FeedPostController extends Controller
                 'media_type' => $validatedData['media_type'] ?? null,
                 'media_path' => $mediaPath,  // Save the media URL
                 'visibility' => $validatedData['visibility'] ?? 'Public',
+                'group_id' => $validatedData['group_id'] ?? null,
             ]);
 
             // Ensure that the post creation is successful before proceeding

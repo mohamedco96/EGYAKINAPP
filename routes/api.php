@@ -375,6 +375,18 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
         Route::post('/groups/{groupId}/invite', 'GroupController@inviteMember');
         Route::post('/groups/{groupId}/invitation', 'GroupController@handleInvitation');
         Route::get('/groups/{id}', 'GroupController@show');
+        Route::post('/groups/{groupId}/removeMember', 'GroupController@removeMember');
+        Route::post('/groups/{groupId}/searchMembers', 'GroupController@searchMembers');
+        Route::get('/groups/{groupId}/members', 'GroupController@fetchMembers');
+        Route::get('/groups/{groupId}/detailsWithPosts', 'GroupController@fetchGroupDetailsWithPosts');
+        // Join and Leave Group Routes
+        Route::post('/groups/{groupId}/join', 'GroupController@joinGroup');
+        Route::post('/groups/{groupId}/leave', 'GroupController@leaveGroup');
+        // Fetch My Groups
+        Route::get('/mygroups', 'GroupController@fetchMyGroups');
+
+        // Fetch All Groups
+        Route::get('/groups', 'GroupController@fetchAllGroups');
 });
 
 Route::fallback(function () {

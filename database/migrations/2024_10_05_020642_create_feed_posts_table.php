@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('media_type')->nullable(); // 'image', 'video', etc.
             $table->string('media_path')->nullable(); // Path to the uploaded media file
             $table->enum('visibility', ['Public', 'Friends', 'Only Me'])->default('Public');
-            $table->foreignId('group_id')->constrained('groups')->onDelete('cascade');
+            $table->foreignId('group_id')->constrained('groups')->onDelete('cascade')->nullable();
             $table->timestamps();
         });
     }

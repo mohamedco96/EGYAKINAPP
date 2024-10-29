@@ -325,7 +325,17 @@ class FeedPostController extends Controller
                 'media_type' => 'nullable|string|in:image,video',
                 'media_path' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,mkv|max:20480',
                 'visibility' => 'nullable|string|in:Public,Friends,Only Me',
+                'group_id' => 'nullable|exists:groups,id'
             ]);
+
+            $group = Group::find($validated['group_id']);
+            if ($group) {
+                if ($group->privacy == 'private' && !$group->members->contains(Auth::id())) {
+                    return response()->json(['error' => 'You cannot post in this private group'], 403);
+                }
+        
+                $validated['group_name'] = $group->name;
+            }
 
             // Initialize mediaPath as null
             $mediaPath = null;

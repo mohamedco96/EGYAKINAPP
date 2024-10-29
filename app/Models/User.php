@@ -217,4 +217,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(FeedSaveLike::class);
     }
+
+    public function groups()
+{
+    return $this->belongsToMany(Group::class, 'group_user', 'doctor_id', 'group_id')
+                ->withTimestamps();
+}
 }

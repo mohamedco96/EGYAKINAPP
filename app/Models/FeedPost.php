@@ -9,7 +9,7 @@ class FeedPost extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['doctor_id', 'content', 'media_type', 'media_path', 'visibility'];
+    protected $fillable = ['doctor_id', 'content', 'media_type', 'media_path', 'visibility', 'group_id'];
 
     public function doctor()
     {
@@ -35,5 +35,10 @@ class FeedPost extends Model
     public function hashtags()
     {
         return $this->belongsToMany(Hashtag::class, 'post_hashtags','post_id');
+    }
+
+    public function group()
+    {
+        return $this->belongsTo(Group::class);
     }
 }

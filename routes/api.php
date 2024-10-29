@@ -369,7 +369,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
         Route::get('/feed/trendingPosts', 'FeedPostController@trending');
 
-
+        Route::post('/groups', 'GroupController@create');
+        Route::post('/groups/{id}', 'GroupController@update');
+        Route::delete('/groups/{id}', 'GroupController@delete');
+        Route::post('/groups/{groupId}/invite', 'GroupController@inviteMember');
+        Route::post('/groups/{groupId}/invitation', 'GroupController@handleInvitation');
+        Route::get('/groups/{id}', 'GroupController@show');
 });
 
 Route::fallback(function () {

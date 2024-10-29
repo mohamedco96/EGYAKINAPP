@@ -1,3 +1,25 @@
+/**
+ * GroupController handles the management of groups including creation, updating, deletion,
+ * member management, and fetching group details.
+ * 
+ * Methods:
+ * - __construct(MainController $mainController): Initialize the controller with a MainController instance.
+ * - authorizeOwner(Group $group): Authorize the owner of the group.
+ * - create(Request $request): Create a new group.
+ * - update(Request $request, int $id): Update an existing group.
+ * - delete(int $id): Delete a group.
+ * - inviteMember(Request $request, int $groupId): Invite a member to the group.
+ * - handleInvitation(Request $request, int $groupId): Accept or decline a group invitation.
+ * - show(int $id): Get group details, including members and privacy settings.
+ * - removeMember(Request $request, int $groupId): Remove a member from the group.
+ * - searchMembers(Request $request, int $groupId): Search for members in a group.
+ * - fetchMembers(int $groupId): Fetch community members.
+ * - fetchGroupDetailsWithPosts(int $groupId): Fetch group details along with posts.
+ * - joinGroup(int $groupId): Join a group.
+ * - leaveGroup(int $groupId): Leave a group.
+ * - fetchMyGroups(): Fetch groups owned by the authenticated user.
+ * - fetchAllGroups(): Fetch all groups.
+ */
 <?php
 
 namespace App\Http\Controllers;
@@ -17,6 +39,23 @@ class GroupController extends Controller
     public function __construct(MainController $mainController)
     {
         $this->mainController = $mainController;
+    }
+
+        /**
+     * Authorize the owner of the group.
+     * 
+     * @param \App\Models\Group $group
+     * @throws \App\Exceptions\UnauthorizedException
+     */
+    protected function authorizeOwner(Group $group)
+    {
+        if (Auth::id() !== $group->owner_id) {
+            Log::warning('Unauthorized action attempt', [
+                'user_id' => Auth::id(),
+                'group_id' => $group->id
+            ]);
+            throw new UnauthorizedException('Unauthorized');
+        }
     }
 
     /**
@@ -112,16 +151,8 @@ class GroupController extends Controller
         $group = Group::findOrFail($id);
 
         // Check if the authenticated user is the group owner
-        if (Auth::id() !== $group->owner_id) {
-            Log::warning('Unauthorized group update attempt', [
-                'doctor_id' => Auth::id(),
-                'group_id' => $id
-            ]);
-            return response()->json([
-                'value' => false,
-                'message' => 'Unauthorized'
-            ], 403);
-        }
+        $this->authorizeOwner($group);
+
 
         // Validate the incoming request data
         $validated = $request->validate([
@@ -206,16 +237,8 @@ class GroupController extends Controller
         $group = Group::findOrFail($id);
 
         // Check if the authenticated user is the group owner
-        if (Auth::id() !== $group->owner_id) {
-            Log::warning('Unauthorized group deletion attempt', [
-                'doctor_id' => Auth::id(),
-                'group_id' => $id
-            ]);
-            return response()->json([
-                'value' => false,
-                'message' => 'Unauthorized'
-            ], 403);
-        }
+        $this->authorizeOwner($group);
+
 
         // Delete the group
         $group->delete();
@@ -251,16 +274,8 @@ class GroupController extends Controller
         $group = Group::findOrFail($groupId);
 
         // Check if the authenticated user is the group owner
-        if (Auth::id() !== $group->owner_id) {
-            Log::warning('Unauthorized group invite attempt', [
-                'doctor_id' => Auth::id(),
-                'group_id' => $groupId
-            ]);
-            return response()->json([
-                'value' => false,
-                'message' => 'Unauthorized'
-            ], 403);
-        }
+        $this->authorizeOwner($group);
+
 
         // Invite the user to the group (attach the user to the group members with status "invited")
         $group->doctors()->attach($validated['doctor_id'], ['status' => 'invited']);
@@ -359,16 +374,8 @@ class GroupController extends Controller
         $group = Group::findOrFail($groupId);
 
         // Check if the authenticated user is the group owner
-        if (Auth::id() !== $group->owner_id) {
-            Log::warning('Unauthorized group member removal attempt', [
-                'doctor_id' => Auth::id(),
-                'group_id' => $groupId
-            ]);
-            return response()->json([
-                'value' => false,
-                'message' => 'Unauthorized'
-            ], 403);
-        }
+        $this->authorizeOwner($group);
+
 
         // Check if the member exists in the group
         if (!$group->doctors()->where('doctor_id', $doctorId)->exists()) {

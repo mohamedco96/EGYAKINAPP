@@ -813,4 +813,45 @@ class FeedPostController extends Controller
 
         return response()->json($trendingHashtags);
     }
+
+    // Search for hashtags
+    public function searchHashtags(Request $request)
+    {
+        $query = $request->input('query');
+
+        if (!$query) {
+            return response()->json([
+                'value' => false,
+                'data' => [],
+                'message' => 'Query parameter is required'
+            ], 400);
+        }
+
+        try {
+            $hashtags = Hashtag::where('tag', 'LIKE', '%' . $query . '%')->paginate(10);
+
+            if ($hashtags->isEmpty()) {
+                Log::info("No hashtags found for query: $query");
+                return response()->json([
+                    'value' => true,
+                    'data' => [],
+                    'message' => 'No hashtags found'
+                ]);
+            }
+
+            Log::info("Hashtags retrieved for query: $query");
+            return response()->json([
+                'value' => true,
+                'data' => $hashtags,
+                'message' => 'Hashtags retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error searching hashtags for query $query: " . $e->getMessage());
+            return response()->json([
+                'value' => false,
+                'data' => [],
+                'message' => 'An error occurred while searching for hashtags'
+            ], 500);
+        }
+    }
 }

@@ -13,6 +13,6 @@ class Hashtag extends Model
 
     public function posts()
     {
-        return $this->belongsToMany(FeedPost::class, 'post_hashtags');
+        return $this->belongsToMany(FeedPost::class, 'post_hashtags', 'hashtag_id', 'post_id');
     }
 }

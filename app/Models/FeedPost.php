@@ -34,7 +34,7 @@ class FeedPost extends Model
 
     public function hashtags()
     {
-        return $this->belongsToMany(Hashtag::class, 'post_hashtags','post_id');
+        return $this->belongsToMany(Hashtag::class, 'post_hashtags', 'post_id', 'hashtag_id');
     }
 
     public function group()

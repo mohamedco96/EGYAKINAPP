@@ -212,14 +212,23 @@ class FeedPostController extends Controller
             }
 
             // Transform the likes collection to return only the doctor data
-            $doctorData = $likes->map(function($like) {
+            $doctorData = $likes->getCollection()->map(function($like) {
                 return $like->doctor;  // Returning only the doctor object
             });
+
+            // Paginate the doctor data
+            $paginatedDoctorData = new \Illuminate\Pagination\LengthAwarePaginator(
+                $doctorData,
+                $likes->total(),
+                $likes->perPage(),
+                $likes->currentPage(),
+                ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath()]
+            );
 
             Log::info("Likes retrieved for post ID $postId");
             return response()->json([
                 'value' => true,
-                'data' => $doctorData,
+                'data' => $paginatedDoctorData,
                 'message' => 'Post likes retrieved successfully'
             ]);
         } catch (\Exception $e) {
@@ -431,7 +440,6 @@ class FeedPostController extends Controller
                 Log::warning("Unauthorized deletion attempt by doctor " . Auth::id());
                 return response()->json([
                     'value' => false,
-                    'data' => [],
                     'message' => 'Unauthorized action'
                 ], 403);
             }
@@ -441,21 +449,18 @@ class FeedPostController extends Controller
             Log::info("Post ID $id deleted by doctor " . Auth::id());
             return response()->json([
                 'value' => true,
-                'data' => [],
                 'message' => 'Post deleted successfully'
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::warning("Post ID $id not found for deletion");
             return response()->json([
                 'value' => false,
-                'data' => [],
                 'message' => 'Post not found'
             ], 404);
         } catch (\Exception $e) {
             Log::error("Error deleting post ID $id: " . $e->getMessage());
             return response()->json([
                 'value' => false,
-                'data' => [],
                 'message' => 'An error occurred while deleting the post'
             ], 500);
         }
@@ -854,4 +859,137 @@ class FeedPostController extends Controller
             ], 500);
         }
     }
+    
+    // Get posts by hashtag
+    public function getPostsByHashtag($hashtagId)
+    {
+        try {
+            // Find the hashtag by ID
+            $hashtag = Hashtag::find($hashtagId);
+
+            if (!$hashtag) {
+                Log::info("No posts found for hashtag ID: $hashtagId");
+                return response()->json([
+                    'value' => true,
+                    'data' => [],
+                    'message' => 'No posts found for this hashtag'
+                ]);
+            }
+
+            $doctorId = auth()->id(); // Get the authenticated doctor's ID
+
+            // Fetch posts with necessary relationships and counts
+            $posts = $hashtag->posts()
+                ->with(['doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired'])
+                ->withCount(['likes', 'comments'])  // Count likes and comments
+                ->with([
+                    'saves' => function ($query) use ($doctorId) {
+                        $query->where('doctor_id', $doctorId); // Check if the post is saved by the doctor
+                    },
+                    'likes' => function ($query) use ($doctorId) {
+                        $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
+                    }
+                ])
+                ->paginate(10); // Paginate 10 posts per page
+
+            // Add 'is_saved' and 'is_liked' fields to each post
+            $posts->getCollection()->transform(function ($post) use ($doctorId) {
+                // Add 'is_saved' field (true if the doctor saved the post)
+                $post->isSaved = $post->saves->isNotEmpty();
+
+                // Add 'is_liked' field (true if the doctor liked the post)
+                $post->isLiked = $post->likes->isNotEmpty();
+
+                // Remove unnecessary data to clean up the response
+                unset($post->saves, $post->likes);
+
+                return $post;
+            });
+
+            Log::info("Posts retrieved for hashtag ID: $hashtagId by doctor ID: $doctorId");
+            return response()->json([
+                'value' => true,
+                'data' => $posts,
+                'message' => 'Posts retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error fetching posts for hashtag ID $hashtagId: " . $e->getMessage());
+            return response()->json([
+                'value' => false,
+                'data' => [],
+                'message' => 'An error occurred while retrieving posts'
+            ], 500);
+        }
+    }
+
+    // Search for posts
+    public function searchPosts(Request $request)
+    {
+        $query = $request->input('query');
+
+        if (!$query) {
+            return response()->json([
+                'value' => false,
+                'data' => [],
+                'message' => 'Query parameter is required'
+            ], 400);
+        }
+
+        try {
+            $doctorId = auth()->id(); // Get the authenticated doctor's ID
+
+            // Search posts by content
+            $posts = FeedPost::where('content', 'LIKE', '%' . $query . '%')
+                ->with(['doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired'])
+                ->withCount(['likes', 'comments'])  // Count likes and comments
+                ->with([
+                    'saves' => function ($query) use ($doctorId) {
+                        $query->where('doctor_id', $doctorId); // Check if the post is saved by the doctor
+                    },
+                    'likes' => function ($query) use ($doctorId) {
+                        $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
+                    }
+                ])
+                ->paginate(10); // Paginate 10 posts per page
+
+            // Add 'is_saved' and 'is_liked' fields to each post
+            $posts->getCollection()->transform(function ($post) use ($doctorId) {
+                // Add 'is_saved' field (true if the doctor saved the post)
+                $post->isSaved = $post->saves->isNotEmpty();
+
+                // Add 'is_liked' field (true if the doctor liked the post)
+                $post->isLiked = $post->likes->isNotEmpty();
+
+                // Remove unnecessary data to clean up the response
+                unset($post->saves, $post->likes);
+
+                return $post;
+            });
+
+            if ($posts->isEmpty()) {
+                Log::info("No posts found for query: $query");
+                return response()->json([
+                    'value' => true,
+                    'data' => [],
+                    'message' => 'No posts found'
+                ]);
+            }
+
+            Log::info("Posts retrieved for query: $query");
+            return response()->json([
+                'value' => true,
+                'data' => $posts,
+                'message' => 'Posts retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error searching posts for query $query: " . $e->getMessage());
+            return response()->json([
+                'value' => false,
+                'data' => [],
+                'message' => 'An error occurred while searching for posts'
+            ], 500);
+        }
+    }
+    
+    
 }

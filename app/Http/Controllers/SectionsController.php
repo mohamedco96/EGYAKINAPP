@@ -561,7 +561,7 @@ class SectionsController extends Controller
                 'value' => true,
                 'submit_status' => $submit_status,
                 'patient_name' => $patient_name,
-                'doctor_Id' => $doctor_Id,
+                'doctor_Id' => (string) $doctor_Id,
                 'gfr' => $GFR,
                 'data' => $data,
             ]);

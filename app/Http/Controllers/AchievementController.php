@@ -292,6 +292,12 @@ class AchievementController extends Controller
         // Load only the achievements where 'pivot.achieved' is 1
         $achievedAchievements = $user->achievements()->wherePivot('achieved', 1)->get();
 
+        // Convert user_id to string
+        $achievedAchievements->transform(function ($achievement) {
+            $achievement->pivot->user_id = (string) $achievement->pivot->user_id;
+            return $achievement;
+        });
+
         return response()->json($achievedAchievements, 200);
     }
 

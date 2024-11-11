@@ -333,7 +333,7 @@ class SectionsController extends Controller
                     $response = [
                         'value' => true,
                         'Submitter' => [
-                            'id' => optional($submitter)->doctor_id,
+                            'id' => (string) optional($submitter)->doctor_id,
                             'name' => (optional($doctor)->name && optional($doctor)->lname)
                                 ? optional($doctor)->name . ' ' . optional($doctor)->lname
                                 : null,

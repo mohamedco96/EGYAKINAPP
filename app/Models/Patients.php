@@ -59,4 +59,8 @@ class Patients extends Model
     {
         return $this->hasMany(AppNotification::class, 'doctor_id');
     }
+    
+    public function consultations() {
+        return $this->hasMany(AIConsultation::class);
+    }
 }

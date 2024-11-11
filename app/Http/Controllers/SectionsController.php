@@ -333,7 +333,7 @@ class SectionsController extends Controller
                     $response = [
                         'value' => true,
                         'Submitter' => [
-                            'id' => optional($submitter)->doctor_id,
+                            'id' => (string) optional($submitter)->doctor_id,
                             'name' => (optional($doctor)->name && optional($doctor)->lname)
                                 ? optional($doctor)->name . ' ' . optional($doctor)->lname
                                 : null,
@@ -561,7 +561,7 @@ class SectionsController extends Controller
                 'value' => true,
                 'submit_status' => $submit_status,
                 'patient_name' => $patient_name,
-                'doctor_Id' => $doctor_Id,
+                'doctor_Id' => (string) $doctor_Id,
                 'gfr' => $GFR,
                 'data' => $data,
             ]);

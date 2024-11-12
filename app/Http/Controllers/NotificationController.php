@@ -286,7 +286,7 @@ class NotificationController extends Controller
     public function showNew(Request $request)
     {
         try {
-            $doctorId = strval(auth()->user()->id);  // Convert doctor_id to string
+            $doctorId = auth()->user()->id;
             $today = Carbon::today();
     
             // Fetch today's records
@@ -334,7 +334,7 @@ class NotificationController extends Controller
                 }
     
                 $patientDetails = $notification->patient ? [
-                    'id' => strval($notification->patient_id),
+                    'id' => $notification->patient_id,
                     'name' => $name,
                     'hospital' => $hospital,
                     'governorate' => $governorate,
@@ -376,12 +376,12 @@ class NotificationController extends Controller
                 ];
     
                 return [
-                    'id' => strval($notification->id),
+                    'id' => $notification->id,
                     'read' => $notification->read,
                     'content' => $notification->content,
                     'type' => $notification->type,
-                    'type_id' => strval($notification->type_id),
-                    'patient_id' => strval($notification->patient_id),
+                    'type_id' => $notification->type_id,
+                    'patient_id' => $notification->patient_id,
                     'doctor_id' => strval($notification->doctor_id),
                     'created_at' => $notification->created_at,
                     'patient' => $patientDetails,
@@ -441,7 +441,7 @@ class NotificationController extends Controller
                 }
     
                 $patientDetails = $notification->patient ? [
-                    'id' => strval($notification->patient_id),
+                    'id' => $notification->patient_id,
                     'name' => $name,
                     'hospital' => $hospital,
                     'governorate' => $governorate,
@@ -483,12 +483,12 @@ class NotificationController extends Controller
                 ];
     
                 return [
-                    'id' => strval($notification->id),
+                    'id' => $notification->id,
                     'read' => $notification->read,
                     'content' => $notification->content,
                     'type' => $notification->type,
-                    'type_id' => strval($notification->type_id),
-                    'patient_id' => strval($notification->patient_id),
+                    'type_id' => $notification->type_id,
+                    'patient_id' => $notification->patient_id,
                     'doctor_id' => strval($notification->doctor_id),
                     'created_at' => $notification->created_at,
                     'patient' => $patientDetails,

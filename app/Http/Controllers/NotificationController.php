@@ -383,26 +383,11 @@ class NotificationController extends Controller
                     'content' => $notification->content,
                     'type' => $notification->type,
                     'type_id' => $notification->type_id,
-<<<<<<< HEAD
-                    'patient_id' => strval($notification->patient_id),
-                    'doctor_id' => strval($notification->doctor_id),
-                    'created_at' => $notification->created_at,
-                    'patient' => $patientDetails,
-                    'type_doctor' => [
-                        'id' => optional($typeDoctor)->id,
-                        'name' => optional($typeDoctor)->name,
-                        'lname' => optional($typeDoctor)->lname,
-                        'workingplace' => optional($typeDoctor)->workingplace,
-                        'image' => optional($typeDoctor)->image,
-                        'isSyndicateCardRequired' => optional($typeDoctor)->isSyndicateCardRequired
-                    ]
-=======
                     'patient_id' => $notification->patient_id,
                     'doctor_id' => $notification->doctor_id,
                     'created_at' => $notification->created_at,
                     'patient' => $patientDetails,
                     'type_doctor' => $typeDoctor
->>>>>>> parent of 9b16e78 (Update NotificationController.php)
                 ];
             });
 
@@ -499,7 +484,6 @@ class NotificationController extends Controller
                     'content' => $notification->content,
                     'type' => $notification->type,
                     'type_id' => $notification->type_id,
-<<<<<<< HEAD
                     'patient_id' => strval($notification->patient_id),
                     'doctor_id' => strval($notification->doctor_id),
                     'created_at' => $notification->created_at,
@@ -512,13 +496,6 @@ class NotificationController extends Controller
                         'image' => optional($typeDoctor)->image,
                         'isSyndicateCardRequired' => optional($typeDoctor)->isSyndicateCardRequired
                     ]
-=======
-                    'patient_id' => $notification->patient_id,
-                    'doctor_id' => $notification->doctor_id,
-                    'created_at' => $notification->created_at,
-                    'patient' => $patientDetails,
-                    'type_doctor' => $typeDoctor
->>>>>>> parent of 9b16e78 (Update NotificationController.php)
                 ];
             });
 

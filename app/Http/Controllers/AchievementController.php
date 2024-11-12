@@ -291,8 +291,30 @@ class AchievementController extends Controller
     {
         // Load only the achievements where 'pivot.achieved' is 1
         $achievedAchievements = $user->achievements()->wherePivot('achieved', 1)->get();
-
-        return response()->json($achievedAchievements, 200);
+    
+        // Transform each achievement to ensure the necessary fields are strings
+        $transformedAchievements = $achievedAchievements->map(function ($achievement) {
+            return [
+                'id' => $achievement->id,
+                'name' => $achievement->name,
+                'description' => $achievement->description,
+                'type' => $achievement->type,
+                'score' => (string) $achievement->score, // Convert score to string
+                'image' => $achievement->image,
+                'created_at' => $achievement->created_at,
+                'updated_at' => $achievement->updated_at,
+                'pivot' => [
+                    'user_id' => (string) $achievement->pivot->user_id, // Convert user_id to string
+                    'achievement_id' => (string) $achievement->pivot->achievement_id, // Convert achievement_id to string
+                    'achieved' => (string) $achievement->pivot->achieved, // Convert achieved to string
+                    'created_at' => $achievement->pivot->created_at,
+                    'updated_at' => $achievement->pivot->updated_at,
+                ]
+            ];
+        });
+    
+        return response()->json($transformedAchievements, 200);
     }
+    
 
 }

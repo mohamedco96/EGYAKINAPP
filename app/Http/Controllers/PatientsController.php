@@ -1738,54 +1738,6 @@ class PatientsController extends Controller
         }
     }
 
-    public function generatePatientPDFold($patient_id)
-    {
-        // Retrieve the patient from the database
-        //$patient = Patients::findOrFail($patient_id);
-
-        $patient = Patients::select('id', 'doctor_id', 'updated_at')
-            ->where('hidden', false)
-            ->where('id', 132)
-            ->with(['doctor' => function ($query) {
-                $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired', 'version');
-            }])
-            ->with(['status' => function ($query) {
-                $query->select('id', 'patient_id', 'key', 'status');
-            }])
-            ->with(['answers' => function ($query) {
-                $query->select('id', 'patient_id', 'answer', 'question_id');
-            }])
-            ->latest('updated_at')
-            ->get();
-
-        // Pass the data to the blade view
-        $data = [
-            'patient' => $patient,
-            // Add more data here if needed
-        ];
-
-        // Generate the PDF using the blade view and data
-        $pdf = PDF::loadView('patient_pdf', $data);
-
-        //$pdf = PDF::loadHTML('<h1>Hello, this is a New PDF!</h1>');
-
-        // Ensure the 'pdfs' directory exists in the public disk
-        Storage::disk('public')->makeDirectory('pdfs');
-
-        // Generate a unique filename for the PDF
-        $pdfFileName = 'filename2.pdf';
-
-        // Save the PDF file to the public disk
-        Storage::disk('public')->put('pdfs/' . $pdfFileName, $pdf->output());
-
-        // Generate the URL for downloading the PDF file
-        // $pdfUrl = Storage::disk('public')->url('pdfs/' . $pdfFileName);
-        $pdfUrl = config('app.url') . '/' . 'storage/app/public/pdfs/' . $pdfFileName;
-
-        // Return the URL to download the PDF file
-        return response()->json(['pdf_url' => $pdfUrl]);
-    }
-
     public function patientFilterConditions()
     {
         try {

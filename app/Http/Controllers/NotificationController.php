@@ -321,7 +321,7 @@ class NotificationController extends Controller
     
                     $doctor = $notification->patient->doctor;
                     $doctorDetails = [
-                        'id' => strval(optional($doctor)->id),
+                        'id' => optional($doctor)->id,
                         'name' => optional($doctor)->name,
                         'lname' => optional($doctor)->lname,
                         'workingplace' => optional($doctor)->workingplace,
@@ -334,11 +334,11 @@ class NotificationController extends Controller
                 }
     
                 $patientDetails = $notification->patient ? [
-                    'id' => $notification->patient_id,
+                    'id' => strval($notification->patient_id),
                     'name' => $name,
                     'hospital' => $hospital,
                     'governorate' => $governorate,
-                    'doctor_id' => strval(optional($notification->patient->doctor)->id),
+                    'doctor_id' => optional($notification->patient->doctor)->id,
                     'doctor' => $doctorDetails,
                     'sections' => [
                         'submit_status' => $submitStatus ?? false,
@@ -381,12 +381,12 @@ class NotificationController extends Controller
                     'content' => $notification->content,
                     'type' => $notification->type,
                     'type_id' => $notification->type_id,
-                    'patient_id' => $notification->patient_id,
+                    'patient_id' => strval($notification->patient_id),
                     'doctor_id' => strval($notification->doctor_id),
                     'created_at' => $notification->created_at,
                     'patient' => $patientDetails,
                     'type_doctor' => [
-                        'id' => strval(optional($typeDoctor)->id),
+                        'id' => optional($typeDoctor)->id,
                         'name' => optional($typeDoctor)->name,
                         'lname' => optional($typeDoctor)->lname,
                         'workingplace' => optional($typeDoctor)->workingplace,
@@ -428,7 +428,7 @@ class NotificationController extends Controller
     
                     $doctor = $notification->patient->doctor;
                     $doctorDetails = [
-                        'id' => strval(optional($doctor)->id),
+                        'id' => optional($doctor)->id,
                         'name' => optional($doctor)->name,
                         'lname' => optional($doctor)->lname,
                         'workingplace' => optional($doctor)->workingplace,
@@ -441,11 +441,11 @@ class NotificationController extends Controller
                 }
     
                 $patientDetails = $notification->patient ? [
-                    'id' => $notification->patient_id,
+                    'id' => strval($notification->patient_id),
                     'name' => $name,
                     'hospital' => $hospital,
                     'governorate' => $governorate,
-                    'doctor_id' => strval(optional($notification->patient->doctor)->id),
+                    'doctor_id' => optional($notification->patient->doctor)->id,
                     'doctor' => $doctorDetails,
                     'sections' => [
                         'submit_status' => $submitStatus ?? false,
@@ -488,12 +488,12 @@ class NotificationController extends Controller
                     'content' => $notification->content,
                     'type' => $notification->type,
                     'type_id' => $notification->type_id,
-                    'patient_id' => $notification->patient_id,
+                    'patient_id' => strval($notification->patient_id),
                     'doctor_id' => strval($notification->doctor_id),
                     'created_at' => $notification->created_at,
                     'patient' => $patientDetails,
                     'type_doctor' => [
-                        'id' => strval(optional($typeDoctor)->id),
+                        'id' => optional($typeDoctor)->id,
                         'name' => optional($typeDoctor)->name,
                         'lname' => optional($typeDoctor)->lname,
                         'workingplace' => optional($typeDoctor)->workingplace,

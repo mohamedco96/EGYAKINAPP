@@ -21,7 +21,7 @@ class ChatGPTService
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type' => 'application/json',
             ])->post('https://api.openai.com/v1/chat/completions', [
-                'model' => 'gpt-3.5-turbo', // Specify the model, adjust to GPT-4 if needed
+                'model' => 'gpt-4o', // Specify the model, adjust to GPT-4 if needed
                 'messages' => [
                     ['role' => 'user', 'content' => $message],
                 ],
@@ -115,8 +115,8 @@ class ChatGPTService
             "DM: %s, " .
             "HTN: %s, " .
             "Complaint: %s, " .
-            "Summarize in a table the possible differential diagnosis with the best next step for each one. At the end of the table mention your most probable diagnosis. Revise my management plan and add your suggestions. " . 
-            "return the response in a table format html code",
+            "Summarize in a table the possible differential diagnosis with the best next step for each one. At the end of the table mention your most probable diagnosis. Revise my management plan and add your suggestions. ", 
+            // "return the response in a table format html code",
             $patientGender ?? 'Unknown',
             $patientName ?? 'Unknown',
             $patientAge ?? 'Unknown',

@@ -336,7 +336,7 @@ class NotificationController extends Controller
 
                 // Set patient details or null if patient is null
                 $patientDetails = $notification->patient ? [
-                    'id' => $notification->patient_id,
+                    'id' => strval($notification->patient_id),
                     'name' => $name,
                     'hospital' => $hospital,
                     'governorate' => $governorate,
@@ -383,8 +383,8 @@ class NotificationController extends Controller
                     'content' => $notification->content,
                     'type' => $notification->type,
                     'type_id' => $notification->type_id,
-                    'patient_id' => $notification->patient_id,
-                    'doctor_id' => $notification->doctor_id,
+                    'patient_id' => strval($notification->patient_id),
+                    'doctor_id' => strval($notification->doctor_id),
                     'created_at' => $notification->created_at,
                     'patient' => $patientDetails,
                     'type_doctor' => $typeDoctor
@@ -437,7 +437,7 @@ class NotificationController extends Controller
 
                 // Set patient details or null if patient is null
                 $patientDetails = $notification->patient ? [
-                    'id' => $notification->patient_id,
+                    'id' => strval($notification->patient_id),
                     'name' => $name,
                     'hospital' => $hospital,
                     'governorate' => $governorate,
@@ -484,11 +484,18 @@ class NotificationController extends Controller
                     'content' => $notification->content,
                     'type' => $notification->type,
                     'type_id' => $notification->type_id,
-                    'patient_id' => $notification->patient_id,
-                    'doctor_id' => $notification->doctor_id,
+                    'patient_id' => strval($notification->patient_id),
+                    'doctor_id' => strval($notification->doctor_id),
                     'created_at' => $notification->created_at,
                     'patient' => $patientDetails,
-                    'type_doctor' => $typeDoctor
+                    'type_doctor' => [
+                        'id' => optional($typeDoctor)->id,
+                        'name' => optional($typeDoctor)->name,
+                        'lname' => optional($typeDoctor)->lname,
+                        'workingplace' => optional($typeDoctor)->workingplace,
+                        'image' => optional($typeDoctor)->image,
+                        'isSyndicateCardRequired' => optional($typeDoctor)->isSyndicateCardRequired
+                    ]
                 ];
             });
 

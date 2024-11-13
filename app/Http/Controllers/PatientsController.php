@@ -12,6 +12,7 @@ use App\Models\FcmToken;
 use App\Models\Patients;
 use App\Http\Requests\UpdatePatientsRequest;
 use App\Models\PatientStatus;
+use App\Models\SectionsInfo;
 use App\Models\Posts;
 use App\Models\Questions;
 use App\Models\Score;
@@ -1633,6 +1634,8 @@ class PatientsController extends Controller
             // Retrieve the patient from the database with related data
             $patient = Patients::with(['doctor', 'status', 'answers'])->findOrFail($patient_id);
 
+            $sections_infos = SectionsInfo::all();
+
             $data = [];
 
             // Fetch all questions
@@ -1691,7 +1694,8 @@ class PatientsController extends Controller
             // Pass the data to the blade view
             $pdfData = [
                 'patient' => $patient,
-                'questionData' => $data
+                'questionData' => $data,
+                'sections_infos' => $sections_infos
                 // Add more data here if needed
             ];
 
@@ -1717,7 +1721,7 @@ class PatientsController extends Controller
             // Return the URL to download the PDF file along with patient data
             return response()->json([
                 'pdf_url' => $pdfUrl,
-               // 'data' => $pdfData
+                'data' => $pdfData
             ]);
 
             // Pass the data to the blade view

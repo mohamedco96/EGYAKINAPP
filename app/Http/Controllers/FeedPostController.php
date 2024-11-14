@@ -325,127 +325,126 @@ class FeedPostController extends Controller
         }
     }
 
-    // Create a new post
-    public function store(Request $request)
-    {
-        DB::beginTransaction();  // Start a transaction
-        try {
-            
-            // Validate the incoming request
-            $validatedData = $request->validate([
-                'content' => 'required|string|max:1000',
-                'media_type' => 'nullable|string|in:image,video',
-                'media_path' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,mkv|max:20480',
-                'visibility' => 'nullable|string|in:Public,Friends,Only Me',
-                'group_id' => 'nullable|exists:groups,id'
-            ]);
+// Create a new post
+public function store(Request $request)
+{
+    DB::beginTransaction(); // Start a transaction
+    try {
+        // Validate the incoming request
+        $validatedData = $request->validate([
+            'content' => 'required|string|max:1000',
+            'media_type' => 'nullable|string|in:image,video',
+            'media_path' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,mkv|max:20480',
+            'visibility' => 'nullable|string|in:Public,Friends,Only Me',
+            'group_id' => 'nullable|exists:groups,id'
+        ]);
 
-            // Check if group_id is provided and try to retrieve the group
-            if (!empty($validatedData['group_id'])) {
-                $group = Group::with('members')->find($validatedData['group_id']);
-                
-                // If the group could not be found, return an error
-                if (!$group) {
-                    return response()->json([
-                        'value' => false,
-                        'message' => 'Group not found'
-                    ], 404);
-                }
+        // Check if group_id is provided and try to retrieve the group
+        if (!empty($validatedData['group_id'])) {
+            $group = Group::with('members')->find($validatedData['group_id']);
 
-                // Check if the group is private and if the user is not a member
-                if ($group->privacy === 'private' && !$group->members->contains(Auth::id())) {
-                    return response()->json([
-                        'value' => false,
-                        'message' => 'You cannot post in this private group'
-                    ], 403);
-                }
-
-                // Add the group name to validated data for further processing
-                $validatedData['group_name'] = $group->name;
+            // If the group could not be found, return an error
+            if (!$group) {
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Group not found'
+                ], 404);
             }
 
-
-            // Initialize mediaPath as null
-            $mediaPath = null;
-
-            // Check if media_path is provided and the file is valid
-            if ($request->hasFile('media_path')) {
-                $media = $request->file('media_path');
-                $path = ($validatedData['media_type'] === 'image') ? 'media_images' : 'media_videos';
-
-                // Call the upload function to store the media and get the media URL
-                $uploadResponse = $this->mainController->uploadImageAndVideo($media, $path);
-
-                // Check if the upload was successful
-                if ($uploadResponse->getData()->value) {
-                    $mediaPath = $uploadResponse->getData()->image;  // Store the URL of the uploaded media
-                } else {
-                    // Handle upload error
-                    return response()->json([
-                        'value' => false,
-                        'message' => 'Media upload failed.'
-                    ], 500);
-                }
+            // Check if the group is private and if the user is not a member
+            if ($group->privacy === 'private' && !$group->members->contains(Auth::id())) {
+                return response()->json([
+                    'value' => false,
+                    'message' => 'You cannot post in this private group'
+                ], 403);
             }
 
-            // Create a new feed post
-            $post = FeedPost::create([
-                'doctor_id' => Auth::id(),
-                'content' => $validatedData['content'],
-                'media_type' => $validatedData['media_type'] ?? null,
-                'media_path' => $mediaPath,  // Save the media URL
-                'visibility' => $validatedData['visibility'] ?? 'Public',
-                'group_id' => $validatedData['group_id'] ?? null,
-            ]);
-
-            // Ensure that the post creation is successful before proceeding
-            if (!$post) {
-                throw new \Exception('Post creation failed');
-            }
-
-            // Extract hashtags from content
-            $hashtags = $this->extractHashtags($request->input('content'));
-
-            foreach ($hashtags as $tag) {
-                // Check if the hashtag already exists
-                $hashtag = Hashtag::firstOrCreate(
-                    ['tag' => $tag],
-                    ['usage_count' => 0]
-                );
-
-                // Increment usage count
-                $hashtag->increment('usage_count');
-
-                // Attach the hashtag to the post
-                $post->hashtags()->attach($hashtag->id);  // Ensure post is successfully saved before this
-            }
-
-            // Commit the transaction
-            DB::commit();
-
-            // Log the post creation
-            Log::info("Post created by doctor " . Auth::id());
-
-            // Return success response
-            return response()->json([
-                'value' => true,
-                'data' => $post,
-                'message' => 'Post created successfully'
-            ]);
-        } catch (\Exception $e) {
-            // Rollback transaction if an error occurs
-            DB::rollBack();
-
-            // Log error
-            Log::error("Error creating post: " . $e->getMessage());
-
-            // Return error response
-            return response()->json([
-                'value' => false,
-                'message' => 'An error occurred while creating the post'
-            ], 500);
+            // Add the group name to validated data for further processing
+            $validatedData['group_name'] = $group->name;
         }
+
+        // Initialize mediaPath as null
+        $mediaPath = null;
+
+        // Check if media_path is provided and the file is valid
+        if ($request->hasFile('media_path')) {
+            $media = $request->file('media_path');
+            $path = ($validatedData['media_type'] === 'image') ? 'media_images' : 'media_videos';
+
+            // Call the upload function to store the media and get the media URL
+            $uploadResponse = $this->mainController->uploadImageAndVideo($media, $path);
+
+            // Check if the upload was successful
+            if ($uploadResponse->getData()->value) {
+                $mediaPath = $uploadResponse->getData()->image;  // Store the URL of the uploaded media
+            } else {
+                // Handle upload error
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Media upload failed.'
+                ], 500);
+            }
+        }
+
+        // Create a new feed post
+        $post = FeedPost::create([
+            'doctor_id' => Auth::id(),
+            'content' => $validatedData['content'],
+            'media_type' => $validatedData['media_type'] ?? null,
+            'media_path' => $mediaPath,  // Save the media URL
+            'visibility' => $validatedData['visibility'] ?? 'Public',
+            'group_id' => $validatedData['group_id'] ?? null,
+        ]);
+
+        // Ensure that the post creation is successful before proceeding
+        if (!$post) {
+            throw new \Exception('Post creation failed');
+        }
+
+        // Extract hashtags from content
+        $hashtags = $this->extractHashtags($request->input('content'));
+
+        foreach ($hashtags as $tag) {
+            // Check if the hashtag already exists
+            $hashtag = Hashtag::firstOrCreate(
+                ['tag' => $tag],
+                ['usage_count' => 0]
+            );
+
+            // Increment usage count
+            $hashtag->increment('usage_count');
+
+            // Attach the hashtag to the post
+            $post->hashtags()->attach($hashtag->id);  // Ensure post is successfully saved before this
+        }
+
+        // Commit the transaction
+        DB::commit();
+
+        // Log the post creation
+        Log::info("Post created by doctor " . Auth::id());
+
+        // Return success response
+        return response()->json([
+            'value' => true,
+            'data' => $post,
+            'message' => 'Post created successfully'
+        ]);
+    } catch (\Exception $e) {
+        // Rollback transaction if an error occurs
+        DB::rollBack();
+
+        // Log error
+        Log::error("Error creating post: " . $e->getMessage());
+
+        // Return error response
+        return response()->json([
+            'value' => false,
+            'message' => 'An error occurred while creating the post'
+        ], 500);
     }
+}
+
 
     // Delete a post
     public function destroy($id)

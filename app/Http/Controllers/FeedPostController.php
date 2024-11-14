@@ -341,7 +341,7 @@ public function store(Request $request)
 
         // Check if group_id is provided and try to retrieve the group
         if (!empty($validatedData['group_id'])) {
-            $group = Group::with('members')->find($validatedData['group_id']);
+            $group = Group::with('doctors')->find($validatedData['group_id']);
 
             // If the group could not be found, return an error
             if (!$group) {
@@ -352,7 +352,7 @@ public function store(Request $request)
             }
 
             // Check if the group is private and if the user is not a member
-            if ($group->privacy === 'private' && !$group->members->contains(Auth::id())) {
+            if ($group->privacy === 'private' && !$group->doctors->contains(Auth::id())) {
                 return response()->json([
                     'value' => false,
                     'message' => 'You cannot post in this private group'
@@ -440,7 +440,7 @@ public function store(Request $request)
         // Return error response
         return response()->json([
             'value' => false,
-            'message' => 'An error occurred while creating the post'
+            'message' => "Error creating post: " . $e->getMessage()
         ], 500);
     }
 }

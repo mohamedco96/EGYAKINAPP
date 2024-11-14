@@ -339,14 +339,25 @@ class FeedPostController extends Controller
                 'group_id' => 'nullable|exists:groups,id'
             ]);
 
-            // $group = Group::find($validatedData['group_id']);
-            // if ($group) {
-            //     if ($group->privacy == 'private' && !$group->members->contains(Auth::id())) {
-            //         return response()->json(['error' => 'You cannot post in this private group'], 403);
-            //     }
-        
-            //     $validatedData['group_name'] = $group->name;
-            // }
+            // Check if group_id is provided and valid
+            if (isset($validatedData['group_id'])) {
+                $group = Group::find($validatedData['group_id']);
+                if (!$group) {
+                    return response()->json([
+                        'value' => false,
+                        'message' => 'Group not found'
+                    ], 404);
+                }
+
+                if ($group->privacy == 'private' && !$group->members->contains(Auth::id())) {
+                    return response()->json([
+                        'value' => false,
+                        'message' => 'You cannot post in this private group'
+                    ], 403);
+                }
+
+                $validatedData['group_name'] = $group->name;
+            }
 
             // Initialize mediaPath as null
             $mediaPath = null;

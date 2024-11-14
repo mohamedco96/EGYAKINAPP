@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 
 use App\Models\AIConsultation;
 use App\Models\User;
+use App\Models\SectionsInfo;
+use App\Models\Questions;
 use App\Models\DoctorMonthlyTrial;
 use App\Services\ChatGPTService;
 use Carbon\Carbon;
@@ -13,6 +15,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 //import the Patients model
 use App\Models\Patients;
+use Illuminate\Support\Facades\Log;
+
 
 class ChatController extends Controller {
     protected $chatGPTService;
@@ -29,12 +33,10 @@ class ChatController extends Controller {
      * @return \Illuminate\Http\JsonResponse
      */
     public function sendConsultation($patient_id) {
+        // Retrieve the patient from the database with related data
+        $patient = Patients::with(['doctor', 'status', 'answers'])->findOrFail($patient_id);
 
-            // Retrieve patient data as before
-    $patient = Patients::with(['doctor', 'status', 'answers'])->findOrFail($patient_id);
-
-            // Check if the patient exists
-        //$patient = Patients::find($patient_id);
+        // Check if the patient exists
         if (!$patient) {
             \Log::error('Patient not found', [
                 'doctor_id' => $doctor_id,
@@ -46,12 +48,75 @@ class ChatController extends Controller {
             ], 404);
         }
 
-    // Generate the prompt using the patient's data
-    $prompt = $this->chatGPTService->generatePrompt($patient);
+        $sections_infos = SectionsInfo::all();
+        $data = [];
+
+        // Fetch all questions
+        $questions = Questions::with('section')->get();
+
+        // Iterate over each question
+        foreach ($questions as $question) {
+            // Skip questions with certain IDs
+            if ($question->skip) {
+                Log::info("Question with ID {$question->id} skipped as per skip flag.");
+                continue;
+            }
+
+            $questionData = [
+                'id' => $question->id,
+                'section_id' => $question->section->id ?? "test",
+                'section_name' => $question->section->section_name ?? "Not found",
+                'question' => $question->question,
+                'values' => $question->values,
+                'type' => $question->type,
+                'keyboard_type' => $question->keyboard_type,
+                'mandatory' => $question->mandatory,
+                'updated_at' => $question->updated_at,
+            ];
+
+            // Find the answer for this question
+            $answer = $patient->answers->where('question_id', $question->id)->first();
+
+            if ($question->type === 'multiple') {
+                // Initialize the answer array
+                $questionData['answer'] = [
+                    'answers' => [], // Initialize answers as an empty array
+                    'other_field' => null // Set other_field to null by default
+                ];
+
+                // Find answers for this question
+                $questionAnswers = $patient->answers->where('question_id', $question->id);
+
+                // Populate the answers array
+                foreach ($questionAnswers as $answer) {
+                    if ($answer->type !== 'other') {
+                        $questionData['answer']['answers'][] = $answer->answer;
+                    }
+                    if ($answer->type === 'other') {
+                        $questionData['answer']['other_field'] = $answer->answer;
+                    }
+                }
+            } else {
+                // For other types of questions, return the answer directly
+                $questionData['answer'] = $answer ? $answer->answer : null;
+            }
+
+            $data[] = $questionData;
+        }
+
+        // Pass the data to the blade view
+        $patientData = [
+            'patient' => $patient,
+            'questionData' => $data,
+            'sections_infos' => $sections_infos
+            // Add more data here if needed
+        ];
+
+        // Generate the prompt using the patient's data
+        $prompt = $this->chatGPTService->generatePrompt($patientData);
 
         // Retrieve the doctor and question from the request
         $doctor_id = Auth::id();
-        //$question = "This is a dummy question for testing.";
 
         // Check if the doctor has trials left
         $trial = DoctorMonthlyTrial::firstOrCreate(
@@ -76,11 +141,8 @@ class ChatController extends Controller {
             ], 403);
         }
 
-
-
         // Send the question to ChatGPT
         // $response = $this->chatGPTService->sendMessage($prompt);
-
         $response = "This is a dummy response from ChatGPT.";
 
         // Save the consultation in the database

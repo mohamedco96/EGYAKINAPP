@@ -121,12 +121,12 @@ class ChatController extends Controller {
         // Check if the doctor has trials left
         $trial = DoctorMonthlyTrial::firstOrCreate(
             ['doctor_id' => $doctor_id],
-            ['trial_count' => 3, 'reset_date' => now()->addMonth()]
+            ['trial_count' => 999, 'reset_date' => now()->addMonth()]
         );
 
         // Reset trial count if the reset date has passed
         if (Carbon::now()->greaterThanOrEqualTo($trial->reset_date)) {
-            $trial->update(['trial_count' => 3, 'reset_date' => now()->addMonth()]);
+            $trial->update(['trial_count' => 999, 'reset_date' => now()->addMonth()]);
         }
 
         // If no trials left, return an error response
@@ -188,11 +188,11 @@ class ChatController extends Controller {
         // Check and reset the trial count if the reset date has passed
         $trial = DoctorMonthlyTrial::firstOrCreate(
             ['doctor_id' => $doctor_id],
-            ['trial_count' => 3, 'reset_date' => now()->addMonth()]
+            ['trial_count' => 999, 'reset_date' => now()->addMonth()]
         );
 
         if (Carbon::now()->greaterThanOrEqualTo($trial->reset_date)) {
-            $trial->update(['trial_count' => 3, 'reset_date' => now()->addMonth()]);
+            $trial->update(['trial_count' => 999, 'reset_date' => now()->addMonth()]);
         }
 
         // Retrieve consultation history for the patient, sorted by newest

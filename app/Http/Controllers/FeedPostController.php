@@ -330,6 +330,7 @@ class FeedPostController extends Controller
     {
         DB::beginTransaction();  // Start a transaction
         try {
+            
             // Validate the incoming request
             $validatedData = $request->validate([
                 'content' => 'required|string|max:1000',
@@ -339,9 +340,11 @@ class FeedPostController extends Controller
                 'group_id' => 'nullable|exists:groups,id'
             ]);
 
-            // Check if group_id is provided and valid
-            if (isset($validatedData['group_id'])) {
-                $group = Group::find($validatedData['group_id']);
+            // Check if group_id is provided and try to retrieve the group
+            if (!empty($validatedData['group_id'])) {
+                $group = Group::with('members')->find($validatedData['group_id']);
+                
+                // If the group could not be found, return an error
                 if (!$group) {
                     return response()->json([
                         'value' => false,
@@ -349,15 +352,18 @@ class FeedPostController extends Controller
                     ], 404);
                 }
 
-                if ($group->privacy == 'private' && !$group->members->contains(Auth::id())) {
+                // Check if the group is private and if the user is not a member
+                if ($group->privacy === 'private' && !$group->members->contains(Auth::id())) {
                     return response()->json([
                         'value' => false,
                         'message' => 'You cannot post in this private group'
                     ], 403);
                 }
 
+                // Add the group name to validated data for further processing
                 $validatedData['group_name'] = $group->name;
             }
+
 
             // Initialize mediaPath as null
             $mediaPath = null;

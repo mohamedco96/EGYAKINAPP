@@ -197,7 +197,7 @@ class ChatController extends Controller {
 
         // Retrieve consultation history for the patient, sorted by newest
         $history = AIConsultation::where('patient_id', $patientId)
-            ->orderBy('created_at', 'asc')
+            ->orderBy('created_at', 'desc')
             ->select('id', 'doctor_id', 'patient_id', 'response', 'created_at')
             ->paginate(5);
 

@@ -143,13 +143,13 @@ class ChatController extends Controller {
 
         // Send the question to ChatGPT
         // $response = $this->chatGPTService->sendMessage($prompt);
-        $response = "This is a dummy response from ChatGPT.\n\nThis is a dummy response from ChatGPT.\nThis is a dummy response from ChatGPT.\n";
+        $response = "This is a dummy response from ChatGPT.\n\nThis is a dummy response from ChatGPT.\nThis is a dummy response from ChatGPT.";
 
         // Save the consultation in the database
         $consultation = AIConsultation::create([
             'doctor_id' => $doctor_id,
             'patient_id' => $patient_id,
-            // 'question' => $prompt,
+            'question' => $prompt,
             'response' => $response
         ]);
 
@@ -169,7 +169,7 @@ class ChatController extends Controller {
         return response()->json([
             'value' => true,
             'message' => 'Consultation request sent successfully',
-            'question' => $prompt,
+            // 'question' => $prompt,
             'response' => $response,
             'trial_count' => $trial->trial_count
         ]);

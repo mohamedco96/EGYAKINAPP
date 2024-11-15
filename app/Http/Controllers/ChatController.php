@@ -142,8 +142,8 @@ class ChatController extends Controller {
         }
 
         // Send the question to ChatGPT
-        $response = $this->chatGPTService->sendMessage($prompt);
-        // $response = "This is a dummy response from ChatGPT.\n\nThis is a dummy response from ChatGPT.\nThis is a dummy response from ChatGPT.";
+        // $response = $this->chatGPTService->sendMessage($prompt);
+        $response = "This is a dummy response from ChatGPT.\n\nThis is a dummy response from ChatGPT.\nThis is a dummy response from ChatGPT.";
 
         // Save the consultation in the database
         $consultation = AIConsultation::create([

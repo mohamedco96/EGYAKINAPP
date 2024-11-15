@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\MainController;
 use App\Models\Hashtag;
 use App\Models\Group;
+use App\Models\AppNotification;
+use App\Models\User;
+
 
 
 class FeedPostController extends Controller
@@ -421,9 +424,35 @@ public function store(Request $request)
         // Commit the transaction
         DB::commit();
 
+        // Notify other doctors with role 'Admin' or 'Tester', excluding the authenticated user
+        $doctors = User::role(['Admin', 'Tester'])
+            ->where('id', '!=', Auth::id())
+            ->pluck('id');
+
+        $user = Auth::user();
+        $doctorName = $user->name . ' ' . $user->lname;
+
+        // Create notifications for the new post
+        $notifications = $doctors->map(function ($doctorId) use ($post, $doctorName, $user) {
+            return [
+            'doctor_id' => $doctorId,
+            'type' => 'Other',
+            'type_id' => $post->id,
+            'content' => sprintf('Dr. %s added a new post', $doctorName),
+            'type_doctor_id' => $user->id,
+            'created_at' => now(),
+            'updated_at' => now()
+            ];
+        })->toArray();
+
+        AppNotification::insert($notifications);
+
+        // Log the successful notification insertion
+        Log::info("Notifications inserted successfully for post ID: " . $post->id);
         // Log the post creation
         Log::info("Post created by doctor " . Auth::id());
 
+        
         // Return success response
         return response()->json([
             'value' => true,
@@ -555,6 +584,25 @@ public function store(Request $request)
                     'feed_post_id' => $postId,
                     'doctor_id' => $doctor_id,
                 ]);
+
+                $postOwner = $post->doctor;
+
+                // Check if the post owner is not the one liking the post
+                if ($postOwner->id !== Auth::id()) {
+                    $notification = AppNotification::create([
+                        'doctor_id' => $postOwner->id,
+                        'type' => 'Other',
+                        'type_id' => $post->id,
+                        'content' => sprintf('Dr. %s liked your post', Auth::user()->name . ' ' . Auth::user()->lname),
+                        'type_doctor_id' => Auth::id(),
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+
+                    Log::info("Notification sent to post owner ID: " . $postOwner->id . " for post ID: " . $post->id);
+                }
+
+
 
                 Log::info("Post ID $postId liked by doctor " . $doctor_id);
                 return response()->json([
@@ -696,6 +744,25 @@ public function store(Request $request)
 
             Log::info("Comment added to post ID $postId by doctor " . Auth::id());
 
+            $post = FeedPost::findOrFail($postId);
+            $postOwner = $post->doctor;
+
+            // Check if the post owner is not the one commenting on the post
+            if ($postOwner->id !== Auth::id()) {
+                $notification = AppNotification::create([
+                    'doctor_id' => $postOwner->id,
+                    'type' => 'Other',
+                    'type_id' => $post->id,
+                    'content' => sprintf('Dr. %s commented on your post', Auth::user()->name . ' ' . Auth::user()->lname),
+                    'type_doctor_id' => Auth::id(),
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+                Log::info("Notification sent to post owner ID: " . $postOwner->id . " for post ID: " . $post->id);
+            }
+
+
             return response()->json([
                 'value' => true,
                 'data' => $comment,
@@ -785,6 +852,26 @@ public function store(Request $request)
                 ]);
 
                 Log::info("Comment ID $commentId liked by doctor $doctor_id");
+
+
+                $comment = FeedPostComment::findOrFail($commentId);
+                $commentOwner = $comment->doctor;
+
+                // Check if the comment owner is not the one liking the comment
+                if ($commentOwner->id !== Auth::id()) {
+                    $notification = AppNotification::create([
+                        'doctor_id' => $commentOwner->id,
+                        'type' => 'Other',
+                        'type_id' => $comment->id,
+                        'content' => sprintf('Dr. %s liked your comment', Auth::user()->name . ' ' . Auth::user()->lname),
+                        'type_doctor_id' => Auth::id(),
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+
+                    Log::info("Notification sent to comment owner ID: " . $commentOwner->id . " for comment ID: " . $comment->id);
+                }
+
                 return response()->json([
                     'value' => true,
                     'data' => $newLike,

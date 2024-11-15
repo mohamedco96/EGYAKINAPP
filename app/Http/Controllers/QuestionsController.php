@@ -153,6 +153,7 @@ class QuestionsController extends Controller
                 'type' => $question->type,
                 'keyboard_type' => $question->keyboard_type,
                 'mandatory' => $question->mandatory,
+                'hidden' => $question->hidden,
                 'updated_at' => $question->updated_at,
             ];
 

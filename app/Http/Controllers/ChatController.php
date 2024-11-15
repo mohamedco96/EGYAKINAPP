@@ -143,13 +143,13 @@ class ChatController extends Controller {
 
         // Send the question to ChatGPT
         // $response = $this->chatGPTService->sendMessage($prompt);
-        $response = "This is a dummy response from ChatGPT.";
+        $response = "This is a dummy response from ChatGPT.\n\nThis is a dummy response from ChatGPT.\nThis is a dummy response from ChatGPT.\n";
 
         // Save the consultation in the database
         $consultation = AIConsultation::create([
             'doctor_id' => $doctor_id,
             'patient_id' => $patient_id,
-            'question' => $prompt,
+            // 'question' => $prompt,
             'response' => $response
         ]);
 
@@ -197,7 +197,7 @@ class ChatController extends Controller {
 
         // Retrieve consultation history for the patient, sorted by newest
         $history = AIConsultation::where('patient_id', $patientId)
-                ->orderBy('created_at', 'desc')
+                ->orderBy('created_at', 'asc')
                 ->paginate(5);
 
         // Log the retrieval of consultation history

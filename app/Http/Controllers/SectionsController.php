@@ -217,6 +217,7 @@ class SectionsController extends Controller
 //            }
 //        }
 //    }
+
     /**
      * Show questions and answers for a specific section and patient.
      *
@@ -256,6 +257,15 @@ class SectionsController extends Controller
                     continue;
                 }
 
+                // Find answer for this question
+                $answer = $answers->where('question_id', $question->id)->first();
+
+                // Skip hidden questions with no answer
+                if ($question->hidden && !$answer) {
+                    Log::info("Hidden question with ID {$question->id} skipped due to no answer.");
+                    continue;
+                }
+
                 // Prepare question data
                 $questionData = [
                     'id' => $question->id,
@@ -264,6 +274,7 @@ class SectionsController extends Controller
                     'type' => $question->type,
                     'keyboard_type' => $question->keyboard_type,
                     'mandatory' => $question->mandatory,
+                    'hidden' => $question->hidden,
                     'updated_at' => $question->updated_at,
                 ];
 

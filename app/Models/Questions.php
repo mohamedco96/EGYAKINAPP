@@ -22,6 +22,7 @@ class Questions extends Model
         'type',
         'keyboard_type',
         'mandatory',
+        'hidden',
     ];
 
     /**
@@ -32,6 +33,7 @@ class Questions extends Model
     protected $casts = [
         'values' => 'array',
         'mandatory' => 'boolean',
+        'hidden' => 'boolean',
     ];
 
     /**

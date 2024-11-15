@@ -93,6 +93,10 @@ class QuestionsResource extends Resource
                     ->label('Mandatory')
                     ->required()
                     ->boolean(),
+
+                Forms\Components\Radio::make('hidden')
+                ->label('Hidden')
+                ->boolean(),
             ]);
     }
 
@@ -149,6 +153,10 @@ class QuestionsResource extends Resource
                     ->label('Mandatory')
                     ->sortable(),
 
+                Tables\Columns\ToggleColumn::make('hidden')
+                ->label('Hidden')
+                ->sortable(),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Created At')
                     ->sortable()
@@ -192,6 +200,13 @@ class QuestionsResource extends Resource
                         1 => 'Yes',
                         0 => 'No',
                     ]),
+
+                Tables\Filters\SelectFilter::make('hidden')
+                ->label('Hidden')
+                ->options([
+                    1 => 'Yes',
+                    0 => 'No',
+                ]),
             ])
             ->actions([
                 Tables\Actions\EditAction::make()->icon('heroicon-o-pencil'),

@@ -1,0 +1,7 @@
+{
+    "source": {
+        "include": ["src"],
+        "exclude": ["vendor"]
+    },
+    "destination": "docs"
+}

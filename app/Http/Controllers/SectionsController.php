@@ -236,36 +236,36 @@ class SectionsController extends Controller
                     'data' => [],
                 ], 200);
             }
-
+    
             // Fetch questions for the specified section
             $questions = Questions::where('section_id', $section_id)
                 ->orderBy('sort')
                 ->get();
-
+    
             // Fetch all answers for the patient related to these questions
             $answers = Answers::where('patient_id', $patient_id)
                 ->whereIn('question_id', $questions->pluck('id'))
                 ->get();
-
+    
             // Initialize array to store questions and answers
             $data = [];
-
+    
             foreach ($questions as $question) {
                 // Skip questions flagged with 'skip'
                 if ($question->skip) {
                     Log::info("Question with ID {$question->id} skipped as per skip flag.");
                     continue;
                 }
-
+    
                 // Find answer for this question
                 $answer = $answers->where('question_id', $question->id)->first();
-
+    
                 // Skip hidden questions with no answer
                 if ($question->hidden && !$answer) {
                     Log::info("Hidden question with ID {$question->id} skipped due to no answer.");
                     continue;
                 }
-
+    
                 // Prepare question data
                 $questionData = [
                     'id' => $question->id,
@@ -277,41 +277,53 @@ class SectionsController extends Controller
                     'hidden' => $question->hidden,
                     'updated_at' => $question->updated_at,
                 ];
-
-                // Find answer for this question
-                $answer = $answers->where('question_id', $question->id)->first();
-
-                // Handle multiple choice questions
-                if ($question->type === 'multiple') {
+    
+                // Decode the question values (assuming JSON format in DB)
+                $questionValues = json_decode($question->values, true);
+    
+                // Check for 'Others' in values and type is 'select'
+                if ($question->type === 'select' && is_array($questionValues) && in_array('Others', $questionValues)) {
                     $questionData['answer'] = [
-                        'answers' => [], // Initialize answers array
-                        'other_field' => null, // Initialize other_field as null
+                        'answers' => [],
+                        'other_field' => null,
                     ];
-
+    
                     // Collect answers for the question
                     $questionAnswers = $answers->where('question_id', $question->id);
                     foreach ($questionAnswers as $ans) {
                         if ($ans->type !== 'other') {
-                            $questionData['answer']['answers'] = $ans->answer; // Add answer to answers array
+                            $questionData['answer']['answers'] = $ans->answer;
                         }
                         if ($ans->type === 'other') {
-                            $questionData['answer']['other_field'] = $ans->answer; // Set other_field value
+                            $questionData['answer']['other_field'] = $ans->answer;
+                        }
+                    }
+                } elseif ($question->type === 'multiple') {
+                    // Existing logic for multiple choice
+                    $questionData['answer'] = [
+                        'answers' => [],
+                        'other_field' => null,
+                    ];
+    
+                    $questionAnswers = $answers->where('question_id', $question->id);
+                    foreach ($questionAnswers as $ans) {
+                        if ($ans->type !== 'other') {
+                            $questionData['answer']['answers'] = $ans->answer;
+                        }
+                        if ($ans->type === 'other') {
+                            $questionData['answer']['other_field'] = $ans->answer;
                         }
                     }
                 } elseif ($question->type === 'files') {
-                    // Handle file type questions
+                    // Existing logic for files
                     $questionData['answer'] = [];
-
-                    // Check if $answer is null or not found
+    
                     if ($answer === null) {
-                        // If answer is null, return empty array for files type question
                         $questionData['answer'] = [];
                     } else {
-                        // Decode JSON-encoded file paths array
                         $filePaths = json_decode($answer->answer);
-
+    
                         if (is_array($filePaths)) {
-                            // Construct absolute paths for each file
                             foreach ($filePaths as $filePath) {
                                 $absolutePath = Storage::disk('public')->url($filePath);
                                 $questionData['answer'][] = $absolutePath;
@@ -322,11 +334,11 @@ class SectionsController extends Controller
                     // For other types, directly set the answer
                     $questionData['answer'] = $answer ? $answer->answer : null;
                 }
-
+    
                 // Add question data to main data array
                 $data[] = $questionData;
             }
-
+    
             // Fetch submitter information for section 8
             $submitter = PatientStatus::select('id', 'doctor_id')
                 ->where('patient_id', $patient_id)
@@ -335,8 +347,7 @@ class SectionsController extends Controller
                     $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
                 }])
                 ->first();
-
-
+    
             // Prepare response based on section 8 or other sections
             if ($section_id == 8) {
                 if ($submitter && $submitter->doctor) {
@@ -369,10 +380,10 @@ class SectionsController extends Controller
                     'data' => $data,
                 ];
             }
-
+    
             // Log successful retrieval of questions and answers
             Log::info("Questions and answers retrieved successfully for section ID {$section_id} and patient ID {$patient_id}.");
-
+    
             return response()->json($response, 200);
         } catch (\Exception $e) {
             // Log and return error response
@@ -383,6 +394,7 @@ class SectionsController extends Controller
             ], 500);
         }
     }
+    
 
     /**
      * Show sections and their statuses for a patient.

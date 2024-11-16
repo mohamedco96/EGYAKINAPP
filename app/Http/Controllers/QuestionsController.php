@@ -106,46 +106,46 @@ class QuestionsController extends Controller
     public function ShowQuestitionsAnswars($section_id, $patient_id)
     {
         $data = [];
-
+    
         // Fetch questions dynamically based on section_id
         $questions = Questions::where('section_id', $section_id)
             ->orderBy('sort')
             ->get();
-
+    
         foreach ($questions as $question) {
             // Skip questions based on the skip flag
             if ($question->skip) {
                 Log::info("Question with ID {$question->id} skipped as per skip flag.");
                 continue;
             }
-
+    
             // Get the answers model for the section
             $answersModel = $this->getAnswersModel($section_id);
             if (!$answersModel) {
                 Log::warning("No answer model found for section ID {$section_id}.");
                 continue;
             }
-
+    
             // Adjust patient_id column based on section_id
             $patientIdColumn = $section_id == 1 ? 'id' : 'patient_id';
             $answers = $answersModel::where($patientIdColumn, $patient_id)->first();
-
+    
             // Get the main answer column name dynamically
             $mainAnswerColumnName = $this->getAnswerColumnName($question->id);
-
+    
             // Construct the other field column name by appending '_other_field' to the main answer column name
             $otherFieldColumnName = $mainAnswerColumnName . '_other_field';
-
+    
             // Check if the question is hidden and handle accordingly
             $hasAnswer = !empty($answers->$mainAnswerColumnName) ||
                 !empty($answers->$otherFieldColumnName);
-            
+    
             if ($question->hidden && !$hasAnswer) {
                 // Skip the question if it's hidden and has no answer
                 Log::info("Hidden question with ID {$question->id} skipped due to no answer.");
                 continue;
             }
-
+    
             $questionData = [
                 'id' => $question->id,
                 'question' => $question->question,
@@ -156,28 +156,40 @@ class QuestionsController extends Controller
                 'hidden' => $question->hidden,
                 'updated_at' => $question->updated_at,
             ];
-
-            if ($question->type === 'multiple') {
+    
+            // Decode the question values (assuming JSON format in DB)
+            $questionValues = json_decode($question->values, true);
+    
+            // Check if the question is 'select' and has 'Others' in its values
+            if ($question->type === 'select' && is_array($questionValues) && in_array('Others', $questionValues)) {
+                $questionData['answer'] = [
+                    'answers' => $answers->$mainAnswerColumnName ?? null,
+                    'other_field' => $answers->$otherFieldColumnName ?? null,
+                ];
+            } elseif ($question->type === 'multiple') {
+                // Handle multiple choice questions
                 $questionData['answer'] = [
                     'answers' => $answers->$mainAnswerColumnName ?? null,
                     'other_field' => $answers->$otherFieldColumnName ?? null,
                 ];
             } else {
+                // For other question types, assign the main answer directly
                 $questionData['answer'] = $answers->$mainAnswerColumnName ?? null;
             }
-
+    
             $data[] = $questionData;
         }
-
+    
         $response = [
             'value' => true,
             'data' => $data,
         ];
-
+    
         Log::info("Questions and answers retrieved successfully for section ID {$section_id} and patient ID {$patient_id}.");
-
+    
         return response()->json($response, 200);
     }
+    
 
 
     private function getAnswersModel($section_id)

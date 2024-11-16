@@ -279,7 +279,7 @@ class SectionsController extends Controller
                 ];
     
                 // Decode the question values (assuming JSON format in DB)
-                $questionValues = json_decode($question->values, true);
+                $questionValues = is_string($question->values) ? json_decode($question->values, true) : $question->values;
     
                 // Check for 'Others' in values and type is 'select'
                 if ($question->type === 'select' && is_array($questionValues) && in_array('Others', $questionValues)) {

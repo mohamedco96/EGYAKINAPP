@@ -147,74 +147,52 @@ class PatientsController extends Controller
             $user = Auth::user();
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
 
-            // Return all posts
+            // Fetch all necessary data in fewer queries
             $posts = Posts::select('id', 'title', 'image', 'content', 'hidden', 'post_type', 'webinar_date', 'url', 'doctor_id', 'updated_at')
                 ->where('hidden', false)
-                ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
-                }])
+                ->with(['doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version'])
                 ->get();
 
-            // Return current patients
             $currentPatients = $user->patients()
-                ->when(!$isAdminOrTester, function ($query) {
-                    return $query->where('hidden', false);
-                })
-                ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
-                }])
+                ->when(!$isAdminOrTester, fn($query) => $query->where('hidden', false))
+                ->with(['doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version', 'status', 'answers'])
                 ->latest('updated_at')
                 ->limit(5)
                 ->get();
 
-            // Return all patients
-            $allPatients = Patients::when(!$isAdminOrTester, function ($query) {
-                return $query->where('hidden', false);
-            })
-                ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
-                }])
+            $allPatients = Patients::when(!$isAdminOrTester, fn($query) => $query->where('hidden', false))
+                ->with(['doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version', 'status', 'answers'])
                 ->latest('updated_at')
                 ->limit(5)
                 ->get();
 
-            // Return Top Doctors
             $topDoctors = User::select('id', 'name', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version')
                 ->withCount('patients')
-                ->selectSub(function ($query) {
-                    $query->selectRaw('COALESCE(score, 0)')
-                        ->from('scores')
-                        ->whereColumn('users.id', 'scores.doctor_id')
-                        ->limit(1);
-                }, 'score')
-                ->orderByRaw('patients_count DESC, COALESCE(score, 0) DESC')
+                ->with(['score' => fn($query) => $query->select('doctor_id', 'score')])
+                ->orderByRaw('patients_count DESC, COALESCE(score.score, 0) DESC')
                 ->limit(5)
                 ->get()
                 ->map(function ($user) {
                     $user->patients_count = strval($user->patients_count);
+                    $user->score = $user->score->score ?? 0;
                     return $user;
                 });
 
-            // Return doctors with Pending Syndicate Card only for Admin or Tester
             $pendingSyndicateCard = $isAdminOrTester
                 ? User::select('id', 'name', 'image', 'syndicate_card', 'isSyndicateCardRequired')
                     ->where('isSyndicateCardRequired', 'Pending')
                     ->limit(10)
                     ->get()
-                : collect(); // Return empty list for other users
+                : collect();
 
             // Transform the patient data
             $transformPatientData = function ($patient) {
                 $submit_status = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
                 $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
-
-                // Get doctor_id of the submitter from outcome status
                 $outcomeSubmitterDoctorId = optional($patient->status->where('key', 'outcome_status')->first())->doctor_id;
 
-                // Fetch the submitter's details using the doctor_id
                 $submitter = User::select('id', 'name', 'lname', 'isSyndicateCardRequired')
-                    ->where('id', $outcomeSubmitterDoctorId)
-                    ->first(); // Use first() instead of get() to retrieve a single record
+                    ->find($outcomeSubmitterDoctorId);
 
                 return [
                     'id' => $patient->id,
@@ -230,8 +208,8 @@ class PatientsController extends Controller
                     ],
                     'submitter' => [
                         'submitter_id' => optional($submitter)->id,
-                        'submitter_fname' => (optional($submitter)->name) ? optional($submitter)->name : null,
-                        'submitter_lname' => (optional($submitter)->lname) ? optional($submitter)->lname : null,
+                        'submitter_fname' => optional($submitter)->name,
+                        'submitter_lname' => optional($submitter)->lname,
                         'submitter_SyndicateCard' => optional($submitter)->isSyndicateCardRequired
                     ]
                 ];
@@ -240,27 +218,17 @@ class PatientsController extends Controller
             $currentPatientsResponseData = $currentPatients->map($transformPatientData);
             $allPatientsResponseData = $allPatients->map($transformPatientData);
 
-            // Get patient count and score value
             $userPatientCount = $user->patients()->count();
             $allPatientCount = Patients::count();
             $scoreValue = optional($user->score)->score ?? 0;
             $isVerified = (bool)$user->email_verified_at;
-
-            // Get unread notification count
-            $unreadCount = AppNotification::where('doctor_id', $user->id)
-                ->where('read', false)->count();
-
-            // Get SyndicateCard value
+            $unreadCount = AppNotification::where('doctor_id', $user->id)->where('read', false)->count();
             $isSyndicateCardRequired = $user->isSyndicateCardRequired;
-
             $isUserBlocked = $user->blocked;
-
-            // Get the first role
             $role = $user->roles->first();
 
             $update_message = '<ul><li><strong>Doctor Consultations</strong>: Doctors can now consult one or more colleagues for advice on their patients.</li><li><strong>User Achievements</strong>: Earn achievements by adding a set number of patients or completing specific outcomes.</li></ul>';
 
-            // Prepare response data
             $response = [
                 'value' => true,
                 'app_update_message' => $update_message,
@@ -282,15 +250,20 @@ class PatientsController extends Controller
             ];
 
             // Log successful response
-            Log::info('Successfully retrieved home data.', ['user_id' => $user->id]);
+            Log::info('Successfully retrieved home data.', [
+                'user_id' => $user->id,
+                'response' => $response
+            ]);
 
-            // Return the transformed response
             return response()->json($response, 200);
         } catch (\Exception $e) {
             // Log error
-            Log::error('Error retrieving home data.', ['user_id' => optional(Auth::user())->id, 'exception' => $e]);
+            Log::error('Error retrieving home data.', [
+                'user_id' => optional(Auth::user())->id,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
 
-            // Return error response
             return response()->json([
                 'value' => false,
                 'message' => 'Failed to retrieve home data.',

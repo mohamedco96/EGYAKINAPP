@@ -7,9 +7,7 @@ use App\Models\AppNotification;
 use App\Models\FcmToken;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\NotificationController;
 
 class AchievementController extends Controller
 {
@@ -36,29 +34,48 @@ class AchievementController extends Controller
 
     public function checkAndAssignAchievementsForAllUsers()
     {
-        $users = User::all();
+        // Load all achievements once
         $achievements = Achievement::all();
 
-        foreach ($users as $user) {
-            $userScore = $user->score->score ?? 0;
-            $userPatientCount = $user->patients->count() ?? 0;
+        // Process users in chunks
+        User::with(['score', 'patients', 'achievements'])->chunk(100, function ($users) use ($achievements) {
+            foreach ($users as $user) {
+                $userScore = $user->score->score ?? 0;
+                $userPatientCount = $user->patients->count() ?? 0;
 
-            $achievementUpdates = [];
+                $achievementUpdates = [];
+                $attachData = [];
+                $detachIds = [];
 
-            foreach ($achievements as $achievement) {
-                $existingAchievement = $user->achievements()->where('achievement_id', $achievement->id)->first();
-                $qualifies = $this->qualifiesForAchievement($userScore, $userPatientCount, $achievement);
+                foreach ($achievements as $achievement) {
+                    $qualifies = $this->qualifiesForAchievement($userScore, $userPatientCount, $achievement);
+                    $existingAchievement = $user->achievements->find($achievement->id);
 
-                if ($existingAchievement && !$qualifies) {
-                    $user->achievements()->detach($achievement->id);
-                    $achievementUpdates[] = ['achievement_id' => $achievement->id, 'status' => 'removed'];
+                    if ($existingAchievement && !$qualifies) {
+                        $detachIds[] = $achievement->id;
+                        $achievementUpdates[] = ['achievement_id' => $achievement->id, 'status' => 'removed'];
+                    } elseif ($qualifies && (!$existingAchievement || !$existingAchievement->pivot->achieved)) {
+                        $attachData[$achievement->id] = ['achieved' => true];
+                        $achievementUpdates[] = ['achievement_id' => $achievement->id, 'status' => 'achieved'];
+
+                        if (!$existingAchievement) {
+                            $this->notifyAchievement($user, $achievement);
+                        }
+                    }
                 }
 
-                $this->assignOrUpdateAchievement($user, $achievement, $qualifies, $existingAchievement, $achievementUpdates);
-            }
+                // Detach and attach achievements in batches
+                if (!empty($detachIds)) {
+                    $user->achievements()->detach($detachIds);
+                }
 
-            Log::info('Achievements processed for user ' . $user->id, $achievementUpdates);
-        }
+                if (!empty($attachData)) {
+                    $user->achievements()->syncWithoutDetaching($attachData);
+                }
+
+                Log::info('Achievements processed for user ' . $user->id, $achievementUpdates);
+            }
+        });
 
         Log::info('All users processed for achievements.');
     }
@@ -75,36 +92,15 @@ class AchievementController extends Controller
         }
     }
 
-    private function assignOrUpdateAchievement(User $user, Achievement $achievement, bool $qualifies, $existingAchievement, array &$achievementUpdates)
-    {
-        if ($qualifies) {
-            $status = 'already achieved';
-
-            if (!$existingAchievement) {
-                $user->achievements()->attach($achievement->id, ['achieved' => true]);
-                $status = 'achieved (new)';
-            } elseif (!$existingAchievement->pivot->achieved) {
-                $user->achievements()->updateExistingPivot($achievement->id, ['achieved' => true]);
-                $status = 'achieved (updated)';
-            }
-
-            if ($status !== 'already achieved') {
-                $this->notifyAchievement($user, $achievement);
-            }
-
-            $achievementUpdates[] = ['achievement_id' => $achievement->id, 'status' => $status];
-        }
-    }
-
     private function notifyAchievement(User $user, Achievement $achievement)
     {
         $title = 'Achievement Unlocked! 🎉';
         $body = $this->generateNotificationBody($user, $achievement);
-        $doctors = User::role(['Admin', 'Tester'])->pluck('id');
-        $tokens = FcmToken::whereIn('doctor_id', $doctors)->pluck('token')->toArray();
+        $doctorIds = User::role(['Admin', 'Tester'])->pluck('id');
+        $tokens = FcmToken::whereIn('doctor_id', $doctorIds)->pluck('token')->toArray();
 
         $this->notificationController->sendPushNotification($title, $body, $tokens);
-        $this->createAchievementNotification($doctors->toArray(), $user->name, $achievement->id);
+        $this->createAchievementNotification($doctorIds->toArray(), $user->name, $achievement->id);
     }
 
     private function generateNotificationBody(User $user, Achievement $achievement): string
@@ -114,14 +110,18 @@ class AchievementController extends Controller
 
     private function createAchievementNotification(array $doctorIds, string $doctorName, int $achievementId)
     {
-        foreach ($doctorIds as $doctorId) {
-            AppNotification::create([
+        $notifications = array_map(function ($doctorId) use ($doctorName, $achievementId) {
+            return [
                 'doctor_id' => $doctorId,
                 'type' => 'Achievement',
                 'type_id' => $achievementId,
                 'content' => 'Dr. ' . $doctorName . ' earned a new achievement.',
-            ]);
-        }
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }, $doctorIds);
+
+        AppNotification::insert($notifications);
     }
 
     public function listAchievements()
@@ -157,4 +157,3 @@ class AchievementController extends Controller
         return response()->json($transformedAchievements, 200);
     }
 }
-

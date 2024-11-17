@@ -169,7 +169,7 @@ class PatientsController extends Controller
             $topDoctors = User::select('id', 'name', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version')
                 ->withCount('patients')
                 ->with(['score' => fn($query) => $query->select('doctor_id', 'score')])
-                ->orderByRaw('patients_count DESC, COALESCE(score.score, 0) DESC')
+                // ->orderByRaw('patients_count DESC, COALESCE(score.score, 0) DESC')
                 ->limit(5)
                 ->get()
                 ->map(function ($user) {

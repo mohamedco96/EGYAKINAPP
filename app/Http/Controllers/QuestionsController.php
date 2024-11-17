@@ -157,17 +157,9 @@ class QuestionsController extends Controller
                 'updated_at' => $question->updated_at,
             ];
     
-            // Decode the question values (assuming JSON format in DB)
-            $questionValues = json_decode($question->values, true);
-    
-            // Check if the question is 'select' and has 'Others' in its values
-            if ($question->type === 'select' && is_array($questionValues) && in_array('Others', $questionValues)) {
-                $questionData['answer'] = [
-                    'answers' => $answers->$mainAnswerColumnName ?? null,
-                    'other_field' => $answers->$otherFieldColumnName ?? null,
-                ];
-            } elseif ($question->type === 'multiple') {
-                // Handle multiple choice questions
+            // Check for 'Others' in values and type is 'select'
+            // Existing logic for multiple choice and select questions
+            if ($question->type === 'multiple' || $question->type === 'select') {
                 $questionData['answer'] = [
                     'answers' => $answers->$mainAnswerColumnName ?? null,
                     'other_field' => $answers->$otherFieldColumnName ?? null,

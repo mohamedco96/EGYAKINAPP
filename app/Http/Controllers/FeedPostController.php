@@ -529,7 +529,7 @@ public function store(Request $request)
                 'content' => 'required|string|max:1000',
                 'media_type' => 'nullable|string',
                 'media_path' => 'nullable|string',
-                'visibility' => 'required|string|in:Public,Friends,Only Me',
+                'visibility' => 'nullable|string|in:Public,Friends,Only Me',
             ]);
 
             $post->update($validatedData);

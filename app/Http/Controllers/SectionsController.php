@@ -278,28 +278,10 @@ class SectionsController extends Controller
                     'updated_at' => $question->updated_at,
                 ];
     
-                // Decode the question values (assuming JSON format in DB)
-                $questionValues = is_string($question->values) ? json_decode($question->values, true) : $question->values;
     
                 // Check for 'Others' in values and type is 'select'
-                if ($question->type === 'select' && is_array($questionValues) && in_array('Others', $questionValues)) {
-                    $questionData['answer'] = [
-                        'answers' => [],
-                        'other_field' => null,
-                    ];
-    
-                    // Collect answers for the question
-                    $questionAnswers = $answers->where('question_id', $question->id);
-                    foreach ($questionAnswers as $ans) {
-                        if ($ans->type !== 'other') {
-                            $questionData['answer']['answers'] = $ans->answer;
-                        }
-                        if ($ans->type === 'other') {
-                            $questionData['answer']['other_field'] = $ans->answer;
-                        }
-                    }
-                } elseif ($question->type === 'multiple') {
-                    // Existing logic for multiple choice
+                // Existing logic for multiple choice
+             if ($question->type === 'multiple' || $question->type === 'select') {
                     $questionData['answer'] = [
                         'answers' => [],
                         'other_field' => null,

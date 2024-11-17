@@ -826,7 +826,7 @@ class PatientsController extends Controller
                                 $this->updateAnswer($questionId, json_encode($fileUrls), $patient_id, false, $section_id);
                             } else {
                                 // Check if the question has already been processed
-                                if (isset($value['answers']) && is_array($value['answers'])) {
+                                if (isset($value['answers'])) {
                                     // Process the answer for the question
                                     $answers = $value['answers'];
                                     $otherFieldAnswer = $value['other_field'] ?? null;

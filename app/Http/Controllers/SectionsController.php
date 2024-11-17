@@ -278,10 +278,20 @@ class SectionsController extends Controller
                     'updated_at' => $question->updated_at,
                 ];
     
+                // Handle different question types
+                if ($question->type === 'select') {
+                    $questionData['answer'] = [
+                        'answers' => null,
+                        'other_field' => null,
+                    ];
     
-                // Check for 'Others' in values and type is 'select'
-                // Existing logic for multiple choice
-             if ($question->type === 'multiple') {
+                    if ($answer) {
+                        $questionData['answer']['answers'] = $answer->answer; // Set the selected value
+                        if ($answer->type === 'other') {
+                            $questionData['answer']['other_field'] = $answer->answer; // Set the other field value if present
+                        }
+                    }
+                } elseif ($question->type === 'multiple') {
                     $questionData['answer'] = [
                         'answers' => [],
                         'other_field' => null,
@@ -296,24 +306,7 @@ class SectionsController extends Controller
                             $questionData['answer']['other_field'] = $ans->answer;
                         }
                     }
-                }if ($question->type === 'select') {
-                    $questionData['answer'] = [
-                        'answers' => null,
-                        'other_field' => null,
-                    ];
-    
-                    $questionAnswers = $answers->where('question_id', $question->id);
-                    foreach ($questionAnswers as $ans) {
-                        if ($ans->type !== 'other') {
-                            $questionData['answer']['answers'] = $ans->answer;
-                        }
-                        if ($ans->type === 'other') {
-                            $questionData['answer']['other_field'] = $ans->answer;
-                        }
-                    }
-                }
-                 elseif ($question->type === 'files') {
-                    // Existing logic for files
+                } elseif ($question->type === 'files') {
                     $questionData['answer'] = [];
     
                     if ($answer === null) {
@@ -392,6 +385,8 @@ class SectionsController extends Controller
             ], 500);
         }
     }
+    
+    
     
 
     /**

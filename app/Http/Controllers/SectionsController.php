@@ -281,9 +281,24 @@ class SectionsController extends Controller
     
                 // Check for 'Others' in values and type is 'select'
                 // Existing logic for multiple choice
-             if ($question->type === 'multiple' || $question->type === 'select') {
+             if ($question->type === 'multiple') {
                     $questionData['answer'] = [
                         'answers' => [],
+                        'other_field' => null,
+                    ];
+    
+                    $questionAnswers = $answers->where('question_id', $question->id);
+                    foreach ($questionAnswers as $ans) {
+                        if ($ans->type !== 'other') {
+                            $questionData['answer']['answers'] = $ans->answer;
+                        }
+                        if ($ans->type === 'other') {
+                            $questionData['answer']['other_field'] = $ans->answer;
+                        }
+                    }
+                }if ($question->type === 'select') {
+                    $questionData['answer'] = [
+                        'answers' => null,
                         'other_field' => null,
                     ];
     

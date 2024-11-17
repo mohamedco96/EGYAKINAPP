@@ -285,10 +285,13 @@ class SectionsController extends Controller
                         'other_field' => null,
                     ];
     
-                    if ($answer) {
-                        $questionData['answer']['answers'] = $answer->answer; // Set the selected value
-                        if ($answer->type === 'other') {
-                            $questionData['answer']['other_field'] = $answer->answer; // Set the other field value if present
+                    $questionAnswers = $answers->where('question_id', $question->id);
+                    foreach ($questionAnswers as $ans) {
+                        if ($ans->type !== 'other') {
+                            $questionData['answer']['answers'] = $ans->answer;
+                        }
+                        if ($ans->type === 'other') {
+                            $questionData['answer']['other_field'] = $ans->answer;
                         }
                     }
                 } elseif ($question->type === 'multiple') {

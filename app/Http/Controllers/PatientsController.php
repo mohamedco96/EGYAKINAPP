@@ -851,7 +851,6 @@ class PatientsController extends Controller
                                     $otherFieldAnswer = $value['other_field'] ?? null;
 
                                     // Save the answers and other field answer
-//                                    $this->saveAnswer($doctor_id, $questionId, json_encode($answers, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), $patient_id, false, $section_id);
                                     $this->saveAnswer($doctor_id, $questionId, $answers, $patient_id, false, $section_id);
                                     $this->saveAnswer($doctor_id, $questionId, $otherFieldAnswer, $patient_id, true, $section_id);
                                 } elseif (isset($questionSectionIds[$questionId])) {
@@ -977,7 +976,6 @@ class PatientsController extends Controller
                     'timestamp' => now(),
                 ]);
             }
-
 
             // Logging successful patient creation
             Log::info('Section_' . $section_id . 'updated successfully', ['doctor_id' => $doctor_id, 'patient_id' => $patient_id]);

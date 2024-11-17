@@ -784,7 +784,7 @@ class PatientsController extends Controller
                 'message' => "Section not found",
             ], 404);
         }
-
+    
         $patient = Patients::find($patient_id); // Retrieve the patient from the database
         if (!$patient) {
             return response()->json([
@@ -792,324 +792,211 @@ class PatientsController extends Controller
                 'message' => "Patient not found",
             ], 404);
         }
+    
         try {
             // Start a database transaction
             DB::beginTransaction();
-
+    
             $doctor_id = Auth::id();
-
+    
             // Retrieve question IDs and their corresponding section IDs from the database
             $questionSectionIds = Questions::pluck('section_id', 'id')->toArray();
-
+    
+            // Get patient section status
             $patientSectionStatus = PatientStatus::where('patient_id', $patient_id)
                 ->where('key', 'section_' . $section_id)->first();
-
+    
+            foreach ($request->all() as $key => $value) {
+                if (preg_match('/^\d+$/', $key)) {
+                    $questionId = (int)$key;
+    
+                    $questionExists = Answers::where('patient_id', $patient_id)
+                        ->where('question_id', $questionId)
+                        ->exists();
+    
+                    if ($questionExists) {
+                        $this->processQuestion(
+                            $questionId,
+                            $value,
+                            $patient_id,
+                            $section_id,
+                            'update'
+                        );
+                    } else {
+                        $this->processQuestion(
+                            $questionId,
+                            $value,
+                            $patient_id,
+                            $section_id,
+                            'create'
+                        );
+                    }
+                }
+            }
+    
+            // Update patient section status
             if ($patientSectionStatus) {
-                // Iterate over the request data to handle questions dynamically
-                foreach ($request->all() as $key => $value) {
-                    // Check if the key represents a question and matches the expected format (e.g., "14")
-                    if (preg_match('/^\d+$/', $key)) {
-                        // Extract the question ID from the key
-                        $questionId = (int)$key;
-
-                        // Retrieve the section ID for the question from $questionSectionIds array
-                        $sectionId = $questionSectionIds[$questionId] ?? null;
-
-                        $questionIsExists = Answers::where('patient_id', $patient_id)
-                            ->where('question_id', $questionId)
-                            ->first();
-
-                        if ($questionIsExists) {
-                            // Handle file upload if question type is files
-                            if ($this->isFileTypeQuestion($questionId)) {
-                                $fileUrls = $this->handleFileUploads($value);
-                                $this->updateAnswer($questionId, json_encode($fileUrls), $patient_id, false, $section_id);
-                            } else {
-                                // Check if the question has already been processed
-                                if (isset($value['answers']) && is_array($value['answers'])) {
-                                    // Process the answer for the question
-                                    $answers = $value['answers'];
-                                    $otherFieldAnswer = $value['other_field'] ?? null;
-
-                                    $this->updateAnswer($questionId, json_encode($answers), $patient_id, false, $section_id);
-                                    $this->updateAnswer($questionId, json_encode($otherFieldAnswer), $patient_id, true, $section_id);
-                                } elseif (isset($questionSectionIds[$questionId])) {
-                                    // Save the answer along with the corresponding section ID
-                                    $this->updateAnswer($questionId, json_encode($value), $patient_id, false, $section_id);
-                                }
-                            }
-                        } else {
-                            // Handle file upload if question type is files
-                            if ($this->isFileTypeQuestion($questionId)) {
-                                $fileUrls = $this->handleFileUploads($value);
-                                $this->saveAnswer($doctor_id, $questionId, json_encode($fileUrls), $patient_id, false, $section_id);
-                            } else {
-                                // Check if the question has already been processed
-                                if (isset($value['answers']) && is_array($value['answers'])) {
-                                    // Process the answer for the question
-                                    $answers = $value['answers'];
-                                    $otherFieldAnswer = $value['other_field'] ?? null;
-
-                                    // Save the answers and other field answer
-                                    $this->saveAnswer($doctor_id, $questionId, $answers, $patient_id, false, $section_id);
-                                    $this->saveAnswer($doctor_id, $questionId, $otherFieldAnswer, $patient_id, true, $section_id);
-                                } elseif (isset($questionSectionIds[$questionId])) {
-                                    // Save the answer along with the corresponding section ID
-                                    $this->saveAnswer($doctor_id, $questionId, $value, $patient_id, false, $section_id);
-                                }
-                            }
-                        }
-                    }
-                    $patientSectionStatus->update(['updated_at' => now()]);
-                }
+                $patientSectionStatus->update(['updated_at' => now()]);
             } else {
-                // Iterate over the request data to handle questions dynamically
-                foreach ($request->all() as $key => $value) {
-                    // Check if the key represents a question and matches the expected format (e.g., "14")
-                    if (preg_match('/^\d+$/', $key)) {
-                        // Extract the question ID from the key
-                        $questionId = (int)$key;
-
-                        // Retrieve the section ID for the question from $questionSectionIds array
-                        $sectionId = $questionSectionIds[$questionId] ?? null;
-                        $questionIsExists = Answers::where('patient_id', $patient_id)
-                            ->where('question_id', $questionId)
-                            ->first();
-                        if ($questionIsExists) {
-                            // Handle file upload if question type is files
-                            if ($this->isFileTypeQuestion($questionId)) {
-                                $fileUrls = $this->handleFileUploads($value);
-                                $this->updateAnswer($questionId, json_encode($fileUrls), $patient_id, false, $section_id);
-                            } else {
-                                // Check if the question has already been processed
-                                if (isset($value['answers']) && is_array($value['answers'])) {
-                                    // Process the answer for the question
-                                    $answers = $value['answers'];
-                                    $otherFieldAnswer = $value['other_field'] ?? null;
-
-                                    $this->updateAnswer($questionId, $answers, $patient_id, false, $section_id);
-                                    $this->updateAnswer($questionId, $otherFieldAnswer, $patient_id, true, $section_id);
-                                } elseif (isset($questionSectionIds[$questionId])) {
-                                    // Save the answer along with the corresponding section ID
-                                    $this->updateAnswer($questionId, $value, $patient_id, false, $section_id);
-                                }
-                            }
-                        } else {
-                            // Handle file upload if question type is files
-                            if ($this->isFileTypeQuestion($questionId)) {
-                                $fileUrls = $this->handleFileUploads($value);
-                                $this->saveAnswer($doctor_id, $questionId, json_encode($fileUrls), $patient_id, false, $section_id);
-                            } else {
-                                // Check if the question has already been processed
-                                if (isset($value['answers']) && is_array($value['answers'])) {
-                                    // Process the answer for the question
-                                    $answers = $value['answers'];
-                                    $otherFieldAnswer = $value['other_field'] ?? null;
-
-                                    $this->saveAnswer($doctor_id, $questionId, $answers, $patient_id, false, $section_id);
-                                    $this->saveAnswer($doctor_id, $questionId, $otherFieldAnswer, $patient_id, true, $section_id);
-                                } elseif (isset($questionSectionIds[$questionId])) {
-                                    // Save the answer along with the corresponding section ID
-                                    $this->saveAnswer($doctor_id, $questionId, $value, $patient_id, false, $section_id);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Create patient status records
                 PatientStatus::create([
                     'doctor_id' => $doctor_id,
                     'patient_id' => $patient_id,
-                    'key' => 'section_' . ($section_id ?? null),
-                    'status' => true
+                    'key' => 'section_' . $section_id,
+                    'status' => true,
                 ]);
             }
-
-            $patientOutcomeStatus = PatientStatus::where('patient_id', $patient_id)
-                ->where('key', 'outcome_status')
-                ->first();
-
-            if ($patientOutcomeStatus && $section_id == 8) {
-                // If the outcome status exists and is false, update it
-                if ($patientOutcomeStatus->status === false) {
-                    $patientOutcomeStatus->status = true;
-                    $patientOutcomeStatus->doctor_id = $doctor_id;
-                    $patientOutcomeStatus->save();
-                }
-            } elseif ($section_id == 8) {
-                // If the outcome status is not found, create a new record
-                PatientStatus::create([
-                    'doctor_id' => $doctor_id,
-                    'patient_id' => $patient_id,
-                    'key' => 'outcome_status',
-                    'status' => true
-                ]);
-
-                // Scoring system
-                $doctorId = Auth::id();
-                $incrementAmount = 1;
-                $action = 'Add Outcome';
-
-                $score = Score::firstOrNew(['doctor_id' => $doctorId]);
-                $score->score += $incrementAmount;
-                $score->threshold += $incrementAmount;
-                $newThreshold = $score->threshold;
-
-                // Send notification if the new score exceeds 50 or its multiples
-                if ($newThreshold >= 50) {
-                    // Load user object
-                    $user = Auth::user();
-                    // Send notification
-                    $user->notify(new ReachingSpecificPoints($score));
-                    $score->threshold = 0;
-                }
-
-                $score->save();
-
-                // Log score history
-                ScoreHistory::create([
-                    'doctor_id' => $doctorId,
-                    'score' => $incrementAmount,
-                    'action' => $action,
-                    'patient_id' => $patient_id,
-                    'timestamp' => now(),
-                ]);
+    
+            // Update outcome status for section 8
+            if ($section_id == 8) {
+                $this->handleOutcomeStatus($doctor_id, $patient_id);
             }
-
-            // Logging successful patient creation
-            Log::info('Section_' . $section_id . 'updated successfully', ['doctor_id' => $doctor_id, 'patient_id' => $patient_id]);
-
-            // Commit the transaction
+    
             DB::commit();
-
-            // Response with success message and any additional data
-            $response = [
+    
+            return response()->json([
                 'value' => true,
                 'message' => 'Section updated successfully.',
-            ];
-
-            return response()->json($response, 200);
+            ], 200);
         } catch (\Exception $e) {
-            // Rollback the transaction
             DB::rollback();
-
-            // Handle and log errors
-            Log::error("Error while storing patient: " . $e->getMessage());
+    
+            Log::error("Error while updating patient: " . $e->getMessage());
             return response()->json([
                 'value' => false,
                 'message' => 'Error: ' . $e->getMessage(),
             ], 500);
         }
     }
-
+    
+    protected function processQuestion($questionId, $value, $patient_id, $section_id, $operation)
+    {
+        $doctor_id = Auth::id();
+    
+        if ($this->isFileTypeQuestion($questionId)) {
+            $fileUrls = $this->handleFileUploads($value);
+            $answerText = json_encode($fileUrls, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        } else {
+            $answers = $value['answers'] ?? $value;
+            $otherFieldAnswer = $value['other_field'] ?? null;
+    
+            $answerText = is_array($answers) ? json_encode($answers, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : $answers;
+        }
+    
+        if ($operation === 'update') {
+            $this->updateAnswer($questionId, $answerText, $patient_id, false, $section_id);
+            if (isset($otherFieldAnswer)) {
+                $this->updateAnswer($questionId, $otherFieldAnswer, $patient_id, true, $section_id);
+            }
+        } else {
+            $this->saveAnswer($doctor_id, $questionId, $answerText, $patient_id, false, $section_id);
+            if (isset($otherFieldAnswer)) {
+                $this->saveAnswer($doctor_id, $questionId, $otherFieldAnswer, $patient_id, true, $section_id);
+            }
+        }
+    }
+    
+    protected function handleOutcomeStatus($doctor_id, $patient_id)
+    {
+        $patientOutcomeStatus = PatientStatus::where('patient_id', $patient_id)
+            ->where('key', 'outcome_status')
+            ->first();
+    
+        if ($patientOutcomeStatus) {
+            if ($patientOutcomeStatus->status === false) {
+                $patientOutcomeStatus->update([
+                    'status' => true,
+                    'doctor_id' => $doctor_id,
+                ]);
+            }
+        } else {
+            PatientStatus::create([
+                'doctor_id' => $doctor_id,
+                'patient_id' => $patient_id,
+                'key' => 'outcome_status',
+                'status' => true,
+            ]);
+        }
+    
+        $this->updateScore($doctor_id, $patient_id, 1, 'Add Outcome');
+    }
+    
+    protected function updateScore($doctor_id, $patient_id, $incrementAmount, $action)
+    {
+        $score = Score::firstOrNew(['doctor_id' => $doctor_id]);
+        $score->score += $incrementAmount;
+        $score->threshold += $incrementAmount;
+    
+        if ($score->threshold >= 50) {
+            $user = Auth::user();
+            $user->notify(new ReachingSpecificPoints($score));
+            $score->threshold = 0;
+        }
+    
+        $score->save();
+    
+        ScoreHistory::create([
+            'doctor_id' => $doctor_id,
+            'score' => $incrementAmount,
+            'action' => $action,
+            'patient_id' => $patient_id,
+            'timestamp' => now(),
+        ]);
+    }
+    
     protected function isFileTypeQuestion($questionId)
     {
-        // Add logic to determine if the question is of file type based on question ID
         $question = Questions::find($questionId);
         return $question && $question->type === 'files';
     }
-
+    
     protected function handleFileUploads($files)
     {
         $filePaths = [];
-
+    
         foreach ($files as $file) {
-            // Get file data and name from the request
             $fileData = $file['file_data'];
             $fileName = $file['file_name'];
-
-            // Check if both file name and data are present
+    
             if (!$fileData || !$fileName) {
                 throw new \Exception('File name or data is missing');
             }
-
-            try {
-                // Decode base64 data
-                $fileContent = base64_decode($fileData);
-
-                // Define the path to save the file in the medical_reports folder
-                $filePath = 'medical_reports/' . $fileName;
-
-                // Save file to storage or public folder
-                Storage::disk('public')->put($filePath, $fileContent);
-
-                // Log successful upload
-                \Log::info("File uploaded successfully: $fileName");
-
-                // Add the file path to the response array
-                $filePaths[] = $filePath;
-            } catch (\Exception $e) {
-                // Log upload failure
-                \Log::error("Failed to upload file $fileName: " . $e->getMessage());
-                // You might want to handle or rethrow the exception based on your application logic
-                // throw new \Exception("Failed to upload file $fileName: " . $e->getMessage());
-            }
+    
+            $fileContent = base64_decode($fileData);
+            $filePath = 'medical_reports/' . $fileName;
+    
+            Storage::disk('public')->put($filePath, $fileContent);
+            $filePaths[] = $filePath;
         }
-
+    
         return $filePaths;
     }
-
+    
     protected function saveAnswer($doctor_id, $questionId, $answerText, $patientId, $isOtherField = false, $sectionId = null)
     {
-        Patients::where('id', $patientId)
-            ->update([
-                'updated_at' => now(),
-            ]);
-
-        // Check if the question is of 'files' type
-        $question = Questions::find($questionId);
-        if ($question && $question->type === 'files') {
-            // Encode file paths array into JSON format
-            //$answerText = json_encode($answerText);
-            $answerText = is_array($answerText) ? json_encode($answerText, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : $answerText;
-        }
-
-        // Create a new answer record
         Answers::create([
             'doctor_id' => $doctor_id,
-            'section_id' => $sectionId, // Pass section ID
+            'section_id' => $sectionId,
             'question_id' => $questionId,
             'patient_id' => $patientId,
-            'answer' => $answerText, // Convert array to JSON string if it's an array
+            'answer' => $answerText,
             'type' => $isOtherField ? 'other' : null,
         ]);
     }
-
-
+    
     protected function updateAnswer($questionId, $answerText, $patientId, $isOtherField = false, $sectionId = null)
     {
-        // Check if the question is of 'files' type
-        $question = Questions::find($questionId);
-        if ($question && $question->type === 'files') {
-            // Encode file paths array into JSON format
-            $answerText = json_encode($answerText);
-        }
-
-        Patients::where('id', $patientId)
-            ->update([
-                'updated_at' => now(),
-            ]);
-
-        // Update the answer record based on whether it's for 'other' or normal type
-        if ($isOtherField) {
-            Answers::where('patient_id', $patientId)
-                ->where('question_id', $questionId)
-                ->whereNotNull('type')
-                ->update([
-                    'answer' => $answerText,
-                    'type' => 'other',
-                ]);
-        } else {
-            Answers::where('patient_id', $patientId)
-                ->where('question_id', $questionId)
-                ->whereNull('type')
-                ->update([
-                    'answer' => $answerText,
-                    'type' => null,
-                ]);
-        }
+        $conditions = [
+            'patient_id' => $patientId,
+            'question_id' => $questionId,
+            'type' => $isOtherField ? 'other' : null,
+        ];
+    
+        Answers::updateOrCreate($conditions, [
+            'answer' => $answerText,
+            'section_id' => $sectionId,
+        ]);
     }
+    
 
     /**
      * Remove the specified resource from storage.

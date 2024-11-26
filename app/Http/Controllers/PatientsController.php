@@ -12,6 +12,7 @@ use App\Models\FcmToken;
 use App\Models\Patients;
 use App\Http\Requests\UpdatePatientsRequest;
 use App\Models\PatientStatus;
+use App\Models\SectionsInfo;
 use App\Models\Posts;
 use App\Models\Questions;
 use App\Models\Score;
@@ -145,76 +146,61 @@ class PatientsController extends Controller
             // Retrieve the authenticated user
             $user = Auth::user();
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
-
-            // Return all posts
+    
+            // Fetch all necessary data in fewer queries
             $posts = Posts::select('id', 'title', 'image', 'content', 'hidden', 'post_type', 'webinar_date', 'url', 'doctor_id', 'updated_at')
                 ->where('hidden', false)
-                ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
-                }])
+                ->with(['doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version'])
                 ->get();
-
-            // Return current patients
+    
             $currentPatients = $user->patients()
-                ->when(!$isAdminOrTester, function ($query) {
-                    return $query->where('hidden', false);
-                })
-                ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
-                }])
+                ->when(!$isAdminOrTester, fn($query) => $query->where('hidden', false))
+                ->with(['doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version', 'status', 'answers'])
                 ->latest('updated_at')
                 ->limit(5)
                 ->get();
-
-            // Return all patients
-            $allPatients = Patients::when(!$isAdminOrTester, function ($query) {
-                return $query->where('hidden', false);
-            })
-                ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
-                }])
+    
+            $allPatients = Patients::when(!$isAdminOrTester, fn($query) => $query->where('hidden', false))
+                ->with(['doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version', 'status', 'answers'])
                 ->latest('updated_at')
                 ->limit(5)
                 ->get();
-
-            // Return Top Doctors
-            $topDoctors = User::select('id', 'name', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version')
+    
+            $topDoctors = User::select('users.id', 'users.name', 'users.image', 'users.syndicate_card', 'users.isSyndicateCardRequired', 'users.version')
+                ->leftJoin('scores', 'users.id', '=', 'scores.doctor_id')
                 ->withCount('patients')
-                ->selectSub(function ($query) {
-                    $query->selectRaw('COALESCE(score, 0)')
-                        ->from('scores')
-                        ->whereColumn('users.id', 'scores.doctor_id')
-                        ->limit(1);
-                }, 'score')
-                ->orderByRaw('patients_count DESC, COALESCE(score, 0) DESC')
+                ->orderByRaw('patients_count DESC, COALESCE(scores.score, 0) DESC')
                 ->limit(5)
                 ->get()
                 ->map(function ($user) {
-                    $user->patients_count = strval($user->patients_count);
-                    return $user;
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'image' => $user->image,
+                        'syndicate_card' => $user->syndicate_card,
+                        'isSyndicateCardRequired' => $user->isSyndicateCardRequired,
+                        'version' => $user->version,
+                        'patients_count' => (string) $user->patients_count,
+                        'score' => (string) ($user->score->score ?? 0),
+                    ];
                 });
-
-            // Return doctors with Pending Syndicate Card only for Admin or Tester
+    
             $pendingSyndicateCard = $isAdminOrTester
                 ? User::select('id', 'name', 'image', 'syndicate_card', 'isSyndicateCardRequired')
                     ->where('isSyndicateCardRequired', 'Pending')
                     ->limit(10)
                     ->get()
-                : collect(); // Return empty list for other users
-
+                : collect();
+    
             // Transform the patient data
             $transformPatientData = function ($patient) {
                 $submit_status = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
                 $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
-
-                // Get doctor_id of the submitter from outcome status
                 $outcomeSubmitterDoctorId = optional($patient->status->where('key', 'outcome_status')->first())->doctor_id;
-
-                // Fetch the submitter's details using the doctor_id
+    
                 $submitter = User::select('id', 'name', 'lname', 'isSyndicateCardRequired')
-                    ->where('id', $outcomeSubmitterDoctorId)
-                    ->first(); // Use first() instead of get() to retrieve a single record
-
+                    ->find($outcomeSubmitterDoctorId);
+    
                 return [
                     'id' => $patient->id,
                     'doctor_id' => $patient->doctor_id,
@@ -229,37 +215,27 @@ class PatientsController extends Controller
                     ],
                     'submitter' => [
                         'submitter_id' => optional($submitter)->id,
-                        'submitter_fname' => (optional($submitter)->name) ? optional($submitter)->name : null,
-                        'submitter_lname' => (optional($submitter)->lname) ? optional($submitter)->lname : null,
+                        'submitter_fname' => optional($submitter)->name,
+                        'submitter_lname' => optional($submitter)->lname,
                         'submitter_SyndicateCard' => optional($submitter)->isSyndicateCardRequired
                     ]
                 ];
             };
-
+    
             $currentPatientsResponseData = $currentPatients->map($transformPatientData);
             $allPatientsResponseData = $allPatients->map($transformPatientData);
-
-            // Get patient count and score value
+    
             $userPatientCount = $user->patients()->count();
             $allPatientCount = Patients::count();
             $scoreValue = optional($user->score)->score ?? 0;
             $isVerified = (bool)$user->email_verified_at;
-
-            // Get unread notification count
-            $unreadCount = AppNotification::where('doctor_id', $user->id)
-                ->where('read', false)->count();
-
-            // Get SyndicateCard value
+            $unreadCount = AppNotification::where('doctor_id', $user->id)->where('read', false)->count();
             $isSyndicateCardRequired = $user->isSyndicateCardRequired;
-
             $isUserBlocked = $user->blocked;
-
-            // Get the first role
             $role = $user->roles->first();
-
+    
             $update_message = '<ul><li><strong>Doctor Consultations</strong>: Doctors can now consult one or more colleagues for advice on their patients.</li><li><strong>User Achievements</strong>: Earn achievements by adding a set number of patients or completing specific outcomes.</li></ul>';
-
-            // Prepare response data
+    
             $response = [
                 'value' => true,
                 'app_update_message' => $update_message,
@@ -279,17 +255,22 @@ class PatientsController extends Controller
                     'posts' => $posts,
                 ],
             ];
-
+    
             // Log successful response
-            Log::info('Successfully retrieved home data.', ['user_id' => $user->id]);
-
-            // Return the transformed response
+            Log::info('Successfully retrieved home data.', [
+                'user_id' => $user->id,
+                'response' => $response
+            ]);
+    
             return response()->json($response, 200);
         } catch (\Exception $e) {
             // Log error
-            Log::error('Error retrieving home data.', ['user_id' => optional(Auth::user())->id, 'exception' => $e]);
-
-            // Return error response
+            Log::error('Error retrieving home data.', [
+                'user_id' => optional(Auth::user())->id,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+    
             return response()->json([
                 'value' => false,
                 'message' => 'Failed to retrieve home data.',
@@ -614,7 +595,7 @@ class PatientsController extends Controller
                     $sectionId = $questionSectionIds[$questionId] ?? null;
 
                     // Check if the question has already been processed
-                    if (isset($value['answers']) && is_array($value['answers'])) {
+                    if (isset($value['answers'])) {
                         // Process the answer for the question
                         $answers = $value['answers'];
                         $otherFieldAnswer = $value['other_field'] ?? null;
@@ -825,7 +806,7 @@ class PatientsController extends Controller
                                 $this->updateAnswer($questionId, json_encode($fileUrls), $patient_id, false, $section_id);
                             } else {
                                 // Check if the question has already been processed
-                                if (isset($value['answers']) && is_array($value['answers'])) {
+                                if (isset($value['answers'])) {
                                     // Process the answer for the question
                                     $answers = $value['answers'];
                                     $otherFieldAnswer = $value['other_field'] ?? null;
@@ -844,13 +825,12 @@ class PatientsController extends Controller
                                 $this->saveAnswer($doctor_id, $questionId, json_encode($fileUrls), $patient_id, false, $section_id);
                             } else {
                                 // Check if the question has already been processed
-                                if (isset($value['answers']) && is_array($value['answers'])) {
+                                if (isset($value['answers'])) {
                                     // Process the answer for the question
                                     $answers = $value['answers'];
                                     $otherFieldAnswer = $value['other_field'] ?? null;
 
                                     // Save the answers and other field answer
-//                                    $this->saveAnswer($doctor_id, $questionId, json_encode($answers, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), $patient_id, false, $section_id);
                                     $this->saveAnswer($doctor_id, $questionId, $answers, $patient_id, false, $section_id);
                                     $this->saveAnswer($doctor_id, $questionId, $otherFieldAnswer, $patient_id, true, $section_id);
                                 } elseif (isset($questionSectionIds[$questionId])) {
@@ -882,7 +862,7 @@ class PatientsController extends Controller
                                 $this->updateAnswer($questionId, json_encode($fileUrls), $patient_id, false, $section_id);
                             } else {
                                 // Check if the question has already been processed
-                                if (isset($value['answers']) && is_array($value['answers'])) {
+                                if (isset($value['answers'])) {
                                     // Process the answer for the question
                                     $answers = $value['answers'];
                                     $otherFieldAnswer = $value['other_field'] ?? null;
@@ -901,7 +881,7 @@ class PatientsController extends Controller
                                 $this->saveAnswer($doctor_id, $questionId, json_encode($fileUrls), $patient_id, false, $section_id);
                             } else {
                                 // Check if the question has already been processed
-                                if (isset($value['answers']) && is_array($value['answers'])) {
+                                if (isset($value['answers'])) {
                                     // Process the answer for the question
                                     $answers = $value['answers'];
                                     $otherFieldAnswer = $value['other_field'] ?? null;
@@ -976,7 +956,6 @@ class PatientsController extends Controller
                     'timestamp' => now(),
                 ]);
             }
-
 
             // Logging successful patient creation
             Log::info('Section_' . $section_id . 'updated successfully', ['doctor_id' => $doctor_id, 'patient_id' => $patient_id]);
@@ -1633,6 +1612,8 @@ class PatientsController extends Controller
             // Retrieve the patient from the database with related data
             $patient = Patients::with(['doctor', 'status', 'answers'])->findOrFail($patient_id);
 
+            $sections_infos = SectionsInfo::all();
+
             $data = [];
 
             // Fetch all questions
@@ -1691,7 +1672,8 @@ class PatientsController extends Controller
             // Pass the data to the blade view
             $pdfData = [
                 'patient' => $patient,
-                'questionData' => $data
+                'questionData' => $data,
+                'sections_infos' => $sections_infos
                 // Add more data here if needed
             ];
 
@@ -1717,7 +1699,7 @@ class PatientsController extends Controller
             // Return the URL to download the PDF file along with patient data
             return response()->json([
                 'pdf_url' => $pdfUrl,
-               // 'data' => $pdfData
+                'data' => $pdfData
             ]);
 
             // Pass the data to the blade view
@@ -1736,54 +1718,6 @@ class PatientsController extends Controller
                 'message' => 'Error: ' . $e->getMessage(),
             ], 500);
         }
-    }
-
-    public function generatePatientPDFold($patient_id)
-    {
-        // Retrieve the patient from the database
-        //$patient = Patients::findOrFail($patient_id);
-
-        $patient = Patients::select('id', 'doctor_id', 'updated_at')
-            ->where('hidden', false)
-            ->where('id', 132)
-            ->with(['doctor' => function ($query) {
-                $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired', 'version');
-            }])
-            ->with(['status' => function ($query) {
-                $query->select('id', 'patient_id', 'key', 'status');
-            }])
-            ->with(['answers' => function ($query) {
-                $query->select('id', 'patient_id', 'answer', 'question_id');
-            }])
-            ->latest('updated_at')
-            ->get();
-
-        // Pass the data to the blade view
-        $data = [
-            'patient' => $patient,
-            // Add more data here if needed
-        ];
-
-        // Generate the PDF using the blade view and data
-        $pdf = PDF::loadView('patient_pdf', $data);
-
-        //$pdf = PDF::loadHTML('<h1>Hello, this is a New PDF!</h1>');
-
-        // Ensure the 'pdfs' directory exists in the public disk
-        Storage::disk('public')->makeDirectory('pdfs');
-
-        // Generate a unique filename for the PDF
-        $pdfFileName = 'filename2.pdf';
-
-        // Save the PDF file to the public disk
-        Storage::disk('public')->put('pdfs/' . $pdfFileName, $pdf->output());
-
-        // Generate the URL for downloading the PDF file
-        // $pdfUrl = Storage::disk('public')->url('pdfs/' . $pdfFileName);
-        $pdfUrl = config('app.url') . '/' . 'storage/app/public/pdfs/' . $pdfFileName;
-
-        // Return the URL to download the PDF file
-        return response()->json(['pdf_url' => $pdfUrl]);
     }
 
     public function patientFilterConditions()

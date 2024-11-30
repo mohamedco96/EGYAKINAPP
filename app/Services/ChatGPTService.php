@@ -17,16 +17,19 @@ class ChatGPTService
     public function sendMessage($message)
     {
         try {
+            $apiKey = $this->apiKey;
+            Log::info('API Key: ' . $apiKey);
+    
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type' => 'application/json',
             ])->post('https://api.openai.com/v1/chat/completions', [
-                'model' => 'gpt-4o', // Specify the model, adjust to GPT-4 if needed
+                'model' => 'gpt-4', // Adjust to the correct model if needed
                 'messages' => [
                     ['role' => 'user', 'content' => $message],
                 ],
             ]);
-
+    
             // Check if the request was successful
             if ($response->successful()) {
                 // Extract the actual content of the response
@@ -34,7 +37,11 @@ class ChatGPTService
                 return $content;
             } else {
                 // Log error details
-                Log::error('ChatGPT API Error', ['status' => $response->status(), 'body' => $response->body()]);
+                Log::error('ChatGPT API Error', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                    'headers' => $response->headers()
+                ]);
                 return 'Error: Unable to get a response from ChatGPT.';
             }
         } catch (\Exception $e) {
@@ -43,6 +50,7 @@ class ChatGPTService
             return 'Error: An exception occurred while communicating with ChatGPT.';
         }
     }
+    
 
     public function generatePrompt($patientData)
     {

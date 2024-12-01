@@ -100,7 +100,7 @@ class AchievementController extends Controller
         $tokens = FcmToken::whereIn('doctor_id', $doctorIds)->pluck('token')->toArray();
 
         $this->notificationController->sendPushNotification($title, $body, $tokens);
-        $this->createAchievementNotification($doctorIds->toArray(), $user->name, $achievement->id);
+        $this->createAchievementNotification($doctorIds->toArray(), $user->name, $achievement->id, $user->id);
     }
 
     private function generateNotificationBody(User $user, Achievement $achievement): string
@@ -108,7 +108,7 @@ class AchievementController extends Controller
         return 'Dr. ' . $user->name . ' achieved a new milestone: ' . $achievement->name;
     }
 
-    private function createAchievementNotification(array $doctorIds, string $doctorName, int $achievementId)
+    private function createAchievementNotification(array $doctorIds, string $doctorName, int $achievementId, int $doctorID)
     {
         $notifications = array_map(function ($doctorId) use ($doctorName, $achievementId) {
             return [
@@ -116,6 +116,7 @@ class AchievementController extends Controller
                 'type' => 'Achievement',
                 'type_id' => $achievementId,
                 'content' => 'Dr. ' . $doctorName . ' earned a new achievement.',
+                'type_doctor_id' => $doctorID,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];

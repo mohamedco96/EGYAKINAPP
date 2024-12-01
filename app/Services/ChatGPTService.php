@@ -20,7 +20,7 @@ class ChatGPTService
             // $apiKey = $this->apiKey;
             $apiKey = config('services.openai.api_key');
             
-            Log::info('API Key: ' . $NewapiKey);
+            Log::info('API Key: ' . $apiKey);
     
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $apiKey,

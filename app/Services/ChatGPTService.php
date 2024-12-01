@@ -17,8 +17,10 @@ class ChatGPTService
     public function sendMessage($message)
     {
         try {
-            $apiKey = $this->apiKey;
-            Log::info('API Key: ' . $apiKey);
+            // $apiKey = $this->apiKey;
+            $apiKey = config('services.openai.api_key');
+            
+            Log::info('API Key: ' . $NewapiKey);
     
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $apiKey,

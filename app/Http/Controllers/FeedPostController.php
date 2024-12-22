@@ -452,7 +452,7 @@ public function store(Request $request)
         // Log the post creation
         Log::info("Post created by doctor " . Auth::id());
 
-        
+
         // Return success response
         return response()->json([
             'value' => true,
@@ -481,13 +481,13 @@ public function store(Request $request)
         try {
             $post = FeedPost::findOrFail($id);
 
-            if ($post->doctor_id != Auth::id()) {
-                Log::warning("Unauthorized deletion attempt by doctor " . Auth::id());
-                return response()->json([
-                    'value' => false,
-                    'message' => 'Unauthorized action'
-                ], 403);
-            }
+//            if ($post->doctor_id != Auth::id()) {
+//                Log::warning("Unauthorized deletion attempt by doctor " . Auth::id());
+//                return response()->json([
+//                    'value' => false,
+//                    'message' => 'Unauthorized action'
+//                ], 403);
+//            }
 
             $post->delete();
 
@@ -517,7 +517,10 @@ public function store(Request $request)
         try {
             $post = FeedPost::findOrFail($id);
 
-            if ($post->doctor_id !== Auth::id()) {
+            $user = Auth::user();
+            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+
+            if ($post->doctor_id !== Auth::id() || !$isAdminOrTester) {
                 Log::warning("Unauthorized update attempt by doctor " . Auth::id());
                 return response()->json([
                     'value' => false,
@@ -783,7 +786,10 @@ public function store(Request $request)
         try {
             $comment = FeedPostComment::findOrFail($commentId);
 
-            if ($comment->doctor_id !== Auth::id()) {
+            $user = Auth::user();
+            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+
+            if ($comment->doctor_id !== Auth::id() || !$isAdminOrTester) {
                 Log::warning("Unauthorized comment delete attempt by doctor " . Auth::id());
                 return response()->json([
                     'value' => false,
@@ -962,7 +968,7 @@ public function store(Request $request)
             ], 500);
         }
     }
-    
+
     // Get posts by hashtag
     public function getPostsByHashtag($hashtagId)
     {
@@ -1093,6 +1099,6 @@ public function store(Request $request)
             ], 500);
         }
     }
-    
-    
+
+
 }

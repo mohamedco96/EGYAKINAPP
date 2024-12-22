@@ -279,23 +279,22 @@ class SectionsController extends Controller
                 ];
     
                 // Handle different question types
-                // if ($question->type === 'select') {
-                //     $questionData['answer'] = [
-                //         'answers' => null,
-                //         'other_field' => null,
-                //     ];
+                if ($question->type === 'select') {
+                    $questionData['answer'] = [
+                        'answers' => null,
+                        'other_field' => null,
+                    ];
     
-                //     $questionAnswers = $answers->where('question_id', $question->id);
-                //     foreach ($questionAnswers as $ans) {
-                //         if ($ans->type !== 'other') {
-                //             $questionData['answer']['answers'] = $ans->answer;
-                //         }
-                //         if ($ans->type === 'other') {
-                //             $questionData['answer']['other_field'] = $ans->answer;
-                //         }
-                //     }
-                // } else
-                if ($question->type === 'multiple') {
+                    $questionAnswers = $answers->where('question_id', $question->id);
+                    foreach ($questionAnswers as $ans) {
+                        if ($ans->type !== 'other') {
+                            $questionData['answer']['answers'] = $ans->answer;
+                        }
+                        if ($ans->type === 'other') {
+                            $questionData['answer']['other_field'] = $ans->answer;
+                        }
+                    }
+                } elseif ($question->type === 'multiple') {
                     $questionData['answer'] = [
                         'answers' => [],
                         'other_field' => null,

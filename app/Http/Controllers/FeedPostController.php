@@ -481,13 +481,17 @@ public function store(Request $request)
         try {
             $post = FeedPost::findOrFail($id);
 
-//            if ($post->doctor_id != Auth::id()) {
-//                Log::warning("Unauthorized deletion attempt by doctor " . Auth::id());
-//                return response()->json([
-//                    'value' => false,
-//                    'message' => 'Unauthorized action'
-//                ], 403);
-//            }
+            $user = Auth::user();
+            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+
+            // Allow only the post owner or Admin/Tester
+            if ($post->doctor_id !== $user->id && !$isAdminOrTester) {
+                Log::warning("Unauthorized deletion attempt by doctor " . Auth::id());
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Unauthorized action'
+                ], 403);
+            }
 
             $post->delete();
 
@@ -520,7 +524,8 @@ public function store(Request $request)
             $user = Auth::user();
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
 
-            if ($post->doctor_id !== Auth::id() || !$isAdminOrTester) {
+            // Allow only the post owner or Admin/Tester
+            if ($post->doctor_id !== $user->id && !$isAdminOrTester) {
                 Log::warning("Unauthorized update attempt by doctor " . Auth::id());
                 return response()->json([
                     'value' => false,
@@ -789,7 +794,8 @@ public function store(Request $request)
             $user = Auth::user();
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
 
-            if ($comment->doctor_id !== Auth::id() || !$isAdminOrTester) {
+            // Allow only the post owner or Admin/Tester
+            if ($comment->doctor_id !== $user->id && !$isAdminOrTester) {
                 Log::warning("Unauthorized comment delete attempt by doctor " . Auth::id());
                 return response()->json([
                     'value' => false,

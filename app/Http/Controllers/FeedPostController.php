@@ -305,9 +305,11 @@ class FeedPostController extends Controller
 
             if ($comments->isEmpty()) {
                 Log::info("No comments found for post ID $postId");
+                $emptyData = $comments->toArray(); // Retain the structure
+                $emptyData['data'] = []; // Set data to an empty array
                 return response()->json([
                     'value' => true,
-                    'data' => [],
+                    'data' => $emptyData,
                     'message' => 'No comments found for this post'
                 ]);
             }

@@ -91,6 +91,7 @@ $answers = collect($patient->answers)->keyBy('question_id');
             padding: 8px;
         }
 
+
         th {
             background-color: #f2f2f2;
         }
@@ -99,48 +100,58 @@ $answers = collect($patient->answers)->keyBy('question_id');
             text-align: center;
         }
 
-        .Patient-Information-background { 
-            background-color: #e5dfec; 
+        .Patient-Information-background {
+            background-color: #e5dfec;
             font-weight: bold;
         }
 
-        .Complaint-background { 
-            background-color: #fbd5b5; 
+        .Complaint-background {
+            background-color: #fbd5b5;
             font-weight: bold;
         }
 
-        .Cause-background { 
-            background-color: #dbe5f1; 
+        .Cause-background {
+            background-color: #dbe5f1;
             font-weight: bold;
         }
 
-        .Risk-background { 
-            background-color: #eeece1; 
+        .Risk-background {
+            background-color: #eeece1;
             font-weight: bold;
         }
 
-        .Assessment-background { 
-            background-color: #fbd5b5; 
+        .Assessment-background {
+            background-color: #fbd5b5;
             font-weight: bold;
         }
 
-        .Medical-background { 
-            background-color: #b8cce4; 
+        .Medical-background {
+            background-color: #b8cce4;
             font-weight: bold;
         }
 
-        .Laboratory-background { 
-            background-color: #fdeada; 
+        .Laboratory-background {
+            background-color: #fdeada;
             font-weight: bold;
         }
 
-        .Radiology-background { 
-            background-color: #fdeada; 
+        .Radiology-background {
+            background-color: #fdeada;
             font-weight: bold;
         }
 
-        .CTS-patient-background { 
-            background-color: #dbeef3; 
+        .CTS-patient-background {
+            background-color: #dbeef3;
+            font-weight: bold;
+        }
+
+        .Operative-details-background {
+            background-color: #e5dfec;
+            font-weight: bold;
+        }
+
+        .Go-Patients-background {
+            background-color: #f5cfee;
             font-weight: bold;
         }
     </style>
@@ -182,16 +193,16 @@ $answers = collect($patient->answers)->keyBy('question_id');
                     $patientChildren = $patientInfo->get(142)['answer'] ?? null;
 
                     // Handle patientHabit as array or string
-                    $patientHabit = isset($patientInfo->get(14)['type']) && $patientInfo->get(14)['type'] === 'other' 
-                        ? '' 
-                        : (is_array($patientInfo->get(14)['answer']) 
-                            ? implode(', ', $patientInfo->get(14)['answer']) 
+                    $patientHabit = isset($patientInfo->get(14)['type']) && $patientInfo->get(14)['type'] === 'other'
+                        ? ''
+                        : (is_array($patientInfo->get(14)['answer'])
+                            ? implode(', ', $patientInfo->get(14)['answer'])
                             : ($patientInfo->get(14)['answer'] ?? 'None'));
-                    
-                    $patientHabitOther = isset($patientInfo->get(14)['type']) && $patientInfo->get(14)['type'] === 'other' 
-                        ? $patientInfo->get(14)['answer'] 
+
+                    $patientHabitOther = isset($patientInfo->get(14)['type']) && $patientInfo->get(14)['type'] === 'other'
+                        ? $patientInfo->get(14)['answer']
                         : '';
-                    
+
                     $patientDM = $patientInfo->get(16)['answer'] ?? null;
                     $patientHTN = $patientInfo->get(18)['answer'] ?? null;
                     $governorate = $patientInfo->get(11)['answer'] ?? null;
@@ -690,7 +701,7 @@ $answers = collect($patient->answers)->keyBy('question_id');
                     </tr>
                     <tr>
                         <td class="CTS-patient-background">Preoperative Platelets</td>
-                        <td>{{$answers[180]['answer'] ?? null}}</td>
+                        <td colspan="3">{{$answers[180]['answer'] ?? null}}</td>
                     </tr>
                     <tr>
                         <td class="CTS-patient-background">Preoperative creatinine</td>
@@ -742,21 +753,21 @@ $answers = collect($patient->answers)->keyBy('question_id');
                     </tr>
                     <tr>
                         <td class="CTS-patient-background">Postoperative pCo2</td>
-                        <td>{{$answers[]['answer'] ?? null}}</td>
+                        <td>{{$answers[213]['answer'] ?? null}}</td>
                         <td class="CTS-patient-background">Postoperative SBP</td>
-                        <td>{{$answers[]['answer'] ?? null}}</td>
+                        <td>{{$answers[214]['answer'] ?? null}}</td>
                     </tr>
                     <tr>
                         <td class="CTS-patient-background">Postoperative DBP</td>
-                        <td>{{$answers[]['answer'] ?? null}}</td>
+                        <td colspan="3">{{$answers[215]['answer'] ?? null}}</td>
                     </tr>
                     <tr>
                         <td class="CTS-patient-background">Preoperative ejection Fraction</td>
-                        <td>{{$answers[]['answer'] ?? null}}</td>
+                        <td colspan="3">{{$answers[192]['answer'] ?? null}}</td>
                     </tr>
                     <tr>
                         <td class="CTS-patient-background">Preoperative ECHO</td>
-                        <td>{{$answers[]['answer'] ?? null}}</td>
+                        <td colspan="3">{{$answers[193]['answer'] ?? null}}</td>
                     </tr>
                     </tbody>
                 </table>
@@ -766,6 +777,127 @@ $answers = collect($patient->answers)->keyBy('question_id');
     <!--  -->
 
 
+    <!-- Operative details Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <h2>Operative details</h2>
+                <table border="1" style="width: 100%; border-collapse: collapse;">
+                    <tbody>
+                    <tr>
+                        <td class="Operative-details-background">CPB duration/minutes</td>
+                        <td>{{$answers[194]['answer'] ?? null}}</td>
+                        <td class="Operative-details-background">Cross clamping times/minutes</td>
+                        <td>{{$answers[195]['answer'] ?? null}}</td>
+                    </tr>
+                    <tr>
+                        <td class="Operative-details-background">Core temperature/c/lowest</td>
+                        <td>{{$answers[196]['answer'] ?? null}}</td>
+                        <td class="Operative-details-background">Core temperature/c/highest</td>
+                        <td>{{$answers[224]['answer'] ?? null}}</td>
+                    </tr>
+                    <tr>
+                        <td class="Operative-details-background">Serum lactate during surgery</td>
+                        <td>{{$answers[197]['answer'] ?? null}}</td>
+                        <td class="Operative-details-background">Abnormal Event</td>
+                        <td>{{$answers[199]['answer'] ?? null}}</td>
+                    </tr>
+                    <tr>
+                        <td class="Operative-details-background">Type of cardioplegia -1</td>
+                        <td>{{$answers[201]['answer'] ?? null}}</td>
+                        <td class="Operative-details-background">Type of cardioplegia -2</td>
+                        <td>{{$answers[202]['answer'] ?? null}}</td>
+                    </tr>
+                    <tr>
+                        <td class="Operative-details-background">Type of cardioplegia -3</td>
+                        <td>{{$answers[203]['answer'] ?? null}}</td>
+                        <td class="Operative-details-background">Type of cardioplegia -4</td>
+                        <td>{{$answers[204]['answer'] ?? null}}</td>
+                    </tr>
+                    <tr>
+                        <td class="Operative-details-background">Blood transfusion</td>
+                        <td>{{$answers[225]['answer'] ?? null}}</td>
+                        <td class="Operative-details-background">Blood transfusion type</td>
+                        <td>{{$answers[226]['answer'] ?? null}}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!--  -->
+
+    <!-- Go- Patients Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <h2>Go- Patients</h2>
+                <table border="1" style="width: 100%; border-collapse: collapse;">
+                    <tbody>
+                    <tr>
+                        <td class="Go-Patients-background">Presentation date</td>
+                        <td>{{$answers[234]['answer'] ?? null}}</td>
+                        <td class="Go-Patients-background">Gravidity number</td>
+                        <td>{{$answers[235]['answer'] ?? null}}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background">Parity number</td>
+                        <td colspan="3">{{$answers[236]['answer'] ?? null}}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background">First presentation</td>
+                        <td>{{$answers[237]['answer'] ?? null}}</td>
+                        <td class="Go-Patients-background">Place of medical care</td>
+                        <td>{{$answers[238]['answer'] ?? null}}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background">Antenatal care</td>
+                        <td>{{$answers[239]['answer'] ?? null}}</td>
+                        <td class="Go-Patients-background">Recent Preeclampsia/eclampsia</td>
+                        <td>{{$answers[240]['answer'] ?? null}}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background" style="width: 200px;">Past Preeclampsia/eclampsia</td>
+                        <td colspan="3">{{$answers[241]['answer'] ?? null}}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background">Obstetric hemorrhage</td>
+                        <td colspan="3">{{$answers[242]['answer'] ?? null}}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background">Organ failure</td>
+                        <td>{{$answers[243]['answer'] ?? null}}</td>
+                        <td class="Go-Patients-background">Specify</td>
+                        <td>{{$answers[244]['answer'] ?? null}}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background">Past PRAKI</td>
+                        <td>{{$answers[245]['answer'] ?? null}}</td>
+                        <td class="Go-Patients-background">CS complications</td>
+                        <td>{{$answers[246]['answer'] ?? null}}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background">Oliguria</td>
+                        <td>{{$answers[247]['answer'] ?? null}}</td>
+                        <td class="Go-Patients-background">Proteinuria</td>
+                        <td>{{$answers[249]['answer'] ?? null}}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background">M_Outcome</td>
+                        <td>{{$answers[253]['answer'] ?? null}}</td>
+                        <td class="Go-Patients-background">F_Outcome</td>
+                        <td>{{$answers[254]['answer'] ?? null}}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background">Neonatal ICU</td>
+                        <td colspan="3">{{$answers[255]['answer'] ?? null}}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!--  -->
 
     <!-- Footer -->
     <div class="footer">

@@ -245,55 +245,68 @@ class FeedPostController extends Controller
     }
 
     // Get comments for a post
+    //in the below getPostComments function show the auth users comments and replies in fisrt and if the owner of the post added comment show it firt for all users 
+
     public function getPostComments($postId)
     {
         try {
-            $doctorId = auth()->id();
-
-            // Get the comments with like and reply counts, including nested replies
+            $doctorId = auth()->id(); // Authenticated user ID
+            $postOwnerId = FeedPost::find($postId)->doctor_id; // Assuming `doctor_id` is the owner ID in FeedPost
+            $perPage = 10; // Number of comments per page
+            $page = request()->get('page', 1); // Current page
+    
+            // Fetch all comments with the necessary relations
             $comments = FeedPostComment::where('feed_post_id', $postId)
-                ->whereNull('parent_id')  // Get only top-level comments
+                ->whereNull('parent_id') // Get only top-level comments
                 ->with([
-                    'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',  // Include doctor's details
-                    'replies' => function($query) use ($doctorId) {
-                        // For each reply, include doctor, likes, and recursively load nested replies
+                    'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                    'replies' => function ($query) use ($doctorId) {
                         $query->with([
                             'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
                             'likes' => function ($query) use ($doctorId) {
-                                $query->where('doctor_id', $doctorId);  // Check if reply is liked by the doctor
+                                $query->where('doctor_id', $doctorId);
                             },
-                            'replies' => function($query) use ($doctorId) {  // Nested replies
+                            'replies' => function ($query) use ($doctorId) {
                                 $query->withCount(['likes as likes_count', 'replies as replies_count'])
                                     ->with([
                                         'likes' => function ($query) use ($doctorId) {
-                                            $query->where('doctor_id', $doctorId);  // Check if nested reply is liked by the doctor
+                                            $query->where('doctor_id', $doctorId);
                                         }
                                     ]);
                             }
                         ])->withCount(['likes as likes_count', 'replies as replies_count']);
                     },
                     'likes' => function ($query) use ($doctorId) {
-                        $query->where('doctor_id', $doctorId);  // Check if the comment is liked by the doctor
+                        $query->where('doctor_id', $doctorId);
                     }
                 ])
-                ->withCount(['likes as likes_count', 'replies as replies_count'])  // Count likes and replies for each comment
-                ->paginate(10);
-
-            // Add 'isLiked' for comments and replies
-            foreach ($comments as $comment) {
-                $comment->isLiked = $comment->likes->isNotEmpty();  // Check if the current doctor liked the comment
-
-                // Process replies to add 'isLiked'
+                ->withCount(['likes as likes_count', 'replies as replies_count'])
+                ->get(); // Fetch all comments to apply custom sorting
+    
+            // Reorder comments: Post owner's comments first, followed by auth user's comments
+            $comments = $comments->sortByDesc(function ($comment) use ($doctorId, $postOwnerId) {
+                return [
+                    $comment->doctor_id === $postOwnerId ? 2 : 0, // Post owner's comments first
+                    $comment->doctor_id === $doctorId ? 1 : 0     // Auth user's comments second
+                ];
+            })->values(); // Reset the keys after sorting
+    
+            // Manually paginate the sorted comments
+            $paginatedComments = $comments->forPage($page, $perPage);
+    
+            // Add 'isLiked' property for comments and replies
+            foreach ($paginatedComments as $comment) {
+                $comment->isLiked = $comment->likes->isNotEmpty();
+    
                 foreach ($comment->replies as $reply) {
-                    $reply->isLiked = $reply->likes->isNotEmpty();  // Check if the current doctor liked the reply
-
-                    // Process nested replies (if any)
+                    $reply->isLiked = $reply->likes->isNotEmpty();
+    
                     foreach ($reply->replies as $nestedReply) {
-                        $nestedReply->isLiked = $nestedReply->likes->isNotEmpty();  // Check if the doctor liked the nested reply
+                        $nestedReply->isLiked = $nestedReply->likes->isNotEmpty();
                     }
                 }
-
-                // Optionally remove the 'likes' relation to clean up the response
+    
+                // Optionally remove the 'likes' relation
                 unset($comment->likes);
                 foreach ($comment->replies as $reply) {
                     unset($reply->likes);
@@ -302,20 +315,20 @@ class FeedPostController extends Controller
                     }
                 }
             }
-
-            if ($comments->isEmpty()) {
-                Log::info("No comments found for post ID $postId");
-                return response()->json([
-                    'value' => true,
-                    'data' => [],
-                    'message' => 'No comments found for this post'
-                ]);
-            }
-
+    
+            // Prepare the paginated response
+            $paginatedResponse = new \Illuminate\Pagination\LengthAwarePaginator(
+                $paginatedComments,
+                $comments->count(), // Total items count
+                $perPage,
+                $page,
+                ['path' => request()->url(), 'query' => request()->query()]
+            );
+    
             Log::info("Comments retrieved for post ID $postId");
             return response()->json([
                 'value' => true,
-                'data' => $comments,
+                'data' => $paginatedResponse,
                 'message' => 'Post comments retrieved successfully'
             ]);
         } catch (\Exception $e) {
@@ -327,6 +340,8 @@ class FeedPostController extends Controller
             ], 500);
         }
     }
+    
+
 
 // Create a new post
 public function store(Request $request)

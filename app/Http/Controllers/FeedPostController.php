@@ -305,11 +305,9 @@ class FeedPostController extends Controller
 
             if ($comments->isEmpty()) {
                 Log::info("No comments found for post ID $postId");
-                $emptyData = $comments->toArray(); // Retain the structure
-                $emptyData['data'] = []; // Set data to an empty array
                 return response()->json([
                     'value' => true,
-                    'data' => $emptyData,
+                    'data' => [],
                     'message' => 'No comments found for this post'
                 ]);
             }
@@ -483,11 +481,7 @@ public function store(Request $request)
         try {
             $post = FeedPost::findOrFail($id);
 
-            $user = Auth::user();
-            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
-
-            // Allow only the post owner or Admin/Tester
-            if ($post->doctor_id !== $user->id && !$isAdminOrTester) {
+            if ($post->doctor_id != Auth::id()) {
                 Log::warning("Unauthorized deletion attempt by doctor " . Auth::id());
                 return response()->json([
                     'value' => false,
@@ -523,11 +517,7 @@ public function store(Request $request)
         try {
             $post = FeedPost::findOrFail($id);
 
-            $user = Auth::user();
-            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
-
-            // Allow only the post owner or Admin/Tester
-            if ($post->doctor_id !== $user->id && !$isAdminOrTester) {
+            if ($post->doctor_id !== Auth::id()) {
                 Log::warning("Unauthorized update attempt by doctor " . Auth::id());
                 return response()->json([
                     'value' => false,
@@ -793,11 +783,7 @@ public function store(Request $request)
         try {
             $comment = FeedPostComment::findOrFail($commentId);
 
-            $user = Auth::user();
-            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
-
-            // Allow only the post owner or Admin/Tester
-            if ($comment->doctor_id !== $user->id && !$isAdminOrTester) {
+            if ($comment->doctor_id !== Auth::id()) {
                 Log::warning("Unauthorized comment delete attempt by doctor " . Auth::id());
                 return response()->json([
                     'value' => false,

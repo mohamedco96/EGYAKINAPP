@@ -14,8 +14,6 @@ class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
      */
     public function register(): void
     {
-        // Telescope::night();
-
         $this->hideSensitiveRequestDetails();
 
         $isLocal = $this->app->environment('local');
@@ -57,8 +55,15 @@ class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
     {
         Gate::define('viewTelescope', function ($user) {
             return in_array($user->email, [
-                //
+                'admin@egyakin.com', // Replace with authorized admin emails
             ]);
+        });
+
+        Telescope::auth(function ($request) {
+            return $this->app->environment('local') ||
+                   Gate::allows('viewTelescope') ||
+                   in_array($request->ip(), [
+                   ]);
         });
     }
 }

@@ -62,7 +62,7 @@ return [
     |
     */
 
-    'enabled' => env('TELESCOPE_ENABLED', $this->app->isLocal()),
+    'enabled' => env('TELESCOPE_ENABLED', true),
 
     /*
     |--------------------------------------------------------------------------

@@ -345,126 +345,31 @@ class FeedPostController extends Controller
 public function store(Request $request)
 {
     DB::beginTransaction(); // Start a transaction
+
     try {
         // Validate the incoming request
-        $validatedData = $request->validate([
-            'content' => 'required|string|max:1000',
-            'media_type' => 'nullable|string|in:image,video',
-            'media_path' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,mkv|max:20480',
-            'visibility' => 'nullable|string|in:Public,Friends,Only Me',
-            'group_id' => 'nullable|exists:groups,id'
-        ]);
+        $validatedData = $request->validate($this->validationRules());
 
-        // Check if group_id is provided and try to retrieve the group
-        if (!empty($validatedData['group_id'])) {
-            $group = Group::with('doctors')->find($validatedData['group_id']);
+        // Handle group validation and permissions
+        $this->handleGroupValidation($validatedData);
 
-            // If the group could not be found, return an error
-            if (!$group) {
-                return response()->json([
-                    'value' => false,
-                    'message' => 'Group not found'
-                ], 404);
-            }
-
-            // Check if the group is private and if the user is not a member
-            if ($group->privacy === 'private' && !$group->doctors->contains(Auth::id())) {
-                return response()->json([
-                    'value' => false,
-                    'message' => 'You cannot post in this private group'
-                ], 403);
-            }
-
-            // Add the group name to validated data for further processing
-            $validatedData['group_name'] = $group->name;
-        }
-
-        // Initialize mediaPath as null
-        $mediaPath = null;
-
-        // Check if media_path is provided and the file is valid
-        if ($request->hasFile('media_path')) {
-            $media = $request->file('media_path');
-            $path = ($validatedData['media_type'] === 'image') ? 'media_images' : 'media_videos';
-
-            // Call the upload function to store the media and get the media URL
-            $uploadResponse = $this->mainController->uploadImageAndVideo($media, $path);
-
-            // Check if the upload was successful
-            if ($uploadResponse->getData()->value) {
-                $mediaPath = $uploadResponse->getData()->image;  // Store the URL of the uploaded media
-            } else {
-                // Handle upload error
-                return response()->json([
-                    'value' => false,
-                    'message' => 'Media upload failed.'
-                ], 500);
-            }
-        }
+        // Handle media upload if present
+        $mediaPath = $this->handleMediaUpload($request, $validatedData['media_type']);
 
         // Create a new feed post
-        $post = FeedPost::create([
-            'doctor_id' => Auth::id(),
-            'content' => $validatedData['content'],
-            'media_type' => $validatedData['media_type'] ?? null,
-            'media_path' => $mediaPath,  // Save the media URL
-            'visibility' => $validatedData['visibility'] ?? 'Public',
-            'group_id' => $validatedData['group_id'] ?? null,
-        ]);
+        $post = $this->createFeedPost($validatedData, $mediaPath);
 
-        // Ensure that the post creation is successful before proceeding
-        if (!$post) {
-            throw new \Exception('Post creation failed');
-        }
-
-        // Extract hashtags from content
-        $hashtags = $this->extractHashtags($request->input('content'));
-
-        foreach ($hashtags as $tag) {
-            // Check if the hashtag already exists
-            $hashtag = Hashtag::firstOrCreate(
-                ['tag' => $tag],
-                ['usage_count' => 0]
-            );
-
-            // Increment usage count
-            $hashtag->increment('usage_count');
-
-            // Attach the hashtag to the post
-            $post->hashtags()->attach($hashtag->id);  // Ensure post is successfully saved before this
-        }
+        // Attach hashtags to the post
+        $this->attachHashtags($post, $request->input('content'));
 
         // Commit the transaction
         DB::commit();
 
-        // Notify other doctors with role 'Admin' or 'Tester', excluding the authenticated user
-        $doctors = User::role(['Admin', 'Tester'])
-            ->where('id', '!=', Auth::id())
-            ->pluck('id');
+        // Notify relevant doctors about the new post
+        $this->notifyDoctors($post);
 
-        $user = Auth::user();
-        $doctorName = $user->name . ' ' . $user->lname;
-
-        // Create notifications for the new post
-        $notifications = $doctors->map(function ($doctorId) use ($post, $doctorName, $user) {
-            return [
-            'doctor_id' => $doctorId,
-            'type' => 'Other',
-            'type_id' => $post->id,
-            'content' => sprintf('Dr. %s added a new post', $doctorName),
-            'type_doctor_id' => $user->id,
-            'created_at' => now(),
-            'updated_at' => now()
-            ];
-        })->toArray();
-
-        AppNotification::insert($notifications);
-
-        // Log the successful notification insertion
-        Log::info("Notifications inserted successfully for post ID: " . $post->id);
         // Log the post creation
         Log::info("Post created by doctor " . Auth::id());
-
 
         // Return success response
         return response()->json([
@@ -485,6 +390,107 @@ public function store(Request $request)
             'message' => "Error creating post: " . $e->getMessage()
         ], 500);
     }
+}
+
+private function validationRules()
+{
+    return [
+        'content' => 'required|string|max:1000',
+        'media_type' => 'nullable|string|in:image,video',
+        'media_path' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,mkv|max:20480',
+        'visibility' => 'nullable|string|in:Public,Friends,Only Me',
+        'group_id' => 'nullable|exists:groups,id'
+    ];
+}
+
+private function handleGroupValidation(array &$validatedData)
+{
+    if (!empty($validatedData['group_id'])) {
+        $group = Group::with('doctors')->find($validatedData['group_id']);
+
+        if (!$group) {
+            throw new \Exception('Group not found', 404);
+        }
+
+        if ($group->privacy === 'private' && !$group->doctors->contains(Auth::id())) {
+            throw new \Exception('You cannot post in this private group', 403);
+        }
+
+        $validatedData['group_name'] = $group->name;
+    }
+}
+
+private function handleMediaUpload(Request $request, $mediaType)
+{
+    if ($request->hasFile('media_path')) {
+        $media = $request->file('media_path');
+        $path = ($mediaType === 'image') ? 'media_images' : 'media_videos';
+
+        $uploadResponse = $this->mainController->uploadImageAndVideo($media, $path);
+
+        if ($uploadResponse->getData()->value) {
+            return $uploadResponse->getData()->image;
+        } else {
+            throw new \Exception('Media upload failed.', 500);
+        }
+    }
+
+    return null;
+}
+
+private function createFeedPost(array $validatedData, $mediaPath)
+{
+    $post = FeedPost::create([
+        'doctor_id' => Auth::id(),
+        'content' => $validatedData['content'],
+        'media_type' => $validatedData['media_type'] ?? null,
+        'media_path' => $mediaPath,
+        'visibility' => $validatedData['visibility'] ?? 'Public',
+        'group_id' => $validatedData['group_id'] ?? null,
+    ]);
+
+    if (!$post) {
+        throw new \Exception('Post creation failed');
+    }
+
+    return $post;
+}
+
+private function attachHashtags(FeedPost $post, $content)
+{
+    $hashtags = $this->extractHashtags($content);
+
+    foreach ($hashtags as $tag) {
+        $hashtag = Hashtag::firstOrCreate(['tag' => $tag], ['usage_count' => 0]);
+        $hashtag->increment('usage_count');
+        $post->hashtags()->attach($hashtag->id);
+    }
+}
+
+private function notifyDoctors(FeedPost $post)
+{
+    $doctors = User::role(['Admin', 'Tester'])
+        ->where('id', '!=', Auth::id())
+        ->pluck('id');
+
+    $user = Auth::user();
+    $doctorName = $user->name . ' ' . $user->lname;
+
+    $notifications = $doctors->map(function ($doctorId) use ($post, $doctorName, $user) {
+        return [
+            'doctor_id' => $doctorId,
+            'type' => 'Other',
+            'type_id' => $post->id,
+            'content' => sprintf('Dr. %s added a new post', $doctorName),
+            'type_doctor_id' => $user->id,
+            'created_at' => now(),
+            'updated_at' => now()
+        ];
+    })->toArray();
+
+    AppNotification::insert($notifications);
+
+    Log::info("Notifications inserted successfully for post ID: " . $post->id);
 }
 
 

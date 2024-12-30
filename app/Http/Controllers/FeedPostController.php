@@ -354,7 +354,7 @@ public function store(Request $request)
         $this->handleGroupValidation($validatedData);
 
         // Handle media upload if present
-        $mediaPath = $this->handleMediaUpload($request, $validatedData['media_type']);
+        $mediaPath = $this->handleMediaUpload($request, $validatedData['media_type'] ?? null);
 
         // Create a new feed post
         $post = $this->createFeedPost($validatedData, $mediaPath);

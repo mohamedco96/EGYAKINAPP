@@ -343,7 +343,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('posts/{postId}/likes', 'FeedPostController@getPostLikes');
     Route::get('posts/{postId}/comments', 'FeedPostController@getPostComments');
     Route::get('feed/posts/{id}', 'FeedPostController@getPostById');
-    Route::post('posts/{postId}/comments', 'FeedPostController@addComment');
+    // Route::post('posts/{postId}/comments', 'FeedPostController@addComment');
     Route::post('comments/{commentId}/likeOrUnlikeComment', 'FeedPostController@likeOrUnlikeComment');
     Route::get('/feed/trendingPosts', 'FeedPostController@trending');
     // Search Hashtags

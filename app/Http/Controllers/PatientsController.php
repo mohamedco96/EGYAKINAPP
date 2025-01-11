@@ -1697,6 +1697,8 @@ class PatientsController extends Controller
             //\Log::info('Patient Answers:', ['answers' => $patient->answers]);
 
             // Return the URL to download the PDF file along with patient data
+            Log::info('Returning PDF generation response.', ['pdf_url' => $pdfUrl, 'data' => $pdfData]);
+
             return response()->json([
                 'pdf_url' => $pdfUrl,
                 'data' => $pdfData

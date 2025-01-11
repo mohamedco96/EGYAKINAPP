@@ -240,7 +240,7 @@ $answers = collect($patient->answers)->keyBy('question_id');
                         <td class="Patient-Information-background">Age</td>
                         <td>{{ $patientAge }}</td>
                         <td class="Patient-Information-background">Gender</td>
-                        <td>{{ $patientGender }}</td>
+                        <td>{{$answers[8]['answer'] ?? null}}</td>
                     </tr>
                     <tr>
                         <td class="Patient-Information-background">Occupation</td>

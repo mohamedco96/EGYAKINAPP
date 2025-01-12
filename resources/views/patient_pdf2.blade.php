@@ -192,7 +192,7 @@ $answers = collect($patient->answers)->keyBy('question_id');
                     <tbody>
                     <tr>
                         <td class="Patient-Information-background">Patient Name</td>
-                        <!-- <td>{{ $questionData[1]['answer'] ?? null }}</td> -->
+                        <td>{{ $questionData[1]['answer'] ?? null }}</td>
                         <td class="Patient-Information-background">Patient ID</td>
                         <td></td>
                     </tr>
@@ -210,7 +210,7 @@ $answers = collect($patient->answers)->keyBy('question_id');
                         <td class="Patient-Information-background">Age</td>
                         <td></td>
                         <td class="Patient-Information-background">Gender</td>
-                        <td>{{ collect($questionData)->where('id', 8)->first()['answer']['answers'] ?? 'Not Provided' }}</td>
+                        <!-- <td>{{ collect($questionData)->where('id', 8)->first()['answer']['answers'] ?? 'Not Provided' }}</td> -->
                     </tr>
                     <tr>
                         <td class="Patient-Information-background">Occupation</td>

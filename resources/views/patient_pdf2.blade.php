@@ -194,7 +194,7 @@ $answers = collect($questionData)->keyBy('id');
                         <td class="Patient-Information-background">Patient Name</td>
                         <td>{{$answers[1]['answer'] ?? null}}</td>
                         <td class="Patient-Information-background">Patient ID</td>
-                        <td>{{$patient->id}}</td>
+                        <td>{{$patient_id}}</td>
                     </tr>
                     <tr>
                         <td class="Patient-Information-background">Patient Phone</td>
@@ -204,37 +204,95 @@ $answers = collect($questionData)->keyBy('id');
                     </tr>
                     <tr>
                         <td class="Patient-Information-background">Department</td>
-                        <td colspan="3"></td>
+                        <td colspan="3">
+                            @php
+                                $answer = $answers[168]['answer']['answers'] ?? null;
+                                $otherField = $answers[168]['answer']['other_field'] ?? null;
+                                
+                                // If "answers" is "Others" and "other_field" is not empty, display "other_field"
+                                if ($answer === "Others" && !empty(trim($otherField))) {
+                                    $answer = $otherField;
+                                }
+                            @endphp
+
+                            {{ $answer ?? null }}
+                        </td>
                     </tr>
                     <tr>
                         <td class="Patient-Information-background">Age</td>
-                        <td></td>
+                        <td>{{$answers[7]['answer'] ?? null}}</td>
                         <td class="Patient-Information-background">Gender</td>
                         <td>{{$answers[8]['answer']['answers'] ?? null}}</td>
                     </tr>
                     <tr>
                         <td class="Patient-Information-background">Occupation</td>
-                        <td></td>
+                        <td>{{$answers[9]['answer']['answers'] ?? null}}</td>
                         <td class="Patient-Information-background">Governorate</td>
-                        <td></td>
+                        <td>{{$answers[11]['answer']['answers'] ?? null}}</td>
                     </tr>
                     <tr>
                         <td class="Patient-Information-background">Marital Status</td>
-                        <td></td>
+                        <td>{{$answers[12]['answer']['answers'] ?? null}}</td>
                         <td class="Patient-Information-background">Children</td>
-                        <td></td>
+                        <td>{{$answers[142]['answer'] ?? null}}</td>
                     </tr>
                     <tr>
                         <td class="Patient-Information-background">Special Habits</td>
                         <td colspan="3">
+                        @php
+                        $answersText = '';
+
+                        // Filter out "Others" from the answers array
+                        $filteredAnswers = array_filter($answers[14]['answer']['answers'], function($answer) {
+                            return $answer !== "Others";
+                        });
+
+                        // Join the remaining answers
+                        $answersText .= implode(', ', $filteredAnswers);
+
+                        // Check if 'other_field' is not empty and append it
+                        if (!empty(trim($answers[14]['answer']['other_field']))) {
+                            // If there is already an answer, add a separator before appending 'other_field'
+                            if (!empty($answersText)) {
+                                $answersText .= ', ';
+                            }
+                            $answersText .= $answers[14]['answer']['other_field'];
+                        }
+                    @endphp
+                    {{ $answersText }}
+
                         </td>
                     </tr>
                     <tr>
                         <td class="Patient-Information-background">DM</td>
-                        <td></td>
+                        <td>
+                            @php
+                                $answer = $answers[16]['answer']['answers'] ?? null;
+                                $otherField = $answers[16]['answer']['other_field'] ?? null;
+                                
+                                // Check if the answer is "Yes", and if other_field is not empty, include it
+                                if ($answer === "Yes" && !empty(trim($otherField))) {
+                                    $answer = $answer . ', ' . $otherField;  // Concatenate "Yes" and "other_field"
+                                }
+                            @endphp
+
+                            {{ $answer ?? null }}
+                        </td>
                         <td class="Patient-Information-background">HTN</td>
-                        <td></td>
-                    </tr>
+                        <td>
+                            @php
+                                $answer = $answers[18]['answer']['answers'] ?? null;
+                                $otherField = $answers[18]['answer']['other_field'] ?? null;
+                                
+                                // Check if the answer is "Yes", and if other_field is not empty, include it
+                                if ($answer === "Yes" && !empty(trim($otherField))) {
+                                    $answer = $answer . ', ' . $otherField;  // Concatenate "Yes" and "other_field"
+                                }
+                            @endphp
+
+                            {{ $answer ?? null }}
+                        </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>

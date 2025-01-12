@@ -1609,21 +1609,11 @@ class PatientsController extends Controller
     public function generatePatientPDF($patient_id)
     {
         try {
-            // Retrieve the patient from the database with related data
-            $patient = Patients::with(['doctor', 'status'])->findOrFail($patient_id);
-
-            $sections_infos = SectionsInfo::all();
-
-            // Fetch questions for the specified section
-            $questions = Questions::orderBy('section_id')
-                ->orderBy('sort')
-                ->get();
-    
-            // Fetch all answers for the patient related to these questions
+            // Fetch all questions and answers for the patient at once to minimize database queries
+            $questions = Questions::orderBy('section_id')->orderBy('sort')->get();
             $answers = Answers::where('patient_id', $patient_id)
-                ->whereIn('question_id', $questions->pluck('id'))
-                ->get();
-    
+            ->whereIn('question_id', $questions->pluck('id'))
+            ->get();
             // Initialize array to store questions and answers
             $data = [];
     
@@ -1709,43 +1699,36 @@ class PatientsController extends Controller
                 // Add question data to main data array
                 $data[] = $questionData;
             }
-
-
-            // Pass the data to the blade view
+    
+            // Prepare data for the PDF
             $pdfData = [
-                'patient' => $patient,
+                'patient_id' => $patient_id,
                 'questionData' => $data,
-                'sections_infos' => $sections_infos
-                // Add more data here if needed
             ];
-
+    
             // Generate the PDF using the blade view and data
             $pdf = PDF::loadView('patient_pdf2', $pdfData);
-
+    
             // Ensure the 'pdfs' directory exists in the public disk
             Storage::disk('public')->makeDirectory('pdfs');
-
-            $patientName = $patient->answers->where('question_id', '1')->first();
-
+    
             // Generate a unique filename for the PDF
-            $pdfFileName = $patientName->answer .'_'. date("dmy_His"). '.pdf';
-
+            $pdfFileName = "Report" .'_'. date("dmy_His"). '.pdf';
+    
             // Save the PDF file to the public disk
             Storage::disk('public')->put('pdfs/' . $pdfFileName, $pdf->output());
-
+    
             // Generate the URL for downloading the PDF file
             $pdfUrl = config('app.url') . '/' . 'storage/pdfs/' . $pdfFileName;
-
-            //\Log::info('Patient Answers:', ['answers' => $patient->answers]);
-
+    
             // Return the URL to download the PDF file along with patient data
             Log::info('Returning PDF generation response.', ['pdf_url' => $pdfUrl, 'data' => $pdfData]);
-
+    
             return response()->json([
                 'pdf_url' => $pdfUrl,
                 'data' => $pdfData
             ]);
-
+    
         } catch (\Exception $e) {
             // Log and return error if an exception occurs
             Log::error("Error while generating PDF: " . $e->getMessage());
@@ -1755,6 +1738,7 @@ class PatientsController extends Controller
             ], 500);
         }
     }
+    
 
     public function patientFilterConditions()
     {

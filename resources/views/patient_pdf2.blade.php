@@ -210,8 +210,16 @@ $answers = collect($patient->answers)->keyBy('question_id');
                         <td class="Patient-Information-background">Age</td>
                         <td></td>
                         <td class="Patient-Information-background">Gender</td>
-                        {{ collect($questionData)->where('id', 8)->first()['answer'] ?? 'Not Provided' }}
-                        </tr>
+                        <td>
+    @php
+        $answer = collect($questionData)->where('id', 8)->first()['answer'] ?? 'Not Provided';
+        // If answer is an array or object, handle accordingly
+        if (is_array($answer) || is_object($answer)) {
+            $answer = implode(', ', (array) $answer);
+        }
+    @endphp
+    {{ $answer }}
+</td>                        </tr>
                     <tr>
                         <td class="Patient-Information-background">Occupation</td>
                         <td></td>

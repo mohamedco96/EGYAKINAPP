@@ -1610,64 +1610,106 @@ class PatientsController extends Controller
     {
         try {
             // Retrieve the patient from the database with related data
-            $patient = Patients::with(['doctor', 'status', 'answers'])->findOrFail($patient_id);
+            $patient = Patients::with(['doctor', 'status'])->findOrFail($patient_id);
 
             $sections_infos = SectionsInfo::all();
 
+            // Fetch questions for the specified section
+            $questions = Questions::orderBy('section_id')
+                ->orderBy('sort')
+                ->get();
+    
+            // Fetch all answers for the patient related to these questions
+            $answers = Answers::where('patient_id', $patient_id)
+                ->whereIn('question_id', $questions->pluck('id'))
+                ->get();
+    
+            // Initialize array to store questions and answers
             $data = [];
-
-            // Fetch all questions
-            $questions = Questions::with('section')->get();
-
-            // Iterate over each question
+    
             foreach ($questions as $question) {
-                // Skip questions with certain IDs
+                // Skip questions flagged with 'skip'
                 if ($question->skip) {
                     Log::info("Question with ID {$question->id} skipped as per skip flag.");
                     continue;
                 }
-
+    
+                // Find answer for this question
+                $answer = $answers->where('question_id', $question->id)->first();
+    
+                // Skip hidden questions with no answer
+                if ($question->hidden && !$answer) {
+                    Log::info("Hidden question with ID {$question->id} skipped due to no answer.");
+                    continue;
+                }
+    
+                // Prepare question data
                 $questionData = [
                     'id' => $question->id,
-                    'section_id' => $question->section->id ?? "test",
-                    'section_name' => $question->section->section_name ?? "Not found",
                     'question' => $question->question,
                     'values' => $question->values,
                     'type' => $question->type,
                     'keyboard_type' => $question->keyboard_type,
                     'mandatory' => $question->mandatory,
+                    'hidden' => $question->hidden,
                     'updated_at' => $question->updated_at,
                 ];
-
-                // Find the answer for this question
-                $answer = $patient->answers->where('question_id', $question->id)->first();
-
-                if ($question->type === 'multiple') {
-                    // Initialize the answer array
+    
+                // Handle different question types
+                if ($question->type === 'select') {
                     $questionData['answer'] = [
-                        'answers' => [], // Initialize answers as an empty array
-                        'other_field' => null // Set other_field to null by default
+                        'answers' => null,
+                        'other_field' => null,
                     ];
-
-                    // Find answers for this question
-                    $questionAnswers = $patient->answers->where('question_id', $question->id);
-
-                    // Populate the answers array
-                    foreach ($questionAnswers as $answer) {
-                        if ($answer->type !== 'other') {
-                            $questionData['answer']['answers'][] = $answer->answer;
+    
+                    $questionAnswers = $answers->where('question_id', $question->id);
+                    foreach ($questionAnswers as $ans) {
+                        if ($ans->type !== 'other') {
+                            $questionData['answer']['answers'] = $ans->answer;
                         }
-                        if ($answer->type === 'other') {
-                            $questionData['answer']['other_field'] = $answer->answer;
+                        if ($ans->type === 'other') {
+                            $questionData['answer']['other_field'] = $ans->answer;
+                        }
+                    }
+                } elseif ($question->type === 'multiple') {
+                    $questionData['answer'] = [
+                        'answers' => [],
+                        'other_field' => null,
+                    ];
+    
+                    $questionAnswers = $answers->where('question_id', $question->id);
+                    foreach ($questionAnswers as $ans) {
+                        if ($ans->type !== 'other') {
+                            $questionData['answer']['answers'] = $ans->answer;
+                        }
+                        if ($ans->type === 'other') {
+                            $questionData['answer']['other_field'] = $ans->answer;
+                        }
+                    }
+                } elseif ($question->type === 'files') {
+                    $questionData['answer'] = [];
+    
+                    if ($answer === null) {
+                        $questionData['answer'] = [];
+                    } else {
+                        $filePaths = json_decode($answer->answer);
+    
+                        if (is_array($filePaths)) {
+                            foreach ($filePaths as $filePath) {
+                                $absolutePath = Storage::disk('public')->url($filePath);
+                                $questionData['answer'][] = $absolutePath;
+                            }
                         }
                     }
                 } else {
-                    // For other types of questions, return the answer directly
+                    // For other types, directly set the answer
                     $questionData['answer'] = $answer ? $answer->answer : null;
                 }
-
+    
+                // Add question data to main data array
                 $data[] = $questionData;
             }
+
 
             // Pass the data to the blade view
             $pdfData = [
@@ -1704,14 +1746,6 @@ class PatientsController extends Controller
                 'data' => $pdfData
             ]);
 
-            // Pass the data to the blade view
-//            $viewData = [
-//                'patient' => $patient,
-//                'questionData' => $data
-//                // Add more data here if needed
-//            ];
-//            // Return the view with the data
-//            return view('patient_pdf2', $viewData);
         } catch (\Exception $e) {
             // Log and return error if an exception occurs
             Log::error("Error while generating PDF: " . $e->getMessage());

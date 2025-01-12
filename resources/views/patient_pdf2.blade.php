@@ -240,7 +240,8 @@ $answers = collect($patient->answers)->keyBy('question_id');
                         <td class="Patient-Information-background">Age</td>
                         <td>{{ $patientAge }}</td>
                         <td class="Patient-Information-background">Gender</td>
-                        <td>{{ $answers->where('question_id', 8)->whereNull('type')->first()['answer'] ?? 'Not Provided' }}</td>
+                        <td>{{ collect($answers)->where('question_id', 8)->whereNull('type')->first()['answer'] ?? 'Not Provided' }}</td>
+                    </tr>
                     <tr>
                         <td class="Patient-Information-background">Occupation</td>
                         <td>{{ $patientOccupation }}</td>

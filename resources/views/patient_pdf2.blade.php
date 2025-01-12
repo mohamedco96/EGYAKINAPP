@@ -3,7 +3,7 @@
 set_time_limit(120);
 
 // Map answers by question_id for efficient lookups
-$answers = collect($patient->answers)->keyBy('question_id');
+// $answers = collect($patient->answers)->keyBy('question_id');
 ?>
 <!DOCTYPE html>
 <html lang="en">

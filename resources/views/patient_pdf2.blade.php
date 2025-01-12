@@ -3,7 +3,6 @@
 set_time_limit(120);
 
 // Map answers by question_id for efficient lookups
-// $answers = collect($patient->answers)->keyBy('question_id');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -192,7 +191,7 @@ set_time_limit(120);
                     <tbody>
                     <tr>
                         <td class="Patient-Information-background">Patient Name</td>
-                        <!-- <td>{{ $questionData[1]['answer'] ?? null }}</td> -->
+                        <td></td>
                         <td class="Patient-Information-background">Patient ID</td>
                         <td></td>
                     </tr>
@@ -210,7 +209,7 @@ set_time_limit(120);
                         <td class="Patient-Information-background">Age</td>
                         <td></td>
                         <td class="Patient-Information-background">Gender</td>
-                        <!-- <td>{{ collect($questionData)->where('id', 8)->first()['answer']['answers'] ?? 'Not Provided' }}</td> -->
+                        <td></td>
                     </tr>
                     <tr>
                         <td class="Patient-Information-background">Occupation</td>

@@ -192,7 +192,7 @@ $answers = collect($patient->answers)->keyBy('question_id');
                     <tbody>
                     <tr>
                         <td class="Patient-Information-background">Patient Name</td>
-                        <td>{{ $questionData[1]['answer'] ?? null }}</td>
+                        <!-- <td>{{ $questionData[1]['answer'] ?? null }}</td> -->
                         <td class="Patient-Information-background">Patient ID</td>
                         <td></td>
                     </tr>

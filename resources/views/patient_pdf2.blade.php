@@ -179,6 +179,8 @@ $answers = collect($patient->answers)->keyBy('question_id');
         </div>
     </div>
 
+    <pre>{{ json_encode($answers, JSON_PRETTY_PRINT) }}</pre>
+
     <!-- Patient Information Section -->
     <div class="row">
         <div class="col-md-12">

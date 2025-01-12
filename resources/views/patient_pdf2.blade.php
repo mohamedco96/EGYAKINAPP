@@ -300,7 +300,7 @@ function processMultipleAnswers($answers, $questionId) {
                 </tr>
                 <tr>
                     <td class="Cause-background">Post_Renal Causes</td>
-                    <td colspan="3">{{ processAnswer($answers, 31) }}</td>
+                    <td colspan="3">{{ processMultipleAnswers($answers, 31) }}</td>
                 </tr>
                 <tr>
                     <td class="Cause-background">Other Causes</td>

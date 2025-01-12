@@ -313,6 +313,63 @@ function processMultipleAnswers($answers, $questionId) {
     </div>
     <!--  -->
 
+    <!-- Risk Factors for AKI Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                    <h2>Risk Factors for AKI</h2>
+                <table border="1" style="width: 100%; border-collapse: collapse;">
+                    <tbody>
+                    <tr>
+                        <td class="Risk-background">History OF CKD</td>
+                        <td>{{ processAnswer($answers, 34) }}</td>
+                        <td class="Risk-background">History OF AKI</td>
+                        <td>{{ processAnswer($answers, 35) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Risk-background">History OF Cardiac Failure</td>
+                        <td>{{ processAnswer($answers, 36) }}</td>
+                        <td class="Risk-background">History OF LCF</td>
+                        <td>{{ processAnswer($answers, 37) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Risk-background">History OF Sepsis</td>
+                        <td>{{ processAnswer($answers, 39) }}</td>
+                        <td class="Risk-background">History OF Hypovolemia</td>
+                        <td>{{ processAnswer($answers, 43) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Risk-background">History OF Malignancy</td>
+                        <td>{{ processAnswer($answers, 44) }}</td>
+                        <td class="Risk-background">History OF Trauma</td>
+                        <td>{{ processAnswer($answers, 45) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Risk-background">History OF Autoimmune Disease</td>
+                        <td colspan="3">{{ processAnswer($answers, 46) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Risk-background">History of neurological impairment or disability</td>
+                        <td colspan="3">{{ processAnswer($answers, 38) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Risk-background">Recent use of iodinated contrast media</td>
+                        <td colspan="3">{{ processAnswer($answers, 40) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Risk-background">Current or recent use of drugs with potential nephrotoxicity</td>
+                        <td colspan="3">{{ processAnswer($answers, 41) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Risk-background">Other risk factors</td>
+                        <td colspan="3">{{ processAnswer($answers, 47) }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!--  -->
 
     <!-- Footer -->
     <div class="footer">

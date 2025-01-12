@@ -179,8 +179,6 @@ $answers = collect($patient->answers)->keyBy('question_id');
         </div>
     </div>
 
-    <pre>{{ json_encode($answers, JSON_PRETTY_PRINT) }}</pre>
-
     <!-- Patient Information Section -->
     <div class="row">
         <div class="col-md-12">
@@ -242,13 +240,7 @@ $answers = collect($patient->answers)->keyBy('question_id');
                         <td class="Patient-Information-background">Age</td>
                         <td>{{ $patientAge }}</td>
                         <td class="Patient-Information-background">Gender</td>
-                            <td>
-                                @php
-                                    $genderAnswer = $answers->get(8)['answer'] ?? 'Not Provided';
-                                @endphp
-                                {{ $genderAnswer }}
-                            </td>
-                    </tr>
+                        <td>{{ $answers->where('question_id', 8)->whereNull('type')->first()['answer'] ?? 'Not Provided' }}</td>
                     <tr>
                         <td class="Patient-Information-background">Occupation</td>
                         <td>{{ $patientOccupation }}</td>

@@ -1,46 +1,55 @@
 <?php
-// Increase maximum execution time
 set_time_limit(120);
 
 // Map answers by question_id for efficient lookups
 $answers = collect($questionData)->keyBy('id');
 
-// Helper function to process answers
-function processAnswer($answers, $questionId) {
-    $answer = $answers[$questionId]['answer']['answers'] ?? null;
-    $otherField = $answers[$questionId]['answer']['other_field'] ?? null;
-    
+// Generic function to process a question based on its type
+function processQuestion($answers, $questionId) {
+    if (!isset($answers[$questionId])) {
+        return null;
+    }
+
+    $question = $answers[$questionId];
+    $type = $question['type'] ?? 'string';
+
+    switch ($type) {
+        case 'multiple':
+            return processMultipleAnswers($answers, $questionId);
+        case 'select':
+            return processSelectAnswer($answers, $questionId);
+        default: // string or other types
+            return $question['answer'] ?? null;
+    }
+}
+
+// Helper function to process "multiple" type answers
+function processMultipleAnswers($answers, $questionId) {
+    $question = $answers[$questionId];
+    $filteredAnswers = array_filter($question['answer']['answers'] ?? [], function($answer) {
+        return $answer !== "Others";
+    });
+
+    $answersText = implode(', ', $filteredAnswers);
+
+    if (!empty(trim($question['answer']['other_field'] ?? ''))) {
+        $answersText .= (!empty($answersText) ? ', ' : '') . $question['answer']['other_field'];
+    }
+
+    return $answersText;
+}
+
+// Helper function to process "select" type answers
+function processSelectAnswer($answers, $questionId) {
+    $question = $answers[$questionId];
+    $answer = $question['answer']['answers'] ?? null;
+    $otherField = $question['answer']['other_field'] ?? null;
+
     if ($answer === "Others" && !empty(trim($otherField))) {
         return $otherField;
     }
-    return $answer;
-}
 
-// Helper function to handle "Yes" answers with an optional "other_field"
-function processYesAnswer($answers, $questionId, $otherQuestionId) {
-    $answer = $answers[$questionId]['answer']['answers'] ?? null;
-    $otherField = $answers[$otherQuestionId]['answer'] ?? null;
-    
-    if ($answer === "Yes" && !empty(trim($otherField))) {
-        return $answer . ', ' . $otherField;
-    }
     return $answer;
-}
-
-// Helper function to process multiple answers with filtering of "Others"
-function processMultipleAnswers($answers, $questionId) {
-    $answersText = '';
-    $filteredAnswers = array_filter($answers[$questionId]['answer']['answers'], function($answer) {
-        return $answer !== "Others";
-    });
-    $answersText .= implode(', ', $filteredAnswers);
-    if (!empty(trim($answers[$questionId]['answer']['other_field']))) {
-        if (!empty($answersText)) {
-            $answersText .= ', ';
-        }
-        $answersText .= $answers[$questionId]['answer']['other_field'];
-    }
-    return $answersText;
 }
 ?>
 
@@ -204,47 +213,47 @@ function processMultipleAnswers($answers, $questionId) {
                     <tbody>
                     <tr>
                         <td class="Patient-Information-background">Patient Name</td>
-                        <td>{{ $answers[1]['answer'] ?? null }}</td>
+                        <td>{{ processQuestion($answers, 1) }}</td>
                         <td class="Patient-Information-background">Patient ID</td>
                         <td>{{ $patient_id }}</td>
                     </tr>
                     <tr>
                         <td class="Patient-Information-background">Patient Phone</td>
-                        <td>{{ $answers[5]['answer'] ?? null }}</td>
+                        <td>{{ processQuestion($answers, 5) }}</td>
                         <td class="Patient-Information-background">Patient Email</td>
-                        <td>{{ $answers[6]['answer'] ?? null }}</td>
+                        <td>{{ processQuestion($answers, 6) }}</td>
                     </tr>
                     <tr>
                         <td class="Patient-Information-background">Department</td>
-                        <td colspan="3">{{ processAnswer($answers, 168) }}</td>
+                        <td colspan="3">{{ processQuestion($answers, 168) }}</td>
                     </tr>
                     <tr>
                         <td class="Patient-Information-background">Age</td>
-                        <td>{{ $answers[7]['answer'] ?? null }}</td>
+                        <td>{{ processQuestion($answers, 7) }}</td>
                         <td class="Patient-Information-background">Gender</td>
-                        <td>{{ $answers[8]['answer']['answers'] ?? null }}</td>
+                        <td>{{ processQuestion($answers, 8) }}</td>
                     </tr>
                     <tr>
                         <td class="Patient-Information-background">Occupation</td>
-                        <td>{{ $answers[9]['answer']['answers'] ?? null }}</td>
+                        <td>{{ processQuestion($answers, 9) }}</td>
                         <td class="Patient-Information-background">Governorate</td>
-                        <td>{{ $answers[11]['answer']['answers'] ?? null }}</td>
+                        <td>{{ processQuestion($answers, 11) }}</td>
                     </tr>
                     <tr>
                         <td class="Patient-Information-background">Marital Status</td>
-                        <td>{{ $answers[12]['answer']['answers'] ?? null }}</td>
+                        <td>{{ processQuestion($answers, 12) }}</td>
                         <td class="Patient-Information-background">Children</td>
-                        <td>{{ $answers[142]['answer'] ?? null }}</td>
+                        <td>{{ processQuestion($answers, 142) }}</td>
                     </tr>
                     <tr>
                         <td class="Patient-Information-background">Special Habits</td>
-                        <td colspan="3">{{ processMultipleAnswers($answers, 14) }}</td>
+                        <td colspan="3">{{ processQuestion($answers, 14) }}</td>
                     </tr>
                     <tr>
                         <td class="Patient-Information-background">DM</td>
-                        <td>{{ processYesAnswer($answers, 16, 17) }}</td>
+                        <td>{{ processQuestion($answers, 16) }}</td>
                         <td class="Patient-Information-background">HTN</td>
-                        <td>{{ processYesAnswer($answers, 18, 19) }}</td>
+                        <td>{{ processQuestion($answers, 18) }}</td>
                     </tr>
                     </tbody>
                 </table>
@@ -261,15 +270,15 @@ function processMultipleAnswers($answers, $questionId) {
                 <tbody>
                 <tr>
                     <td class="Complaint-background">Main Complaint</td>
-                    <td colspan="3">{{ processMultipleAnswers($answers, 24) }}</td>
+                    <td colspan="3">{{ processQuestion($answers, 24) }}</td>
                 </tr>
                 <tr>
                     <td class="Complaint-background">Urine Output</td>
-                    <td colspan="3">{{ processAnswer($answers, 162) }}</td>
+                    <td colspan="3">{{ processQuestion($answers, 162) }}</td>
                 </tr>
                 <tr>
                     <td class="Complaint-background">Provisional Diagnosis</td>
-                    <td colspan="3">{{ processMultipleAnswers($answers, 166) }}</td>
+                    <td colspan="3">{{ processQuestion($answers, 166) }}</td>
                 </tr>
                 </tbody>
             </table>
@@ -282,87 +291,462 @@ function processMultipleAnswers($answers, $questionId) {
     <!-- Cause of AKI Section -->
     <div class="row">
         <div class="col-md-12">
-        <div class="section">
+            <div class="section">
                 <h2>Cause of AKI</h2>
-            <table border="1" style="width: 100%; border-collapse: collapse;">
-                <tbody>
-                <tr>
-                    <td class="Cause-background">Cause Of AKI</td>
-                    <td colspan="3">{{ processAnswer($answers, 26) }}</td>
-                </tr>
-                <tr>
-                    <td class="Cause-background">Pre-Renal Causes</td>
-                    <td colspan="3">{{ processMultipleAnswers($answers, 27) }}</td>
-                </tr>
-                <tr>
-                    <td class="Cause-background">Intrinsic Renal Causes</td>
-                    <td colspan="3">{{ processMultipleAnswers($answers, 29) }}</td>
-                </tr>
-                <tr>
-                    <td class="Cause-background">Post_Renal Causes</td>
-                    <td colspan="3">{{ processMultipleAnswers($answers, 31) }}</td>
-                </tr>
-                <tr>
-                    <td class="Cause-background">Other Causes</td>
-                    <td colspan="3">{{ $answers[33]['answer'] ?? null }}</td>
-                </tr>
-                </tbody>
-            </table>
+                <table border="1" style="width: 100%; border-collapse: collapse;">
+                    <tbody>
+                        <tr>
+                            <td class="Cause-background">Cause Of AKI</td>
+                            <td colspan="3">{{ processQuestion($answers, 26) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Cause-background">Pre-Renal Causes</td>
+                            <td colspan="3">{{ processQuestion($answers, 27) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Cause-background">Intrinsic Renal Causes</td>
+                            <td colspan="3">{{ processQuestion($answers, 29) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Cause-background">Post-Renal Causes</td>
+                            <td colspan="3">{{ processQuestion($answers, 31) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Cause-background">Other Causes</td>
+                            <td colspan="3">{{ processQuestion($answers, 33) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
-    <!--  -->
+    <!-- -->
 
     <!-- Risk Factors for AKI Section -->
     <div class="row">
         <div class="col-md-12">
             <div class="section">
-                    <h2>Risk Factors for AKI</h2>
+                <h2>Risk Factors for AKI</h2>
+                <table border="1" style="width: 100%; border-collapse: collapse;">
+                    <tbody>
+                        <tr>
+                            <td class="Risk-background">History OF CKD</td>
+                            <td>{{ processQuestion($answers, 34) }}</td>
+                            <td class="Risk-background">History OF AKI</td>
+                            <td>{{ processQuestion($answers, 35) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Risk-background">History OF Cardiac Failure</td>
+                            <td>{{ processQuestion($answers, 36) }}</td>
+                            <td class="Risk-background">History OF LCF</td>
+                            <td>{{ processQuestion($answers, 37) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Risk-background">History OF Sepsis</td>
+                            <td>{{ processQuestion($answers, 39) }}</td>
+                            <td class="Risk-background">History OF Hypovolemia</td>
+                            <td>{{ processQuestion($answers, 43) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Risk-background">History OF Malignancy</td>
+                            <td>{{ processQuestion($answers, 44) }}</td>
+                            <td class="Risk-background">History OF Trauma</td>
+                            <td>{{ processQuestion($answers, 45) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Risk-background">History OF Autoimmune Disease</td>
+                            <td colspan="3">{{ processQuestion($answers, 46) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Risk-background">History of neurological impairment or disability</td>
+                            <td colspan="3">{{ processQuestion($answers, 38) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Risk-background">Recent use of iodinated contrast media</td>
+                            <td colspan="3">{{ processQuestion($answers, 40) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Risk-background">Current or recent use of drugs with potential nephrotoxicity</td>
+                            <td colspan="3">{{ processQuestion($answers, 41) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Risk-background">Other risk factors</td>
+                            <td colspan="3">{{ processQuestion($answers, 47) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- -->
+
+    <!-- Assessment of patient Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <h2>Assessment of patient</h2>
+                <table border="1" style="width: 100%; border-collapse: collapse;">
+                    <tbody>
+                        <tr>
+                            <td class="Assessment-background">Heart rate/minute</td>
+                            <td>{{ processQuestion($answers, 48) }}</td>
+                            <td class="Assessment-background">Respiratory rate/minute</td>
+                            <td>{{ processQuestion($answers, 49) }}</td>
+                            <td class="Assessment-background">SBP</td>
+                            <td>{{ processQuestion($answers, 50) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Assessment-background">DBP</td>
+                            <td>{{ processQuestion($answers, 51) }}</td>
+                            <td class="Assessment-background">GCS</td>
+                            <td>{{ processQuestion($answers, 52) }}</td>
+                            <td class="Assessment-background">Temperature</td>
+                            <td>{{ processQuestion($answers, 54) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Assessment-background">Oxygen saturation (%)</td>
+                            <td>{{ processQuestion($answers, 53) }}</td>
+                            <td class="Assessment-background">UOP (ml/hour)</td>
+                            <td>{{ processQuestion($answers, 55) }}</td>
+                            <td class="Assessment-background">AVP</td>
+                            <td>{{ processQuestion($answers, 56) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Assessment-background">Height/cm</td>
+                            <td>{{ processQuestion($answers, 140) }}</td>
+                            <td class="Assessment-background">Weight/cm</td>
+                            <td colspan="3">{{ processQuestion($answers, 141) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Assessment-background">Abdominal Examination</td>
+                            <td colspan="5">{{ processQuestion($answers, 68) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Assessment-background">Skin examination</td>
+                            <td colspan="5">{{ processQuestion($answers, 57) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Assessment-background">Eye examination</td>
+                            <td colspan="5">{{ processQuestion($answers, 59) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Assessment-background">Ear examination</td>
+                            <td colspan="5">{{ processQuestion($answers, 61) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Assessment-background">Cardiac examination</td>
+                            <td colspan="5">{{ processQuestion($answers, 63) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Assessment-background">Internal jugular vein</td>
+                            <td colspan="5">{{ processQuestion($answers, 65) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Assessment-background">Chest examination</td>
+                            <td colspan="5">{{ processQuestion($answers, 66) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- -->
+
+    <!-- Medical Decision Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <h2>Medical Decision</h2>
+                <table border="1" style="width: 100%; border-collapse: collapse;">
+                    <tbody>
+                        <tr>
+                            <td class="Medical-background">Medical decision</td>
+                            <td>{{ processQuestion($answers, 77) }}</td>
+                            <td class="Medical-background">Dialysis</td>
+                            <td>{{ processQuestion($answers, 86) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Medical-background">Dialysis Modality</td>
+                            <td colspan="3">{{ processQuestion($answers, 87) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Medical-background">Dialysis indication</td>
+                            <td colspan="3">{{ processQuestion($answers, 88) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Medical-background">Number of sessions</td>
+                            <td colspan="3">{{ processQuestion($answers, 89) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Medical-background">Vascular Access</td>
+                            <td colspan="3">{{ processQuestion($answers, 90) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Medical-background">Site of Access</td>
+                            <td colspan="3">{{ processQuestion($answers, 232) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Medical-background">Lines of management</td>
+                            <td colspan="3">{{ processQuestion($answers, 91) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="Medical-background">Immunosuppressive types</td>
+                            <td colspan="3">{{ processQuestion($answers, 233) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- -->
+
+    <!-- Outcome Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <h2>Outcome</h2>
+                <p>Outcome of the patient is <strong>{{ processQuestion($answers, 79) ?? 'Unknown' }}</strong></p>
+            </div>
+        </div>
+    </div>
+    <!-- -->
+
+    <!-- Laboratory Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <table>
+                    <thead>
+                    <tr>
+                        <th class="Laboratory-background">Laboratory Parameters</th>
+                        <th class="Laboratory-background">On admission</th>
+                        <th class="Laboratory-background">On discharge</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @php
+                        $labParameters = [
+                            'pH /mmhg' => [92, 116],
+                            'HCO3 /mmhg' => [93, 117],
+                            'pCO2 /mmhg' => [94, 118],
+                            'K mg/dl' => [95, 119],
+                            'SGOT u/l' => [96, 120],
+                            'SGPT u/l' => [97, 121],
+                            'Albumin gm/dl' => [98, 122],
+                            'HCV Ab' => [99, null],
+                            'HBs Ag' => [100, null],
+                            'HIV Ab' => [101, null],
+                            'Hemoglobin gm/dl' => [102, 126],
+                            'WBCs count' => [103, 127],
+                            'Platelets count' => [104, 128],
+                            'Neutrophil count' => [105, 129],
+                            'Lymphocytes count' => [106, 130],
+                            'Creatinine (mg/dl)' => [71, 80],
+                            'Urea mg/dl' => [107, 131],
+                            'BUN mg/dl' => [108, 132],
+                            'CRP mg/l' => [143, 144],
+                            'Specific gravity (Urine)' => [109, 133],
+                            'Clarity (Urine)' => [110, 134],
+                            'Epithelial cells (Urine)' => [111, 135],
+                            'Crystals types (Urine)' => [112, 136],
+                            'Casts (Urine)' => [113, 137],
+                            'WBCs (Urine)' => [114, 138],
+                            'RBCs (Urine)' => [115, 139],
+                        ];
+                    @endphp
+                    @foreach($labParameters as $parameter => $ids)
+                        <tr>
+                            <td class="Laboratory-background">{{ $parameter }}</td>
+                            <td class="center-text"><strong>{{ processQuestion($answers, $ids[0]) }}</strong></td>
+                            <td class="center-text"><strong>{{ $ids[1] ? processQuestion($answers, $ids[1]) : '' }}</strong></td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Radiology and biopsy Results Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <h2>Radiology and biopsy Results</h2>
                 <table border="1" style="width: 100%; border-collapse: collapse;">
                     <tbody>
                     <tr>
-                        <td class="Risk-background">History OF CKD</td>
-                        <td>{{ processAnswer($answers, 34) }}</td>
-                        <td class="Risk-background">History OF AKI</td>
-                        <td>{{ processAnswer($answers, 35) }}</td>
+                        <td class="Radiology-background">Renal US</td>
+                        <td>{{ processQuestion($answers, 73) }}</td>
                     </tr>
                     <tr>
-                        <td class="Risk-background">History OF Cardiac Failure</td>
-                        <td>{{ processAnswer($answers, 36) }}</td>
-                        <td class="Risk-background">History OF LCF</td>
-                        <td>{{ processAnswer($answers, 37) }}</td>
+                        <td class="Radiology-background">If renal us is abnormal</td>
+                        <td>{{ processQuestion($answers, 74) }}</td>
                     </tr>
                     <tr>
-                        <td class="Risk-background">History OF Sepsis</td>
-                        <td>{{ processAnswer($answers, 39) }}</td>
-                        <td class="Risk-background">History OF Hypovolemia</td>
-                        <td>{{ processAnswer($answers, 43) }}</td>
+                        <td class="Radiology-background">CT abdomen summary</td>
+                        <td>{{ processQuestion($answers, 260) }}</td>
                     </tr>
                     <tr>
-                        <td class="Risk-background">History OF Malignancy</td>
-                        <td>{{ processAnswer($answers, 44) }}</td>
-                        <td class="Risk-background">History OF Trauma</td>
-                        <td>{{ processAnswer($answers, 45) }}</td>
+                        <td class="Radiology-background">CT chest summary</td>
+                        <td>{{ processQuestion($answers, 261) }}</td>
                     </tr>
                     <tr>
-                        <td class="Risk-background">History OF Autoimmune Disease</td>
-                        <td colspan="3">{{ processAnswer($answers, 46) }}</td>
+                        <td class="Radiology-background">ECHO report Summary</td>
+                        <td>{{ processQuestion($answers, 262) }}</td>
                     </tr>
                     <tr>
-                        <td class="Risk-background">History of neurological impairment or disability</td>
-                        <td colspan="3">{{ processAnswer($answers, 38) }}</td>
+                        <td class="Radiology-background">Renal Biopsy</td>
+                        <td>{{ processQuestion($answers, 252) }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTS-patient Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <h2>CTS-patient</h2>
+                <table border="1" style="width: 100%; border-collapse: collapse;">
+                    <tbody>
+                    <tr>
+                        <td class="CTS-patient-background">Type of surgery</td>
+                        <td>{{ processQuestion($answers, 171) }}</td>
+                        <td class="CTS-patient-background">Type of cardiac disease</td>
+                        <td>{{ processQuestion($answers, 174) }}</td>
                     </tr>
                     <tr>
-                        <td class="Risk-background">Recent use of iodinated contrast media</td>
-                        <td colspan="3">{{ processAnswer($answers, 40) }}</td>
+                        <td class="CTS-patient-background">Preoperative SBP</td>
+                        <td>{{ processQuestion($answers, 176) }}</td>
+                        <td class="CTS-patient-background">Preoperative DBP</td>
+                        <td>{{ processQuestion($answers, 177) }}</td>
                     </tr>
                     <tr>
-                        <td class="Risk-background">Current or recent use of drugs with potential nephrotoxicity</td>
-                        <td colspan="3">{{ processAnswer($answers, 41) }}</td>
+                        <td class="CTS-patient-background">Preoperative WBCs</td>
+                        <td>{{ processQuestion($answers, 178) }}</td>
+                        <td class="CTS-patient-background">Preoperative HB</td>
+                        <td>{{ processQuestion($answers, 179) }}</td>
                     </tr>
                     <tr>
-                        <td class="Risk-background">Other risk factors</td>
-                        <td colspan="3">{{ processAnswer($answers, 47) }}</td>
+                        <td class="CTS-patient-background">Preoperative Platelets</td>
+                        <td colspan="3">{{ processQuestion($answers, 180) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="CTS-patient-background">Preoperative creatinine</td>
+                        <td>{{ processQuestion($answers, 181) }}</td>
+                        <td class="CTS-patient-background">Preoperative urine pus cells</td>
+                        <td>{{ processQuestion($answers, 182) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="CTS-patient-background">Preoperative urine RBCs</td>
+                        <td>{{ processQuestion($answers, 183) }}</td>
+                        <td class="CTS-patient-background">Preoperative proteinuria</td>
+                        <td>{{ processQuestion($answers, 186) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="CTS-patient-background">Preoperative urine cast</td>
+                        <td>{{ processQuestion($answers, 184) }}</td>
+                        <td class="CTS-patient-background">Preoperative INR</td>
+                        <td>{{ processQuestion($answers, 186) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="CTS-patient-background">Preoperative albumin</td>
+                        <td>{{ processQuestion($answers, 187) }}</td>
+                        <td class="CTS-patient-background">Preoperative bilirubin</td>
+                        <td>{{ processQuestion($answers, 188) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="CTS-patient-background">Preoperative ALT</td>
+                        <td>{{ processQuestion($answers, 189) }}</td>
+                        <td class="CTS-patient-background">Preoperative AST</td>
+                        <td>{{ processQuestion($answers, 190) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="CTS-patient-background">Preoperative Troponin</td>
+                        <td>{{ processQuestion($answers, 191) }}</td>
+                        <td class="CTS-patient-background">Preoperative pH</td>
+                        <td>{{ processQuestion($answers, 208) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="CTS-patient-background">Preoperative Hco3</td>
+                        <td>{{ processQuestion($answers, 209) }}</td>
+                        <td class="CTS-patient-background">Preoperative pCo2</td>
+                        <td>{{ processQuestion($answers, 210) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="CTS-patient-background">Postoperative pH</td>
+                        <td>{{ processQuestion($answers, 212) }}</td>
+                        <td class="CTS-patient-background">Postoperative Hco3</td>
+                        <td>{{ processQuestion($answers, 211) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="CTS-patient-background">Postoperative pCo2</td>
+                        <td>{{ processQuestion($answers, 213) }}</td>
+                        <td class="CTS-patient-background">Postoperative SBP</td>
+                        <td>{{ processQuestion($answers, 214) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="CTS-patient-background">Postoperative DBP</td>
+                        <td colspan="3">{{ processQuestion($answers, 215) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="CTS-patient-background">Preoperative ejection Fraction</td>
+                        <td colspan="3">{{ processQuestion($answers, 192) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="CTS-patient-background">Preoperative ECHO</td>
+                        <td colspan="3">{{ processQuestion($answers, 193) }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Operative details Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <h2>Operative details</h2>
+                <table border="1" style="width: 100%; border-collapse: collapse;">
+                    <tbody>
+                    <tr>
+                        <td class="Operative-details-background">CPB duration/minutes</td>
+                        <td>{{ processQuestion($answers, 194) }}</td>
+                        <td class="Operative-details-background">Cross clamping times/minutes</td>
+                        <td>{{ processQuestion($answers, 195) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Operative-details-background">Core temperature/c/lowest</td>
+                        <td>{{ processQuestion($answers, 196) }}</td>
+                        <td class="Operative-details-background">Core temperature/c/highest</td>
+                        <td>{{ processQuestion($answers, 224) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Operative-details-background">Serum lactate during surgery</td>
+                        <td>{{ processQuestion($answers, 197) }}</td>
+                        <td class="Operative-details-background">Abnormal Event</td>
+                        <td>{{ processQuestion($answers, 199) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Operative-details-background">Type of cardioplegia -1</td>
+                        <td>{{ processQuestion($answers, 201) }}</td>
+                        <td class="Operative-details-background">Type of cardioplegia -2</td>
+                        <td>{{ processQuestion($answers, 202) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Operative-details-background">Type of cardioplegia -3</td>
+                        <td>{{ processQuestion($answers, 203) }}</td>
+                        <td class="Operative-details-background">Type of cardioplegia -4</td>
+                        <td>{{ processQuestion($answers, 204) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Operative-details-background">Blood transfusion</td>
+                        <td>{{ processQuestion($answers, 225) }}</td>
+                        <td class="Operative-details-background">Blood transfusion type</td>
+                        <td>{{ processQuestion($answers, 226) }}</td>
                     </tr>
                     </tbody>
                 </table>
@@ -370,6 +754,79 @@ function processMultipleAnswers($answers, $questionId) {
         </div>
     </div>
     <!--  -->
+
+    <!-- Go- Patients Section -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <h2>Go- Patients</h2>
+                <table border="1" style="width: 100%; border-collapse: collapse;">
+                    <tbody>
+                    <tr>
+                        <td class="Go-Patients-background">Presentation date</td>
+                        <td>{{ processQuestion($answers, 234) }}</td>
+                        <td class="Go-Patients-background">Gravidity number</td>
+                        <td>{{ processQuestion($answers, 235) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background">Parity number</td>
+                        <td colspan="3">{{ processQuestion($answers, 236) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background">First presentation</td>
+                        <td>{{ processQuestion($answers, 237) }}</td>
+                        <td class="Go-Patients-background">Place of medical care</td>
+                        <td>{{ processQuestion($answers, 238) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background">Antenatal care</td>
+                        <td>{{ processQuestion($answers, 239) }}</td>
+                        <td class="Go-Patients-background">Recent Preeclampsia/eclampsia</td>
+                        <td>{{ processQuestion($answers, 240) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background" style="width: 200px;">Past Preeclampsia/eclampsia</td>
+                        <td colspan="3">{{ processQuestion($answers, 241) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background">Obstetric hemorrhage</td>
+                        <td colspan="3">{{ processQuestion($answers, 242) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background">Organ failure</td>
+                        <td>{{ processQuestion($answers, 243) }}</td>
+                        <td class="Go-Patients-background">Specify</td>
+                        <td>{{ processQuestion($answers, 244) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background">Past PRAKI</td>
+                        <td>{{ processQuestion($answers, 245) }}</td>
+                        <td class="Go-Patients-background">CS complications</td>
+                        <td>{{ processQuestion($answers, 246) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background">Oliguria</td>
+                        <td>{{ processQuestion($answers, 247) }}</td>
+                        <td class="Go-Patients-background">Proteinuria</td>
+                        <td>{{ processQuestion($answers, 249) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background">M_Outcome</td>
+                        <td>{{ processQuestion($answers, 253) }}</td>
+                        <td class="Go-Patients-background">F_Outcome</td>
+                        <td>{{ processQuestion($answers, 254) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="Go-Patients-background">Neonatal ICU</td>
+                        <td colspan="3">{{ processQuestion($answers, 255) }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!--  -->
+
 
     <!-- Footer -->
     <div class="footer">

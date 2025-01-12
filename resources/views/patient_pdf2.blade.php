@@ -279,6 +279,40 @@ function processMultipleAnswers($answers, $questionId) {
     <!--  -->
 
 
+    <!-- Cause of AKI Section -->
+    <div class="row">
+        <div class="col-md-12">
+        <div class="section">
+                <h2>Cause of AKI</h2>
+            <table border="1" style="width: 100%; border-collapse: collapse;">
+                <tbody>
+                <tr>
+                    <td class="Cause-background">Cause Of AKI</td>
+                    <td colspan="3">{{ processAnswer($answers, 26) }}</td>
+                </tr>
+                <tr>
+                    <td class="Cause-background">Pre-Renal Causes</td>
+                    <td colspan="3">{{ processMultipleAnswers($answers, 27) }}</td>
+                </tr>
+                <tr>
+                    <td class="Cause-background">Intrinsic Renal Causes</td>
+                    <td colspan="3">{{ processMultipleAnswers($answers, 29) }}</td>
+                </tr>
+                <tr>
+                    <td class="Cause-background">Post_Renal Causes</td>
+                    <td colspan="3">{{ processAnswer($answers, 31) }}</td>
+                </tr>
+                <tr>
+                    <td class="Cause-background">Other Causes</td>
+                    <td colspan="3">{{ $answers[33]['answer'] ?? null }}</td>
+                </tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+    <!--  -->
+
 
     <!-- Footer -->
     <div class="footer">

@@ -268,7 +268,7 @@ $answers = collect($questionData)->keyBy('id');
                         <td>
                             @php
                                 $answer = $answers[16]['answer']['answers'] ?? null;
-                                $otherField = $answers[16]['answer']['other_field'] ?? null;
+                                $otherField = $answers[17]['answer'] ?? null;
                                 
                                 // Check if the answer is "Yes", and if other_field is not empty, include it
                                 if ($answer === "Yes" && !empty(trim($otherField))) {
@@ -282,7 +282,7 @@ $answers = collect($questionData)->keyBy('id');
                         <td>
                             @php
                                 $answer = $answers[18]['answer']['answers'] ?? null;
-                                $otherField = $answers[18]['answer']['other_field'] ?? null;
+                                $otherField = $answers[19]['answer'] ?? null;
                                 
                                 // Check if the answer is "Yes", and if other_field is not empty, include it
                                 if ($answer === "Yes" && !empty(trim($otherField))) {

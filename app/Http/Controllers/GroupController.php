@@ -908,4 +908,70 @@ public function fetchGroupDetailsWithPosts($groupId)
             'message' => 'All groups fetched successfully'
         ], 200);
     }
+
+
+        /**
+     * Fetch the latest three groups with user status and a paginated list of random posts from random groups.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function fetchLatestGroupsWithRandomPosts()
+    {
+        try {
+            // Fetch the latest three groups
+            $latestGroups = Group::with(['owner' => function ($query) {
+                $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
+            }])
+            ->orderBy('created_at', 'desc')
+            ->take(3)
+            ->get();
+
+            // Add user status to each group
+            $userId = Auth::id();
+            foreach ($latestGroups as $group) {
+                $userStatus = DB::table('group_user')
+                    ->where('group_id', $group->id)
+                    ->where('doctor_id', $userId)
+                    ->value('status');
+
+                $group->user_status = $userStatus ?? null;
+            }
+
+            // Fetch a paginated list of random posts from random groups
+            $randomPosts = FeedPost::whereNotNull('group_id') // Ensure group_id is not null
+                ->inRandomOrder() // Fetch posts randomly
+                ->with(['group' => function ($query) {
+                    $query->select('id', 'name'); // Include group name
+                }])
+                ->paginate(10); // Paginate with 10 posts per page
+
+            // Log the action
+            Log::info('Latest groups and random posts fetched', [
+                'fetched_by' => Auth::id()
+            ]);
+
+            // Return success response
+            return response()->json([
+                'value' => true,
+                'data' => [
+                    'latest_groups' => $latestGroups,
+                    'random_posts' => $randomPosts
+                ],
+                'message' => 'Latest groups and random posts fetched successfully'
+            ], 200);
+
+        } catch (\Exception $e) {
+            // Log the error
+            Log::error('Error fetching latest groups and random posts', [
+                'error' => $e->getMessage(),
+                'fetched_by' => Auth::id()
+            ]);
+
+            // Return error response
+            return response()->json([
+                'value' => false,
+                'message' => 'An error occurred while fetching data'
+            ], 500);
+        }
+    }
 }

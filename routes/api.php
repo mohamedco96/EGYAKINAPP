@@ -368,7 +368,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/groups/{groupId}/leave', 'GroupController@leaveGroup');
     Route::get('/mygroups', 'GroupController@fetchMyGroups');
     Route::get('/groups', 'GroupController@fetchAllGroups');
-
+    Route::get('/latest-groups-with-random-posts', 'GroupController@fetchLatestGroupsWithRandomPosts');
 
     Route::post('/AIconsultation/{patientId}', 'ChatController@sendConsultation');
     Route::get('/AIconsultation-history/{patientId}', 'ChatController@getConsultationHistory');

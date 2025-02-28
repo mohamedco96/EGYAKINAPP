@@ -945,14 +945,39 @@ public function fetchGroupDetailsWithPosts($groupId)
                 $group->member_count = $memberCount; // Add member count to the group object
             }
     
-            // Fetch a paginated list of random posts from random groups
-            $randomPosts = FeedPost::whereNotNull('group_id') // Ensure group_id is not null
+                
+                            // Fetch posts with necessary relationships and counts
+            $randomPosts = FeedPost::with(['doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired'])
+            ->withCount(['likes', 'comments'])  // Count likes and comments
+            ->with([
+                'saves' => function ($query) use ($userId) {
+                    $query->where('doctor_id', $userId); // Check if the post is saved by the doctor
+                },
+                'likes' => function ($query) use ($userId) {
+                    $query->where('doctor_id', $userId); // Check if the post is liked by the doctor
+                }
+            ])
+            ->whereNotNull('group_id') // Ensure group_id is not null
                 ->inRandomOrder() // Fetch posts randomly
                 ->with(['group' => function ($query) {
                     $query->select('id', 'name'); // Include group name
                 }])
-                ->paginate(10); // Paginate with 10 posts per page
-    
+            ->paginate(10); // Paginate 10 posts per page
+
+        // Add 'is_saved' and 'is_liked' fields to each post
+        $randomPosts->getCollection()->transform(function ($post) use ($userId) {
+            // Add 'is_saved' field (true if the doctor saved the post)
+            $post->isSaved = $post->saves->isNotEmpty();
+
+            // Add 'is_liked' field (true if the doctor liked the post)
+            $post->isLiked = $post->likes->isNotEmpty();
+
+            // Remove unnecessary data to clean up the response
+            unset($post->saves, $post->likes);
+
+            return $post;
+        });
+
             // Log the action
             Log::info('Latest groups and random posts fetched', [
                 'fetched_by' => Auth::id()

@@ -691,21 +691,44 @@ public function fetchGroupDetailsWithPosts($groupId)
         }])->findOrFail($groupId);
 
         // Check if the authenticated user is a member of the group and get their status
-        $userId = Auth::id();
+        $doctorId = Auth::id();
 
         $userStatus = DB::table('group_user')
             ->where('group_id', $groupId)
-            ->where('doctor_id', $userId)
+            ->where('doctor_id', $doctorId)
             ->value('status');
 
         $group->user_status = $userStatus ?? null;
 
-        // Define the number of posts per page
-        $postsPerPage = 10;
 
-        // Fetch paginated posts for the group
-        $paginatedPosts = $group->posts()->paginate($postsPerPage);
+            // Fetch posts with necessary relationships and counts
+        $feedPosts = $group->posts()->with(['doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired'])
+            ->withCount(['likes', 'comments'])  // Count likes and comments
+            ->with([
+                'saves' => function ($query) use ($doctorId) {
+                    $query->where('doctor_id', $doctorId); // Check if the post is saved by the doctor
+                },
+                'likes' => function ($query) use ($doctorId) {
+                    $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
+                }
+            ])
+            ->latest('created_at') // Sort by created_at in descending order
+            ->paginate(10); // Paginate 10 posts per page
 
+        // Add 'is_saved' and 'is_liked' fields to each post
+        $feedPosts->getCollection()->transform(function ($post) use ($doctorId) {
+            // Add 'is_saved' field (true if the doctor saved the post)
+            $post->isSaved = $post->saves->isNotEmpty();
+
+            // Add 'is_liked' field (true if the doctor liked the post)
+            $post->isLiked = $post->likes->isNotEmpty();
+
+            // Remove unnecessary data to clean up the response
+            unset($post->saves, $post->likes);
+
+            return $post;
+        });
+        
         // Log the action
         Log::info('Group details with paginated posts fetched', [
             'group_id' => $groupId,
@@ -717,7 +740,7 @@ public function fetchGroupDetailsWithPosts($groupId)
             'value' => true,
             'data' => [
                 'group' => $group,
-                'posts' => $paginatedPosts
+                'posts' => $feedPosts
             ],
             'message' => 'Group details with paginated posts fetched successfully'
         ], 200);

@@ -701,6 +701,13 @@ public function fetchGroupDetailsWithPosts($groupId)
         $group->user_status = $userStatus ?? null;
 
 
+        // Fetch member count for the group from the group_user table
+        $memberCount = DB::table('group_user')
+        ->where('group_id', $group->id)
+        ->count();
+
+        $group->member_count = $memberCount; // Add member count to the group object
+
             // Fetch posts with necessary relationships and counts
         $feedPosts = $group->posts()->with(['doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired'])
             ->withCount(['likes', 'comments'])  // Count likes and comments
@@ -883,7 +890,32 @@ public function fetchGroupDetailsWithPosts($groupId)
         $userId = Auth::id();
 
         // Retrieve groups owned by the authenticated user with pagination
-        $groups = Group::where('owner_id', $userId)->paginate(10);
+        //$groups = Group::where('owner_id', $userId)->paginate(10);
+
+        $MyGroups = Group::with(['owner' => function ($query) {
+            $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
+        }])
+        ->where('owner_id', $userId)
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+
+        foreach ($MyGroups as $group) {
+            // Fetch user status for the authenticated user
+            $userStatus = DB::table('group_user')
+                ->where('group_id', $group->id)
+                ->where('doctor_id', $userId)
+                ->value('status');
+
+            $group->user_status = $userStatus ?? null;
+
+            // Fetch member count for the group from the group_user table
+            $memberCount = DB::table('group_user')
+                ->where('group_id', $group->id)
+                ->count();
+
+            $group->member_count = $memberCount; // Add member count to the group object
+        }
 
         // Log the action
         Log::info('User groups fetched with pagination', [
@@ -893,7 +925,7 @@ public function fetchGroupDetailsWithPosts($groupId)
         // Return success response
         return response()->json([
             'value' => true,
-            'data' => $groups,
+            'data' => $MyGroups,
             'message' => 'User groups fetched successfully'
         ], 200);
     }
@@ -905,7 +937,11 @@ public function fetchGroupDetailsWithPosts($groupId)
     public function fetchAllGroups()
     {
         // Retrieve all groups with pagination
-        $groups = Group::paginate(10);
+        $groups = Group::with(['owner' => function ($query) {
+            $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
+        }])
+        ->orderBy('created_at', 'desc')
+        ->get();
 
         // Check if the authenticated user is a member of each group and get their status
         $userId = Auth::id();
@@ -916,7 +952,14 @@ public function fetchGroupDetailsWithPosts($groupId)
                 ->where('doctor_id', $userId)
                 ->value('status');
 
-            $group->user_status = $userStatus ?? null;
+        $group->user_status = $userStatus ?? null;
+
+        // Fetch member count for the group from the group_user table
+        $memberCount = DB::table('group_user')
+        ->where('group_id', $group->id)
+        ->count();
+            
+        $group->member_count = $memberCount; // Add member count to the group object
         }
 
         // Log the action

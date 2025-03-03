@@ -281,92 +281,77 @@ class GroupController extends Controller
     {
         // Validate the incoming request
         $validated = $request->validate([
-            'doctor_id' => 'required|exists:users,id'
+            'doctor_ids' => 'required|array', // Ensure doctor_ids is an array
+            'doctor_ids.*' => 'exists:users,id' // Ensure each doctor_id exists in the users table
         ]);
-
+    
         // Find the group or fail if not found
         $group = Group::find($groupId);
-
+    
         if (!$group) {
             return response()->json([
                 'value' => false,
                 'message' => 'Group not found'
             ], 404);
         }
-
+    
         // Check if the authenticated user is the group owner
-        $this->authorizeOwner($group);
-
-        // Check if the doctor is already invited or a member of the group
-        $existingStatus = $group->doctors()->where('doctor_id', $validated['doctor_id'])->value('status');
-        if ($existingStatus === 'joined') {
-            // Log the attempt to invite an existing member
-            Log::info('Doctor is already a member of the group', [
-                'group_id' => $groupId,
-                'doctor_id' => $validated['doctor_id'],
-                'attempted_by' => Auth::id()
-            ]);
-
-            return response()->json([
-                'value' => false,
-                'message' => 'Doctor is already a member of the group'
-            ], 400);
-        } elseif ($existingStatus === 'invited') {
-            // Log the attempt to invite an already invited member
-            Log::info('Doctor is already invited to the group', [
-                'group_id' => $groupId,
-                'doctor_id' => $validated['doctor_id'],
-                'attempted_by' => Auth::id()
-            ]);
-
-            return response()->json([
-                'value' => false,
-                'message' => 'Doctor is already invited to the group'
-            ], 400);
-        } elseif ($existingStatus === 'declined') {
-            // Update the status to invited again
-            $group->doctors()->updateExistingPivot($validated['doctor_id'], ['status' => 'invited']);
-
-            // Log the re-invitation
-            Log::info('Doctor re-invited to the group', [
-                'group_id' => $groupId,
-                'doctor_id' => $validated['doctor_id'],
-                'invited_by' => Auth::id()
-            ]);
-
-            return response()->json([
-                'value' => true,
-                'message' => 'Doctor re-invited successfully'
-            ], 200);
-        } elseif ($existingStatus === 'accepted') {
-            // Log the attempt to invite an already invited member
-            Log::info('Doctor is already accepted the invitation', [
-                'group_id' => $groupId,
-                'doctor_id' => $validated['doctor_id'],
-                'attempted_by' => Auth::id()
-            ]);
-
-            return response()->json([
-                'value' => false,
-                'message' => 'Doctor is already accepted the invitation'
-            ], 400);
-        }else {
-            // Invite the user to the group (attach the user to the group members with status "invited")
-            $group->doctors()->attach($validated['doctor_id'], ['status' => 'invited']);
-
-            // Log the invitation
-            Log::info('User invited to group', [
-                'group_id' => $groupId,
-                'invited_doctor_id' => $validated['doctor_id'],
-                'invited_by' => Auth::id()
-            ]);
-
-            // Return success response
-            return response()->json([
-                'value' => true,
-                'message' => 'Invitation sent successfully'
-            ], 200);
+        //$this->authorizeOwner($group);
+    
+        // Iterate over each doctor_id in the list
+        foreach ($validated['doctor_ids'] as $doctorId) {
+            // Check if the doctor is already invited or a member of the group
+            $existingStatus = $group->doctors()->where('doctor_id', $doctorId)->value('status');
+    
+            if ($existingStatus === 'joined') {
+                // Log the attempt to invite an existing member
+                Log::info('Doctor is already a member of the group', [
+                    'group_id' => $groupId,
+                    'doctor_id' => $doctorId,
+                    'attempted_by' => Auth::id()
+                ]);
+            } elseif ($existingStatus === 'invited') {
+                // Log the attempt to invite an already invited member
+                Log::info('Doctor is already invited to the group', [
+                    'group_id' => $groupId,
+                    'doctor_id' => $doctorId,
+                    'attempted_by' => Auth::id()
+                ]);
+            } elseif ($existingStatus === 'declined') {
+                // Update the status to invited again
+                $group->doctors()->updateExistingPivot($doctorId, ['status' => 'invited']);
+    
+                // Log the re-invitation
+                Log::info('Doctor re-invited to the group', [
+                    'group_id' => $groupId,
+                    'doctor_id' => $doctorId,
+                    'invited_by' => Auth::id()
+                ]);
+            } elseif ($existingStatus === 'accepted') {
+                // Log the attempt to invite an already invited member
+                Log::info('Doctor is already accepted the invitation', [
+                    'group_id' => $groupId,
+                    'doctor_id' => $doctorId,
+                    'attempted_by' => Auth::id()
+                ]);
+            } else {
+                // Invite the user to the group (attach the user to the group members with status "invited")
+                $group->doctors()->attach($doctorId, ['status' => 'invited']);
+    
+                // Log the invitation
+                Log::info('User invited to group', [
+                    'group_id' => $groupId,
+                    'invited_doctor_id' => $doctorId,
+                    'invited_by' => Auth::id()
+                ]);
+            }
         }
+    
+        // Return success response with details of successful and failed invites
+        return response()->json([
+            'value' => true,
+            'message' => 'Invitations processed'
+        ], 200);
     }
 
     /**

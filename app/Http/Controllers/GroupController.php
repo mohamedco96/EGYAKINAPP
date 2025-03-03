@@ -897,7 +897,7 @@ public function fetchGroupDetailsWithPosts($groupId)
         }])
         ->where('owner_id', $userId)
         ->orderBy('created_at', 'desc')
-        ->get();
+        ->paginate(20);
 
 
         foreach ($MyGroups as $group) {
@@ -941,7 +941,7 @@ public function fetchGroupDetailsWithPosts($groupId)
             $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
         }])
         ->orderBy('created_at', 'desc')
-        ->get();
+        ->paginate(20);
 
         // Check if the authenticated user is a member of each group and get their status
         $userId = Auth::id();

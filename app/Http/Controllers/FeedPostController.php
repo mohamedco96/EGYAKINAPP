@@ -109,6 +109,7 @@ class FeedPostController extends Controller
                         $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
                     }
                 ])
+                ->where('group_id', null) // Fetch posts that are not in a group
                 ->latest('created_at') // Sort by created_at in descending order
                 ->paginate(10); // Paginate 10 posts per page
 

@@ -247,27 +247,40 @@ class GroupController extends Controller
      */
     public function delete($id)
     {
-        // Find the group or fail if not found
-        $group = Group::findOrFail($id);
+        try {
+            // Find the group or fail if not found
+            $group = Group::findOrFail($id);
 
-        // Check if the authenticated user is the group owner
-        $this->authorizeOwner($group);
+            // Check if the authenticated user is the group owner
+            $this->authorizeOwner($group);
 
+            // Delete the group
+            $group->delete();
 
-        // Delete the group
-        $group->delete();
+            // Log the deletion
+            Log::info('Group deleted', [
+                'group_id' => $id,
+                'deleted_by' => Auth::id()
+            ]);
 
-        // Log the deletion
-        Log::info('Group deleted', [
-            'group_id' => $id,
-            'deleted_by' => Auth::id()
-        ]);
+            // Return success response
+            return response()->json([
+                'value' => true,
+                'message' => 'Group deleted successfully'
+            ], 200);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            // Log the error
+            Log::error('Group not found', [
+                'group_id' => $id,
+                'deleted_by' => Auth::id()
+            ]);
 
-        // Return success response
-        return response()->json([
-            'value' => true,
-            'message' => 'Group deleted successfully'
-        ], 200);
+            // Return error response
+            return response()->json([
+                'value' => false,
+                'message' => 'Group not found'
+            ], 404);
+        }
     }
 
     /**

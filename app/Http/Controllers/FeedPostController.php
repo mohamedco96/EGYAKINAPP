@@ -559,7 +559,7 @@ private function notifyDoctors(FeedPost $post)
     
             // Validate the incoming request data
             $validatedData = $request->validate([
-                'content' => 'required|string|max:1000',
+                'content' => 'string',
                 'media_type' => 'nullable|string',
                 'media_path' => 'nullable|string',
                 'visibility' => 'nullable|string|in:Public,Friends,Only Me',

@@ -393,6 +393,91 @@ public function store(Request $request)
     }
 }
 
+    // Update a post
+public function update(Request $request, $id)
+{
+    DB::beginTransaction(); // Start a transaction
+
+    try {
+        // Retrieve the post by ID
+        $post = FeedPost::findOrFail($id);
+
+        // Get the authenticated user
+        $user = Auth::user();
+
+        // // Check if the user is an Admin or Tester
+        // $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+
+        // // Allow only the post owner or Admin/Tester to update the post
+        // if ($post->doctor_id !== $user->id && !$isAdminOrTester) {
+        //     Log::warning("Unauthorized update attempt by doctor " . $user->id);
+        //     return response()->json([
+        //         'value' => false,
+        //         'message' => 'Unauthorized action'
+        //     ], 403);
+        // }
+
+        // Validate the incoming request data
+        $validatedData = $request->validate($this->validationRules());
+
+        // Handle group validation and permissions
+        $this->handleGroupValidation($validatedData);
+
+        // Handle media upload if present
+        $mediaPath = $this->handleMediaUpload($request, $validatedData['media_type'] ?? null);
+
+        // Update the post with validated data
+        $post->update([
+            'content' => $validatedData['content'],
+            'media_type' => $validatedData['media_type'] ?? null,
+            'media_path' => $mediaPath ?? $post->media_path, // Keep existing media_path if no new media is uploaded
+            'visibility' => $validatedData['visibility'] ?? 'Public',
+            'group_id' => $validatedData['group_id'] ?? null,
+        ]);
+
+        // Attach hashtags to the post
+        $this->attachHashtags($post, $request->input('content'));
+
+        // Commit the transaction
+        DB::commit();
+
+        // Notify relevant doctors about the updated post
+        // $this->notifyDoctors($post);
+
+        // Log the successful update
+        Log::info("Post ID $id updated by doctor " . $user->id);
+
+        // Return a success response
+        return response()->json([
+            'value' => true,
+            'data' => $post,
+            'message' => 'Post updated successfully'
+        ], 200);
+
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        // Rollback transaction if an error occurs
+        DB::rollBack();
+
+        // Log and return a response if the post is not found
+        Log::warning("Post ID $id not found for update");
+        return response()->json([
+            'value' => false,
+            'message' => 'Post not found'
+        ], 404);
+
+    } catch (\Exception $e) {
+        // Rollback transaction if an error occurs
+        DB::rollBack();
+
+        // Log and return a response for any other exceptions
+        Log::error("Error updating post ID $id: " . $e->getMessage());
+        return response()->json([
+            'value' => false,
+            'message' => 'An error occurred while updating the post: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
 private function validationRules()
 {
     return [
@@ -457,6 +542,7 @@ private function createFeedPost(array $validatedData, $mediaPath)
     return $post;
 }
 
+
 private function attachHashtags(FeedPost $post, $content)
 {
     $hashtags = $this->extractHashtags($content);
@@ -496,283 +582,218 @@ private function notifyDoctors(FeedPost $post)
 
 
     // Delete a post
-    public function destroy($id)
-    {
-        try {
-            $post = FeedPost::findOrFail($id);
+public function destroy($id)
+{
+    try {
+        $post = FeedPost::findOrFail($id);
 
-            $user = Auth::user();
-            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+        $user = Auth::user();
+        $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
 
-            // Allow only the post owner or Admin/Tester
-            if ($post->doctor_id !== $user->id && !$isAdminOrTester) {
-                Log::warning("Unauthorized deletion attempt by doctor " . Auth::id());
-                return response()->json([
-                    'value' => false,
-                    'message' => 'Unauthorized action'
-                ], 403);
-            }
-
-            $post->delete();
-
-            Log::info("Post ID $id deleted by doctor " . Auth::id());
-            return response()->json([
-                'value' => true,
-                'message' => 'Post deleted successfully'
-            ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            Log::warning("Post ID $id not found for deletion");
+        // Allow only the post owner or Admin/Tester
+        if ($post->doctor_id !== $user->id && !$isAdminOrTester) {
+            Log::warning("Unauthorized deletion attempt by doctor " . Auth::id());
             return response()->json([
                 'value' => false,
-                'message' => 'Post not found'
-            ], 404);
-        } catch (\Exception $e) {
-            Log::error("Error deleting post ID $id: " . $e->getMessage());
-            return response()->json([
-                'value' => false,
-                'message' => 'An error occurred while deleting the post'
-            ], 500);
+                'message' => 'Unauthorized action'
+            ], 403);
         }
+
+        $post->delete();
+
+        Log::info("Post ID $id deleted by doctor " . Auth::id());
+        return response()->json([
+            'value' => true,
+            'message' => 'Post deleted successfully'
+        ]);
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        Log::warning("Post ID $id not found for deletion");
+        return response()->json([
+            'value' => false,
+            'message' => 'Post not found'
+        ], 404);
+    } catch (\Exception $e) {
+        Log::error("Error deleting post ID $id: " . $e->getMessage());
+        return response()->json([
+            'value' => false,
+            'message' => 'An error occurred while deleting the post'
+        ], 500);
     }
+}
 
-    // Update a post
-    public function update(Request $request, $id)
-    {
-        try {
-            // Retrieve the post by ID
-            $post = FeedPost::findOrFail($id);
+
     
-            // Get the authenticated user
-            $user = Auth::user();
-    
-            // Check if the user is an Admin or Tester
-            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
-    
-            // Allow only the post owner or Admin/Tester to update the post
-            if ($post->doctor_id !== $user->id && !$isAdminOrTester) {
-                Log::warning("Unauthorized update attempt by doctor " . $user->id);
+
+public function likeOrUnlikePost(Request $request, $postId)
+{
+    try {
+        $doctor_id = Auth::id();
+        $status = $request->input('status'); // 'like' or 'unlike'
+
+        // Check if the post exists
+        $post = FeedPost::findOrFail($postId);
+
+        // Find if the like already exists
+        $like = FeedPostLike::where('feed_post_id', $postId)
+            ->where('doctor_id', $doctor_id)
+            ->first();
+
+        // Handle Like
+        if ($status === 'like') {
+            if ($like) {
+                Log::warning("Post already liked PostID: $postId UserID: $doctor_id");
                 return response()->json([
                     'value' => false,
-                    'message' => 'Unauthorized action'
-                ], 403);
-            }
-    
-            // Validate the incoming request data
-            $validatedData = $request->validate([
-                'content' => 'string',
-                'media_type' => 'nullable|string',
-                'media_path' => 'nullable|string',
-                'visibility' => 'nullable|string|in:Public,Friends,Only Me',
-            ]);
-    
-            // If media_type is explicitly sent as null, set media_path to null as well
-            if ($request->has('media_type') && is_null($request->media_type)) {
-                $validatedData['media_type'] = null;
-                $validatedData['media_path'] = null;
-            }
-    
-            // Update the post with validated data
-            $post->update($validatedData);
-    
-            // Log the successful update
-            Log::info("Post ID $id updated by doctor " . $user->id);
-    
-            // Return a success response
-            return response()->json([
-                'value' => true,
-                'data' => $post,
-                'message' => 'Post updated successfully'
-            ], 200);
-    
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            // Log and return a response if the post is not found
-            Log::warning("Post ID $id not found for update");
-            return response()->json([
-                'value' => false,
-                'message' => 'Post not found'
-            ], 404);
-    
-        } catch (\Exception $e) {
-            // Log and return a response for any other exceptions
-            Log::error("Error updating post ID $id: " . $e->getMessage());
-            return response()->json([
-                'value' => false,
-                'message' => 'An error occurred while updating the post'
-            ], 500);
-        }
-    }
-    
-
-    public function likeOrUnlikePost(Request $request, $postId)
-    {
-        try {
-            $doctor_id = Auth::id();
-            $status = $request->input('status'); // 'like' or 'unlike'
-
-            // Check if the post exists
-            $post = FeedPost::findOrFail($postId);
-
-            // Find if the like already exists
-            $like = FeedPostLike::where('feed_post_id', $postId)
-                ->where('doctor_id', $doctor_id)
-                ->first();
-
-            // Handle Like
-            if ($status === 'like') {
-                if ($like) {
-                    Log::warning("Post already liked PostID: $postId UserID: $doctor_id");
-                    return response()->json([
-                        'value' => false,
-                        'message' => 'Post already liked'
-                    ], 400);
-                }
-
-                // Create a new like entry
-                $newLike = FeedPostLike::create([
-                    'feed_post_id' => $postId,
-                    'doctor_id' => $doctor_id,
-                ]);
-
-                $postOwner = $post->doctor;
-
-                // Check if the post owner is not the one liking the post
-                if ($postOwner->id !== Auth::id()) {
-                    $notification = AppNotification::create([
-                        'doctor_id' => $postOwner->id,
-                        'type' => 'Other',
-                        'type_id' => $post->id,
-                        'content' => sprintf('Dr. %s liked your post', Auth::user()->name . ' ' . Auth::user()->lname),
-                        'type_doctor_id' => Auth::id(),
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
-
-                    Log::info("Notification sent to post owner ID: " . $postOwner->id . " for post ID: " . $post->id);
-                }
-
-
-
-                Log::info("Post ID $postId liked by doctor " . $doctor_id);
-                return response()->json([
-                    'value' => true,
-                    'data' => $newLike,
-                    'message' => 'Post liked successfully'
-                ]);
-
-                // Handle Unlike
-            } elseif ($status === 'unlike') {
-                if ($like) {
-                    $like->delete();
-                    Log::info("Post ID $postId unliked by doctor " . $doctor_id);
-                    return response()->json([
-                        'value' => true,
-                        'message' => 'Post unliked successfully'
-                    ]);
-                }
-
-                Log::warning("Like not found for post ID $postId");
-                return response()->json([
-                    'value' => false,
-                    'message' => 'Like not found'
-                ], 404);
-            } else {
-                Log::warning("Invalid status for post like/unlike: $status");
-                return response()->json([
-                    'value' => false,
-                    'message' => 'Invalid status. Use "like" or "unlike".'
+                    'message' => 'Post already liked'
                 ], 400);
             }
 
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            Log::warning("Post ID $postId not found for like/unlike");
-            return response()->json([
-                'value' => false,
-                'message' => 'Post not found'
-            ], 404);
-        } catch (\Exception $e) {
-            Log::error("Error processing like/unlike for post ID $postId: " . $e->getMessage());
-            return response()->json([
-                'value' => false,
-                'message' => 'An error occurred while processing the request'
-            ], 500);
-        }
-    }
+            // Create a new like entry
+            $newLike = FeedPostLike::create([
+                'feed_post_id' => $postId,
+                'doctor_id' => $doctor_id,
+            ]);
 
-    public function saveOrUnsavePost(Request $request, $postId)
-    {
-        try {
-            $doctor_id = Auth::id();
-            $status = $request->input('status'); // 'save' or 'unsave'
+            $postOwner = $post->doctor;
 
-            // Check if the post exists
-            $post = FeedPost::findOrFail($postId);
-
-            // Find if the post is already saved
-            $save = FeedSaveLike::where('feed_post_id', $postId)
-                ->where('doctor_id', $doctor_id)
-                ->first();
-
-            // Handle Save
-            if ($status === 'save') {
-                if ($save) {
-                    Log::warning("Post already saved PostID: $postId UserID: $doctor_id");
-                    return response()->json([
-                        'value' => false,
-                        'message' => 'Post already saved'
-                    ], 400);
-                }
-
-                // Create a new save entry
-                $newSave = FeedSaveLike::create([
-                    'feed_post_id' => $postId,
-                    'doctor_id' => $doctor_id,
+            // Check if the post owner is not the one liking the post
+            if ($postOwner->id !== Auth::id()) {
+                $notification = AppNotification::create([
+                    'doctor_id' => $postOwner->id,
+                    'type' => 'Other',
+                    'type_id' => $post->id,
+                    'content' => sprintf('Dr. %s liked your post', Auth::user()->name . ' ' . Auth::user()->lname),
+                    'type_doctor_id' => Auth::id(),
+                    'created_at' => now(),
+                    'updated_at' => now()
                 ]);
 
-                Log::info("Post ID $postId saved by doctor " . $doctor_id);
+                Log::info("Notification sent to post owner ID: " . $postOwner->id . " for post ID: " . $post->id);
+            }
+
+
+
+            Log::info("Post ID $postId liked by doctor " . $doctor_id);
+            return response()->json([
+                'value' => true,
+                'data' => $newLike,
+                'message' => 'Post liked successfully'
+            ]);
+
+            // Handle Unlike
+        } elseif ($status === 'unlike') {
+            if ($like) {
+                $like->delete();
+                Log::info("Post ID $postId unliked by doctor " . $doctor_id);
                 return response()->json([
                     'value' => true,
-                    'data' => $newSave,
-                    'message' => 'Post saved successfully'
+                    'message' => 'Post unliked successfully'
                 ]);
+            }
 
-                // Handle Unsave
-            } elseif ($status === 'unsave') {
-                if ($save) {
-                    $save->delete();
-                    Log::info("Post ID $postId unsaved by doctor " . $doctor_id);
-                    return response()->json([
-                        'value' => true,
-                        'message' => 'Post unsaved successfully'
-                    ]);
-                }
+            Log::warning("Like not found for post ID $postId");
+            return response()->json([
+                'value' => false,
+                'message' => 'Like not found'
+            ], 404);
+        } else {
+            Log::warning("Invalid status for post like/unlike: $status");
+            return response()->json([
+                'value' => false,
+                'message' => 'Invalid status. Use "like" or "unlike".'
+            ], 400);
+        }
 
-                Log::warning("Save not found for post ID $postId");
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        Log::warning("Post ID $postId not found for like/unlike");
+        return response()->json([
+            'value' => false,
+            'message' => 'Post not found'
+        ], 404);
+    } catch (\Exception $e) {
+        Log::error("Error processing like/unlike for post ID $postId: " . $e->getMessage());
+        return response()->json([
+            'value' => false,
+            'message' => 'An error occurred while processing the request'
+        ], 500);
+    }
+}
+
+public function saveOrUnsavePost(Request $request, $postId)
+{
+    try {
+        $doctor_id = Auth::id();
+        $status = $request->input('status'); // 'save' or 'unsave'
+
+        // Check if the post exists
+        $post = FeedPost::findOrFail($postId);
+
+        // Find if the post is already saved
+        $save = FeedSaveLike::where('feed_post_id', $postId)
+            ->where('doctor_id', $doctor_id)
+            ->first();
+
+        // Handle Save
+        if ($status === 'save') {
+            if ($save) {
+                Log::warning("Post already saved PostID: $postId UserID: $doctor_id");
                 return response()->json([
                     'value' => false,
-                    'message' => 'Save not found'
-                ], 404);
-            } else {
-                Log::warning("Invalid status for post save/unsave: $status");
-                return response()->json([
-                    'value' => false,
-                    'message' => 'Invalid status. Use "save" or "unsave".'
+                    'message' => 'Post already saved'
                 ], 400);
             }
 
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            Log::warning("Post ID $postId not found for save/unsave");
+            // Create a new save entry
+            $newSave = FeedSaveLike::create([
+                'feed_post_id' => $postId,
+                'doctor_id' => $doctor_id,
+            ]);
+
+            Log::info("Post ID $postId saved by doctor " . $doctor_id);
+            return response()->json([
+                'value' => true,
+                'data' => $newSave,
+                'message' => 'Post saved successfully'
+            ]);
+
+            // Handle Unsave
+        } elseif ($status === 'unsave') {
+            if ($save) {
+                $save->delete();
+                Log::info("Post ID $postId unsaved by doctor " . $doctor_id);
+                return response()->json([
+                    'value' => true,
+                    'message' => 'Post unsaved successfully'
+                ]);
+            }
+
+            Log::warning("Save not found for post ID $postId");
             return response()->json([
                 'value' => false,
-                'message' => 'Post not found'
+                'message' => 'Save not found'
             ], 404);
-        } catch (\Exception $e) {
-            Log::error("Error processing save/unsave for post ID $postId: " . $e->getMessage());
+        } else {
+            Log::warning("Invalid status for post save/unsave: $status");
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while processing the request'
-            ], 500);
+                'message' => 'Invalid status. Use "save" or "unsave".'
+            ], 400);
         }
+
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        Log::warning("Post ID $postId not found for save/unsave");
+        return response()->json([
+            'value' => false,
+            'message' => 'Post not found'
+        ], 404);
+    } catch (\Exception $e) {
+        Log::error("Error processing save/unsave for post ID $postId: " . $e->getMessage());
+        return response()->json([
+            'value' => false,
+            'message' => 'An error occurred while processing the request'
+        ], 500);
     }
+}
 
     // Add a comment to a post
     public function addComment(Request $request, $postId)

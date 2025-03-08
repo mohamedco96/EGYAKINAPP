@@ -539,42 +539,61 @@ private function notifyDoctors(FeedPost $post)
     public function update(Request $request, $id)
     {
         try {
+            // Retrieve the post by ID
             $post = FeedPost::findOrFail($id);
-
+    
+            // Get the authenticated user
             $user = Auth::user();
+    
+            // Check if the user is an Admin or Tester
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
-
-            // Allow only the post owner or Admin/Tester
+    
+            // Allow only the post owner or Admin/Tester to update the post
             if ($post->doctor_id !== $user->id && !$isAdminOrTester) {
-                Log::warning("Unauthorized deletion attempt by doctor " . Auth::id());
+                Log::warning("Unauthorized update attempt by doctor " . $user->id);
                 return response()->json([
                     'value' => false,
                     'message' => 'Unauthorized action'
                 ], 403);
             }
-
+    
+            // Validate the incoming request data
             $validatedData = $request->validate([
                 'content' => 'required|string|max:1000',
                 'media_type' => 'nullable|string',
                 'media_path' => 'nullable|string',
                 'visibility' => 'nullable|string|in:Public,Friends,Only Me',
             ]);
-
+    
+            // If media_type is explicitly sent as null, set media_path to null as well
+            if ($request->has('media_type') && is_null($request->media_type)) {
+                $validatedData['media_type'] = null;
+                $validatedData['media_path'] = null;
+            }
+    
+            // Update the post with validated data
             $post->update($validatedData);
-            Log::info("Post ID $id updated by doctor " . Auth::id());
-
+    
+            // Log the successful update
+            Log::info("Post ID $id updated by doctor " . $user->id);
+    
+            // Return a success response
             return response()->json([
                 'value' => true,
                 'data' => $post,
                 'message' => 'Post updated successfully'
-            ]);
+            ], 200);
+    
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            // Log and return a response if the post is not found
             Log::warning("Post ID $id not found for update");
             return response()->json([
                 'value' => false,
                 'message' => 'Post not found'
             ], 404);
+    
         } catch (\Exception $e) {
+            // Log and return a response for any other exceptions
             Log::error("Error updating post ID $id: " . $e->getMessage());
             return response()->json([
                 'value' => false,
@@ -582,6 +601,7 @@ private function notifyDoctors(FeedPost $post)
             ], 500);
         }
     }
+    
 
     public function likeOrUnlikePost(Request $request, $postId)
     {

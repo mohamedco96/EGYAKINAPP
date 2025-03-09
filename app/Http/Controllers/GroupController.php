@@ -124,6 +124,8 @@ class GroupController extends Controller
             'owner_id' => Auth::id(),
         ]);
 
+        $group->doctors()->attach(Auth::id(), ['status' => 'joined']);
+
         // Log the creation of a new group
         Log::info('Group created', [
             'group_id' => $group->id,
@@ -451,7 +453,7 @@ class GroupController extends Controller
             ->findOrFail($id);
     
             // Count the number of members in the group
-            $group->members_count = $group->doctors()->count();
+            $group->members_count = $group->doctors()->where('status', 'joined')->count();
     
             // Check if the authenticated user is a member of the group and get their status
             $userId = Auth::id();
@@ -702,6 +704,7 @@ public function fetchGroupDetailsWithPosts($groupId)
         // Fetch member count for the group from the group_user table
         $memberCount = DB::table('group_user')
         ->where('group_id', $group->id)
+        ->where('status', 'joined')
         ->count();
 
         $group->member_count = $memberCount; // Add member count to the group object
@@ -910,6 +913,7 @@ public function fetchGroupDetailsWithPosts($groupId)
             // Fetch member count for the group from the group_user table
             $memberCount = DB::table('group_user')
                 ->where('group_id', $group->id)
+                ->where('status', 'joined')
                 ->count();
 
             $group->member_count = $memberCount; // Add member count to the group object
@@ -955,6 +959,7 @@ public function fetchGroupDetailsWithPosts($groupId)
         // Fetch member count for the group from the group_user table
         $memberCount = DB::table('group_user')
         ->where('group_id', $group->id)
+        ->where('status', 'joined')
         ->count();
             
         $group->member_count = $memberCount; // Add member count to the group object
@@ -1004,6 +1009,7 @@ public function fetchGroupDetailsWithPosts($groupId)
                 // Fetch member count for the group from the group_user table
                 $memberCount = DB::table('group_user')
                     ->where('group_id', $group->id)
+                    ->where('status', 'joined')
                     ->count();
     
                 $group->member_count = $memberCount; // Add member count to the group object

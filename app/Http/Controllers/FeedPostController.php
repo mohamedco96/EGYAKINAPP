@@ -411,17 +411,22 @@ public function update(Request $request, $id)
         // Handle group validation and permissions
         $this->handleGroupValidation($validatedData);
 
-        // Initialize media variables
-        $mediaPath = $post->media_path; // Default to existing media path
-        $mediaType = $validatedData['media_type'] ?? null;
+        // Initialize media variables with existing values
+        $mediaPath = $post->media_path;
+        $mediaType = $post->media_type;
 
-        // Check if media_type is 'text', then remove media
-        if ($request->has('media_type') && $request->media_type === "text") {
-            $mediaType = null;
-            $mediaPath = null;
-        } else {
-            // Handle media upload if present
-            $mediaPath = $this->handleMediaUpload($request, $mediaType);
+        // If media_type is sent in the request
+        if ($request->has('media_type')) {
+            $mediaType = $request->media_type;
+
+            // If media_type is 'text', remove media
+            if ($mediaType === "text") {
+                $mediaType = null;
+                $mediaPath = null;
+            } elseif ($request->hasFile('media')) {
+                // Handle media upload if a new media file is uploaded
+                $mediaPath = $this->handleMediaUpload($request, $mediaType);
+            }
         }
 
         // Update the post with validated data
@@ -468,6 +473,7 @@ public function update(Request $request, $id)
         ], 500);
     }
 }
+    
     
 
 private function validationRules()

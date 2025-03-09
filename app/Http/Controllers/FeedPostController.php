@@ -405,32 +405,30 @@ public function update(Request $request, $id)
         // Get the authenticated user
         $user = Auth::user();
 
-        // // Check if the user is an Admin or Tester
-        // $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
-
-        // // Allow only the post owner or Admin/Tester to update the post
-        // if ($post->doctor_id !== $user->id && !$isAdminOrTester) {
-        //     Log::warning("Unauthorized update attempt by doctor " . $user->id);
-        //     return response()->json([
-        //         'value' => false,
-        //         'message' => 'Unauthorized action'
-        //     ], 403);
-        // }
-
         // Validate the incoming request data
         $validatedData = $request->validate($this->validationRules());
 
         // Handle group validation and permissions
         $this->handleGroupValidation($validatedData);
 
-        // Handle media upload if present
-        $mediaPath = $this->handleMediaUpload($request, $validatedData['media_type'] ?? null);
+        // Initialize media variables
+        $mediaPath = $post->media_path; // Default to existing media path
+        $mediaType = $validatedData['media_type'] ?? null;
+
+        // Check if media_type is 'text', then remove media
+        if ($request->has('media_type') && $request->media_type === "text") {
+            $mediaType = null;
+            $mediaPath = null;
+        } else {
+            // Handle media upload if present
+            $mediaPath = $this->handleMediaUpload($request, $mediaType);
+        }
 
         // Update the post with validated data
         $post->update([
             'content' => $validatedData['content'],
-            'media_type' => $validatedData['media_type'] ?? null,
-            'media_path' => $mediaPath ?? $post->media_path, // Keep existing media_path if no new media is uploaded
+            'media_type' => $mediaType,
+            'media_path' => $mediaPath,
             'visibility' => $validatedData['visibility'] ?? 'Public',
             'group_id' => $validatedData['group_id'] ?? null,
         ]);
@@ -440,9 +438,6 @@ public function update(Request $request, $id)
 
         // Commit the transaction
         DB::commit();
-
-        // Notify relevant doctors about the updated post
-        // $this->notifyDoctors($post);
 
         // Log the successful update
         Log::info("Post ID $id updated by doctor " . $user->id);
@@ -455,34 +450,31 @@ public function update(Request $request, $id)
         ], 200);
 
     } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-        // Rollback transaction if an error occurs
         DB::rollBack();
-
-        // Log and return a response if the post is not found
         Log::warning("Post ID $id not found for update");
+
         return response()->json([
             'value' => false,
             'message' => 'Post not found'
         ], 404);
 
     } catch (\Exception $e) {
-        // Rollback transaction if an error occurs
         DB::rollBack();
-
-        // Log and return a response for any other exceptions
         Log::error("Error updating post ID $id: " . $e->getMessage());
+
         return response()->json([
             'value' => false,
             'message' => 'An error occurred while updating the post: ' . $e->getMessage()
         ], 500);
     }
 }
+    
 
 private function validationRules()
 {
     return [
         'content' => 'required|string|max:1000',
-        'media_type' => 'nullable|string|in:image,video',
+        'media_type' => 'nullable|string|in:image,video,text',
         'media_path' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,mkv|max:20480',
         'visibility' => 'nullable|string|in:Public,Friends,Only Me',
         'group_id' => 'nullable|exists:groups,id'

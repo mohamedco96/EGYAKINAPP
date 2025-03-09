@@ -423,7 +423,7 @@ public function update(Request $request, $id)
             if ($mediaType === "text") {
                 $mediaType = null;
                 $mediaPath = null;
-            } elseif ($request->hasFile('media')) {
+            } else{
                 // Handle media upload if a new media file is uploaded
                 $mediaPath = $this->handleMediaUpload($request, $mediaType);
             }

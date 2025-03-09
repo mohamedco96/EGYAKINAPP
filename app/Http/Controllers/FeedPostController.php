@@ -473,7 +473,7 @@ public function update(Request $request, $id)
 private function validationRules()
 {
     return [
-        'content' => 'required|string|max:1000',
+        'content' => 'string',
         'media_type' => 'nullable|string|in:image,video,text',
         'media_path' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,mkv|max:20480',
         'visibility' => 'nullable|string|in:Public,Friends,Only Me',

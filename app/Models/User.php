@@ -214,7 +214,7 @@ class User extends Authenticatable
 
     public function saves()
     {
-        return $this->hasMany(FeedSaveLike::class);
+        return $this->hasMany(FeedSaveLike::class, 'doctor_id');
     }
 
         public function groups()

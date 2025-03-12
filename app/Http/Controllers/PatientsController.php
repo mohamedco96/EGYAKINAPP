@@ -232,6 +232,8 @@ class PatientsController extends Controller
             $userPatientCount = $user->patients()->count();
             $allPatientCount = Patients::count();
             $scoreValue = optional($user->score)->score ?? 0;
+            $postsCount = optional($user->posts()->count())?? 0;
+            $savedPostsCount = optional($user->saves()->count())?? 0;
             $isVerified = (bool)$user->email_verified_at;
             $unreadCount = AppNotification::where('doctor_id', $user->id)->where('read', false)->count();
             $isSyndicateCardRequired = $user->isSyndicateCardRequired;
@@ -250,8 +252,8 @@ class PatientsController extends Controller
                 'isUserBlocked' => $isUserBlocked,
                 'all_patient_count' => (string)$allPatientCount,
                 'score_value' => (string)$scoreValue,
-                'posts_count' => (string) $user->posts()->count(), // Count posts created by the user
-                'saved_posts_count' => (string) $user->saves()->count(), // Count saved posts
+                'posts_count' => (string) $postsCount, // Count posts created by the user
+                'saved_posts_count' => (string) $savedPostsCount, // Count saved posts
                 'role' => $role->name ?? "User",
                 'data' => [
                     'topDoctors' => $topDoctors,

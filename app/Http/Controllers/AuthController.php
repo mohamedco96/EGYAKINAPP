@@ -692,11 +692,17 @@ class AuthController extends Controller
             // Get the user's score value
             $scoreValue = optional($user->score)->score ?? 0;
 
+            $postsCount = $user->posts()->count();
+
+            $savedPostsCount = $user->saves()->count();
+
             // Prepare the response data
             $responseData = [
                 'value' => true,
                 'patient_count' => strval($patientCount) ?? 0,
                 'score_value' => strval($scoreValue),
+                'posts_count' => strval($postsCount) ?? 0,
+                'saved_posts_count' => strval($savedPostsCount) ?? 0,
                 'image' => $imageUrl,
                 'data' => $user,
             ];
@@ -728,6 +734,10 @@ class AuthController extends Controller
             // Get the number of patients associated with the user
             $patientCount = $user->patients()->count();
 
+            $postsCount = $user->posts()->count();
+
+            $savedPostsCount = $user->saves()->count();
+
             // Get the user's score value
             $scoreValue = optional($user->score)->score ?? 0;
 
@@ -736,6 +746,8 @@ class AuthController extends Controller
                 'value' => true,
                 'patient_count' => strval($patientCount) ?? 0,
                 'score_value' => strval($scoreValue),
+                'posts_count' => strval($postsCount) ?? 0,
+                'saved_posts_count' => strval($savedPostsCount) ?? 0,
                 'image' => $imageUrl,
                 'data' => $user,
             ];

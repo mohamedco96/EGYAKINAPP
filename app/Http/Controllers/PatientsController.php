@@ -166,10 +166,11 @@ class PatientsController extends Controller
                 ->limit(5)
                 ->get();
     
-            $topDoctors = User::select('users.id', 'users.name', 'users.image', 'users.syndicate_card', 'users.isSyndicateCardRequired', 'users.version')
+                $topDoctors = User::select('users.id', 'users.name', 'users.image', 'users.syndicate_card', 'users.isSyndicateCardRequired', 'users.version')
                 ->leftJoin('scores', 'users.id', '=', 'scores.doctor_id')
-                ->withCount('patients')
-                ->orderByRaw('patients_count DESC, COALESCE(scores.score, 0) DESC')
+                ->withCount(['patients', 'posts', 'saves'])
+                ->orderByDesc('patients_count')
+                ->orderByDesc('scores.score')
                 ->limit(5)
                 ->get()
                 ->map(function ($user) {
@@ -182,10 +183,11 @@ class PatientsController extends Controller
                         'version' => $user->version,
                         'patients_count' => (string) $user->patients_count,
                         'score' => (string) ($user->score->score ?? 0),
-                        'posts_count' => (string) $user->posts()->count(), // Count posts created by the user
-                        'saved_posts_count' => (string) $user->saves()->count(), // Count saved posts
+                        'posts_count' => (string) $user->posts_count,
+                        'saved_posts_count' => (string) $user->saves_count,
                     ];
                 });
+            
     
             $pendingSyndicateCard = $isAdminOrTester
                 ? User::select('id', 'name', 'image', 'syndicate_card', 'isSyndicateCardRequired')

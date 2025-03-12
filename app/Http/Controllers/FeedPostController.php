@@ -199,54 +199,51 @@ class FeedPostController extends Controller
     public function getDoctorSavedPosts($doctorId)
     {
         try {
-            //$doctorId = auth()->id(); // Get the authenticated doctor's ID
-
-            // Fetch posts with necessary relationships and counts
-            $feedPosts = FeedPost::with(['doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired'])
-                ->withCount(['likes', 'comments'])  // Count likes and comments
+            // Fetch only saved posts for the given doctor ID
+            $feedPosts = FeedPost::whereHas('saves', function ($query) use ($doctorId) {
+                    $query->where('doctor_id', $doctorId);
+                })
+                ->with(['doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired'])
+                ->withCount(['likes', 'comments']) // Count likes and comments
                 ->with([
                     'saves' => function ($query) use ($doctorId) {
-                        $query->where('doctor_id', $doctorId); // Check if the post is saved by the doctor
+                        $query->where('doctor_id', $doctorId);
                     },
                     'likes' => function ($query) use ($doctorId) {
-                        $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
+                        $query->where('doctor_id', $doctorId);
                     }
                 ])
-                ->where('doctor_id', $doctorId)
                 ->where('group_id', null) // Fetch posts that are not in a group
                 ->latest('created_at') // Sort by created_at in descending order
                 ->paginate(10); // Paginate 10 posts per page
-
-            // Add 'is_saved' and 'is_liked' fields to each post
-            $feedPosts->getCollection()->transform(function ($post) use ($doctorId) {
-                // Add 'is_saved' field (true if the doctor saved the post)
-                $post->isSaved = $post->saves->isNotEmpty();
-
-                // Add 'is_liked' field (true if the doctor liked the post)
+    
+            // Transform posts to add `isSaved` and `isLiked` flags
+            $feedPosts->getCollection()->transform(function ($post) {
+                $post->isSaved = true; // Since we're only fetching saved posts, this is always true
                 $post->isLiked = $post->likes->isNotEmpty();
-
-                // Remove unnecessary data to clean up the response
+                
+                // Remove unnecessary relationship data
                 unset($post->saves, $post->likes);
-
+    
                 return $post;
             });
-
-            Log::info("Feed posts fetched for doctor ID $doctorId");
-
+    
+            Log::info("Saved posts fetched for doctor ID $doctorId");
+    
             return response()->json([
                 'value' => true,
                 'data' => $feedPosts,
-                'message' => 'Doctor Posts retrieved successfully'
+                'message' => 'Doctor saved posts retrieved successfully'
             ]);
         } catch (\Exception $e) {
-            Log::error("Error fetching Doctor posts for doctor ID $doctorId: " . $e->getMessage());
+            Log::error("Error fetching saved posts for doctor ID $doctorId: " . $e->getMessage());
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while retrieving feed posts'
+                'message' => 'An error occurred while retrieving saved posts'
             ], 500);
         }
-    }
+    }    
 
     // Get post by ID with sorted comments, likes, and saved status
     public function getPostById($id)

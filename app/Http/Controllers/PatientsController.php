@@ -182,6 +182,8 @@ class PatientsController extends Controller
                         'version' => $user->version,
                         'patients_count' => (string) $user->patients_count,
                         'score' => (string) ($user->score->score ?? 0),
+                        'posts_count' => (string) $user->posts()->count(), // Count posts created by the user
+                        'saved_posts_count' => (string) $user->saves()->count(), // Count saved posts
                     ];
                 });
     

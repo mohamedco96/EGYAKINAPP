@@ -248,6 +248,8 @@ class PatientsController extends Controller
                 'isUserBlocked' => $isUserBlocked,
                 'all_patient_count' => (string)$allPatientCount,
                 'score_value' => (string)$scoreValue,
+                'posts_count' => (string) $user->posts()->count(), // Count posts created by the user
+                'saved_posts_count' => (string) $user->saves()->count(), // Count saved posts
                 'role' => $role->name ?? "User",
                 'data' => [
                     'topDoctors' => $topDoctors,

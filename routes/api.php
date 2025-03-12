@@ -351,6 +351,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/feed/getPostsByHashtag/{hashtag}', 'FeedPostController@getPostsByHashtag');
     // Search Posts
     Route::post('/feed/searchPosts', 'FeedPostController@searchPosts');
+    Route::get('/doctorposts/{doctorId}', 'FeedPostController@getDoctorPosts');
+
 
 
     // Groups

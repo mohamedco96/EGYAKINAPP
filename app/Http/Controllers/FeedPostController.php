@@ -16,7 +16,9 @@ use App\Models\Hashtag;
 use App\Models\Group;
 use App\Models\AppNotification;
 use App\Models\User;
-
+use App\Models\Poll;
+use App\Models\PollOption; // If you have a separate PollOption model
+use App\Models\PollVote;
 
 
 class FeedPostController extends Controller
@@ -97,9 +99,14 @@ class FeedPostController extends Controller
     {
         try {
             $doctorId = auth()->id(); // Get the authenticated doctor's ID
-
+    
             // Fetch posts with necessary relationships and counts
-            $feedPosts = FeedPost::with(['doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired'])
+            $feedPosts = FeedPost::with([
+                    'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                    'poll.options' => function ($query) { 
+                        $query->withCount('votes'); // Count votes per option
+                    }
+                ])
                 ->withCount(['likes', 'comments'])  // Count likes and comments
                 ->with([
                     'saves' => function ($query) use ($doctorId) {
@@ -112,23 +119,26 @@ class FeedPostController extends Controller
                 ->where('group_id', null) // Fetch posts that are not in a group
                 ->latest('created_at') // Sort by created_at in descending order
                 ->paginate(10); // Paginate 10 posts per page
-
-            // Add 'is_saved' and 'is_liked' fields to each post
-            $feedPosts->getCollection()->transform(function ($post) use ($doctorId) {
-                // Add 'is_saved' field (true if the doctor saved the post)
+    
+            // Process each post
+            $feedPosts->getCollection()->transform(function ($post) {
+                // Add 'is_saved' and 'is_liked' fields
                 $post->isSaved = $post->saves->isNotEmpty();
-
-                // Add 'is_liked' field (true if the doctor liked the post)
                 $post->isLiked = $post->likes->isNotEmpty();
-
-                // Remove unnecessary data to clean up the response
+    
+                // Sort poll options by vote count (highest first)
+                if ($post->poll) {
+                    $post->poll->options = $post->poll->options->sortByDesc('votes_count')->values();
+                }
+    
+                // Remove unnecessary data
                 unset($post->saves, $post->likes);
-
+    
                 return $post;
             });
-
+    
             Log::info("Feed posts fetched for doctor ID $doctorId");
-
+    
             return response()->json([
                 'value' => true,
                 'data' => $feedPosts,
@@ -143,6 +153,7 @@ class FeedPostController extends Controller
             ], 500);
         }
     }
+    
 
     public function getDoctorPosts($doctorId)
     {
@@ -250,34 +261,39 @@ class FeedPostController extends Controller
     {
         try {
             $doctorId = auth()->id();
-
+    
             $post = FeedPost::with([
                 'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
                 'comments' => function ($query) {
                     $query->orderBy('created_at', 'desc')->paginate(10);
                 },
                 'comments.doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                'poll.options' => function ($query) { 
+                    $query->withCount('votes'); // Load the vote count for each option
+                }
             ])->withCount(['likes', 'comments'])
-                ->with([
-                    'saves' => function ($query) use ($doctorId) {
-                        $query->where('doctor_id', $doctorId); // Check if the post is saved by the doctor
-                    },
-                    'likes' => function ($query) use ($doctorId) {
-                        $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
-                    }
-                ])
-                ->findOrFail($id);
-
+            ->with([
+                'saves' => function ($query) use ($doctorId) {
+                    $query->where('doctor_id', $doctorId); // Check if the post is saved by the doctor
+                },
+                'likes' => function ($query) use ($doctorId) {
+                    $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
+                }
+            ])
+            ->findOrFail($id);
+    
             $post->isSaved = $post->saves->isNotEmpty();
-
-            // Add 'is_liked' field (true if the doctor liked the post)
             $post->isLiked = $post->likes->isNotEmpty();
-
-            // Remove unnecessary data to clean up the response
+    
+            // Sort poll options by vote count (descending)
+            if ($post->poll) {
+                $post->poll->options = $post->poll->options->sortByDesc('votes_count')->values();
+            }
+    
             unset($post->saves, $post->likes);
-
+    
             Log::info("Post ID $id retrieved successfully for doctor ID $doctorId");
-
+    
             return response()->json([
                 'value' => true,
                 'data' => $post,
@@ -298,7 +314,7 @@ class FeedPostController extends Controller
                 'message' => 'An error occurred while retrieving the post'
             ], 500);
         }
-    }
+    }  
 
     // Get likes for a post
     public function getPostLikes($postId)
@@ -446,51 +462,57 @@ class FeedPostController extends Controller
 // Create a new post
 public function store(Request $request)
 {
-    DB::beginTransaction(); // Start a transaction
+    DB::beginTransaction();
 
     try {
-        // Validate the incoming request
+        // Validate request
         $validatedData = $request->validate($this->validationRules());
 
-        // Handle group validation and permissions
+        // Handle group validation
         $this->handleGroupValidation($validatedData);
 
-        // Handle media upload if present
+        // Handle media upload
         $mediaPath = $this->handleMediaUpload($request, $validatedData['media_type'] ?? null);
 
-        // Create a new feed post
+        // Create Feed Post
         $post = $this->createFeedPost($validatedData, $mediaPath);
 
-        // Attach hashtags to the post
+        // Attach hashtags
         $this->attachHashtags($post, $request->input('content'));
 
-        // Commit the transaction
+        // Handle poll creation
+        if (!empty($validatedData['poll']) && isset($validatedData['poll']['question'])) {
+            $poll = new Poll([
+                'question' => $validatedData['poll']['question'],
+                'allow_add_options' => $validatedData['poll']['allow_add_options'] ?? false,
+                'allow_multiple_choice' => $validatedData['poll']['allow_multiple_choice'] ?? false
+            ]);
+
+            // Explicitly associate poll with the post
+            $post->poll()->save($poll);
+
+            foreach ($validatedData['poll']['options'] as $optionText) {
+                $poll->options()->create(['option_text' => $optionText]);
+            }
+        }
+
+
+        Log::info("Poll Data:", $validatedData['poll']);
+
         DB::commit();
 
-        // Notify relevant doctors about the new post
+        // Notify doctors
         $this->notifyDoctors($post);
 
-        // Log the post creation
-        Log::info("Post created by doctor " . Auth::id());
-
-        // Return success response
         return response()->json([
             'value' => true,
-            'data' => $post,
+            'data' => $post->load('poll.options'), 
             'message' => 'Post created successfully'
         ]);
     } catch (\Exception $e) {
-        // Rollback transaction if an error occurs
         DB::rollBack();
-
-        // Log error
         Log::error("Error creating post: " . $e->getMessage());
-
-        // Return error response
-        return response()->json([
-            'value' => false,
-            'message' => "Error creating post: " . $e->getMessage()
-        ], 500);
+        return response()->json(['value' => false, 'message' => "Error creating post: " . $e->getMessage()], 500);
     }
 }
 
@@ -580,13 +602,34 @@ public function update(Request $request, $id)
 private function validationRules()
 {
     return [
-        'content' => 'string',
+        'content' => 'nullable|string',
         'media_type' => 'nullable|string|in:image,video,text',
         'media_path' => 'nullable|file|mimes:jpeg,png,jpg,gif,mp4,mkv|max:20480',
         'visibility' => 'nullable|string|in:Public,Friends,Only Me',
-        'group_id' => 'nullable|exists:groups,id'
+        'group_id' => 'nullable|exists:groups,id',
+        'poll' => 'nullable|array',  // ✅ Allow `poll` to be an array
+        'poll.question' => 'nullable|string|max:255',
+        'poll.allow_add_options' => 'nullable|boolean',
+        'poll.allow_multiple_choice' => 'nullable|boolean',
+        'poll.options' => 'nullable|array',
+        'poll.options.*' => 'nullable|string|max:255'
     ];
 }
+
+
+private function createPollForPost(FeedPost $post, array $data)
+{
+    $poll = $post->poll()->create([
+        'question' => $validatedData['poll']['question'],
+        'allow_add_options' => $validatedData['poll']['allow_add_options'] ?? false,
+        'allow_multiple_choice' => $validatedData['poll']['allow_multiple_choice'] ?? false
+    ]);
+
+    foreach ($validatedData['poll']['options'] as $optionText) {
+        $poll->options()->create(['option_text' => $optionText]);
+    }
+}
+
 
 private function handleGroupValidation(array &$validatedData)
 {
@@ -678,6 +721,76 @@ private function notifyDoctors(FeedPost $post)
 
     Log::info("Notifications inserted successfully for post ID: " . $post->id);
 }
+
+public function voteUnvote(Request $request, $pollId)
+{
+    $request->validate([
+        'option_id' => 'required|exists:poll_options,id',
+    ]);
+
+    $poll = Poll::findOrFail($pollId);
+    $userId = Auth::id();
+
+    // Check if the user has already voted for this option
+    $existingVote = PollVote::where('poll_id', $pollId)
+        ->where('poll_option_id', $request->option_id)
+        ->where('doctor_id', $userId)
+        ->first();
+
+    if ($existingVote) {
+        // Unvote (remove vote)
+        $existingVote->delete();
+        return response()->json(['message' => 'Vote removed successfully']);
+    }
+
+    // If multiple choices are not allowed, remove previous votes
+    if (!$poll->allow_multiple_choice) {
+        PollVote::where('poll_id', $pollId)->where('doctor_id', $userId)->delete();
+    }
+
+    // Save new vote
+    PollVote::create([
+        'poll_id' => $pollId,
+        'poll_option_id' => $request->option_id,
+        'doctor_id' => $userId,
+    ]);
+
+    return response()->json(['message' => 'Vote submitted successfully']);
+}
+
+
+    public function getVotersByOption($pollId, $optionId)
+    {
+        try {
+            // Validate that the poll and option exist
+            $pollOption = PollOption::where('id', $optionId)->where('poll_id', $pollId)->firstOrFail();
+
+            // Fetch doctors who voted for this option
+            $voters = PollVote::where('poll_option_id', $optionId)
+            ->with('doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired')
+            ->get()
+            ->pluck('doctor'); // Extract doctor directly
+
+            return response()->json([
+                'value' => true,
+                'data' => $voters,
+                'message' => 'Voters retrieved successfully'
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'value' => false,
+                'data' => [],
+                'message' => 'Poll option not found'
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'value' => false,
+                'data' => [],
+                'message' => 'An error occurred while retrieving voters'
+            ], 500);
+        }
+    }
+
 
 
     // Delete a post

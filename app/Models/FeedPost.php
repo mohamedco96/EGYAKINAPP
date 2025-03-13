@@ -41,4 +41,9 @@ class FeedPost extends Model
     {
         return $this->belongsTo(Group::class);
     }
+
+    public function poll()
+    {
+        return $this->hasOne(Poll::class, 'feed_post_id');
+    }
 }

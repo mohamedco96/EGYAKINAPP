@@ -353,7 +353,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/feed/searchPosts', 'FeedPostController@searchPosts');
     Route::get('/doctorposts/{doctorId}', 'FeedPostController@getDoctorPosts');
     Route::get('/doctorsavedposts/{doctorId}', 'FeedPostController@getDoctorSavedPosts');
-
+    Route::post('/polls/{pollId}/vote', 'FeedPostController@voteUnvote');
+    Route::get('/polls/{pollId}/options/{optionId}/voters', 'FeedPostController@getVotersByOption');
 
 
     // Groups

@@ -103,8 +103,11 @@ class FeedPostController extends Controller
             // Fetch posts with necessary relationships and counts
             $feedPosts = FeedPost::with([
                     'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
-                    'poll.options' => function ($query) { 
-                        $query->withCount('votes'); // Count votes per option
+                    'poll.options' => function ($query) use ($doctorId) { 
+                        $query->withCount('votes') // Count votes per option
+                              ->with(['votes' => function ($voteQuery) use ($doctorId) {
+                                  $voteQuery->where('doctor_id', $doctorId); // Check if user voted
+                              }]);
                     }
                 ])
                 ->withCount(['likes', 'comments'])  // Count likes and comments
@@ -121,14 +124,18 @@ class FeedPostController extends Controller
                 ->paginate(10); // Paginate 10 posts per page
     
             // Process each post
-            $feedPosts->getCollection()->transform(function ($post) {
+            $feedPosts->getCollection()->transform(function ($post) use ($doctorId) {
                 // Add 'is_saved' and 'is_liked' fields
                 $post->isSaved = $post->saves->isNotEmpty();
                 $post->isLiked = $post->likes->isNotEmpty();
     
-                // Sort poll options by vote count (highest first)
+                // Sort poll options by vote count (highest first) and check if the user has voted
                 if ($post->poll) {
-                    $post->poll->options = $post->poll->options->sortByDesc('votes_count')->values();
+                    $post->poll->options = $post->poll->options->map(function ($option) use ($doctorId) {
+                        $option->is_voted = $option->votes->isNotEmpty(); // If user has voted for this option
+                        unset($option->votes); // Remove unnecessary vote data
+                        return $option;
+                    })->sortByDesc('votes_count')->values();
                 }
     
                 // Remove unnecessary data
@@ -153,6 +160,7 @@ class FeedPostController extends Controller
             ], 500);
         }
     }
+    
     
 
     public function getDoctorPosts($doctorId)
@@ -268,8 +276,11 @@ class FeedPostController extends Controller
                     $query->orderBy('created_at', 'desc')->paginate(10);
                 },
                 'comments.doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
-                'poll.options' => function ($query) { 
-                    $query->withCount('votes'); // Load the vote count for each option
+                'poll.options' => function ($query) use ($doctorId) { 
+                    $query->withCount('votes') // Load vote count for each option
+                          ->with(['votes' => function ($voteQuery) use ($doctorId) {
+                              $voteQuery->where('doctor_id', $doctorId); // Check if the user voted
+                          }]);
                 }
             ])->withCount(['likes', 'comments'])
             ->with([
@@ -285,9 +296,13 @@ class FeedPostController extends Controller
             $post->isSaved = $post->saves->isNotEmpty();
             $post->isLiked = $post->likes->isNotEmpty();
     
-            // Sort poll options by vote count (descending)
+            // Sort poll options by vote count and add `is_voted`
             if ($post->poll) {
-                $post->poll->options = $post->poll->options->sortByDesc('votes_count')->values();
+                $post->poll->options = $post->poll->options->map(function ($option) {
+                    $option->is_voted = $option->votes->isNotEmpty(); // Check if the user voted
+                    unset($option->votes); // Remove unnecessary votes data
+                    return $option;
+                })->sortByDesc('votes_count')->values();
             }
     
             unset($post->saves, $post->likes);
@@ -314,7 +329,8 @@ class FeedPostController extends Controller
                 'message' => 'An error occurred while retrieving the post'
             ], 500);
         }
-    }  
+    }
+    
 
     // Get likes for a post
     public function getPostLikes($postId)

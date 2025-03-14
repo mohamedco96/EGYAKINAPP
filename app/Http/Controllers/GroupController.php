@@ -710,18 +710,26 @@ public function fetchGroupDetailsWithPosts($groupId)
         $group->member_count = $memberCount; // Add member count to the group object
 
             // Fetch posts with necessary relationships and counts
-        $feedPosts = $group->posts()->with(['doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired'])
-            ->withCount(['likes', 'comments'])  // Count likes and comments
-            ->with([
-                'saves' => function ($query) use ($doctorId) {
-                    $query->where('doctor_id', $doctorId); // Check if the post is saved by the doctor
-                },
-                'likes' => function ($query) use ($doctorId) {
-                    $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
-                }
-            ])
-            ->latest('created_at') // Sort by created_at in descending order
-            ->paginate(10); // Paginate 10 posts per page
+        $feedPosts = $group->posts()->with([
+            'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+            'poll.options' => function ($query) use ($doctorId) { 
+                $query->withCount('votes') // Count votes per option
+                      ->with(['votes' => function ($voteQuery) use ($doctorId) {
+                          $voteQuery->where('doctor_id', $doctorId); // Check if user voted
+                      }]);
+            }
+        ])
+        ->withCount(['likes', 'comments'])  // Count likes and comments
+        ->with([
+            'saves' => function ($query) use ($doctorId) {
+                $query->where('doctor_id', $doctorId); // Check if the post is saved by the doctor
+            },
+            'likes' => function ($query) use ($doctorId) {
+                $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
+            }
+        ])
+        ->latest('created_at') // Sort by created_at in descending order
+        ->paginate(10); // Paginate 10 posts per page
 
         // Add 'is_saved' and 'is_liked' fields to each post
         $feedPosts->getCollection()->transform(function ($post) use ($doctorId) {
@@ -730,6 +738,15 @@ public function fetchGroupDetailsWithPosts($groupId)
 
             // Add 'is_liked' field (true if the doctor liked the post)
             $post->isLiked = $post->likes->isNotEmpty();
+
+            // Sort poll options by vote count (highest first) and check if the user has voted
+            if ($post->poll) {
+                $post->poll->options = $post->poll->options->map(function ($option) use ($doctorId) {
+                    $option->is_voted = $option->votes->isNotEmpty(); // If user has voted for this option
+                    unset($option->votes); // Remove unnecessary vote data
+                    return $option;
+                })->sortByDesc('votes_count')->values();
+            }
 
             // Remove unnecessary data to clean up the response
             unset($post->saves, $post->likes);
@@ -1017,7 +1034,15 @@ public function fetchGroupDetailsWithPosts($groupId)
     
                 
                             // Fetch posts with necessary relationships and counts
-            $randomPosts = FeedPost::with(['doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired'])
+            $randomPosts = FeedPost::with([
+                'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                'poll.options' => function ($query) use ($userId) { 
+                    $query->withCount('votes') // Count votes per option
+                          ->with(['votes' => function ($voteQuery) use ($userId) {
+                              $voteQuery->where('doctor_id', $userId); // Check if user voted
+                          }]);
+                }
+            ])
             ->withCount(['likes', 'comments'])  // Count likes and comments
             ->with([
                 'saves' => function ($query) use ($userId) {
@@ -1042,6 +1067,14 @@ public function fetchGroupDetailsWithPosts($groupId)
             // Add 'is_liked' field (true if the doctor liked the post)
             $post->isLiked = $post->likes->isNotEmpty();
 
+            // Sort poll options by vote count (highest first) and check if the user has voted
+            if ($post->poll) {
+                $post->poll->options = $post->poll->options->map(function ($option) use ($userId) {
+                    $option->is_voted = $option->votes->isNotEmpty(); // If user has voted for this option
+                    unset($option->votes); // Remove unnecessary vote data
+                    return $option;
+                })->sortByDesc('votes_count')->values();
+            }
             // Remove unnecessary data to clean up the response
             unset($post->saves, $post->likes);
 

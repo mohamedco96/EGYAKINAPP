@@ -232,7 +232,7 @@ class FeedPostController extends Controller
                 ])
                 ->where('group_id', null) // Fetch posts that are not in a group
                 ->orderByDesc(
-                    Save::select('created_at')
+                    FeedSaveLike::select('created_at')
                         ->whereColumn('feed_post_id', 'feed_posts.id')
                         ->where('doctor_id', $doctorId)
                         ->latest()

@@ -1008,9 +1008,13 @@ public function fetchGroupDetailsWithPosts($groupId)
             $latestGroups = Group::with(['owner' => function ($query) {
                 $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
             }])
+            ->whereDoesntHave('doctors', function ($query) {
+                $query->where('doctor_id', Auth::id())
+                      ->where('status', 'joined'); // Exclude joined groups
+            })
             ->orderBy('created_at', 'desc')
             ->take(3)
-            ->get();
+            ->get();        
     
             // Add user status and member count to each group
             $userId = Auth::id();

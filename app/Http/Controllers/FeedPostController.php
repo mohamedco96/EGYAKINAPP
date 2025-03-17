@@ -1348,7 +1348,7 @@ public function saveOrUnsavePost(Request $request, $postId)
                 Log::info("No posts found for query: $query");
                 return response()->json([
                     'value' => true,
-                    'data' => [],
+                    'data' => $posts,
                     'message' => 'No posts found'
                 ]);
             }

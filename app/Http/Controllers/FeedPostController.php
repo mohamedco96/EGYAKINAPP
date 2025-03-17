@@ -220,7 +220,8 @@ class FeedPostController extends Controller
                                   $voteQuery->where('doctor_id', $doctorId); // Check if user voted
                               }]);
                     }
-                ])                ->withCount(['likes', 'comments']) // Count likes and comments
+                ])
+                ->withCount(['likes', 'comments']) // Count likes and comments
                 ->with([
                     'saves' => function ($query) use ($doctorId) {
                         $query->where('doctor_id', $doctorId);
@@ -230,7 +231,13 @@ class FeedPostController extends Controller
                     }
                 ])
                 ->where('group_id', null) // Fetch posts that are not in a group
-                ->latest('created_at') // Sort by created_at in descending order
+                ->orderByDesc(
+                    Save::select('created_at')
+                        ->whereColumn('feed_post_id', 'feed_posts.id')
+                        ->where('doctor_id', $doctorId)
+                        ->latest()
+                        ->limit(1)
+                ) // Order by latest save date
                 ->paginate(10); // Paginate 10 posts per page
     
             // Transform posts to add `isSaved` and `isLiked` flags
@@ -267,7 +274,8 @@ class FeedPostController extends Controller
                 'message' => 'An error occurred while retrieving saved posts'
             ], 500);
         }
-    }    
+    }
+      
 
     // Get post by ID with sorted comments, likes, and saved status
     public function getPostById($id)

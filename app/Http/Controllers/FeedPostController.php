@@ -510,7 +510,7 @@ public function store(Request $request)
         $this->attachHashtags($post, $request->input('content'));
 
         // Handle poll creation
-        if (!empty($validatedData['poll']) && isset($validatedData['poll']['question'])) {
+        if (isset($validatedData['poll']) && isset($validatedData['poll']['question'])) {
             $poll = new Poll([
                 'question' => $validatedData['poll']['question'],
                 'allow_add_options' => $validatedData['poll']['allow_add_options'] ?? false,
@@ -526,7 +526,7 @@ public function store(Request $request)
         }
 
 
-        Log::info("Poll Data:", $validatedData['poll']);
+        Log::info("Poll Data:", isset($validatedData['poll']) ? $validatedData['poll'] : []);
 
         DB::commit();
 
@@ -649,10 +649,10 @@ private function validationRules()
 private function createPollForPost(FeedPost $post, array $data)
 {
     $poll = $post->poll()->create([
-        'question' => $validatedData['poll']['question'],
-        'allow_add_options' => $validatedData['poll']['allow_add_options'] ?? false,
-        'allow_multiple_choice' => $validatedData['poll']['allow_multiple_choice'] ?? false
-    ]);
+        'question' => $data['poll']['question'],
+        'allow_add_options' => $data['poll']['allow_add_options'] ?? false,
+        'allow_multiple_choice' => $data['poll']['allow_multiple_choice'] ?? false
+    ]);    
 
     foreach ($validatedData['poll']['options'] as $optionText) {
         $poll->options()->create(['option_text' => $optionText]);

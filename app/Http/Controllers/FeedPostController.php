@@ -66,34 +66,6 @@ class FeedPostController extends Controller
         }
     }
 
-    // Fetch a specific post by ID with its related comments, likes, and saves
-    public function show($id)
-    {
-        try {
-            $post = FeedPost::with(['comments.doctor', 'likes', 'saves'])->findOrFail($id);
-            Log::info("Post ID $id retrieved successfully");
-            return response()->json([
-                'value' => true,
-                'data' => $post,
-                'message' => 'Post retrieved successfully'
-            ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            Log::warning("Post ID $id not found");
-            return response()->json([
-                'value' => false,
-                'data' => [],
-                'message' => 'Post not found'
-            ], 404);
-        } catch (\Exception $e) {
-            Log::error("Error fetching post ID $id: " . $e->getMessage());
-            return response()->json([
-                'value' => false,
-                'data' => [],
-                'message' => 'An error occurred while retrieving the post'
-            ], 500);
-        }
-    }
-
     // Fetch feed posts with likes, comments, and saved status for the authenticated doctor
     public function getFeedPosts()
     {
@@ -169,7 +141,15 @@ class FeedPostController extends Controller
             //$doctorId = auth()->id(); // Get the authenticated doctor's ID
 
             // Fetch posts with necessary relationships and counts
-            $feedPosts = FeedPost::with(['doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired'])
+            $feedPosts = FeedPost::with([
+                    'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                    'poll.options' => function ($query) use ($doctorId) { 
+                        $query->withCount('votes') // Count votes per option
+                            ->with(['votes' => function ($voteQuery) use ($doctorId) {
+                                $voteQuery->where('doctor_id', $doctorId); // Check if user voted
+                            }]);
+                    }
+                ])
                 ->withCount(['likes', 'comments'])  // Count likes and comments
                 ->with([
                     'saves' => function ($query) use ($doctorId) {
@@ -192,6 +172,16 @@ class FeedPostController extends Controller
                 // Add 'is_liked' field (true if the doctor liked the post)
                 $post->isLiked = $post->likes->isNotEmpty();
 
+                // Sort poll options by vote count (highest first) and check if the user has voted
+                if ($post->poll) {
+                    $post->poll->options = $post->poll->options->map(function ($option) use ($doctorId) {
+                        $option->is_voted = $option->votes->isNotEmpty(); // If user has voted for this option
+                        unset($option->votes); // Remove unnecessary vote data
+                        return $option;
+                    })->sortByDesc('votes_count')->values();
+                }
+    
+                                
                 // Remove unnecessary data to clean up the response
                 unset($post->saves, $post->likes);
 
@@ -222,8 +212,15 @@ class FeedPostController extends Controller
             $feedPosts = FeedPost::whereHas('saves', function ($query) use ($doctorId) {
                     $query->where('doctor_id', $doctorId);
                 })
-                ->with(['doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired'])
-                ->withCount(['likes', 'comments']) // Count likes and comments
+                ->with([
+                    'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                    'poll.options' => function ($query) use ($doctorId) { 
+                        $query->withCount('votes') // Count votes per option
+                              ->with(['votes' => function ($voteQuery) use ($doctorId) {
+                                  $voteQuery->where('doctor_id', $doctorId); // Check if user voted
+                              }]);
+                    }
+                ])                ->withCount(['likes', 'comments']) // Count likes and comments
                 ->with([
                     'saves' => function ($query) use ($doctorId) {
                         $query->where('doctor_id', $doctorId);
@@ -241,6 +238,14 @@ class FeedPostController extends Controller
                 $post->isSaved = true; // Since we're only fetching saved posts, this is always true
                 $post->isLiked = $post->likes->isNotEmpty();
                 
+                // Sort poll options by vote count (highest first) and check if the user has voted
+                if ($post->poll) {
+                    $post->poll->options = $post->poll->options->map(function ($option) use ($doctorId) {
+                        $option->is_voted = $option->votes->isNotEmpty(); // If user has voted for this option
+                        unset($option->votes); // Remove unnecessary vote data
+                        return $option;
+                    })->sortByDesc('votes_count')->values();
+                }
                 // Remove unnecessary relationship data
                 unset($post->saves, $post->likes);
     
@@ -1212,8 +1217,16 @@ public function saveOrUnsavePost(Request $request, $postId)
 
             // Fetch posts with necessary relationships and counts
             $posts = $hashtag->posts()
-                ->with(['doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired'])
-                ->withCount(['likes', 'comments'])  // Count likes and comments
+            ->with([
+                'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                'poll.options' => function ($query) use ($doctorId) { 
+                    $query->withCount('votes') // Count votes per option
+                            ->with(['votes' => function ($voteQuery) use ($doctorId) {
+                                $voteQuery->where('doctor_id', $doctorId); // Check if user voted
+                            }]);
+                }
+            ])                
+            ->withCount(['likes', 'comments'])  // Count likes and comments
                 ->with([
                     'saves' => function ($query) use ($doctorId) {
                         $query->where('doctor_id', $doctorId); // Check if the post is saved by the doctor
@@ -1231,6 +1244,15 @@ public function saveOrUnsavePost(Request $request, $postId)
 
                 // Add 'is_liked' field (true if the doctor liked the post)
                 $post->isLiked = $post->likes->isNotEmpty();
+
+                // Sort poll options by vote count (highest first) and check if the user has voted
+                if ($post->poll) {
+                    $post->poll->options = $post->poll->options->map(function ($option) use ($doctorId) {
+                        $option->is_voted = $option->votes->isNotEmpty(); // If user has voted for this option
+                        unset($option->votes); // Remove unnecessary vote data
+                        return $option;
+                    })->sortByDesc('votes_count')->values();
+                }
 
                 // Remove unnecessary data to clean up the response
                 unset($post->saves, $post->likes);
@@ -1272,7 +1294,15 @@ public function saveOrUnsavePost(Request $request, $postId)
 
             // Search posts by content
             $posts = FeedPost::where('content', 'LIKE', '%' . $query . '%')
-                ->with(['doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired'])
+                ->with([
+                    'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                    'poll.options' => function ($query) use ($doctorId) { 
+                        $query->withCount('votes') // Count votes per option
+                            ->with(['votes' => function ($voteQuery) use ($doctorId) {
+                                $voteQuery->where('doctor_id', $doctorId); // Check if user voted
+                            }]);
+                    }
+                ])                
                 ->withCount(['likes', 'comments'])  // Count likes and comments
                 ->with([
                     'saves' => function ($query) use ($doctorId) {
@@ -1292,6 +1322,14 @@ public function saveOrUnsavePost(Request $request, $postId)
                 // Add 'is_liked' field (true if the doctor liked the post)
                 $post->isLiked = $post->likes->isNotEmpty();
 
+                // Sort poll options by vote count (highest first) and check if the user has voted
+                if ($post->poll) {
+                    $post->poll->options = $post->poll->options->map(function ($option) use ($doctorId) {
+                        $option->is_voted = $option->votes->isNotEmpty(); // If user has voted for this option
+                        unset($option->votes); // Remove unnecessary vote data
+                        return $option;
+                    })->sortByDesc('votes_count')->values();
+                }
                 // Remove unnecessary data to clean up the response
                 unset($post->saves, $post->likes);
 

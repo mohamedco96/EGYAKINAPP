@@ -19,15 +19,18 @@ use App\Models\User;
 use App\Models\Poll;
 use App\Models\PollOption; // If you have a separate PollOption model
 use App\Models\PollVote;
+use App\Http\Controllers\NotificationController;
 
 
 class FeedPostController extends Controller
 {
     protected $mainController;
+    protected $notificationController;
 
-    public function __construct(MainController $mainController)
+    public function __construct(MainController $mainController, NotificationController $notificationController)
     {
         $this->mainController = $mainController;
+        $this->notificationController = $notificationController;
     }
 
     // Helper function to extract hashtags from post content
@@ -751,10 +754,10 @@ class FeedPostController extends Controller
         $doctors = User::role(['Admin', 'Tester'])
             ->where('id', '!=', Auth::id())
             ->pluck('id');
-
+    
         $user = Auth::user();
         $doctorName = $user->name . ' ' . $user->lname;
-
+    
         $notifications = $doctors->map(function ($doctorId) use ($post, $doctorName, $user) {
             return [
                 'doctor_id' => $doctorId,
@@ -766,9 +769,17 @@ class FeedPostController extends Controller
                 'updated_at' => now()
             ];
         })->toArray();
-
+    
         AppNotification::insert($notifications);
-
+    
+        $title = 'New Post was created 📣';
+        $body = 'Dr. ' . ucfirst($user->name) . ' added a new post ';
+        $tokens = FcmToken::whereIn('doctor_id', $doctors)
+            ->pluck('token')
+            ->toArray();
+    
+        $this->notificationController->sendPushNotification($title, $body, $tokens);
+    
         Log::info("Notifications inserted successfully for post ID: " . $post->id);
     }
 
@@ -818,15 +829,15 @@ class FeedPostController extends Controller
         try {
             $doctor_id = Auth::id();
             $status = $request->input('status'); // 'like' or 'unlike'
-
+    
             // Check if the post exists
             $post = FeedPost::findOrFail($postId);
-
+    
             // Find if the like already exists
             $like = FeedPostLike::where('feed_post_id', $postId)
                 ->where('doctor_id', $doctor_id)
                 ->first();
-
+    
             // Handle Like
             if ($status === 'like') {
                 if ($like) {
@@ -836,15 +847,15 @@ class FeedPostController extends Controller
                         'message' => 'Post already liked'
                     ], 400);
                 }
-
+    
                 // Create a new like entry
                 $newLike = FeedPostLike::create([
                     'feed_post_id' => $postId,
                     'doctor_id' => $doctor_id,
                 ]);
-
+    
                 $postOwner = $post->doctor;
-
+    
                 // Check if the post owner is not the one liking the post
                 if ($postOwner->id !== Auth::id()) {
                     $notification = AppNotification::create([
@@ -856,20 +867,26 @@ class FeedPostController extends Controller
                         'created_at' => now(),
                         'updated_at' => now()
                     ]);
-
+    
                     Log::info("Notification sent to post owner ID: " . $postOwner->id . " for post ID: " . $post->id);
                 }
-
-
-
+    
+                $title = 'Post was liked 📣';
+                $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' liked your post';
+                $tokens = FcmToken::whereIn('doctor_id', $doctors)
+                    ->pluck('token')
+                    ->toArray();
+            
+                $this->notificationController->sendPushNotification($title, $body, $tokens);
+    
                 Log::info("Post ID $postId liked by doctor " . $doctor_id);
                 return response()->json([
                     'value' => true,
                     'data' => $newLike,
                     'message' => 'Post liked successfully'
                 ]);
-
-                // Handle Unlike
+    
+            // Handle Unlike
             } elseif ($status === 'unlike') {
                 if ($like) {
                     $like->delete();
@@ -879,7 +896,7 @@ class FeedPostController extends Controller
                         'message' => 'Post unliked successfully'
                     ]);
                 }
-
+    
                 Log::warning("Like not found for post ID $postId");
                 return response()->json([
                     'value' => false,
@@ -990,19 +1007,19 @@ class FeedPostController extends Controller
                 'comment' => 'required|string|max:500',
                 'parent_id' => 'nullable|exists:feed_post_comments,id',  // Validate parent_id if provided
             ]);
-
+    
             $comment = FeedPostComment::create([
                 'feed_post_id' => $postId,
                 'doctor_id' => Auth::id(),
                 'comment' => $validatedData['comment'],
                 'parent_id' => $validatedData['parent_id'] ?? null,  // Set parent_id if it's a reply
             ]);
-
+    
             Log::info("Comment added to post ID $postId by doctor " . Auth::id());
-
+    
             $post = FeedPost::findOrFail($postId);
             $postOwner = $post->doctor;
-
+    
             // Check if the post owner is not the one commenting on the post
             if ($postOwner->id !== Auth::id()) {
                 $notification = AppNotification::create([
@@ -1014,11 +1031,18 @@ class FeedPostController extends Controller
                     'created_at' => now(),
                     'updated_at' => now()
                 ]);
-
+    
                 Log::info("Notification sent to post owner ID: " . $postOwner->id . " for post ID: " . $post->id);
             }
-
-
+    
+            $title = 'New Comment was added 📣';
+            $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' commented on your post ';
+            $tokens = FcmToken::whereIn('doctor_id', $doctors)
+                ->pluck('token')
+                ->toArray();
+        
+            $this->notificationController->sendPushNotification($title, $body, $tokens);
+    
             return response()->json([
                 'value' => true,
                 'data' => $comment,
@@ -1078,10 +1102,10 @@ class FeedPostController extends Controller
         try {
             $doctor_id = Auth::id();
             $status = $request->input('status'); // 'like' or 'unlike'
-
+    
             // Find if the comment exists
             $comment = FeedPostComment::find($commentId);  // use find instead of findOrFail
-
+    
             if (!$comment) {
                 Log::error("No comment was found with ID: $commentId");
                 return response()->json([
@@ -1089,12 +1113,12 @@ class FeedPostController extends Controller
                     'message' => 'No comment was found with ID: ' . $commentId
                 ], 404);
             }
-
+    
             // Find if the comment is already liked
             $like = FeedPostCommentLike::where('post_comment_id', $commentId)
                 ->where('doctor_id', $doctor_id)
                 ->first();
-
+    
             // Handle Like
             if ($status === 'like') {
                 if ($like) {
@@ -1104,19 +1128,18 @@ class FeedPostController extends Controller
                         'message' => 'Comment already liked'
                     ], 400);
                 }
-
+    
                 // Create a new like entry
                 $newLike = FeedPostCommentLike::create([
                     'post_comment_id' => $commentId,
                     'doctor_id' => $doctor_id,
                 ]);
-
+    
                 Log::info("Comment ID $commentId liked by doctor $doctor_id");
-
-
+    
                 $comment = FeedPostComment::findOrFail($commentId);
                 $commentOwner = $comment->doctor;
-
+    
                 // Check if the comment owner is not the one liking the comment
                 if ($commentOwner->id !== Auth::id()) {
                     $notification = AppNotification::create([
@@ -1128,17 +1151,25 @@ class FeedPostController extends Controller
                         'created_at' => now(),
                         'updated_at' => now()
                     ]);
-
+    
                     Log::info("Notification sent to comment owner ID: " . $commentOwner->id . " for comment ID: " . $comment->id);
                 }
-
+    
+                $title = 'New Comment was liked 📣';
+                $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' liked your comment ';
+                $tokens = FcmToken::whereIn('doctor_id', $doctors)
+                    ->pluck('token')
+                    ->toArray();
+            
+                $this->notificationController->sendPushNotification($title, $body, $tokens);
+    
                 return response()->json([
                     'value' => true,
                     'data' => $newLike,
                     'message' => 'Comment liked successfully'
                 ]);
-
-                // Handle Unlike
+    
+            // Handle Unlike
             } elseif ($status === 'unlike') {
                 if ($like) {
                     $like->delete();
@@ -1148,7 +1179,7 @@ class FeedPostController extends Controller
                         'message' => 'Comment unliked successfully'
                     ]);
                 }
-
+    
                 Log::warning("Like not found for comment ID $commentId");
                 return response()->json([
                     'value' => false,

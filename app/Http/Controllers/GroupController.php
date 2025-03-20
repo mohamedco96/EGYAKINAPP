@@ -35,6 +35,7 @@ use App\Models\FeedPost;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\NotificationController;
 use App\Models\FcmToken;
+use App\Models\AppNotification;
 
 
 class GroupController extends Controller

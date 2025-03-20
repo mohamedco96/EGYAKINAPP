@@ -872,6 +872,11 @@ class FeedPostController extends Controller
                     Log::info("Notification sent to post owner ID: " . $postOwner->id . " for post ID: " . $post->id);
                 }
     
+                // Notifying other doctors
+                $doctors = User::role(['Admin', 'Tester'])
+                ->where('id', '!=', Auth::id())
+                ->pluck('id'); // Get only the IDs of the users
+
                 $title = 'Post was liked 📣';
                 $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' liked your post';
                 $tokens = FcmToken::whereIn('doctor_id', $doctors)
@@ -1035,6 +1040,11 @@ class FeedPostController extends Controller
     
                 Log::info("Notification sent to post owner ID: " . $postOwner->id . " for post ID: " . $post->id);
             }
+
+            // Notifying other doctors
+            $doctors = User::role(['Admin', 'Tester'])
+            ->where('id', '!=', Auth::id())
+            ->pluck('id'); // Get only the IDs of the users
     
             $title = 'New Comment was added 📣';
             $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' commented on your post ';
@@ -1156,6 +1166,11 @@ class FeedPostController extends Controller
                     Log::info("Notification sent to comment owner ID: " . $commentOwner->id . " for comment ID: " . $comment->id);
                 }
     
+                // Notifying other doctors
+                $doctors = User::role(['Admin', 'Tester'])
+                ->where('id', '!=', Auth::id())
+                ->pluck('id'); // Get only the IDs of the users
+                                
                 $title = 'New Comment was liked 📣';
                 $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' liked your comment ';
                 $tokens = FcmToken::whereIn('doctor_id', $doctors)

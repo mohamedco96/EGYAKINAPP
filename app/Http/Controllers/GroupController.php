@@ -349,7 +349,7 @@ class GroupController extends Controller
                         'doctor_id' => $doctorId,
                         'type' => 'Other',
                         'type_id' => $groupId,
-                        'content' => sprintf('Dr. %s  Invited you to his group', Auth::user()->name . ' ' . Auth::user()->lname),
+                        'content' => sprintf('Dr. %s Invited you to his group', Auth::user()->name . ' ' . Auth::user()->lname),
                         'type_doctor_id' => Auth::id(),
                         'created_at' => now(),
                         'updated_at' => now()
@@ -364,7 +364,7 @@ class GroupController extends Controller
                 ->pluck('id'); // Get only the IDs of the users
 
                 $title = 'New Invitation was created 📣';
-                $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' Invited you to his group';
+                $body = 'Dr. ' . ucfirst(Auth::user()->name) . 'Invited you to his group';
                 $tokens = FcmToken::whereIn('doctor_id', $doctors)
                     ->pluck('token')
                     ->toArray();
@@ -401,7 +401,7 @@ class GroupController extends Controller
                         'doctor_id' => $doctorId,
                         'type' => 'Other',
                         'type_id' => $groupId,
-                        'content' => sprintf('Dr. %s  Invited you to his group', Auth::user()->name . ' ' . Auth::user()->lname),
+                        'content' => sprintf('Dr. %s Invited you to his group', Auth::user()->name . ' ' . Auth::user()->lname),
                         'type_doctor_id' => Auth::id(),
                         'created_at' => now(),
                         'updated_at' => now()
@@ -416,7 +416,7 @@ class GroupController extends Controller
                 ->pluck('id'); // Get only the IDs of the users
 
                 $title = 'New Invitation was created 📣';
-                $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' Invited you to his group';
+                $body = 'Dr. ' . ucfirst(Auth::user()->name) . 'Invited you to his group';
                 $tokens = FcmToken::whereIn('doctor_id', $doctors)
                     ->pluck('token')
                     ->toArray();
@@ -472,6 +472,35 @@ class GroupController extends Controller
             // Update the invitation status for the authenticated user
             $group->doctors()->updateExistingPivot($userId, ['status' => $validated['status']]);
 
+            if($validated['status'] === 'accepted'){
+                // Check if the post owner is not the one liking the post
+                if ($group->owner_id !== Auth::id()) {
+                    $notification = AppNotification::create([
+                        'doctor_id' => $group->owner_id,
+                        'type' => 'Other',
+                        'type_id' => $groupId,
+                        'content' => sprintf('Dr. %s Accepted your group invitation', Auth::user()->name . ' ' . Auth::user()->lname),
+                        'type_doctor_id' => Auth::id(),
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+    
+                    Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $groupId);
+                }
+    
+                // Notifying other doctors
+                $doctors = User::role(['Admin', 'Tester'])
+                ->where('id', '!=', Auth::id())
+                ->pluck('id'); // Get only the IDs of the users
+
+                $title = 'Group invitation accepted📣';
+                $body = 'Dr. ' . ucfirst(Auth::user()->name) . 'Accepted your group invitation';
+                $tokens = FcmToken::whereIn('doctor_id', $doctors)
+                    ->pluck('token')
+                    ->toArray();
+            
+                $this->notificationController->sendPushNotification($title, $body, $tokens);
+            }
             // Log the invitation status change
             Log::info('Invitation status updated', [
                 'group_id' => $groupId,
@@ -894,7 +923,7 @@ class GroupController extends Controller
                     'doctor_id' => $group->owner_id,
                     'type' => 'Other',
                     'type_id' => $groupId,
-                    'content' => sprintf('Dr. %s  requested to join group', Auth::user()->name . ' ' . Auth::user()->lname),
+                    'content' => sprintf('Dr. %s requested to join group', Auth::user()->name . ' ' . Auth::user()->lname),
                     'type_doctor_id' => Auth::id(),
                     'created_at' => now(),
                     'updated_at' => now()
@@ -909,7 +938,7 @@ class GroupController extends Controller
             ->pluck('id'); // Get only the IDs of the users
 
             $title = 'New Join Request 📣';
-            $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' requested to join group';
+            $body = 'Dr. ' . ucfirst(Auth::user()->name) . 'requested to join group';
             $tokens = FcmToken::whereIn('doctor_id', $doctors)
                 ->pluck('token')
                 ->toArray();

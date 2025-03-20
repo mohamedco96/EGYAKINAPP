@@ -1,4 +1,5 @@
 <?php
+
 /**
  * GroupController handles the management of groups including creation, updating, deletion,
  * member management, and fetching group details.
@@ -32,17 +33,22 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\MainController;
 use App\Models\FeedPost;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\NotificationController;
+use App\Models\FcmToken;
+
 
 class GroupController extends Controller
 {
     protected $mainController;
+    protected $notificationController;
 
-    public function __construct(MainController $mainController)
+    public function __construct(MainController $mainController, NotificationController $notificationController)
     {
         $this->mainController = $mainController;
+        $this->notificationController = $notificationController;
     }
 
-        /**
+    /**
      * Authorize the owner of the group.
      * 
      * @param \App\Models\Group $group
@@ -299,25 +305,25 @@ class GroupController extends Controller
             'doctor_ids' => 'required|array', // Ensure doctor_ids is an array
             'doctor_ids.*' => 'exists:users,id' // Ensure each doctor_id exists in the users table
         ]);
-    
+
         // Find the group or fail if not found
         $group = Group::find($groupId);
-    
+
         if (!$group) {
             return response()->json([
                 'value' => false,
                 'message' => 'Group not found'
             ], 404);
         }
-    
+
         // Check if the authenticated user is the group owner
         //$this->authorizeOwner($group);
-    
+
         // Iterate over each doctor_id in the list
         foreach ($validated['doctor_ids'] as $doctorId) {
             // Check if the doctor is already invited or a member of the group
             $existingStatus = $group->doctors()->where('doctor_id', $doctorId)->value('status');
-    
+
             if ($existingStatus === 'joined') {
                 // Log the attempt to invite an existing member
                 Log::info('Doctor is already a member of the group', [
@@ -335,7 +341,35 @@ class GroupController extends Controller
             } elseif ($existingStatus === 'declined') {
                 // Update the status to invited again
                 $group->doctors()->updateExistingPivot($doctorId, ['status' => 'invited']);
+                    
+                // Check if the post owner is not the one liking the post
+                if ($doctorId !== Auth::id()) {
+                    $notification = AppNotification::create([
+                        'doctor_id' => $doctorId,
+                        'type' => 'Other',
+                        'type_id' => $groupId,
+                        'content' => sprintf('Dr. %s  Invited you to his group', Auth::user()->name . ' ' . Auth::user()->lname),
+                        'type_doctor_id' => Auth::id(),
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
     
+                    Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $groupId);
+                }
+    
+                // Notifying other doctors
+                $doctors = User::role(['Admin', 'Tester'])
+                ->where('id', '!=', Auth::id())
+                ->pluck('id'); // Get only the IDs of the users
+
+                $title = 'New Invitation was created 📣';
+                $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' Invited you to his group';
+                $tokens = FcmToken::whereIn('doctor_id', $doctors)
+                    ->pluck('token')
+                    ->toArray();
+            
+                $this->notificationController->sendPushNotification($title, $body, $tokens);
+
                 // Log the re-invitation
                 Log::info('Doctor re-invited to the group', [
                     'group_id' => $groupId,
@@ -352,16 +386,44 @@ class GroupController extends Controller
             } else {
                 // Invite the user to the group (attach the user to the group members with status "invited")
                 $group->doctors()->attach($doctorId, ['status' => 'invited']);
-    
+
                 // Log the invitation
                 Log::info('User invited to group', [
                     'group_id' => $groupId,
                     'invited_doctor_id' => $doctorId,
                     'invited_by' => Auth::id()
                 ]);
+    
+                // Check if the post owner is not the one liking the post
+                if ($doctorId !== Auth::id()) {
+                    $notification = AppNotification::create([
+                        'doctor_id' => $doctorId,
+                        'type' => 'Other',
+                        'type_id' => $groupId,
+                        'content' => sprintf('Dr. %s  Invited you to his group', Auth::user()->name . ' ' . Auth::user()->lname),
+                        'type_doctor_id' => Auth::id(),
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+    
+                    Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $groupId);
+                }
+    
+                // Notifying other doctors
+                $doctors = User::role(['Admin', 'Tester'])
+                ->where('id', '!=', Auth::id())
+                ->pluck('id'); // Get only the IDs of the users
+
+                $title = 'New Invitation was created 📣';
+                $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' Invited you to his group';
+                $tokens = FcmToken::whereIn('doctor_id', $doctors)
+                    ->pluck('token')
+                    ->toArray();
+            
+                $this->notificationController->sendPushNotification($title, $body, $tokens);
             }
         }
-    
+
         // Return success response with details of successful and failed invites
         return response()->json([
             'value' => true,
@@ -446,15 +508,14 @@ class GroupController extends Controller
     {
         try {
             // Retrieve the group without loading the doctors relationship
-            $group = Group::
-            with(['owner' => function ($query) {
-                $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
-            }])
-            ->findOrFail($id);
-    
+            $group = Group::with(['owner' => function ($query) {
+                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
+                }])
+                ->findOrFail($id);
+
             // Count the number of members in the group
             $group->members_count = $group->doctors()->where('status', 'joined')->count();
-    
+
             // Check if the authenticated user is a member of the group and get their status
             $userId = Auth::id();
 
@@ -471,7 +532,7 @@ class GroupController extends Controller
                 'retrieved_by' => $userId,
                 'user_status' => $userStatus
             ]);
-    
+
             // Return success response with members count and user status
             return response()->json([
                 'value' => true,
@@ -484,7 +545,7 @@ class GroupController extends Controller
                 'group_id' => $id,
                 'retrieved_by' => Auth::id()
             ]);
-    
+
             // Return error response
             return response()->json([
                 'value' => false,
@@ -492,7 +553,7 @@ class GroupController extends Controller
             ], 404);
         }
     }
-    
+
 
     /**
      * Remove a member from the group.
@@ -577,7 +638,7 @@ class GroupController extends Controller
             $members = $group->doctors()
                 ->where(function ($query) use ($validated) {
                     $query->where('users.name', 'like', '%' . $validated['query'] . '%')
-                          ->orWhere('users.email', 'like', '%' . $validated['query'] . '%');
+                        ->orWhere('users.email', 'like', '%' . $validated['query'] . '%');
                 })
                 ->select('users.id', 'users.name', 'users.lname', 'users.image', 'users.syndicate_card', 'users.isSyndicateCardRequired', 'users.version')
                 ->paginate(10)
@@ -592,7 +653,7 @@ class GroupController extends Controller
                         'version' => $doctor->version,
                     ];
                 });
-                
+
             // Log the search action
             Log::info('Group members searched', [
                 'group_id' => $groupId,
@@ -676,114 +737,113 @@ class GroupController extends Controller
         }
     }
 
-/**
- * Fetch group details along with paginated posts.
- * 
- * @param int $groupId
- * @return \Illuminate\Http\JsonResponse
- */
-public function fetchGroupDetailsWithPosts($groupId)
-{
-    try {
-        // Find the group or fail if not found, without loading posts initially
-        $group = Group::with(['owner' => function ($query) {
-            $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
-        }])->findOrFail($groupId);
+    /**
+     * Fetch group details along with paginated posts.
+     * 
+     * @param int $groupId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function fetchGroupDetailsWithPosts($groupId)
+    {
+        try {
+            // Find the group or fail if not found, without loading posts initially
+            $group = Group::with(['owner' => function ($query) {
+                $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
+            }])->findOrFail($groupId);
 
-        // Check if the authenticated user is a member of the group and get their status
-        $doctorId = Auth::id();
+            // Check if the authenticated user is a member of the group and get their status
+            $doctorId = Auth::id();
 
-        $userStatus = DB::table('group_user')
-            ->where('group_id', $groupId)
-            ->where('doctor_id', $doctorId)
-            ->value('status');
+            $userStatus = DB::table('group_user')
+                ->where('group_id', $groupId)
+                ->where('doctor_id', $doctorId)
+                ->value('status');
 
-        $group->user_status = $userStatus ?? null;
+            $group->user_status = $userStatus ?? null;
 
 
-        // Fetch member count for the group from the group_user table
-        $memberCount = DB::table('group_user')
-        ->where('group_id', $group->id)
-        ->where('status', 'joined')
-        ->count();
+            // Fetch member count for the group from the group_user table
+            $memberCount = DB::table('group_user')
+                ->where('group_id', $group->id)
+                ->where('status', 'joined')
+                ->count();
 
-        $group->member_count = $memberCount; // Add member count to the group object
+            $group->member_count = $memberCount; // Add member count to the group object
 
             // Fetch posts with necessary relationships and counts
-        $feedPosts = $group->posts()->with([
-            'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
-            'poll.options' => function ($query) use ($doctorId) { 
-                $query->withCount('votes') // Count votes per option
-                      ->with(['votes' => function ($voteQuery) use ($doctorId) {
-                          $voteQuery->where('doctor_id', $doctorId); // Check if user voted
-                      }]);
-            }
-        ])
-        ->withCount(['likes', 'comments'])  // Count likes and comments
-        ->with([
-            'saves' => function ($query) use ($doctorId) {
-                $query->where('doctor_id', $doctorId); // Check if the post is saved by the doctor
-            },
-            'likes' => function ($query) use ($doctorId) {
-                $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
-            }
-        ])
-        ->latest('created_at') // Sort by created_at in descending order
-        ->paginate(10); // Paginate 10 posts per page
+            $feedPosts = $group->posts()->with([
+                'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                'poll.options' => function ($query) use ($doctorId) {
+                    $query->withCount('votes') // Count votes per option
+                        ->with(['votes' => function ($voteQuery) use ($doctorId) {
+                            $voteQuery->where('doctor_id', $doctorId); // Check if user voted
+                        }]);
+                }
+            ])
+                ->withCount(['likes', 'comments'])  // Count likes and comments
+                ->with([
+                    'saves' => function ($query) use ($doctorId) {
+                        $query->where('doctor_id', $doctorId); // Check if the post is saved by the doctor
+                    },
+                    'likes' => function ($query) use ($doctorId) {
+                        $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
+                    }
+                ])
+                ->latest('created_at') // Sort by created_at in descending order
+                ->paginate(10); // Paginate 10 posts per page
 
-        // Add 'is_saved' and 'is_liked' fields to each post
-        $feedPosts->getCollection()->transform(function ($post) use ($doctorId) {
-            // Add 'is_saved' field (true if the doctor saved the post)
-            $post->isSaved = $post->saves->isNotEmpty();
+            // Add 'is_saved' and 'is_liked' fields to each post
+            $feedPosts->getCollection()->transform(function ($post) use ($doctorId) {
+                // Add 'is_saved' field (true if the doctor saved the post)
+                $post->isSaved = $post->saves->isNotEmpty();
 
-            // Add 'is_liked' field (true if the doctor liked the post)
-            $post->isLiked = $post->likes->isNotEmpty();
+                // Add 'is_liked' field (true if the doctor liked the post)
+                $post->isLiked = $post->likes->isNotEmpty();
 
-            // Sort poll options by vote count (highest first) and check if the user has voted
-            if ($post->poll) {
-                $post->poll->options = $post->poll->options->map(function ($option) use ($doctorId) {
-                    $option->is_voted = $option->votes->isNotEmpty(); // If user has voted for this option
-                    unset($option->votes); // Remove unnecessary vote data
-                    return $option;
-                })->sortByDesc('votes_count')->values();
-            }
+                // Sort poll options by vote count (highest first) and check if the user has voted
+                if ($post->poll) {
+                    $post->poll->options = $post->poll->options->map(function ($option) use ($doctorId) {
+                        $option->is_voted = $option->votes->isNotEmpty(); // If user has voted for this option
+                        unset($option->votes); // Remove unnecessary vote data
+                        return $option;
+                    })->sortByDesc('votes_count')->values();
+                }
 
-            // Remove unnecessary data to clean up the response
-            unset($post->saves, $post->likes);
+                // Remove unnecessary data to clean up the response
+                unset($post->saves, $post->likes);
 
-            return $post;
-        });
-        
-        // Log the action
-        Log::info('Group details with paginated posts fetched', [
-            'group_id' => $groupId,
-            'fetched_by' => Auth::id()
-        ]);
+                return $post;
+            });
 
-        // Return success response with group details and paginated posts
-        return response()->json([
-            'value' => true,
-            'data' => [
-                'group' => $group,
-                'posts' => $feedPosts
-            ],
-            'message' => 'Group details with paginated posts fetched successfully'
-        ], 200);
+            // Log the action
+            Log::info('Group details with paginated posts fetched', [
+                'group_id' => $groupId,
+                'fetched_by' => Auth::id()
+            ]);
 
-    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-        // Log the error
-        Log::error('Group not found', [
-            'group_id' => $groupId,
-            'fetched_by' => Auth::id()
-        ]);
+            // Return success response with group details and paginated posts
+            return response()->json([
+                'value' => true,
+                'data' => [
+                    'group' => $group,
+                    'posts' => $feedPosts
+                ],
+                'message' => 'Group details with paginated posts fetched successfully'
+            ], 200);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            // Log the error
+            Log::error('Group not found', [
+                'group_id' => $groupId,
+                'fetched_by' => Auth::id()
+            ]);
 
-        // Return error response
-        return response()->json([
-            'value' => false,
-            'message' => 'Group not found'
-        ], 404);
+            // Return error response
+            return response()->json([
+                'value' => false,
+                'message' => 'Group not found'
+            ], 404);
+        }
     }
-}
 
 
     /**
@@ -813,19 +873,53 @@ public function fetchGroupDetailsWithPosts($groupId)
                 ], 400);
             }
 
-            // Add the user to the group members with status "joined"
-            $group->doctors()->attach($userId, ['status' => 'joined']);
+            // Determine user status based on group privacy
+            $status = ($group->privacy === 'private') ? 'pending' : 'joined';
+
+            // Add the user to the group with the determined status
+            $group->doctors()->attach($userId, ['status' => $status]);
 
             // Log the join action
-            Log::info('User joined group', [
+            Log::info('User requested to join group', [
                 'group_id' => $groupId,
-                'doctor_id' => $userId
+                'doctor_id' => $userId,
+                'status' => $status
             ]);
 
-            // Return success response
+
+            // Check if the post owner is not the one liking the post
+            if ($group->owner_id !== Auth::id()) {
+                $notification = AppNotification::create([
+                    'doctor_id' => $group->owner_id,
+                    'type' => 'Other',
+                    'type_id' => $groupId,
+                    'content' => sprintf('Dr. %s  requested to join group', Auth::user()->name . ' ' . Auth::user()->lname),
+                    'type_doctor_id' => Auth::id(),
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+                Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $groupId);
+            }
+
+            // Notifying other doctors
+            $doctors = User::role(['Admin', 'Tester'])
+            ->where('id', '!=', Auth::id())
+            ->pluck('id'); // Get only the IDs of the users
+
+            $title = 'New Join Request 📣';
+            $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' requested to join group';
+            $tokens = FcmToken::whereIn('doctor_id', $doctors)
+                ->pluck('token')
+                ->toArray();
+        
+            $this->notificationController->sendPushNotification($title, $body, $tokens);            
+            // Return appropriate response
             return response()->json([
                 'value' => true,
-                'message' => 'Joined group successfully'
+                'message' => ($status === 'joined')
+                    ? 'Joined group successfully'
+                    : 'Join request sent, waiting for approval'
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             // Log the error
@@ -841,6 +935,7 @@ public function fetchGroupDetailsWithPosts($groupId)
             ], 404);
         }
     }
+
 
     /**
      * Leave a group.
@@ -913,9 +1008,9 @@ public function fetchGroupDetailsWithPosts($groupId)
         $MyGroups = Group::with(['owner' => function ($query) {
             $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
         }])
-        ->where('owner_id', $userId)
-        ->orderBy('created_at', 'desc')
-        ->paginate(20);
+            ->where('owner_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
 
 
         foreach ($MyGroups as $group) {
@@ -959,8 +1054,8 @@ public function fetchGroupDetailsWithPosts($groupId)
         $groups = Group::with(['owner' => function ($query) {
             $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
         }])
-        ->orderBy('created_at', 'desc')
-        ->paginate(20);
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
 
         // Check if the authenticated user is a member of each group and get their status
         $userId = Auth::id();
@@ -971,15 +1066,15 @@ public function fetchGroupDetailsWithPosts($groupId)
                 ->where('doctor_id', $userId)
                 ->value('status');
 
-        $group->user_status = $userStatus ?? null;
+            $group->user_status = $userStatus ?? null;
 
-        // Fetch member count for the group from the group_user table
-        $memberCount = DB::table('group_user')
-        ->where('group_id', $group->id)
-        ->where('status', 'joined')
-        ->count();
-            
-        $group->member_count = $memberCount; // Add member count to the group object
+            // Fetch member count for the group from the group_user table
+            $memberCount = DB::table('group_user')
+                ->where('group_id', $group->id)
+                ->where('status', 'joined')
+                ->count();
+
+            $group->member_count = $memberCount; // Add member count to the group object
         }
 
         // Log the action
@@ -996,7 +1091,7 @@ public function fetchGroupDetailsWithPosts($groupId)
     }
 
 
-        /**
+    /**
      * Fetch the latest three groups with user status and a paginated list of random posts from random groups.
      *
      * @return \Illuminate\Http\JsonResponse
@@ -1008,14 +1103,14 @@ public function fetchGroupDetailsWithPosts($groupId)
             $latestGroups = Group::with(['owner' => function ($query) {
                 $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
             }])
-            ->whereDoesntHave('doctors', function ($query) {
-                $query->where('doctor_id', Auth::id())
-                      ->where('status', 'joined'); // Exclude joined groups
-            })
-            ->orderBy('created_at', 'desc')
-            ->take(3)
-            ->get();        
-    
+                ->whereDoesntHave('doctors', function ($query) {
+                    $query->where('doctor_id', Auth::id())
+                        ->where('status', 'joined'); // Exclude joined groups
+                })
+                ->orderBy('created_at', 'desc')
+                ->take(3)
+                ->get();
+
             // Add user status and member count to each group
             $userId = Auth::id();
             foreach ($latestGroups as $group) {
@@ -1024,72 +1119,72 @@ public function fetchGroupDetailsWithPosts($groupId)
                     ->where('group_id', $group->id)
                     ->where('doctor_id', $userId)
                     ->value('status');
-    
+
                 $group->user_status = $userStatus ?? null;
-    
+
                 // Fetch member count for the group from the group_user table
                 $memberCount = DB::table('group_user')
                     ->where('group_id', $group->id)
                     ->where('status', 'joined')
                     ->count();
-    
+
                 $group->member_count = $memberCount; // Add member count to the group object
             }
-    
-                
-                            // Fetch posts with necessary relationships and counts
+
+
+            // Fetch posts with necessary relationships and counts
             $randomPosts = FeedPost::with([
                 'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
-                'poll.options' => function ($query) use ($userId) { 
+                'poll.options' => function ($query) use ($userId) {
                     $query->withCount('votes') // Count votes per option
-                          ->with(['votes' => function ($voteQuery) use ($userId) {
-                              $voteQuery->where('doctor_id', $userId); // Check if user voted
-                          }]);
+                        ->with(['votes' => function ($voteQuery) use ($userId) {
+                            $voteQuery->where('doctor_id', $userId); // Check if user voted
+                        }]);
                 }
             ])
-            ->withCount(['likes', 'comments'])  // Count likes and comments
-            ->with([
-                'saves' => function ($query) use ($userId) {
-                    $query->where('doctor_id', $userId); // Check if the post is saved by the doctor
-                },
-                'likes' => function ($query) use ($userId) {
-                    $query->where('doctor_id', $userId); // Check if the post is liked by the doctor
-                }
-            ])
-            ->whereNotNull('group_id') // Ensure group_id is not null
+                ->withCount(['likes', 'comments'])  // Count likes and comments
+                ->with([
+                    'saves' => function ($query) use ($userId) {
+                        $query->where('doctor_id', $userId); // Check if the post is saved by the doctor
+                    },
+                    'likes' => function ($query) use ($userId) {
+                        $query->where('doctor_id', $userId); // Check if the post is liked by the doctor
+                    }
+                ])
+                ->whereNotNull('group_id') // Ensure group_id is not null
                 ->inRandomOrder() // Fetch posts randomly
                 ->with(['group' => function ($query) {
                     $query->select('id', 'name'); // Include group name
                 }])
-            ->paginate(10); // Paginate 10 posts per page
+                ->paginate(10); // Paginate 10 posts per page
 
-        // Add 'is_saved' and 'is_liked' fields to each post
-        $randomPosts->getCollection()->transform(function ($post) use ($userId) {
-            // Add 'is_saved' field (true if the doctor saved the post)
-            $post->isSaved = $post->saves->isNotEmpty();
+            // Add 'is_saved' and 'is_liked' fields to each post
+            $randomPosts->getCollection()->transform(function ($post) use ($userId) {
+                // Add 'is_saved' field (true if the doctor saved the post)
+                $post->isSaved = $post->saves->isNotEmpty();
 
-            // Add 'is_liked' field (true if the doctor liked the post)
-            $post->isLiked = $post->likes->isNotEmpty();
+                // Add 'is_liked' field (true if the doctor liked the post)
+                $post->isLiked = $post->likes->isNotEmpty();
 
-            // Sort poll options by vote count (highest first) and check if the user has voted
-            if ($post->poll) {
-                $post->poll->options = $post->poll->options->map(function ($option) use ($userId) {
-                    $option->is_voted = $option->votes->isNotEmpty(); // If user has voted for this option
-                    unset($option->votes); // Remove unnecessary vote data
-                    return $option;
-                })->sortByDesc('votes_count')->values();
-            }
-            // Remove unnecessary data to clean up the response
-            unset($post->saves, $post->likes);
+                // Sort poll options by vote count (highest first) and check if the user has voted
+                if ($post->poll) {
+                    $post->poll->options = $post->poll->options->map(function ($option) use ($userId) {
+                        $option->is_voted = $option->votes->isNotEmpty(); // If user has voted for this option
+                        unset($option->votes); // Remove unnecessary vote data
+                        return $option;
+                    })->sortByDesc('votes_count')->values();
+                }
+                // Remove unnecessary data to clean up the response
+                unset($post->saves, $post->likes);
 
-            return $post;
-        });
+                return $post;
+            });
 
             // Log the action
             Log::info('Latest groups and random posts fetched', [
                 'fetched_by' => Auth::id()
             ]);
-    
+
             // Return success response
             return response()->json([
                 'value' => true,
@@ -1099,14 +1194,13 @@ public function fetchGroupDetailsWithPosts($groupId)
                 ],
                 'message' => 'Latest groups and random posts fetched successfully'
             ], 200);
-    
         } catch (\Exception $e) {
             // Log the error
             Log::error('Error fetching latest groups and random posts', [
                 'error' => $e->getMessage(),
                 'fetched_by' => Auth::id()
             ]);
-    
+
             // Return error response
             return response()->json([
                 'value' => false,

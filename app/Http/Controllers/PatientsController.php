@@ -45,7 +45,6 @@ class PatientsController extends Controller
         $this->notificationController = $notificationController;
         $this->patients = $patients;
         $this->achievement = $achievement;
-
     }
 
     /**
@@ -67,7 +66,7 @@ class PatientsController extends Controller
             $filename = $file->getClientOriginalName();
 
             // Store the file in the storage/app/uploads directory
-            $path = $file->storeAs('reports', random_int(500,10000000000) .'_'. $filename, 'public');
+            $path = $file->storeAs('reports', random_int(500, 10000000000) . '_' . $filename, 'public');
 
             // Get the full URL of the uploaded file
             $relativePath = 'storage/' . $path;
@@ -146,27 +145,27 @@ class PatientsController extends Controller
             // Retrieve the authenticated user
             $user = Auth::user();
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
-    
+
             // Fetch all necessary data in fewer queries
             $posts = Posts::select('id', 'title', 'image', 'content', 'hidden', 'post_type', 'webinar_date', 'url', 'doctor_id', 'updated_at')
                 ->where('hidden', false)
                 ->with(['doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version'])
                 ->get();
-    
+
             $currentPatients = $user->patients()
                 ->when(!$isAdminOrTester, fn($query) => $query->where('hidden', false))
                 ->with(['doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version', 'status', 'answers'])
                 ->latest('updated_at')
                 ->limit(5)
                 ->get();
-    
+
             $allPatients = Patients::when(!$isAdminOrTester, fn($query) => $query->where('hidden', false))
                 ->with(['doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version', 'status', 'answers'])
                 ->latest('updated_at')
                 ->limit(5)
                 ->get();
-    
-                $topDoctors = User::select('users.id', 'users.name', 'users.image', 'users.syndicate_card', 'users.isSyndicateCardRequired', 'users.version')
+
+            $topDoctors = User::select('users.id', 'users.name', 'users.image', 'users.syndicate_card', 'users.isSyndicateCardRequired', 'users.version')
                 ->leftJoin('scores', 'users.id', '=', 'scores.doctor_id')
                 ->withCount(['patients', 'posts', 'saves'])
                 ->orderByDesc('patients_count')
@@ -187,24 +186,24 @@ class PatientsController extends Controller
                         'saved_posts_count' => (string) $user->saves_count,
                     ];
                 });
-            
-    
+
+
             $pendingSyndicateCard = $isAdminOrTester
                 ? User::select('id', 'name', 'image', 'syndicate_card', 'isSyndicateCardRequired')
-                    ->where('isSyndicateCardRequired', 'Pending')
-                    ->limit(10)
-                    ->get()
+                ->where('isSyndicateCardRequired', 'Pending')
+                ->limit(10)
+                ->get()
                 : collect();
-    
+
             // Transform the patient data
             $transformPatientData = function ($patient) {
                 $submit_status = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
                 $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
                 $outcomeSubmitterDoctorId = optional($patient->status->where('key', 'outcome_status')->first())->doctor_id;
-    
+
                 $submitter = User::select('id', 'name', 'lname', 'isSyndicateCardRequired')
                     ->find($outcomeSubmitterDoctorId);
-    
+
                 return [
                     'id' => $patient->id,
                     'doctor_id' => $patient->doctor_id,
@@ -225,10 +224,10 @@ class PatientsController extends Controller
                     ]
                 ];
             };
-    
+
             $currentPatientsResponseData = $currentPatients->map($transformPatientData);
             $allPatientsResponseData = $allPatients->map($transformPatientData);
-    
+
             $userPatientCount = $user->patients()->count();
             $allPatientCount = Patients::count();
             $scoreValue = optional($user->score)->score ?? 0;
@@ -239,9 +238,9 @@ class PatientsController extends Controller
             $isSyndicateCardRequired = $user->isSyndicateCardRequired;
             $isUserBlocked = $user->blocked;
             $role = $user->roles->first();
-    
+
             $update_message = '<ul><li><strong>Doctor Consultations</strong>: Doctors can now consult one or more colleagues for advice on their patients.</li><li><strong>User Achievements</strong>: Earn achievements by adding a set number of patients or completing specific outcomes.</li></ul>';
-    
+
             $response = [
                 'value' => true,
                 'app_update_message' => $update_message,
@@ -263,13 +262,13 @@ class PatientsController extends Controller
                     'posts' => $posts,
                 ],
             ];
-    
+
             // Log successful response
             Log::info('Successfully retrieved home data.', [
                 'user_id' => $user->id,
                 'response' => $response
             ]);
-    
+
             return response()->json($response, 200);
         } catch (\Exception $e) {
             // Log error
@@ -278,7 +277,7 @@ class PatientsController extends Controller
                 'exception' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-    
+
             return response()->json([
                 'value' => false,
                 'message' => 'Failed to retrieve home data.',
@@ -685,7 +684,7 @@ class PatientsController extends Controller
             $this->notificationController->sendPushNotification($title, $body, $tokens);
 
             // Check and assign achievements after creating the patient
-//            $this->achievement->checkAndAssignAchievements($user);
+            //            $this->achievement->checkAndAssignAchievements($user);
 
             $response = [
                 'value' => true,
@@ -1116,7 +1115,7 @@ class PatientsController extends Controller
             Log::info('Deleting patient', ['patient_id' => $id]);
 
             // Delete related consultation_doctors records
-            ConsultationDoctor::whereIn('consultation_id', function($query) use ($id) {
+            ConsultationDoctor::whereIn('consultation_id', function ($query) use ($id) {
                 $query->select('id')
                     ->from('consultations')
                     ->where('patient_id', $id);
@@ -1174,7 +1173,6 @@ class PatientsController extends Controller
             ];
 
             return response($response, 200);
-
         } catch (\Exception $e) {
             // Rollback the transaction if something goes wrong
             DB::rollBack();
@@ -1293,7 +1291,6 @@ class PatientsController extends Controller
                     'doses' => $doses,
                 ],
             ], 200);
-
         } catch (\Exception $e) {
             // Log error
             Log::error('Error searching for data.', ['exception' => $e]);
@@ -1391,7 +1388,6 @@ class PatientsController extends Controller
                     'doses' => $doses,
                 ],
             ], 200);
-
         } catch (\Exception $e) {
             // Log error
             Log::error('Error searching for data.', ['exception' => $e]);
@@ -1477,7 +1473,6 @@ class PatientsController extends Controller
                 'value' => true,
                 'data' => $data,
             ]);
-
         } catch (\Exception $e) {
             // Log error
             Log::error('Error searching for data.', ['exception' => $e]);
@@ -1507,7 +1502,7 @@ class PatientsController extends Controller
                 ->latest('updated_at')
                 ->get();
 
-// Retrieve patients
+            // Retrieve patients
             $patients = Patients::select('id', 'doctor_id', 'updated_at')
                 ->where('hidden', false)
                 ->where(function ($query) use ($patientQuery) {
@@ -1588,13 +1583,13 @@ class PatientsController extends Controller
 
             // Log successful search
             Log::info('Successfully retrieved data for the search term.', ['search_term' => $patientQuery]);
-//            return response()->json([
-//                'value' => true,
-//                'data' => [
-//                    'patients' => $transformedPatients,
-//                    'doses' => $doses,
-//                ],
-//            ], 200);
+            //            return response()->json([
+            //                'value' => true,
+            //                'data' => [
+            //                    'patients' => $transformedPatients,
+            //                    'doses' => $doses,
+            //                ],
+            //            ], 200);
 
             // After searching, return the view with the data
             return view('search', [
@@ -1620,27 +1615,27 @@ class PatientsController extends Controller
             // Fetch all questions and answers for the patient at once to minimize database queries
             $questions = Questions::orderBy('section_id')->orderBy('sort')->get();
             $answers = Answers::where('patient_id', $patient_id)
-            ->whereIn('question_id', $questions->pluck('id'))
-            ->get();
+                ->whereIn('question_id', $questions->pluck('id'))
+                ->get();
             // Initialize array to store questions and answers
             $data = [];
-    
+
             foreach ($questions as $question) {
                 // Skip questions flagged with 'skip'
                 if ($question->skip) {
                     Log::info("Question with ID {$question->id} skipped as per skip flag.");
                     continue;
                 }
-    
+
                 // Find answer for this question
                 $answer = $answers->where('question_id', $question->id)->first();
-    
+
                 // Skip hidden questions with no answer
                 if ($question->hidden && !$answer) {
                     Log::info("Hidden question with ID {$question->id} skipped due to no answer.");
                     continue;
                 }
-    
+
                 // Prepare question data
                 $questionData = [
                     'id' => $question->id,
@@ -1652,14 +1647,14 @@ class PatientsController extends Controller
                     'hidden' => $question->hidden,
                     'updated_at' => $question->updated_at,
                 ];
-    
+
                 // Handle different question types
                 if ($question->type === 'select') {
                     $questionData['answer'] = [
                         'answers' => null,
                         'other_field' => null,
                     ];
-    
+
                     $questionAnswers = $answers->where('question_id', $question->id);
                     foreach ($questionAnswers as $ans) {
                         if ($ans->type !== 'other') {
@@ -1674,7 +1669,7 @@ class PatientsController extends Controller
                         'answers' => [],
                         'other_field' => null,
                     ];
-    
+
                     $questionAnswers = $answers->where('question_id', $question->id);
                     foreach ($questionAnswers as $ans) {
                         if ($ans->type !== 'other') {
@@ -1686,12 +1681,12 @@ class PatientsController extends Controller
                     }
                 } elseif ($question->type === 'files') {
                     $questionData['answer'] = [];
-    
+
                     if ($answer === null) {
                         $questionData['answer'] = [];
                     } else {
                         $filePaths = json_decode($answer->answer);
-    
+
                         if (is_array($filePaths)) {
                             foreach ($filePaths as $filePath) {
                                 $absolutePath = Storage::disk('public')->url($filePath);
@@ -1703,40 +1698,39 @@ class PatientsController extends Controller
                     // For other types, directly set the answer
                     $questionData['answer'] = $answer ? $answer->answer : null;
                 }
-    
+
                 // Add question data to main data array
                 $data[] = $questionData;
             }
-    
+
             // Prepare data for the PDF
             $pdfData = [
                 'patient_id' => $patient_id,
                 'questionData' => $data,
             ];
-    
+
             // Generate the PDF using the blade view and data
             $pdf = PDF::loadView('patient_pdf2', $pdfData);
-    
+
             // Ensure the 'pdfs' directory exists in the public disk
             Storage::disk('public')->makeDirectory('pdfs');
-    
+
             // Generate a unique filename for the PDF
-            $pdfFileName = "Report" .'_'. date("dmy_His"). '.pdf';
-    
+            $pdfFileName = "Report" . '_' . date("dmy_His") . '.pdf';
+
             // Save the PDF file to the public disk
             Storage::disk('public')->put('pdfs/' . $pdfFileName, $pdf->output());
-    
+
             // Generate the URL for downloading the PDF file
             $pdfUrl = config('app.url') . '/' . 'storage/pdfs/' . $pdfFileName;
-    
+
             // Return the URL to download the PDF file along with patient data
             Log::info('Returning PDF generation response.', ['pdf_url' => $pdfUrl, 'data' => $pdfData]);
-    
+
             return response()->json([
                 'pdf_url' => $pdfUrl,
                 'data' => $pdfData
             ]);
-    
         } catch (\Exception $e) {
             // Log and return error if an exception occurs
             Log::error("Error while generating PDF: " . $e->getMessage());
@@ -1746,7 +1740,7 @@ class PatientsController extends Controller
             ], 500);
         }
     }
-    
+
 
     public function patientFilterConditions()
     {
@@ -1815,7 +1809,6 @@ class PatientsController extends Controller
 
             // Return successful response with the questions data
             return response()->json($response, 200);
-
         } catch (\Exception $e) {
             // Log the exception with a detailed message
             Log::error("Error while fetching questions filter conditions: " . $e->getMessage(), [
@@ -1933,7 +1926,6 @@ class PatientsController extends Controller
                     'to' => $patients->lastItem(),
                 ]
             ], 200);
-
         } catch (\Exception $e) {
             // Log error details
             Log::error('Error retrieving filtered patients.', ['exception' => $e]);
@@ -1945,5 +1937,4 @@ class PatientsController extends Controller
             ], 500);
         }
     }
-
 }

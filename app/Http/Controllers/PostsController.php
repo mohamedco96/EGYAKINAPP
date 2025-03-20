@@ -15,7 +15,7 @@ class PostsController extends Controller
      */
     public function index()
     {
-        $post = Posts::select('id', 'title', 'image', 'content', 'hidden','post_type', 'webinar_date', 'url', 'doctor_id', 'updated_at')
+        $post = Posts::select('id', 'title', 'image', 'content', 'hidden', 'post_type', 'webinar_date', 'url', 'doctor_id', 'updated_at')
             ->where('hidden', 0)
             ->with('doctor:id,name,lname')
             ->get();
@@ -40,10 +40,7 @@ class PostsController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
-    {
-
-    }
+    public function create() {}
 
     /**
      * Store a newly created resource in storage.
@@ -103,15 +100,15 @@ class PostsController extends Controller
         $post = Posts::where('id', $id)
             ->select('id', 'title', 'image', 'content', 'hidden', 'post_type', 'webinar_date', 'url', 'doctor_id', 'updated_at')
             ->with('doctor:id,name,lname')
-        //->with('postcomments:id,content,doctor_id,post_id')
+            //->with('postcomments:id,content,doctor_id,post_id')
             ->get();
 
-            $response = [
-                'value' => true,
-                'data' => $post,
-            ];
+        $response = [
+            'value' => true,
+            'data' => $post,
+        ];
 
-            return response($response, 200);
+        return response($response, 200);
     }
 
     /**

@@ -121,7 +121,7 @@ class RolePermissionController extends Controller
                     'value' => true,
                     'message' => 'Permission assigned to user successfully!',
                 ];
-               return response()->json($response, 200);
+                return response()->json($response, 200);
 
             default:
                 return "Invalid action!";
@@ -138,8 +138,8 @@ class RolePermissionController extends Controller
 
         if ($user->hasRole('admin')) {
             return response()->json('user have admin role', 200);
-        }else{
-            echo 'user not have admin role'."\n";
+        } else {
+            echo 'user not have admin role' . "\n";
         }
 
         // Check if the user has permission to edit articles
@@ -154,7 +154,7 @@ class RolePermissionController extends Controller
      */
     public function index()
     {
-       //
+        //
     }
 
     /**
@@ -162,7 +162,7 @@ class RolePermissionController extends Controller
      */
     public function create()
     {
-       //
+        //
     }
 
     /**
@@ -170,7 +170,7 @@ class RolePermissionController extends Controller
      */
     public function store(StoreRolePermissionRequest $request)
     {
-       //
+        //
     }
 
     /**
@@ -178,7 +178,7 @@ class RolePermissionController extends Controller
      */
     public function show(RolePermission $rolePermission)
     {
-       //
+        //
     }
 
     /**
@@ -186,7 +186,7 @@ class RolePermissionController extends Controller
      */
     public function edit(RolePermission $rolePermission)
     {
-       //
+        //
     }
 
     /**
@@ -194,7 +194,7 @@ class RolePermissionController extends Controller
      */
     public function update(UpdateRolePermissionRequest $request, RolePermission $rolePermission)
     {
-       //
+        //
     }
 
     /**
@@ -202,6 +202,6 @@ class RolePermissionController extends Controller
      */
     public function destroy(RolePermission $rolePermission)
     {
-       //
+        //
     }
 }

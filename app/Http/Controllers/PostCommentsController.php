@@ -71,15 +71,15 @@ class PostCommentsController extends Controller
         $postcomment = PostComments::where('post_id', $id)
             ->select('id', 'content', 'doctor_id', 'updated_at')
             ->with('doctor:id,name,lname,workingplace,image')
-        //->with('postcomments:id,content,doctor_id,post_id')
+            //->with('postcomments:id,content,doctor_id,post_id')
             ->get();
 
-            $response = [
-                'value' => true,
-                'data' => $postcomment,
-            ];
+        $response = [
+            'value' => true,
+            'data' => $postcomment,
+        ];
 
-            return response($response, 200);
+        return response($response, 200);
     }
 
     /**

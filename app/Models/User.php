@@ -175,10 +175,10 @@ class User extends Authenticatable
         return $this->hasOne(Outcome::class, 'doctor_id');
     }
 
-//    public function likess()
-//    {
-//        return $this->hasMany(Likes::class);
-//    }
+    //    public function likess()
+    //    {
+    //        return $this->hasMany(Likes::class);
+    //    }
 
     public function posts()
     {
@@ -201,7 +201,7 @@ class User extends Authenticatable
     }
 
 
-//    New
+    //    New
     public function feedPosts()
     {
         return $this->hasMany(FeedPost::class);
@@ -217,17 +217,19 @@ class User extends Authenticatable
         return $this->hasMany(FeedSaveLike::class, 'doctor_id');
     }
 
-        public function groups()
+    public function groups()
     {
         return $this->belongsToMany(Group::class, 'group_user', 'doctor_id', 'group_id')
-                    ->withTimestamps();
+            ->withTimestamps();
     }
 
-    public function trials() {
+    public function trials()
+    {
         return $this->hasOne(DoctorMonthlyTrial::class);
     }
-    
-    public function consultations() {
+
+    public function consultations()
+    {
         return $this->hasMany(AIConsultation::class);
     }
 }

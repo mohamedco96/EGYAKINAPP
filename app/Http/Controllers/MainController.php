@@ -12,19 +12,19 @@ class MainController extends Controller
         try {
             // Get the authenticated user's name
             $name = auth()->user()->name;
-    
+
             // Generate a unique timestamp
             $timestamp = time();
-    
+
             // Create a unique file name using the user's name and timestamp
             $fileName = "{$name}_media_{$timestamp}." . $media->getClientOriginalExtension();
-    
+
             // Store the media in the specified path (image or video directory)
             $storedPath = $media->storeAs($path, $fileName, 'public');
-    
+
             // Construct the full URL for the uploaded media
             $mediaUrl = config('app.url') . '/storage/' . $storedPath;
-    
+
             // Return success response with media URL
             return response()->json([
                 'value' => true,
@@ -34,7 +34,7 @@ class MainController extends Controller
         } catch (\Exception $e) {
             // Log any exception during the upload process
             Log::error("Error uploading media: " . $e->getMessage());
-    
+
             // Return error response
             return response()->json([
                 'value' => false,
@@ -79,5 +79,4 @@ class MainController extends Controller
             'message' => 'Please choose a video file.',
         ], 400);
     }
-
 }

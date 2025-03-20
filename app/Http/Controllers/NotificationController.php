@@ -82,7 +82,6 @@ class NotificationController extends Controller
             ]);
 
             return response()->json(['status' => 'Message sent successfully to all tokens'], 200);
-
         } catch (\Exception $e) {
             Log::error('Exception occurred while sending message.', [
                 'message' => $e->getMessage(),
@@ -93,19 +92,19 @@ class NotificationController extends Controller
         }
     }
 
-    public function sendPushNotification($title,$body,$tokens)
+    public function sendPushNotification($title, $body, $tokens)
     {
         try {
             // Retrieve all tokens from the fcm_tokens table
-//            $tokens = FcmToken::pluck('token')->toArray();
+            //            $tokens = FcmToken::pluck('token')->toArray();
 
             if (empty($tokens)) {
                 Log::info('No FCM tokens found.');
                 return response()->json(['status' => 'No tokens found'], 404);
             }
 
-//            $title = $request->input('title');
-//            $body = $request->input('body');
+            //            $title = $request->input('title');
+            //            $body = $request->input('body');
 
             $notification = Notification::create($title, $body);
 
@@ -125,7 +124,6 @@ class NotificationController extends Controller
             ]);
 
             return response()->json(['status' => 'Message sent successfully to all tokens'], 200);
-
         } catch (\Exception $e) {
             Log::error('Exception occurred while sending message.', [
                 'message' => $e->getMessage(),
@@ -139,9 +137,9 @@ class NotificationController extends Controller
     public function sendAllPushNotification(Request $request)
     {
         try {
-//            // Use input() or get() to retrieve request data
-//            $title = $request->input('title');
-//            $body = $request->input('body');
+            //            // Use input() or get() to retrieve request data
+            //            $title = $request->input('title');
+            //            $body = $request->input('body');
 
             $title = "✨ EgyAkin v1.0.21 is Here!";
             $body  = "🚀 Request consultations, track achievements, and enjoy a smoother experience.🔄 Update now for the latest features!";
@@ -171,7 +169,6 @@ class NotificationController extends Controller
             ]);
 
             return response()->json(['status' => 'Message sent successfully to all tokens'], 200);
-
         } catch (\Exception $e) {
             Log::error('Exception occurred while sending message.', [
                 'message' => $e->getMessage(),
@@ -216,7 +213,6 @@ class NotificationController extends Controller
                 'value' => true,
                 'message' => 'FCM token stored successfully',
             ], 201);
-
         } catch (QueryException $e) {
             // Check for duplicate token error
             if ($e->errorInfo[1] == 1062) {
@@ -288,7 +284,7 @@ class NotificationController extends Controller
         try {
             $doctorId = auth()->user()->id;
             $today = Carbon::today();
-    
+
             // Fetch today's and recent records in one go
             $notifications = AppNotification::where('doctor_id', $doctorId)
                 ->with([
@@ -311,20 +307,20 @@ class NotificationController extends Controller
                 ->groupBy(function ($notification) use ($today) {
                     return Carbon::parse($notification->created_at)->isToday() ? 'today' : 'recent';
                 });
-    
+
             // Transform data
             $transformedTodayRecords = $this->fetchAndTransformNotifications($notifications['today'] ?? collect());
             $transformedRecentRecords = $this->fetchAndTransformNotifications($notifications['recent'] ?? collect());
-    
+
             // Paginate recent records
             $currentPage = LengthAwarePaginator::resolveCurrentPage();
             $perPage = 10;
             $slicedData = $transformedRecentRecords->slice(($currentPage - 1) * $perPage, $perPage);
             $transformedPatientsPaginated = new LengthAwarePaginator($slicedData->values(), count($transformedRecentRecords), $perPage);
-    
+
             // Count unread notifications
             $unreadCount = AppNotification::where('doctor_id', $doctorId)->where('read', false)->count();
-    
+
             // Prepare response
             $response = [
                 'value' => true,
@@ -332,13 +328,13 @@ class NotificationController extends Controller
                 'todayRecords' => $transformedTodayRecords,
                 'recentRecords' => $transformedPatientsPaginated
             ];
-    
+
             // Log successful response
             Log::info('Successfully fetched new notifications.', ['doctor_id' => $doctorId]);
-    
+
             // Mark notifications as read in bulk
             AppNotification::where('doctor_id', $doctorId)->update(['read' => true]);
-    
+
             return response()->json($response, 200);
         } catch (\Exception $e) {
             // Log error
@@ -346,7 +342,7 @@ class NotificationController extends Controller
             return response()->json(['value' => false, 'message' => 'Failed to fetch new notifications'], 500);
         }
     }
-    
+
     private function fetchAndTransformNotifications($notifications)
     {
         return $notifications->map(function ($notification) {
@@ -354,10 +350,10 @@ class NotificationController extends Controller
                 $name = optional($notification->patient->answers->where('question_id', 1)->first())->answer;
                 $hospital = optional($notification->patient->answers->where('question_id', 2)->first())->answer;
                 $governorate = optional($notification->patient->answers->where('question_id', 11)->first())->answer;
-    
+
                 $submitStatus = optional($notification->patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
                 $outcomeStatus = optional($notification->patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
-    
+
                 $doctor = $notification->patient->doctor;
                 $doctorDetails = [
                     'id' => optional($doctor)->id,
@@ -371,7 +367,7 @@ class NotificationController extends Controller
                 $submitStatus = $outcomeStatus = false;
                 $doctorDetails = null;
             }
-    
+
             $patientDetails = $notification->patient ? [
                 'id' => strval($notification->patient_id),
                 'name' => $name,
@@ -402,7 +398,7 @@ class NotificationController extends Controller
                     'outcome_status' => false
                 ]
             ];
-    
+
             // Use eager loaded typeDoctor data directly
             $typeDoctor = $notification->typeDoctor ?? (object) [
                 'id' => null,
@@ -412,7 +408,7 @@ class NotificationController extends Controller
                 'image' => null,
                 'isSyndicateCardRequired' => null
             ];
-    
+
             return [
                 'id' => $notification->id,
                 'read' => $notification->read,
@@ -427,6 +423,4 @@ class NotificationController extends Controller
             ];
         });
     }
-    
-
 }

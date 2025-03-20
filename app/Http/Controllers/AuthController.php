@@ -71,7 +71,6 @@ class AuthController extends Controller
             ];
 
             return response($response, 200);
-
         } catch (\Exception $e) {
             // Rollback the transaction in case of an error
             DB::rollBack();
@@ -155,18 +154,18 @@ class AuthController extends Controller
     public function registerbkp(Request $request)
     {
         $fields = $request->validate([
-//            'name' => 'required|string',
-//            'lname' => 'required|string',
-//            //'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
-//            'email' => 'required|string|unique:users,email',
-//            'password' => 'required|string|confirmed',
-//            'age' => 'integer',
-//            'specialty' => 'required|string',
-//            'workingplace' => 'required|string',
-//            'phone' => 'required|string',
-//            'job' => 'required|string',
-//            'highestdegree' => 'required|string',
-//            'registration_number' => 'required|string',
+            //            'name' => 'required|string',
+            //            'lname' => 'required|string',
+            //            //'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
+            //            'email' => 'required|string|unique:users,email',
+            //            'password' => 'required|string|confirmed',
+            //            'age' => 'integer',
+            //            'specialty' => 'required|string',
+            //            'workingplace' => 'required|string',
+            //            'phone' => 'required|string',
+            //            'job' => 'required|string',
+            //            'highestdegree' => 'required|string',
+            //            'registration_number' => 'required|string',
         ]);
 
         $user = User::create([
@@ -193,7 +192,7 @@ class AuthController extends Controller
             'token' => $token,
         ];
 
-        if($request->has('fcmToken')){
+        if ($request->has('fcmToken')) {
             $existingToken = FcmToken::where('token', $request->fcmToken)->first();
 
             if (!$existingToken) {
@@ -245,7 +244,7 @@ class AuthController extends Controller
                 'token' => $token,
             ];
 
-            if($request->has('fcmToken')){
+            if ($request->has('fcmToken')) {
                 $existingToken = FcmToken::where('token', $request->fcmToken)->first();
 
                 if (!$existingToken) {
@@ -299,7 +298,6 @@ class AuthController extends Controller
                 'value' => true,
                 'message' => 'Logged out successfully',
             ], 200);
-
         } catch (\Exception $e) {
             // Log any exceptions that occur during logout
             Log::error('Error occurred during logout', [
@@ -416,7 +414,7 @@ class AuthController extends Controller
             ->pluck('token')
             ->toArray();
 
-        $this->notificationController->sendPushNotification($title,$body,$tokens);
+        $this->notificationController->sendPushNotification($title, $body, $tokens);
     }
 
 
@@ -461,19 +459,19 @@ class AuthController extends Controller
                 AppNotification::create([
                     'doctor_id' => $doctorId,
                     'type' => 'Syndicate Card',
-                    'content' => 'Dr. '. $user->name .' has uploaded a new Syndicate Card for approval.',
+                    'content' => 'Dr. ' . $user->name . ' has uploaded a new Syndicate Card for approval.',
                     'type_doctor_id' => $user->id,
                     //'patient_id' => '31', // to be changed
                 ]);
             }
 
             $title = 'New Syndicate Card Pending Approval 📋';
-            $body = 'Dr. '. $user->name .' has uploaded a new Syndicate Card for approval.';
+            $body = 'Dr. ' . $user->name . ' has uploaded a new Syndicate Card for approval.';
             $tokens = FcmToken::whereIn('doctor_id', $doctors)
                 ->pluck('token')
                 ->toArray();
 
-            $this->notificationController->sendPushNotification($title,$body,$tokens);
+            $this->notificationController->sendPushNotification($title, $body, $tokens);
 
             return response()->json([
                 'value' => true,
@@ -618,7 +616,7 @@ class AuthController extends Controller
 
                 // Retrieve FCM tokens for push notification
                 $tokens = FcmToken::where('doctor_id', $id) // Use the authenticated user's ID
-                ->pluck('token')
+                    ->pluck('token')
                     ->toArray();
 
                 // Send the push notification
@@ -670,7 +668,6 @@ class AuthController extends Controller
 
             return response($response, 404);
         }
-
     }
 
     /**
@@ -790,7 +787,7 @@ class AuthController extends Controller
                     return $query->where('hidden', false); // Non-admin/tester users only see non-hidden patients
                 })
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
+                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
                 }])
                 ->with(['status' => function ($query) {
                     $query->select('id', 'patient_id', 'key', 'status');
@@ -868,7 +865,7 @@ class AuthController extends Controller
             $getScoreHistory = $user->scoreHistory()
                 ->select('id', 'doctor_id', 'score', 'action', 'updated_at')
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
+                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
                 }])
                 ->latest('updated_at')
                 ->get();
@@ -951,5 +948,4 @@ class AuthController extends Controller
             return response()->json($response, 404);
         }
     }
-
 }

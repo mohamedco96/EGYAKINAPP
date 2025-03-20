@@ -205,9 +205,20 @@ class FeedPostController extends Controller
         }
     }
 
-    public function getDoctorSavedPosts($doctorId)
+    public function getDoctorSavedPosts($doctorId = null)
     {
+        // Ensure doctorId is not null or undefined
+        if (!$doctorId) {
+            Log::error("Doctor ID is missing or undefined.");
+            return response()->json([
+                'value' => false,
+                'message' => 'Doctor ID is required'
+            ], 400);
+        }
+    
         try {
+            Log::info("Fetching saved posts for doctor ID: " . $doctorId);
+    
             // Fetch only saved posts for the given doctor ID
             $feedPosts = FeedPost::whereHas('saves', function ($query) use ($doctorId) {
                     $query->where('doctor_id', $doctorId);
@@ -215,6 +226,7 @@ class FeedPostController extends Controller
                 ->with([
                     'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
                     'poll.options' => function ($query) use ($doctorId) { 
+                        Log::info("Inside poll.options closure - Doctor ID: " . $doctorId);
                         $query->withCount('votes') // Count votes per option
                               ->with(['votes' => function ($voteQuery) use ($doctorId) {
                                   $voteQuery->where('doctor_id', $doctorId); // Check if user voted
@@ -224,9 +236,11 @@ class FeedPostController extends Controller
                 ->withCount(['likes', 'comments']) // Count likes and comments
                 ->with([
                     'saves' => function ($query) use ($doctorId) {
+                        Log::info("Inside saves closure - Doctor ID: " . $doctorId);
                         $query->where('doctor_id', $doctorId);
                     },
                     'likes' => function ($query) use ($doctorId) {
+                        Log::info("Inside likes closure - Doctor ID: " . $doctorId);
                         $query->where('doctor_id', $doctorId);
                     }
                 ])
@@ -240,11 +254,16 @@ class FeedPostController extends Controller
                 ) // Order by latest save date
                 ->paginate(10); // Paginate 10 posts per page
     
+            // Debug: Check if results exist
+            if ($feedPosts->isEmpty()) {
+                Log::warning("No saved posts found for doctor ID: " . $doctorId);
+            }
+    
             // Transform posts to add `isSaved` and `isLiked` flags
-            $feedPosts->getCollection()->transform(function ($post) {
+            $feedPosts->getCollection()->transform(function ($post) use ($doctorId) {
                 $post->isSaved = true; // Since we're only fetching saved posts, this is always true
                 $post->isLiked = $post->likes->isNotEmpty();
-                
+    
                 // Sort poll options by vote count (highest first) and check if the user has voted
                 if ($post->poll) {
                     $post->poll->options = $post->poll->options->map(function ($option) use ($doctorId) {
@@ -259,7 +278,7 @@ class FeedPostController extends Controller
                 return $post;
             });
     
-            Log::info("Saved posts fetched for doctor ID $doctorId");
+            Log::info("Saved posts successfully fetched for doctor ID: " . $doctorId);
     
             return response()->json([
                 'value' => true,
@@ -275,6 +294,7 @@ class FeedPostController extends Controller
             ], 500);
         }
     }
+    
       
 
     // Get post by ID with sorted comments, likes, and saved status

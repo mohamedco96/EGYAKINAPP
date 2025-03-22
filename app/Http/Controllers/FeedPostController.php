@@ -525,7 +525,8 @@ class FeedPostController extends Controller
             $this->handleGroupValidation($validatedData);
 
             // Handle media upload
-            $mediaPaths = $this->handleMediaUpload($request, $validatedData['media_type'] ?? null);
+            // $mediaPaths = $this->handleMediaUpload($request, $validatedData['media_type'] ?? null);
+            $mediaPaths = $this->uploadMultipleImages($request);
 
             // Create Feed Post
             $post = $this->createFeedPost($validatedData, $mediaPaths);
@@ -722,6 +723,31 @@ class FeedPostController extends Controller
 
         return null;
     }
+
+        public function uploadMultipleImages(Request $request)
+    {
+        $mediaFiles = $request->file('media_path'); // Get uploaded files
+        $path = 'storage/media_images/'; // Define upload directory
+        $mediaPaths = []; // Array to store uploaded image URLs
+
+        if (!$mediaFiles || !is_array($mediaFiles)) {
+            return []; // Return empty array if no files found
+        }
+
+        foreach ($mediaFiles as $media) {
+            // Upload the image
+            $uploadResponse = $this->uploadImageAndVideo($media, $path);
+
+            // Check if upload was successful
+            if ($uploadResponse->getValue() && isset($uploadResponse->getData()->image)) {
+                $mediaPaths[] = $uploadResponse->getData()->image;
+            }
+        }
+
+        Log::info("Media Paths: ", $mediaPaths);
+        return $mediaPaths; // Return array of uploaded image URLs
+    }
+
 
     private function createFeedPost(array $validatedData, $mediaPaths)
     {

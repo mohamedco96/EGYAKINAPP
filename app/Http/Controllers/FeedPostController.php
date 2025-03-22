@@ -709,7 +709,10 @@ class FeedPostController extends Controller
                 $uploadResponse = $this->mainController->uploadImageAndVideo($media, $path);
 
                 if ($uploadResponse->getData()->value) {
-                    $mediaPaths[] = $uploadResponse->getData()->image; // Add URL to array
+                    if (!in_array($uploadResponse->getData()->image, $mediaPaths)) {
+                        $mediaPaths[] = $uploadResponse->getData()->image;
+                        Log::info("Media Paths: ", $mediaPaths);
+                    }                   
                 } else {
                     throw new \Exception('Media upload failed.', 500);
                 }

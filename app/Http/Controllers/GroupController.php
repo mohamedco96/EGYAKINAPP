@@ -1,28 +1,4 @@
 <?php
-
-/**
- * GroupController handles the management of groups including creation, updating, deletion,
- * member management, and fetching group details.
- * 
- * Methods:
- * - __construct(MainController $mainController): Initialize the controller with a MainController instance.
- * - authorizeOwner(Group $group): Authorize the owner of the group.
- * - create(Request $request): Create a new group.
- * - update(Request $request, int $id): Update an existing group.
- * - delete(int $id): Delete a group.
- * - inviteMember(Request $request, int $groupId): Invite a member to the group.
- * - handleInvitation(Request $request, int $groupId): Accept or decline a group invitation.
- * - show(int $id): Get group details, including members and privacy settings.
- * - removeMember(Request $request, int $groupId): Remove a member from the group.
- * - searchMembers(Request $request, int $groupId): Search for members in a group.
- * - fetchMembers(int $groupId): Fetch community members.
- * - fetchGroupDetailsWithPosts(int $groupId): Fetch group details along with posts.
- * - joinGroup(int $groupId): Join a group.
- * - leaveGroup(int $groupId): Leave a group.
- * - fetchMyGroups(): Fetch groups owned by the authenticated user.
- * - fetchAllGroups(): Fetch all groups.
- */
-
 namespace App\Http\Controllers;
 
 use App\Models\Group;
@@ -332,7 +308,7 @@ class GroupController extends Controller
                     'doctor_id' => $doctorId,
                     'attempted_by' => Auth::id()
                 ]);
-            } elseif ($existingStatus === 'invited') {
+            } elseif ($existingStatus === 'invited' || $existingStatus === 'pending') {
                 // Log the attempt to invite an already invited member
                 Log::info('Doctor is already invited to the group', [
                     'group_id' => $groupId,
@@ -455,7 +431,7 @@ class GroupController extends Controller
             $currentStatus = $group->doctors()->where('doctor_id', $userId)->value('status');
 
             // If the user does not have an invitation or the status is already 'accepted' or 'declined', return an error
-            if ($currentStatus !== 'invited') {
+            if ($currentStatus !== 'invited' || $currentStatus !== 'pending') {
                 // Log the error
                 Log::error('No invitation found or invitation status has already been changed', [
                     'group_id' => $groupId,
@@ -469,10 +445,11 @@ class GroupController extends Controller
                 ], 400);
             }
 
-            // Update the invitation status for the authenticated user
-            $group->doctors()->updateExistingPivot($userId, ['status' => $validated['status']]);
+
 
             if($validated['status'] === 'accepted'){
+                // Update the invitation status for the authenticated user
+                $group->doctors()->updateExistingPivot($userId, ['status' => $validated['status']]);
                 // Check if the post owner is not the one liking the post
                 if ($group->owner_id !== Auth::id()) {
                     $notification = AppNotification::create([
@@ -500,6 +477,9 @@ class GroupController extends Controller
                     ->toArray();
             
                 $this->notificationController->sendPushNotification($title, $body, $tokens);
+            }elseif($validated['status'] === 'declined'){
+                // Update the invitation status for the authenticated user
+                $group->doctors()->updateExistingPivot($userId, ['status' => $validated['status']]);
             }
             // Log the invitation status change
             Log::info('Invitation status updated', [
@@ -1238,4 +1218,160 @@ class GroupController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get group invitations for a specific doctor.
+     * 
+     * @param int $doctorId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getDoctorInvitations($doctorId)
+    {
+        try {
+            // Validate that the doctor exists
+            $doctor = User::findOrFail($doctorId);
+
+            // Get all groups where the doctor has been invited
+            $invitations = Group::with(['owner' => function ($query) {
+                $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
+            }])
+            ->whereHas('doctors', function ($query) use ($doctorId) {
+                $query->where('doctor_id', $doctorId)
+                      ->where('status', 'invited');
+            })
+            ->with(['doctors' => function ($query) use ($doctorId) {
+                $query->where('doctor_id', $doctorId)
+                      ->where('status', 'invited')
+                      ->select('group_user.id as invitation_id');
+            }])
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+            // Add member count and invitation_id to each group
+            foreach ($invitations as $group) {
+                // Fetch member count for the group
+                $memberCount = DB::table('group_user')
+                    ->where('group_id', $group->id)
+                    ->where('status', 'joined')
+                    ->count();
+
+                $group->member_count = $memberCount;
+                $group->user_status = 'invited';
+                // Add the invitation_id from the pivot table
+                $group->invitation_id = $group->doctors->first()->invitation_id ?? null;
+                // Remove the doctors relationship from the response
+                unset($group->doctors);
+            }
+
+            // Log the action
+            Log::info('Group invitations fetched', [
+                'doctor_id' => $doctorId
+            ]);
+
+            return response()->json([
+                'value' => true,
+                'data' => $invitations,
+                'message' => 'Group invitations fetched successfully'
+            ], 200);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            // Log the error
+            Log::error('Doctor not found', [
+                'doctor_id' => $doctorId
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Doctor not found'
+            ], 404);
+        } catch (\Exception $e) {
+            // Log the error
+            Log::error('Error fetching group invitations', [
+                'doctor_id' => $doctorId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'An error occurred while fetching group invitations'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all invitations for a specific group.
+     * 
+     * @param int $groupId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getGroupInvitations($groupId)
+    {
+        try {
+            // Find the group or fail if not found
+            $group = Group::findOrFail($groupId);
+
+            // Get all invited doctors for the group with their invitation IDs
+            $invitations = DB::table('users')
+                ->join('group_user', 'users.id', '=', 'group_user.doctor_id')
+                ->where('group_user.group_id', $groupId)
+                ->where('group_user.status', 'invited')
+                ->select(
+                    'users.id',
+                    'users.name',
+                    'users.lname',
+                    'users.image',
+                    'users.syndicate_card',
+                    'users.isSyndicateCardRequired',
+                    'users.version',
+                    'group_user.id as invitation_id'
+                )
+                ->orderBy('group_user.created_at', 'desc')
+                ->paginate(20);
+
+            // Log the action
+            Log::info('Group invitations fetched by group ID', [
+                'group_id' => $groupId
+            ]);
+
+            return response()->json([
+                'value' => true,
+                'data' => [
+                    'group' => [
+                        'id' => $group->id,
+                        'name' => $group->name,
+                        'description' => $group->description,
+                        'privacy' => $group->privacy,
+                        'header_picture' => $group->header_picture,
+                        'group_image' => $group->group_image,
+                        'owner' => $group->owner()->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version')->first()
+                    ],
+                    'invitations' => $invitations
+                ],
+                'message' => 'Group invitations fetched successfully'
+            ], 200);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            // Log the error
+            Log::error('Group not found', [
+                'group_id' => $groupId
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Group not found'
+            ], 404);
+        } catch (\Exception $e) {
+            // Log the error
+            Log::error('Error fetching group invitations', [
+                'group_id' => $groupId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'An error occurred while fetching group invitations'
+            ], 500);
+        }
+    }
+
 }

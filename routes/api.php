@@ -6,6 +6,7 @@ use App\Http\Controllers\ProductController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\GroupController;
 
 /*
 |--------------------------------------------------------------------------
@@ -374,6 +375,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/mygroups', 'GroupController@fetchMyGroups');
     Route::get('/groups', 'GroupController@fetchAllGroups');
     Route::get('/latest-groups-with-random-posts', 'GroupController@fetchLatestGroupsWithRandomPosts');
+    Route::get('/groups/invitations/{doctorId}', 'GroupController@getDoctorInvitations');
+    Route::get('/groups/{groupId}/invitations', 'GroupController@getGroupInvitations');
 
     Route::post('/AIconsultation/{patientId}', 'ChatController@sendConsultation');
     Route::get('/AIconsultation-history/{patientId}', 'ChatController@getConsultationHistory');

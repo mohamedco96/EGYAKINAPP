@@ -340,7 +340,7 @@ class GroupController extends Controller
                 ->pluck('id'); // Get only the IDs of the users
 
                 $title = 'New Invitation was created 📣';
-                $body = 'Dr. ' . ucfirst(Auth::user()->name) . 'Invited you to his group';
+                $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' invited you to his group';
                 $tokens = FcmToken::whereIn('doctor_id', $doctors)
                     ->pluck('token')
                     ->toArray();
@@ -392,7 +392,7 @@ class GroupController extends Controller
                 ->pluck('id'); // Get only the IDs of the users
 
                 $title = 'New Invitation was created 📣';
-                $body = 'Dr. ' . ucfirst(Auth::user()->name) . 'Invited you to his group';
+                $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' invited you to his group';
                 $tokens = FcmToken::whereIn('doctor_id', $doctors)
                     ->pluck('token')
                     ->toArray();
@@ -984,7 +984,7 @@ class GroupController extends Controller
             ->pluck('id'); // Get only the IDs of the users
 
             $title = 'New Join Request 📣';
-            $body = 'Dr. ' . ucfirst(Auth::user()->name) . 'requested to join group';
+            $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' requested to join group';
             $tokens = FcmToken::whereIn('doctor_id', $doctors)
                 ->pluck('token')
                 ->toArray();

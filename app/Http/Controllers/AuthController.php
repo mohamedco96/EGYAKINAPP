@@ -45,11 +45,11 @@ class AuthController extends Controller
             'email' => 'required|string|email|unique:users,email',
             'password' => 'required|string|min:8',
             'age' => 'nullable|integer|min:18|max:100',
-            'specialty' => 'required|string|max:255',
-            'workingplace' => 'required|string|max:255',
-            'phone' => 'required|string|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
-            'job' => 'required|string|max:255',
-            'highestdegree' => 'required|string|max:255',
+            'specialty' => 'nullable|string|max:255',
+            'workingplace' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
+            'job' => 'nullable|string|max:255',
+            'highestdegree' => 'nullable|string|max:255',
             'registration_number' => 'required|string|unique:users,registration_number',
         ]);
     }

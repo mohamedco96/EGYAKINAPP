@@ -573,56 +573,62 @@ class FeedPostController extends Controller
     public function update(Request $request, $id)
     {
         DB::beginTransaction(); // Start a transaction
-
+    
         try {
             // Retrieve the post by ID
             $post = FeedPost::findOrFail($id);
-
+    
             // Get the authenticated user
             $user = Auth::user();
-
+    
             // Validate the incoming request data
             $validatedData = $request->validate($this->validationRules());
-
+    
             // Handle group validation and permissions
             $this->handleGroupValidation($validatedData);
-
+    
             // Initialize media variables with existing values
-            $mediaPath = $post->media_path;
             $mediaType = $post->media_type;
-
+            $existingMediaPaths = json_decode($post->media_path, true) ?? [];
+    
             // If media_type is sent in the request
             if ($request->has('media_type')) {
                 $mediaType = $request->media_type;
-
+    
                 // If media_type is 'text', remove media
                 if ($mediaType === "text") {
                     $mediaType = null;
-                    $mediaPath = null;
-                } else {
-                    // Handle media upload if a new media file is uploaded
-                    $mediaPath = $this->handleMediaUpload($request, $mediaType);
+                    $existingMediaPaths = [];
                 }
             }
-
+    
+            // Get existing media paths from request
+            $existingMediaFromRequest = $request->input('existing_media_path', []);
+    
+            // Upload new images (if any)
+            $newMediaPaths = $this->uploadMultipleImages($request->file('media_path'));
+    
+            // Merge old and new media
+            $finalMediaPaths = array_merge($existingMediaFromRequest, $newMediaPaths);
+    
             // Update the post with validated data
             $post->update([
                 'content' => $validatedData['content'],
                 'media_type' => $mediaType,
-                'media_path' => $mediaPath,
+                'media_path' => json_encode($finalMediaPaths),
                 'visibility' => $validatedData['visibility'] ?? 'Public',
                 'group_id' => $validatedData['group_id'] ?? null,
             ]);
-
+    
             // Attach hashtags to the post
             $this->attachHashtags($post, $request->input('content'));
-
+    
             // Commit the transaction
             DB::commit();
-
+    
             // Log the successful update
             Log::info("Post ID $id updated by doctor " . $user->id);
-
+    
             // Return a success response
             return response()->json([
                 'value' => true,
@@ -632,7 +638,7 @@ class FeedPostController extends Controller
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             DB::rollBack();
             Log::warning("Post ID $id not found for update");
-
+    
             return response()->json([
                 'value' => false,
                 'message' => 'Post not found'
@@ -640,13 +646,14 @@ class FeedPostController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Error updating post ID $id: " . $e->getMessage());
-
+    
             return response()->json([
                 'value' => false,
                 'message' => 'An error occurred while updating the post: ' . $e->getMessage()
             ], 500);
         }
     }
+    
 
 
 

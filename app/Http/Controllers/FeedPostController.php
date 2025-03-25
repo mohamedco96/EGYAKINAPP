@@ -730,23 +730,23 @@ class FeedPostController extends Controller
         $request->validate([
             'media_path.*' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
-
+    
         $uploadedImages = [];
-
+    
         if ($request->hasFile('media_path')) {
-            foreach ($request->file('media_path') as $media) {
+            foreach ($request->file('media_path') as $index => $media) {
                 // Get the authenticated user's name
                 $name = auth()->user()->name;
-
-                // Generate a unique timestamp
-                $timestamp = time();
-
+    
+                // Generate a unique timestamp with microtime
+                $timestamp = time() . '_' . uniqid();
+    
                 // Create a unique file name using the user's name and timestamp
                 $fileName = "{$name}_media_{$timestamp}." . $media->getClientOriginalExtension();
-
+    
                 // Store the media in the specified path (image or video directory)
                 $storedPath = $media->storeAs('media_images', $fileName, 'public');
-
+    
                 // Construct the full URL for the uploaded media
                 $mediaUrl = config('app.url') . '/storage/' . $storedPath;
                 
@@ -754,9 +754,10 @@ class FeedPostController extends Controller
                 $uploadedImages[] = $mediaUrl;
             }
         }
-
+    
         return $uploadedImages;
     }
+    
 
     private function createFeedPost(array $validatedData, $mediaPaths)
     {

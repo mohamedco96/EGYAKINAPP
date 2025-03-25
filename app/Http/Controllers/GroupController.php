@@ -839,6 +839,13 @@ class GroupController extends Controller
 
             $group->user_status = $userStatus ?? null;
 
+            // Check if group has pending invitations
+            $hasPendingInvitations = $group->doctors()
+                ->where('group_id', $groupId)
+                ->where('status', 'pending')
+                ->exists();
+
+            $group->has_pending_invitations = $hasPendingInvitations;
 
             // Fetch member count for the group from the group_user table
             $memberCount = DB::table('group_user')

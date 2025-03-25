@@ -479,7 +479,8 @@ class AuthController extends Controller
             // Retrieve all doctors with role 'admin' or 'tester' except the authenticated user
             $doctors = User::role(['Admin', 'Tester'])
                 ->where('id', '!=', Auth::id())
-                ->pluck('id'); // Get only the IDs of the users
+                ->pluck('id')
+                ->toArray(); // Convert Collection to array
 
             // Create notifications for all doctors at once
             $notifications = array_map(function($doctorId) use ($user) {

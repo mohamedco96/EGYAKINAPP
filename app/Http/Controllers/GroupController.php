@@ -704,8 +704,9 @@ class GroupController extends Controller
             // Find the group or fail if not found
             $group = Group::findOrFail($groupId);
 
-            // Retrieve the members of the group with pagination
+            // Retrieve the joined members of the group with pagination
             $members = $group->doctors()
+                ->where('status', 'joined')
                 ->select('users.id', 'users.name', 'users.lname', 'users.image', 'users.syndicate_card', 'users.isSyndicateCardRequired', 'users.version')
                 ->paginate(10)
                 ->through(function ($doctor) {
@@ -720,18 +721,42 @@ class GroupController extends Controller
                     ];
                 });
 
+            // Retrieve pending invitations
+            $pendingInvitations = DB::table('users')
+                ->join('group_user', 'users.id', '=', 'group_user.doctor_id')
+                ->where('group_user.group_id', $groupId)
+                ->where('group_user.status', 'pending')
+                ->select(
+                    'users.id',
+                    'users.name',
+                    'users.lname',
+                    'users.image',
+                    'users.syndicate_card',
+                    'users.isSyndicateCardRequired',
+                    'users.version',
+                    'group_user.id as invitation_id',
+                    'group_user.created_at as invited_at'
+                )
+                ->orderBy('group_user.created_at', 'desc')
+                ->get();
+
             // Log the action
-            Log::info('Community members fetched with pagination', [
+            Log::info('Community members and pending invitations fetched', [
                 'group_id' => $groupId,
-                'fetched_by' => Auth::id()
+                'members_count' => $members->count(),
+                'pending_invitations_count' => $pendingInvitations->count()
             ]);
 
-            // Return success response
+            // Return success response with both members and pending invitations
             return response()->json([
                 'value' => true,
-                'data' => $members,
-                'message' => 'Community members fetched successfully'
+                'data' => [
+                    'members' => $members,
+                    'pending_invitations' => $pendingInvitations
+                ],
+                'message' => 'Community members and pending invitations fetched successfully'
             ], 200);
+
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             // Log the error
             Log::error('Group not found', [
@@ -739,11 +764,22 @@ class GroupController extends Controller
                 'fetched_by' => Auth::id()
             ]);
 
-            // Return error response
             return response()->json([
                 'value' => false,
                 'message' => 'Group not found'
             ], 404);
+        } catch (\Exception $e) {
+            // Log the error
+            Log::error('Error fetching community members and invitations', [
+                'group_id' => $groupId,
+                'fetched_by' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'An error occurred while fetching members and invitations'
+            ], 500);
         }
     }
 

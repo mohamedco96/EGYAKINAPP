@@ -418,93 +418,115 @@ class GroupController extends Controller
     public function handleInvitation(Request $request, $groupId)
     {
         try {
-            // Validate the request to ensure status is either 'accepted' or 'declined'
+            // Validate the request
             $validated = $request->validate([
-                'status' => 'required|in:accepted,declined'
+                'status' => 'required|in:accepted,declined',
+                'invitation_id' => 'required|exists:group_user,id'
             ]);
 
             // Find the group or fail if not found
             $group = Group::findOrFail($groupId);
             $userId = Auth::id();
 
-            // Check the current status of the invitation
-            $currentStatus = $group->doctors()->where('doctor_id', $userId)->value('status');
+            // Find the invitation and check if it belongs to the authenticated user
+            $invitation = DB::table('group_user')
+                ->where('id', $validated['invitation_id'])
+                ->where('group_id', $groupId)
+                ->whereIn('status', ['invited', 'pending'])
+                ->first();
 
-            // If the user does not have an invitation or the status is already 'accepted' or 'declined', return an error
-            if ($currentStatus !== 'invited' || $currentStatus !== 'pending') {
-                // Log the error
-                Log::error('No invitation found or invitation status has already been changed', [
+            if (!$invitation) {
+                Log::error('Invalid invitation', [
                     'group_id' => $groupId,
                     'doctor_id' => $userId,
-                    'current_status' => $currentStatus
+                    'invitation_id' => $validated['invitation_id']
                 ]);
 
                 return response()->json([
                     'value' => false,
-                    'message' => 'No invitation found or invitation status has already been changed'
+                    'message' => 'Invalid invitation'
                 ], 400);
             }
 
+            // Update the invitation status
+            $newStatus = $validated['status'] === 'accepted' ? 'joined' : 'declined';
+            DB::table('group_user')
+                ->where('id', $validated['invitation_id'])
+                ->update([
+                    'status' => $newStatus,
+                    'updated_at' => now()
+                ]);
 
-
-            if($validated['status'] === 'accepted'){
-                // Update the invitation status for the authenticated user
-                $group->doctors()->updateExistingPivot($userId, ['status' => $validated['status']]);
-                // Check if the post owner is not the one liking the post
-                if ($group->owner_id !== Auth::id()) {
+            if ($validated['status'] === 'accepted') {
+                // Send notification to group owner
+                if ($group->owner_id !== $userId) {
                     $notification = AppNotification::create([
                         'doctor_id' => $group->owner_id,
                         'type' => 'Other',
                         'type_id' => $groupId,
-                        'content' => sprintf('Dr. %s Accepted your group invitation', Auth::user()->name . ' ' . Auth::user()->lname),
-                        'type_doctor_id' => Auth::id(),
+                        'content' => sprintf('Dr. %s accepted your group invitation', Auth::user()->name . ' ' . Auth::user()->lname),
+                        'type_doctor_id' => $userId,
                         'created_at' => now(),
                         'updated_at' => now()
                     ]);
-    
-                    Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $groupId);
-                }
-    
-                // Notifying other doctors
-                $doctors = User::role(['Admin', 'Tester'])
-                ->where('id', '!=', Auth::id())
-                ->pluck('id'); // Get only the IDs of the users
 
-                $title = 'Group invitation accepted📣';
-                $body = 'Dr. ' . ucfirst(Auth::user()->name) . 'Accepted your group invitation';
-                $tokens = FcmToken::whereIn('doctor_id', $doctors)
-                    ->pluck('token')
-                    ->toArray();
-            
-                $this->notificationController->sendPushNotification($title, $body, $tokens);
-            }elseif($validated['status'] === 'declined'){
-                // Update the invitation status for the authenticated user
-                $group->doctors()->updateExistingPivot($userId, ['status' => $validated['status']]);
+                    Log::info("Notification sent to group owner", [
+                        'owner_id' => $group->owner_id,
+                        'group_id' => $groupId
+                    ]);
+
+                    // Get admin and tester users
+                    $adminUsers = User::role(['Admin', 'Tester'])
+                        ->where('id', '!=', $userId)
+                        ->get();
+
+                    // Get FCM tokens for admin users
+                    $adminTokens = FcmToken::whereIn('doctor_id', $adminUsers->pluck('id'))
+                        ->pluck('token')
+                        ->toArray();
+
+                    if (!empty($adminTokens)) {
+                        $title = 'Group invitation accepted 📣';
+                        $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' accepted the group invitation';
+                        $this->notificationController->sendPushNotification($title, $body, $adminTokens);
+                    }
+                }
             }
+
             // Log the invitation status change
             Log::info('Invitation status updated', [
                 'group_id' => $groupId,
                 'doctor_id' => $userId,
-                'status' => $validated['status']
+                'invitation_id' => $validated['invitation_id'],
+                'status' => $newStatus
             ]);
 
-            // Return success response
             return response()->json([
                 'value' => true,
-                'message' => 'Invitation status updated successfully'
+                'message' => sprintf('Invitation %s successfully', $validated['status'])
             ], 200);
+
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            // Log the error
             Log::error('Group not found', [
                 'group_id' => $groupId,
                 'user_id' => Auth::id()
             ]);
 
-            // Return error response
             return response()->json([
                 'value' => false,
                 'message' => 'Group not found'
             ], 404);
+        } catch (\Exception $e) {
+            Log::error('Error handling invitation', [
+                'group_id' => $groupId,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'An error occurred while handling the invitation'
+            ], 500);
         }
     }
 
@@ -721,24 +743,32 @@ class GroupController extends Controller
                     ];
                 });
 
-            // Retrieve pending invitations
-            $pendingInvitations = DB::table('users')
-                ->join('group_user', 'users.id', '=', 'group_user.doctor_id')
-                ->where('group_user.group_id', $groupId)
-                ->where('group_user.status', 'pending')
-                ->select(
-                    'users.id',
-                    'users.name',
-                    'users.lname',
-                    'users.image',
-                    'users.syndicate_card',
-                    'users.isSyndicateCardRequired',
-                    'users.version',
-                    'group_user.id as invitation_id',
-                    'group_user.created_at as invited_at'
-                )
-                ->orderBy('group_user.created_at', 'desc')
-                ->get();
+            // Retrieve pending invitations using User model
+            $pendingInvitations = User::whereHas('groups', function($query) use ($groupId) {
+                    $query->where('group_id', $groupId)
+                          ->where('status', 'pending');
+                })
+                ->with(['groups' => function($query) use ($groupId) {
+                    $query->where('group_id', $groupId)
+                          ->where('status', 'pending')
+                          ->select('group_user.id as invitation_id', 'group_user.created_at as invited_at');
+                }])
+                ->select('users.id', 'users.name', 'users.lname', 'users.image', 'users.syndicate_card', 'users.isSyndicateCardRequired', 'users.version')
+                ->get()
+                ->map(function($user) {
+                    $groupData = $user->groups->first();
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'lname' => $user->lname,
+                        'image' => $user->image,
+                        'syndicate_card' => $user->syndicate_card,
+                        'isSyndicateCardRequired' => $user->isSyndicateCardRequired,
+                        'version' => $user->version,
+                        'invitation_id' => $groupData->pivot->id,
+                        'invited_at' => $groupData->pivot->created_at
+                    ];
+                });
 
             // Log the action
             Log::info('Community members and pending invitations fetched', [

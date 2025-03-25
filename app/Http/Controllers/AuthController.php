@@ -41,25 +41,33 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         try {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'lname' => 'required|string|max:255',
-                'email' => 'required|string|email|max:255|unique:users',
-                'password' => [
-                    'required',
-                    'string',
-                    'min:8',
-                    'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/' // At least 8 chars, 1 letter and 1 number
-                ],
-                'age' => 'nullable|integer|min:18|max:100',
-                'specialty' => 'nullable|string|max:255',
-                'workingplace' => 'nullable|string|max:255',
-                'phone' => 'nullable|string|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
-                'job' => 'nullable|string|max:255',
-                'highestdegree' => 'nullable|string|max:255',
-                'registration_number' => 'required|string|unique:users',
-                'fcm_token' => 'nullable|string|max:255'
-            ]);
+            try {
+                $validated = $request->validate([
+                    'name' => 'required|string|max:255',
+                    'lname' => 'required|string|max:255',
+                    'email' => 'required|string|email|max:255|unique:users',
+                    'password' => [
+                        'required',
+                        'string',
+                        'min:8',
+                        'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/' // At least 8 chars, 1 letter and 1 number
+                    ],
+                    'age' => 'nullable|integer|min:18|max:100',
+                    'specialty' => 'nullable|string|max:255',
+                    'workingplace' => 'nullable|string|max:255',
+                    'phone' => 'nullable|string|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
+                    'job' => 'nullable|string|max:255',
+                    'highestdegree' => 'nullable|string|max:255',
+                    'registration_number' => 'required|string|unique:users',
+                    'fcm_token' => 'nullable|string|max:255'
+                ]);
+            } catch (ValidationException $e) {
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors()
+                ], 422);
+            }
 
             DB::beginTransaction();
             try {
@@ -170,11 +178,19 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         try {
-            $validated = $request->validate([
-                'email' => 'required|email|max:255',
-                'password' => 'required|string|min:8',
-                'fcm_token' => 'nullable|string|max:255'
-            ]);
+            try {
+                $validated = $request->validate([
+                    'email' => 'required|email|max:255',
+                    'password' => 'required|string|min:8',
+                    'fcm_token' => 'nullable|string|max:255'
+                ]);
+            } catch (ValidationException $e) {
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors()
+                ], 422);
+            }
 
             // Normalize email to lowercase
             $email = strtolower($validated['email']);
@@ -280,16 +296,24 @@ class AuthController extends Controller
     public function changePassword(Request $request)
     {
         try {
-            $validated = $request->validate([
-                'current_password' => 'required|string|min:8',
-                'new_password' => [
-                    'required',
-                    'string',
-                    'min:8',
-                    'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/', // At least 8 chars, 1 letter and 1 number
-                    'different:current_password'
-                ]
-            ]);
+            try {
+                $validated = $request->validate([
+                    'current_password' => 'required|string|min:8',
+                    'new_password' => [
+                        'required',
+                        'string',
+                        'min:8',
+                        'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/', // At least 8 chars, 1 letter and 1 number
+                        'different:current_password'
+                    ]
+                ]);
+            } catch (ValidationException $e) {
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors()
+                ], 422);
+            }
 
             $user = Auth::user();
 
@@ -513,20 +537,28 @@ class AuthController extends Controller
         try {
             $user = User::findOrFail(Auth::id());
 
-            // Validate update data
-            $validated = $request->validate([
-                'name' => 'sometimes|string|max:255',
-                'lname' => 'sometimes|string|max:255',
-                'email' => 'sometimes|email|unique:users,email,' . $user->id,
-                'age' => 'sometimes|integer|min:18|max:100',
-                'specialty' => 'sometimes|string|max:255',
-                'workingplace' => 'sometimes|string|max:255',
-                'phone' => 'sometimes|string|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
-                'job' => 'sometimes|string|max:255',
-                'highestdegree' => 'sometimes|string|max:255',
-                'registration_number' => 'sometimes|string|unique:users,registration_number,' . $user->id,
-                'version' => 'sometimes|string|max:50',
-            ]);
+            try {
+                // Validate update data
+                $validated = $request->validate([
+                    'name' => 'sometimes|string|max:255',
+                    'lname' => 'sometimes|string|max:255',
+                    'email' => 'sometimes|email|unique:users,email,' . $user->id,
+                    'age' => 'sometimes|integer|min:18|max:100',
+                    'specialty' => 'sometimes|string|max:255',
+                    'workingplace' => 'sometimes|string|max:255',
+                    'phone' => 'sometimes|string|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
+                    'job' => 'sometimes|string|max:255',
+                    'highestdegree' => 'sometimes|string|max:255',
+                    'registration_number' => 'sometimes|string|unique:users,registration_number,' . $user->id,
+                    'version' => 'sometimes|string|max:50',
+                ]);
+            } catch (ValidationException $e) {
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors()
+                ], 422);
+            }
 
             DB::beginTransaction();
             try {

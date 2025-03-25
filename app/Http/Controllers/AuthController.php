@@ -297,12 +297,11 @@ class AuthController extends Controller
         try {
             try {
                 $validated = $request->validate([
-                    'current_password' => 'required|string|min:8',
+                    'current_password' => 'required|string|min:6',
                     'new_password' => [
                         'required',
                         'string',
-                        'min:8',
-                        'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/', // At least 8 chars, 1 letter and 1 number
+                        'min:6',
                         'different:current_password'
                     ]
                 ]);

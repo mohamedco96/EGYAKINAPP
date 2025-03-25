@@ -744,29 +744,31 @@ class GroupController extends Controller
                 });
 
             // Retrieve pending invitations using User model
-            $pendingInvitations = User::whereHas('groups', function($query) use ($groupId) {
-                    $query->where('group_id', $groupId)
-                          ->where('status', 'pending');
-                })
-                ->with(['groups' => function($query) use ($groupId) {
-                    $query->where('group_id', $groupId)
-                          ->where('status', 'pending')
-                          ->select('group_user.id as invitation_id', 'group_user.created_at as invited_at');
-                }])
-                ->select('users.id', 'users.name', 'users.lname', 'users.image', 'users.syndicate_card', 'users.isSyndicateCardRequired', 'users.version')
+            $pendingInvitations = $group->doctors()
+                ->where('status', 'pending')
+                ->select(
+                    'users.id',
+                    'users.name',
+                    'users.lname',
+                    'users.image',
+                    'users.syndicate_card',
+                    'users.isSyndicateCardRequired',
+                    'users.version',
+                    'group_user.id as invitation_id',
+                    'group_user.created_at as invited_at'
+                )
                 ->get()
-                ->map(function($user) {
-                    $groupData = $user->groups->first();
+                ->map(function($doctor) {
                     return [
-                        'id' => $user->id,
-                        'name' => $user->name,
-                        'lname' => $user->lname,
-                        'image' => $user->image,
-                        'syndicate_card' => $user->syndicate_card,
-                        'isSyndicateCardRequired' => $user->isSyndicateCardRequired,
-                        'version' => $user->version,
-                        'invitation_id' => $groupData->pivot->id,
-                        'invited_at' => $groupData->pivot->created_at
+                        'id' => $doctor->id,
+                        'name' => $doctor->name,
+                        'lname' => $doctor->lname,
+                        'image' => $doctor->image,
+                        'syndicate_card' => $doctor->syndicate_card,
+                        'isSyndicateCardRequired' => $doctor->isSyndicateCardRequired,
+                        'version' => $doctor->version,
+                        'invitation_id' => $doctor->invitation_id,
+                        'invited_at' => $doctor->invited_at
                     ];
                 });
 

@@ -232,4 +232,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(AIConsultation::class);
     }
+
+    public function fcmTokens()
+    {
+        return $this->hasMany(FcmToken::class);
+    }
 }

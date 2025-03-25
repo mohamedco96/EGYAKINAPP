@@ -58,7 +58,7 @@ class AuthController extends Controller
                     'job' => 'nullable|string|max:255',
                     'highestdegree' => 'nullable|string|max:255',
                     'registration_number' => 'required|string|unique:users',
-                    'fcm_token' => 'nullable|string|max:255'
+                    'fcmToken' => 'nullable|string|max:255'
                 ]);
             } catch (ValidationException $e) {
                 return response()->json([
@@ -74,8 +74,8 @@ class AuthController extends Controller
                 $user = $this->createUser($validated);
 
                 // Store FCM token if provided
-                if (isset($validated['fcm_token'])) {
-                    $this->storeFcmToken($user->id, $validated['fcm_token']);
+                if (isset($validated['fcmToken'])) {
+                    $this->storeFcmToken($user->id, $validated['fcmToken']);
                 }
 
                 // Generate token
@@ -181,7 +181,7 @@ class AuthController extends Controller
                 $validated = $request->validate([
                     'email' => 'required|email|max:255',
                     'password' => 'required|string|min:8',
-                    'fcm_token' => 'nullable|string|max:255'
+                    'fcmToken' => 'nullable|string|max:255'
                 ]);
             } catch (ValidationException $e) {
                 return response()->json([
@@ -223,8 +223,8 @@ class AuthController extends Controller
             Cache::forget($key);
 
             // Store FCM token if provided
-            if (isset($validated['fcm_token'])) {
-                $this->storeFcmToken($user->id, $validated['fcm_token']);
+            if (isset($validated['fcmToken'])) {
+                $this->storeFcmToken($user->id, $validated['fcmToken']);
             }
 
             // Generate new token

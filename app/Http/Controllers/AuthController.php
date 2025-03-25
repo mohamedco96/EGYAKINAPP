@@ -444,22 +444,6 @@ class AuthController extends Controller
         }
     }
 
-    public function sendPushNotificationTest()
-    {
-        // Retrieve all doctors with role 'admin' or 'tester' except the authenticated user
-        $doctors = User::role(['Admin', 'Tester'])
-            ->pluck('id'); // Get only the IDs of the users
-
-
-        $title = 'New Syndicate Card Pending Approval 📋';
-        $body = 'Test Message';
-        $tokens = FcmToken::whereIn('doctor_id', $doctors)
-            ->pluck('token')
-            ->toArray();
-
-        $this->notificationController->sendPushNotification($title, $body, $tokens);
-    }
-
 
     public function uploadSyndicateCard(Request $request)
     {
@@ -497,16 +481,19 @@ class AuthController extends Controller
                 ->where('id', '!=', Auth::id())
                 ->pluck('id'); // Get only the IDs of the users
 
-            // Create a new patient notification
-            foreach ($doctors as $doctorId) {
-                AppNotification::create([
+            // Create notifications for all doctors at once
+            $notifications = array_map(function($doctorId) use ($user) {
+                return [
                     'doctor_id' => $doctorId,
                     'type' => 'Syndicate Card',
                     'content' => 'Dr. ' . $user->name . ' has uploaded a new Syndicate Card for approval.',
                     'type_doctor_id' => $user->id,
-                    //'patient_id' => '31', // to be changed
-                ]);
-            }
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }, $doctors);
+
+            AppNotification::insert($notifications);
 
             $title = 'New Syndicate Card Pending Approval 📋';
             $body = 'Dr. ' . $user->name . ' has uploaded a new Syndicate Card for approval.';

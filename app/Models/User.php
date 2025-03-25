@@ -235,6 +235,6 @@ class User extends Authenticatable
 
     public function fcmTokens()
     {
-        return $this->hasMany(FcmToken::class);
+        return $this->hasMany(FcmToken::class, 'doctor_id');
     }
 }

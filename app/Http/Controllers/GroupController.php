@@ -937,23 +937,103 @@ class GroupController extends Controller
             $group = Group::findOrFail($groupId);
             $userId = Auth::id();
 
-            // Check if the user is already a member of the group
-            if ($group->doctors()->where('doctor_id', $userId)->exists()) {
-                // Log the attempt to join an already joined group
-                Log::info('User already a member of the group', [
-                    'group_id' => $groupId,
-                    'doctor_id' => $userId
-                ]);
+            // Check if the user exists in the group and get their status
+            $existingMember = $group->doctors()
+                ->where('doctor_id', $userId)
+                ->first();
 
-                return response()->json([
-                    'value' => false,
-                    'message' => 'You are already a member of this group'
-                ], 400);
+            if ($existingMember) {
+                $currentStatus = $existingMember->pivot->status;
+                
+                // If already joined, return error
+                if ($currentStatus === 'joined') {
+                    Log::info('User already a member of the group', [
+                        'group_id' => $groupId,
+                        'doctor_id' => $userId
+                    ]);
+
+                    return response()->json([
+                        'value' => false,
+                        'message' => 'You are already a member of this group'
+                    ], 400);
+                }
+                
+                // If pending or invited, return error
+                if ($currentStatus === 'pending' || $currentStatus === 'invited') {
+                    Log::info('User already has a pending request or invitation', [
+                        'group_id' => $groupId,
+                        'doctor_id' => $userId,
+                        'status' => $currentStatus
+                    ]);
+
+                    return response()->json([
+                        'value' => false,
+                        'message' => $currentStatus === 'pending' 
+                            ? 'Your join request is still pending'
+                            : 'You already have an invitation to this group'
+                    ], 400);
+                }
+
+                // If declined, update their status
+                if ($currentStatus === 'declined') {
+                    $newStatus = ($group->privacy === 'private') ? 'pending' : 'joined';
+                    
+                    // Update the status
+                    $group->doctors()->updateExistingPivot($userId, [
+                        'status' => $newStatus,
+                        'updated_at' => now()
+                    ]);
+
+                    // Send notifications only if status is pending
+                    if ($newStatus === 'pending') {
+                        // Notify group owner
+                        if ($group->owner_id !== Auth::id()) {
+                            $notification = AppNotification::create([
+                                'doctor_id' => $group->owner_id,
+                                'type' => 'Other',
+                                'type_id' => $groupId,
+                                'content' => sprintf('Dr. %s requested to join group', Auth::user()->name . ' ' . Auth::user()->lname),
+                                'type_doctor_id' => Auth::id(),
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ]);
+
+                            Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $groupId);
+                        }
+
+                        // Notify admins and testers
+                        $doctors = User::role(['Admin', 'Tester'])
+                            ->where('id', '!=', Auth::id())
+                            ->pluck('id');
+
+                        $title = 'New Join Request 📣';
+                        $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' requested to join group';
+                        $tokens = FcmToken::whereIn('doctor_id', $doctors)
+                            ->pluck('token')
+                            ->toArray();
+                    
+                        $this->notificationController->sendPushNotification($title, $body, $tokens);
+                    }
+
+                    Log::info('Previously declined user status updated', [
+                        'group_id' => $groupId,
+                        'doctor_id' => $userId,
+                        'old_status' => 'declined',
+                        'new_status' => $newStatus
+                    ]);
+
+                    return response()->json([
+                        'value' => true,
+                        'message' => ($newStatus === 'joined')
+                            ? 'Joined group successfully'
+                            : 'Join request sent, waiting for approval'
+                    ], 200);
+                }
             }
 
-            // Determine user status based on group privacy
+            // If user doesn't exist in the group, add them
             $status = ($group->privacy === 'private') ? 'pending' : 'joined';
-
+            
             // Add the user to the group with the determined status
             $group->doctors()->attach($userId, ['status' => $status]);
 
@@ -964,35 +1044,37 @@ class GroupController extends Controller
                 'status' => $status
             ]);
 
+            // Send notifications only if status is pending
+            if ($status === 'pending') {
+                // Notify group owner
+                if ($group->owner_id !== Auth::id()) {
+                    $notification = AppNotification::create([
+                        'doctor_id' => $group->owner_id,
+                        'type' => 'Other',
+                        'type_id' => $groupId,
+                        'content' => sprintf('Dr. %s requested to join group', Auth::user()->name . ' ' . Auth::user()->lname),
+                        'type_doctor_id' => Auth::id(),
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
 
-            // Check if the post owner is not the one liking the post
-            if ($group->owner_id !== Auth::id()) {
-                $notification = AppNotification::create([
-                    'doctor_id' => $group->owner_id,
-                    'type' => 'Other',
-                    'type_id' => $groupId,
-                    'content' => sprintf('Dr. %s requested to join group', Auth::user()->name . ' ' . Auth::user()->lname),
-                    'type_doctor_id' => Auth::id(),
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
+                    Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $groupId);
+                }
 
-                Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $groupId);
+                // Notify admins and testers
+                $doctors = User::role(['Admin', 'Tester'])
+                    ->where('id', '!=', Auth::id())
+                    ->pluck('id');
+
+                $title = 'New Join Request 📣';
+                $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' requested to join group';
+                $tokens = FcmToken::whereIn('doctor_id', $doctors)
+                    ->pluck('token')
+                    ->toArray();
+            
+                $this->notificationController->sendPushNotification($title, $body, $tokens);
             }
 
-            // Notifying other doctors
-            $doctors = User::role(['Admin', 'Tester'])
-            ->where('id', '!=', Auth::id())
-            ->pluck('id'); // Get only the IDs of the users
-
-            $title = 'New Join Request 📣';
-            $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' requested to join group';
-            $tokens = FcmToken::whereIn('doctor_id', $doctors)
-                ->pluck('token')
-                ->toArray();
-        
-            $this->notificationController->sendPushNotification($title, $body, $tokens);            
-            // Return appropriate response
             return response()->json([
                 'value' => true,
                 'message' => ($status === 'joined')
@@ -1000,13 +1082,11 @@ class GroupController extends Controller
                     : 'Join request sent, waiting for approval'
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            // Log the error
             Log::error('Group not found', [
                 'group_id' => $groupId,
                 'user_id' => Auth::id()
             ]);
 
-            // Return error response
             return response()->json([
                 'value' => false,
                 'message' => 'Group not found'

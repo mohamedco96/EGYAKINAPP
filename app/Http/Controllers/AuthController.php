@@ -114,15 +114,15 @@ class AuthController extends Controller
     }
 
     /**
-     * Create a new user with the provided request data.
+     * Create a new user with the provided validated data.
      *
-     * @param \Illuminate\Http\Request $request
+     * @param array $data
      * @return \App\Models\User
      */
-    protected function createUser(Request $request)
+    protected function createUser(array $data)
     {
         // Sanitize inputs
-        $sanitized = array_map('trim', $request->all());
+        $sanitized = array_map('trim', $data);
         
         return User::create([
             'name' => $sanitized['name'],
@@ -131,11 +131,11 @@ class AuthController extends Controller
             'password' => Hash::make($sanitized['password']),
             'passwordValue' => encrypt($sanitized['password']), // Encrypt stored password
             'age' => $sanitized['age'] ?? null,
-            'specialty' => $sanitized['specialty'],
-            'workingplace' => $sanitized['workingplace'],
-            'phone' => $sanitized['phone'],
-            'job' => $sanitized['job'],
-            'highestdegree' => $sanitized['highestdegree'],
+            'specialty' => $sanitized['specialty'] ?? null,
+            'workingplace' => $sanitized['workingplace'] ?? null,
+            'phone' => $sanitized['phone'] ?? null,
+            'job' => $sanitized['job'] ?? null,
+            'highestdegree' => $sanitized['highestdegree'] ?? null,
             'registration_number' => $sanitized['registration_number'],
         ]);
     }

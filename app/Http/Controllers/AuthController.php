@@ -92,7 +92,7 @@ class AuthController extends Controller
                     'value' => true,
                     'message' => 'User Created Successfully',
                     'token' => $token,
-                    'user' => $user
+                    'data' => $user
                 ], 201);
 
             } catch (\Exception $e) {

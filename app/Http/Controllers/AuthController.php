@@ -239,7 +239,7 @@ class AuthController extends Controller
                 'value' => true,
                 'message' => 'User Logged In Successfully',
                 'token' => $token,
-                'user' => $user
+                'data' => $user
             ], 200);
 
         } catch (\Exception $e) {
@@ -681,7 +681,7 @@ class AuthController extends Controller
         return response()->json([
             'value' => true,
             'message' => 'User Updated Successfully',
-            'user' => $user, // Optionally include updated user data in response
+            'data' => $user, // Optionally include updated user data in response
         ], 200);
     }
 

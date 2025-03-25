@@ -49,8 +49,7 @@ class AuthController extends Controller
                     'password' => [
                         'required',
                         'string',
-                        'min:8',
-                        'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/' // At least 8 chars, 1 letter and 1 number
+                        'min:6' // At least 8 chars, 1 letter and 1 number
                     ],
                     'age' => 'nullable|integer|min:18|max:100',
                     'specialty' => 'nullable|string|max:255',

@@ -477,29 +477,33 @@ class AuthController extends Controller
             $imageUrl = config('app.url') . '/' . 'storage/' . $path;
 
             // Retrieve all doctors with role 'admin' or 'tester' except the authenticated user
+            // Eager load FCM tokens to prevent N+1
             $doctors = User::role(['Admin', 'Tester'])
                 ->where('id', '!=', Auth::id())
-                ->pluck('id')
-                ->toArray(); // Convert Collection to array
+                ->with('fcmTokens:id,doctor_id,token')
+                ->get();
 
             // Create notifications for all doctors at once
-            $notifications = array_map(function($doctorId) use ($user) {
+            $notifications = $doctors->map(function($doctor) use ($user) {
                 return [
-                    'doctor_id' => $doctorId,
+                    'doctor_id' => $doctor->id,
                     'type' => 'Syndicate Card',
                     'content' => 'Dr. ' . $user->name . ' has uploaded a new Syndicate Card for approval.',
                     'type_doctor_id' => $user->id,
                     'created_at' => now(),
                     'updated_at' => now()
                 ];
-            }, $doctors);
+            })->toArray();
 
             AppNotification::insert($notifications);
 
             $title = 'New Syndicate Card Pending Approval 📋';
             $body = 'Dr. ' . $user->name . ' has uploaded a new Syndicate Card for approval.';
-            $tokens = FcmToken::whereIn('doctor_id', $doctors)
-                ->pluck('token')
+            
+            // Get tokens from eager loaded relationship
+            $tokens = $doctors->pluck('fcmTokens.*.token')
+                ->flatten()
+                ->filter()
                 ->toArray();
 
             $this->notificationController->sendPushNotification($title, $body, $tokens);

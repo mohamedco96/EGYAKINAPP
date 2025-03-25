@@ -37,22 +37,6 @@ class AuthController extends Controller
         $this->notificationController = $notificationController;
     }
 
-    protected function validateRegistration(Request $request)
-    {
-        return $request->validate([
-            'name' => 'required|string|max:255',
-            'lname' => 'required|string|max:255',
-            'email' => 'required|string|email|unique:users,email',
-            'password' => 'required|string|min:8',
-            'age' => 'nullable|integer|min:18|max:100',
-            'specialty' => 'nullable|string|max:255',
-            'workingplace' => 'nullable|string|max:255',
-            'phone' => 'nullable|string|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
-            'job' => 'nullable|string|max:255',
-            'highestdegree' => 'nullable|string|max:255',
-            'registration_number' => 'required|string|unique:users,registration_number',
-        ]);
-    }
 
     public function register(Request $request)
     {
@@ -67,12 +51,12 @@ class AuthController extends Controller
                     'min:8',
                     'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/' // At least 8 chars, 1 letter and 1 number
                 ],
-                'age' => 'required|integer|min:18|max:100',
-                'specialty' => 'required|string|max:255',
-                'workingplace' => 'required|string|max:255',
-                'phone' => 'required|string|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
-                'job' => 'required|string|max:255',
-                'highestdegree' => 'required|string|max:255',
+                'age' => 'nullable|integer|min:18|max:100',
+                'specialty' => 'nullable|string|max:255',
+                'workingplace' => 'nullable|string|max:255',
+                'phone' => 'nullable|string|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
+                'job' => 'nullable|string|max:255',
+                'highestdegree' => 'nullable|string|max:255',
                 'registration_number' => 'required|string|unique:users',
                 'fcm_token' => 'nullable|string|max:255'
             ]);
@@ -182,68 +166,6 @@ class AuthController extends Controller
         }
     }
 
-    public function registerbkp(Request $request)
-    {
-        $fields = $request->validate([
-            //            'name' => 'required|string',
-            //            'lname' => 'required|string',
-            //            //'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
-            //            'email' => 'required|string|unique:users,email',
-            //            'password' => 'required|string|confirmed',
-            //            'age' => 'integer',
-            //            'specialty' => 'required|string',
-            //            'workingplace' => 'required|string',
-            //            'phone' => 'required|string',
-            //            'job' => 'required|string',
-            //            'highestdegree' => 'required|string',
-            //            'registration_number' => 'required|string',
-        ]);
-
-        $user = User::create([
-            'name' => $fields['name'],
-            'lname' => $fields['lname'],
-            //'image' => $path,
-            'email' => $fields['email'],
-            'password' => bcrypt($fields['password']),
-            'age' => $fields['age'],
-            'specialty' => $fields['specialty'],
-            'workingplace' => $fields['workingplace'],
-            'phone' => $fields['phone'],
-            'job' => $fields['job'],
-            'highestdegree' => $fields['highestdegree'],
-            'registration_number' => $fields['registration_number'],
-        ]);
-
-        $token = $user->createToken('apptoken')->plainTextToken;
-        $user->notify(new WelcomeMailNotification());
-        $response = [
-            'value' => true,
-            'data' => $user,
-            //'image' => $imageUrl,
-            'token' => $token,
-        ];
-
-        if ($request->has('fcmToken')) {
-            $existingToken = FcmToken::where('token', $request->fcmToken)->first();
-
-            if (!$existingToken) {
-                // Attempt to create a new FCM token
-                FcmToken::create([
-                    'doctor_id' => $user->id,
-                    'token' => $request->fcmToken,
-                ]);
-
-                // Log the successful token storage
-                Log::info('FCM token stored successfully.', [
-                    'doctor_id' => $user->id,
-                    'token' => $request->fcmToken,
-                ]);
-            }
-        }
-
-
-        return response($response, 200);
-    }
 
     public function login(Request $request)
     {

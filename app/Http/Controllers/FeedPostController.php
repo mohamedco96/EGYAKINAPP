@@ -589,7 +589,7 @@ class FeedPostController extends Controller
     
             // Initialize media variables with existing values
             $mediaType = $post->media_type;
-            $existingMediaPaths = json_decode($post->media_path, true) ?? [];
+            $existingMediaPaths = $post->media_path ?? [];
     
             // If media_type is sent in the request
             if ($request->has('media_type')) {

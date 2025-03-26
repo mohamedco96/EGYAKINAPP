@@ -606,16 +606,21 @@ class FeedPostController extends Controller
             $existingMediaFromRequest = $request->input('existing_media_path', []);
     
             // Upload new images (if any)
-            $newMediaPaths = $this->uploadMultipleImages($request->file('media_path'));
+            $newMediaPaths = [];
+            if ($request->hasFile('media_path')) {
+                $newMediaPaths = $this->uploadMultipleImages($request->file('media_path'));
+            }
     
-            // Merge old and new media
-            $finalMediaPaths = array_merge($existingMediaFromRequest, $newMediaPaths);
+            // Merge old and new media, keeping existing paths if no new media is sent
+            $finalMediaPaths = $request->hasFile('media_path') 
+                ? array_merge($existingMediaFromRequest, $newMediaPaths)
+                : $existingMediaPaths;
     
             // Update the post with validated data
             $post->update([
                 'content' => $validatedData['content'],
                 'media_type' => $mediaType,
-                'media_path' => json_encode($finalMediaPaths),
+                'media_path' => $finalMediaPaths,
                 'visibility' => $validatedData['visibility'] ?? 'Public',
                 'group_id' => $validatedData['group_id'] ?? null,
             ]);

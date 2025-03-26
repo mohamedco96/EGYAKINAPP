@@ -731,17 +731,23 @@ class FeedPostController extends Controller
         return null;
     }
 
-    private function uploadMultipleImages(Request $request)
+    private function uploadMultipleImages($requestOrFiles)
     {
-        // Validate the request
-        $request->validate([
-            'media_path.*' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-        ]);
-    
         $uploadedImages = [];
-    
-        if ($request->hasFile('media_path')) {
-            foreach ($request->file('media_path') as $index => $media) {
+        $files = [];
+
+        // Handle both Request object and array of files
+        if ($requestOrFiles instanceof \Illuminate\Http\Request) {
+            if (!$requestOrFiles->hasFile('media_path')) {
+                return [];
+            }
+            $files = $requestOrFiles->file('media_path');
+        } else {
+            $files = $requestOrFiles;
+        }
+
+        if (!empty($files)) {
+            foreach ($files as $media) {
                 // Get the authenticated user's name
                 $name = auth()->user()->name;
     

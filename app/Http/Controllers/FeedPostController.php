@@ -603,7 +603,9 @@ class FeedPostController extends Controller
             }
     
             // Get existing media paths from request
-            $existingMediaFromRequest = $request->input('existing_media_path', []);
+            $existingMediaFromRequest = is_array($request->input('existing_media_path')) 
+                ? $request->input('existing_media_path') 
+                : [];
     
             // Upload new images (if any)
             $newMediaPaths = [];

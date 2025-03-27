@@ -635,16 +635,61 @@ class FeedPostController extends Controller
             // Attach hashtags to the post
             $this->attachHashtags($post, $request->input('content'));
     
+            // Handle poll update or creation
+            if (isset($validatedData['poll'])) {
+                // Check if post already has a poll
+                if ($post->poll) {
+                    // Update existing poll
+                    $post->poll->update([
+                        'question' => $validatedData['poll']['question'] ?? $post->poll->question,
+                        'allow_add_options' => $validatedData['poll']['allow_add_options'] ?? $post->poll->allow_add_options,
+                        'allow_multiple_choice' => $validatedData['poll']['allow_multiple_choice'] ?? $post->poll->allow_multiple_choice
+                    ]);
+
+                    // Handle options update
+                    if (isset($validatedData['poll']['options']) && is_array($validatedData['poll']['options'])) {
+                        // Delete existing options
+                        $post->poll->options()->delete();
+                        
+                        // Create new options
+                        foreach ($validatedData['poll']['options'] as $optionText) {
+                            if (!empty($optionText)) {
+                                $post->poll->options()->create(['option_text' => $optionText]);
+                            }
+                        }
+                    }
+                } else {
+                    // Create new poll
+                    $poll = new Poll([
+                        'question' => $validatedData['poll']['question'] ?? null,
+                        'allow_add_options' => $validatedData['poll']['allow_add_options'] ?? false,
+                        'allow_multiple_choice' => $validatedData['poll']['allow_multiple_choice'] ?? false
+                    ]);
+
+                    // Associate poll with the post
+                    $post->poll()->save($poll);
+
+                    // Create options if they exist
+                    if (isset($validatedData['poll']['options']) && is_array($validatedData['poll']['options'])) {
+                        foreach ($validatedData['poll']['options'] as $optionText) {
+                            if (!empty($optionText)) {
+                                $poll->options()->create(['option_text' => $optionText]);
+                            }
+                        }
+                    }
+                }
+            }
+    
             // Commit the transaction
             DB::commit();
     
             // Log the successful update
             Log::info("Post ID $id updated by doctor " . $user->id);
     
-            // Return a success response
+            // Return a success response with updated post and poll data
             return response()->json([
                 'value' => true,
-                'data' => $post,
+                'data' => $post->load('poll.options'),
                 'message' => 'Post updated successfully'
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

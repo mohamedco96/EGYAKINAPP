@@ -31,6 +31,16 @@ use PDF;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\AchievementController;
 use function PHPUnit\Framework\assertNotTrue;
+use App\Models\Hashtag;
+use App\Models\Group;
+use App\Models\FeedPost;
+use App\Models\FeedPostComment;
+use App\Models\FeedPostCommentLike;
+use App\Models\FeedPostLike;
+use App\Models\FeedSaveLike;
+use App\Models\Poll;
+use App\Models\PollOption; // If you have a separate PollOption model
+use App\Models\PollVote;
 
 
 class PatientsController extends Controller
@@ -147,8 +157,89 @@ class PatientsController extends Controller
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
             $isVerified = $user->isSyndicateCardRequired === 'Verified';
 
-            // If user is not verified and not admin/tester, return empty lists
+            // If user is not verified and not admin/tester, return limited data
             if (!$isVerified && !$isAdminOrTester) {
+
+                $feedPosts = FeedPost::with([
+                    'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                    'poll.options' => function ($query) use ($doctorId) {
+                        $query->withCount('votes') // Count votes per option
+                            ->with(['votes' => function ($voteQuery) use ($doctorId) {
+                                $voteQuery->where('doctor_id', $doctorId); // Check if user voted
+                            }]);
+                    }
+                ])
+                    ->withCount(['likes', 'comments'])  // Count likes and comments
+                    ->with([
+                        'saves' => function ($query) use ($doctorId) {
+                            $query->where('doctor_id', $doctorId); // Check if the post is saved by the doctor
+                        },
+                        'likes' => function ($query) use ($doctorId) {
+                            $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
+                        }
+                    ])
+                    ->where('group_id', null) // Fetch posts that are not in a group
+                    ->latest('created_at') // Sort by created_at in descending order
+                    ->limit(5)
+                    ->get();
+    
+                // Process each post
+                $feedPosts->getCollection()->transform(function ($post) use ($doctorId) {
+                    // Add 'is_saved' and 'is_liked' fields
+                    $post->isSaved = $post->saves->isNotEmpty();
+                    $post->isLiked = $post->likes->isNotEmpty();
+    
+                    // Sort poll options by vote count (highest first) and check if the user has voted
+                    if ($post->poll) {
+                        $post->poll->options = $post->poll->options->map(function ($option) use ($doctorId) {
+                            $option->is_voted = $option->votes->isNotEmpty(); // If user has voted for this option
+                            unset($option->votes); // Remove unnecessary vote data
+                            return $option;
+                        })->sortByDesc('votes_count')->values();
+                    }
+    
+                    // Remove unnecessary data
+                    unset($post->saves, $post->likes);
+    
+                    return $post;
+                });
+
+                $trendingHashtags = Hashtag::orderBy('usage_count', 'desc')
+                ->limit(5)
+                ->get();
+
+            // Fetch the latest three groups
+            $latestGroups = Group::with(['owner' => function ($query) {
+                $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
+            }])
+                ->whereDoesntHave('doctors', function ($query) {
+                    $query->where('doctor_id', Auth::id())
+                        ->where('status', 'joined'); // Exclude joined groups
+                })
+                ->orderBy('created_at', 'desc')
+                ->take(5)
+                ->get();
+
+            // Add user status and member count to each group
+            $userId = Auth::id();
+            foreach ($latestGroups as $group) {
+                // Fetch user status for the authenticated user
+                $userStatus = DB::table('group_user')
+                    ->where('group_id', $group->id)
+                    ->where('doctor_id', $userId)
+                    ->value('status');
+
+                $group->user_status = $userStatus ?? null;
+
+                // Fetch member count for the group from the group_user table
+                $memberCount = DB::table('group_user')
+                    ->where('group_id', $group->id)
+                    ->where('status', 'joined')
+                    ->count();
+
+                $group->member_count = $memberCount; // Add member count to the group object
+            }
+
                 $response = [
                     'value' => true,
                     'app_update_message' => '<ul><li><strong>Doctor Consultations</strong>: Doctors can now consult one or more colleagues for advice on their patients.</li><li><strong>User Achievements</strong>: Earn achievements by adding a set number of patients or completing specific outcomes.</li></ul>',
@@ -168,10 +259,13 @@ class PatientsController extends Controller
                         'all_patients' => [],
                         'current_patient' => [],
                         'posts' => [],
+                        'feed_posts' => $feedPosts,
+                        'trending_hashtags' => $trendingHashtags,
+                        'latest_groups' => $latestGroups,
                     ],
                 ];
 
-                Log::info('User not verified, returning empty data.', [
+                Log::info('User not verified, returning limited data.', [
                     'user_id' => $user->id,
                     'response' => $response
                 ]);

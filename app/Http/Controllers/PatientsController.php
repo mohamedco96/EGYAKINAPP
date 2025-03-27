@@ -156,7 +156,7 @@ class PatientsController extends Controller
             $user = Auth::user();
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
             $isVerified = $user->isSyndicateCardRequired === 'Verified';
-
+            $doctorId = $user->id;
             // If user is not verified and not admin/tester, return limited data
             if (!$isVerified && !$isAdminOrTester) {
 

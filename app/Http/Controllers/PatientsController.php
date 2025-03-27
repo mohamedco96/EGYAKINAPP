@@ -145,6 +145,39 @@ class PatientsController extends Controller
             // Retrieve the authenticated user
             $user = Auth::user();
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+            $isVerified = $user->isSyndicateCardRequired === 'Verified';
+
+            // If user is not verified and not admin/tester, return empty lists
+            if (!$isVerified && !$isAdminOrTester) {
+                $response = [
+                    'value' => true,
+                    'app_update_message' => '<ul><li><strong>Doctor Consultations</strong>: Doctors can now consult one or more colleagues for advice on their patients.</li><li><strong>User Achievements</strong>: Earn achievements by adding a set number of patients or completing specific outcomes.</li></ul>',
+                    'verified' => false,
+                    'unreadCount' => '0',
+                    'doctor_patient_count' => '0',
+                    'isSyndicateCardRequired' => $user->isSyndicateCardRequired,
+                    'isUserBlocked' => $user->blocked,
+                    'all_patient_count' => '0',
+                    'score_value' => '0',
+                    'posts_count' => '0',
+                    'saved_posts_count' => '0',
+                    'role' => $user->roles->first()->name ?? "User",
+                    'data' => [
+                        'topDoctors' => [],
+                        'pendingSyndicateCard' => [],
+                        'all_patients' => [],
+                        'current_patient' => [],
+                        'posts' => [],
+                    ],
+                ];
+
+                Log::info('User not verified, returning empty data.', [
+                    'user_id' => $user->id,
+                    'response' => $response
+                ]);
+
+                return response()->json($response, 200);
+            }
 
             // Fetch all necessary data in fewer queries
             $posts = Posts::select('id', 'title', 'image', 'content', 'hidden', 'post_type', 'webinar_date', 'url', 'doctor_id', 'updated_at')

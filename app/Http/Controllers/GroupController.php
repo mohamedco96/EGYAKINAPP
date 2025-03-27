@@ -832,12 +832,15 @@ class GroupController extends Controller
             // Check if the authenticated user is a member of the group and get their status
             $doctorId = Auth::id();
 
-            $userStatus = DB::table('group_user')
+            // Get user status and invitation_id
+            $userGroupData = DB::table('group_user')
                 ->where('group_id', $groupId)
                 ->where('doctor_id', $doctorId)
-                ->value('status');
+                ->select('status', 'id as invitation_id')
+                ->first();
 
-            $group->user_status = $userStatus ?? null;
+            $group->user_status = $userGroupData->status ?? null;
+            $group->invitation_id = $userGroupData->invitation_id ?? null;
 
             // Check if group has pending invitations
             $hasPendingInvitations = $group->doctors()

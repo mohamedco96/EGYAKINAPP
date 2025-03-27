@@ -162,38 +162,38 @@ class PatientsController extends Controller
 
                 $feedPosts = FeedPost::with([
                     'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
-                    'poll.options' => function ($query) use ($doctorId) {
-                        $query->withCount('votes') // Count votes per option
-                            ->with(['votes' => function ($voteQuery) use ($doctorId) {
-                                $voteQuery->where('doctor_id', $doctorId); // Check if user voted
+                    'poll.options' => function ($query) use ($user) {
+                        $query->withCount('votes')
+                            ->with(['votes' => function ($voteQuery) use ($user) {
+                                $voteQuery->where('doctor_id', $user->id);
                             }]);
                     }
                 ])
-                    ->withCount(['likes', 'comments'])  // Count likes and comments
-                    ->with([
-                        'saves' => function ($query) use ($doctorId) {
-                            $query->where('doctor_id', $doctorId); // Check if the post is saved by the doctor
-                        },
-                        'likes' => function ($query) use ($doctorId) {
-                            $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
-                        }
-                    ])
-                    ->where('group_id', null) // Fetch posts that are not in a group
-                    ->latest('created_at') // Sort by created_at in descending order
-                    ->limit(5)
-                    ->get();
+                ->withCount(['likes', 'comments'])
+                ->with([
+                    'saves' => function ($query) use ($user) {
+                        $query->where('doctor_id', $user->id);
+                    },
+                    'likes' => function ($query) use ($user) {
+                        $query->where('doctor_id', $user->id);
+                    }
+                ])
+                ->where('group_id', null)
+                ->latest('created_at')
+                ->limit(5)
+                ->get();
     
                 // Process each post
-                $feedPosts->getCollection()->transform(function ($post) use ($doctorId) {
+                $feedPosts->transform(function ($post) use ($user) {
                     // Add 'is_saved' and 'is_liked' fields
                     $post->isSaved = $post->saves->isNotEmpty();
                     $post->isLiked = $post->likes->isNotEmpty();
     
                     // Sort poll options by vote count (highest first) and check if the user has voted
                     if ($post->poll) {
-                        $post->poll->options = $post->poll->options->map(function ($option) use ($doctorId) {
-                            $option->is_voted = $option->votes->isNotEmpty(); // If user has voted for this option
-                            unset($option->votes); // Remove unnecessary vote data
+                        $post->poll->options = $post->poll->options->map(function ($option) use ($user) {
+                            $option->is_voted = $option->votes->isNotEmpty();
+                            unset($option->votes);
                             return $option;
                         })->sortByDesc('votes_count')->values();
                     }

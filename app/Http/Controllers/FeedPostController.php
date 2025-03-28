@@ -858,15 +858,18 @@ class FeedPostController extends Controller
             // Get existing hashtags to avoid duplicates
             $existingHashtags = Hashtag::whereIn('tag', $hashtags)->get()->keyBy('tag');
             
+            // Get currently attached hashtags for this post
+            $attachedHashtagIds = $post->hashtags()->pluck('hashtags.id')->toArray();
+            
             foreach ($hashtags as $hashtagName) {
                 // Check if hashtag exists
                 if (isset($existingHashtags[$hashtagName])) {
-                    // Update existing hashtag's usage count
-                    $existingHashtags[$hashtagName]->increment('usage_count');
+                    $hashtag = $existingHashtags[$hashtagName];
                     
-                    // Attach to post if not already attached
-                    if (!$post->hashtags()->where('hashtags.id', $existingHashtags[$hashtagName]->id)->exists()) {
-                        $post->hashtags()->attach($existingHashtags[$hashtagName]->id);
+                    // Only increment usage count and attach if not already attached to this post
+                    if (!in_array($hashtag->id, $attachedHashtagIds)) {
+                        $hashtag->increment('usage_count');
+                        $post->hashtags()->attach($hashtag->id);
                     }
                 } else {
                     // Create new hashtag

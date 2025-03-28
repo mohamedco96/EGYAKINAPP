@@ -358,7 +358,7 @@ class PatientsController extends Controller
             $userPatientCount = $user->patients()->count();
             $allPatientCount = Patients::count();
             $scoreValue = optional($user->score)->score ?? 0;
-            $postsCount = $user->posts()->count();
+            $postsCount = $user->feedPosts()->count();
             $savedPostsCount = $user->saves()->count();
             $isVerified = (bool)$user->email_verified_at;
             $unreadCount = AppNotification::where('doctor_id', $user->id)->where('read', false)->count();

@@ -535,7 +535,7 @@ class FeedPostController extends Controller
             $this->attachHashtags($post, $request->input('content'));
 
             // Handle poll creation
-            if (isset($validatedData['poll'])) {
+            if (isset($validatedData['poll']) && isset($validatedData['poll']['options']) && !empty($validatedData['poll']['options'])) {
                 $poll = new Poll([
                     'question' => $validatedData['poll']['question'] ?? null,
                     'allow_add_options' => $validatedData['poll']['allow_add_options'] ?? false,
@@ -546,11 +546,9 @@ class FeedPostController extends Controller
                 $post->poll()->save($poll);
 
                 // Create options if they exist
-                if (isset($validatedData['poll']['options']) && is_array($validatedData['poll']['options'])) {
-                    foreach ($validatedData['poll']['options'] as $optionText) {
-                        if (!empty($optionText)) {
-                            $poll->options()->create(['option_text' => $optionText]);
-                        }
+                foreach ($validatedData['poll']['options'] as $optionText) {
+                    if (!empty($optionText)) {
+                        $poll->options()->create(['option_text' => $optionText]);
                     }
                 }
             }

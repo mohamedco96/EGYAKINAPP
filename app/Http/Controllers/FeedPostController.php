@@ -865,13 +865,13 @@ class FeedPostController extends Controller
                     $existingHashtags[$hashtagName]->increment('usage_count');
                     
                     // Attach to post if not already attached
-                    if (!$post->hashtags()->where('id', $existingHashtags[$hashtagName]->id)->exists()) {
+                    if (!$post->hashtags()->where('hashtags.id', $existingHashtags[$hashtagName]->id)->exists()) {
                         $post->hashtags()->attach($existingHashtags[$hashtagName]->id);
                     }
                 } else {
                     // Create new hashtag
                     $hashtag = Hashtag::create([
-                        'name' => $hashtagName,
+                        'tag' => $hashtagName,
                         'usage_count' => 1
                     ]);
                     

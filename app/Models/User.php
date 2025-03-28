@@ -204,7 +204,7 @@ class User extends Authenticatable
     //    New
     public function feedPosts()
     {
-        return $this->hasMany(FeedPost::class);
+        return $this->hasMany(FeedPost::class, 'doctor_id');
     }
 
     public function likes()

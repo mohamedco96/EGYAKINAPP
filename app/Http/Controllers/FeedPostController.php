@@ -850,12 +850,46 @@ class FeedPostController extends Controller
 
     private function attachHashtags(FeedPost $post, $content)
     {
-        $hashtags = $this->extractHashtags($content);
+        try {
+            // Extract hashtags from content
+            preg_match_all('/#(\w+)/', $content, $matches);
+            $hashtags = $matches[1];
 
-        foreach ($hashtags as $tag) {
-            $hashtag = Hashtag::firstOrCreate(['tag' => $tag], ['usage_count' => 0]);
-            $hashtag->increment('usage_count');
-            $post->hashtags()->attach($hashtag->id);
+            // Get existing hashtags to avoid duplicates
+            $existingHashtags = Hashtag::whereIn('tag', $hashtags)->get()->keyBy('tag');
+            
+            foreach ($hashtags as $hashtagName) {
+                // Check if hashtag exists
+                if (isset($existingHashtags[$hashtagName])) {
+                    // Update existing hashtag's usage count
+                    $existingHashtags[$hashtagName]->increment('usage_count');
+                    
+                    // Attach to post if not already attached
+                    if (!$post->hashtags()->where('id', $existingHashtags[$hashtagName]->id)->exists()) {
+                        $post->hashtags()->attach($existingHashtags[$hashtagName]->id);
+                    }
+                } else {
+                    // Create new hashtag
+                    $hashtag = Hashtag::create([
+                        'name' => $hashtagName,
+                        'usage_count' => 1
+                    ]);
+                    
+                    // Attach to post
+                    $post->hashtags()->attach($hashtag->id);
+                }
+            }
+
+            Log::info('Hashtags attached successfully', [
+                'post_id' => $post->id,
+                'hashtags' => $hashtags
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error attaching hashtags', [
+                'post_id' => $post->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
         }
     }
 

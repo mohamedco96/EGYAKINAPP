@@ -66,18 +66,15 @@ class PatientsResource extends Resource
             ->emptyStateActions([
                 Tables\Actions\CreateAction::make(),
             ])
-            ->paginated([10, 25, 50, 100, -1]); // Added back 100 and all options
+            ->paginated([10, 25, 50, 100]); // Added reasonable pagination limits
     }
 
     protected static function getTableQuery(): Builder
     {
         return parent::getTableQuery()
             ->with(['answers' => function($query) {
-                $query->select(['id', 'patient_id', 'question_id', 'answer'])
-                    ->orderBy('id')
-                    ->limit(5000); // Increased limit but still reasonable
-            }])
-            ->orderBy('id'); // Add ordering to improve performance
+                $query->select(['id', 'patient_id', 'question_id', 'answer']);
+            }]);
     }
 
     protected static function questionColumns(): array

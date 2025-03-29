@@ -75,10 +75,9 @@ class PatientsResource extends Resource
             ->with(['answers' => function($query) {
                 $query->select(['id', 'patient_id', 'question_id', 'answer'])
                     ->orderBy('id')
-                    ->limit(1000); // Reduced limit to prevent memory issues
+                    ->limit(5000); // Increased limit but still reasonable
             }])
-            ->orderBy('id')
-            ->select(['id', 'doctor_id']); // Only select needed fields
+            ->orderBy('id'); // Add ordering to improve performance
     }
 
     protected static function questionColumns(): array
@@ -87,7 +86,6 @@ class PatientsResource extends Resource
         $questions = Cache::remember('all_questions', now()->addHour(), function() {
             return Questions::query()
                 ->select(['id', 'question'])
-                ->orderBy('id')
                 ->get();
         });
 
@@ -104,8 +102,7 @@ class PatientsResource extends Resource
                 )
                 ->getStateUsing(function ($record) use ($question) {
                     return $record->answers->firstWhere('question_id', $question->id)?->answer;
-                })
-                ->limit(50); // Limit the displayed text length
+                });
         }
 
         return $columns;

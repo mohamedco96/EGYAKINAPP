@@ -15,6 +15,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use Illuminate\Support\Facades\Cache;
 
 class PatientsResource extends Resource
 {
@@ -32,7 +33,6 @@ class PatientsResource extends Resource
     {
         return static::getModel()::count();
     }
-
 
     public static function form(Form $form): Form
     {
@@ -65,28 +65,45 @@ class PatientsResource extends Resource
             ])
             ->emptyStateActions([
                 Tables\Actions\CreateAction::make(),
-            ]);
+            ])
+            ->paginated([10, 25, 50, 100]); // Added reasonable pagination limits
+    }
+
+    protected static function getTableQuery(): Builder
+    {
+        return parent::getTableQuery()
+            ->with(['answers' => function($query) {
+                $query->select(['id', 'patient_id', 'question_id', 'answer']);
+            }]);
     }
 
     protected static function questionColumns(): array
     {
-        $questions = Questions::all();
+        // Cache questions for 1 hour to prevent repeated queries
+        $questions = Cache::remember('all_questions', now()->addHour(), function() {
+            return Questions::query()
+                ->select(['id', 'question'])
+                ->get();
+        });
+
         $columns = [];
 
         foreach ($questions as $question) {
-            $columns[] = TextColumn::make("answers.{$question->id}.answer")
+            $columns[] = TextColumn::make("question_{$question->id}")
                 ->label($question->question)
-                //->sortable()
-                ->searchable()
+                ->searchable(
+                    query: fn (Builder $query, string $search) => $query->whereHas('answers', 
+                        fn ($q) => $q->where('question_id', $question->id)
+                                    ->where('answer', 'like', "%{$search}%")
+                    )
+                )
                 ->getStateUsing(function ($record) use ($question) {
-                    $answer = $record->answers->firstWhere('question_id', $question->id);
-                    return $answer ? $answer->answer : null;
+                    return $record->answers->firstWhere('question_id', $question->id)?->answer;
                 });
         }
 
         return $columns;
     }
-
 
     public static function getRelations(): array
     {

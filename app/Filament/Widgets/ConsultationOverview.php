@@ -2,7 +2,7 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Consultations;
+use App\Models\Consultation;
 use Filament\Widgets\ChartWidget;
 use Flowframe\Trend\Trend;
 use Flowframe\Trend\TrendValue;
@@ -16,7 +16,7 @@ class ConsultationOverview extends ChartWidget
 
     protected function getData(): array
     {
-        $data = Trend::model(Consultations::class)
+        $data = Trend::model(Consultation::class)
             ->between(
                 start: now()->startOfMonth(),
                 end: now()->endOfMonth(),
@@ -24,7 +24,7 @@ class ConsultationOverview extends ChartWidget
             ->perDay()
             ->count();
 
-        $completedData = Trend::model(Consultations::class)
+        $completedData = Trend::model(Consultation::class)
             ->between(
                 start: now()->startOfMonth(),
                 end: now()->endOfMonth(),

@@ -210,10 +210,10 @@ class PatientsResource extends Resource
             $filename = "patients_export_{$timestamp}.xlsx";
 
             // Store the Excel file in the public disk
-            $storedPath = Excel::store($export, 'exports/' . $filename, 'public');
+            Excel::store($export, 'exports/' . $filename, 'public');
 
             // Construct the full URL for the exported file
-            $fileUrl = config('app.url') . '/storage/' . $storedPath;
+            $fileUrl = config('app.url') . '/storage/exports/' . $filename;
 
             // Log successful export
             Log::info('Successfully exported all patients to Excel.', ['file_url' => $fileUrl]);

@@ -67,9 +67,6 @@ class PatientsResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     ExportBulkAction::make()
-                        ->modifyQueryUsing(fn (Builder $query) => $query->with(['answers' => function($query) {
-                            $query->select(['id', 'patient_id', 'question_id', 'answer']);
-                        }]))
                         ->fileName('patients_export_' . date('Y-m-d_His'))
                         ->withColumns(function () {
                             $columns = [

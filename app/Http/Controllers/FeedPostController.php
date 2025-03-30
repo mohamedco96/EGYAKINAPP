@@ -998,7 +998,7 @@ class FeedPostController extends Controller
     public function destroy($id)
     {
         try {
-            $post = FeedPost::findOrFail($id);
+            $post = FeedPost::with('hashtags')->findOrFail($id);
 
             $user = Auth::user();
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
@@ -1012,13 +1012,39 @@ class FeedPostController extends Controller
                 ], 403);
             }
 
-            $post->delete();
+            // Start transaction for hashtag cleanup
+            DB::beginTransaction();
+            try {
+                // Get hashtags before detaching
+                $hashtags = $post->hashtags;
+                
+                // Detach hashtags from the post
+                $post->hashtags()->detach();
+                
+                // Decrement usage count for each hashtag
+                foreach ($hashtags as $hashtag) {
+                    $hashtag->decrement('usage_count', 1);
+                    
+                    // If usage count reaches 0, delete the hashtag
+                    if ($hashtag->usage_count <= 0) {
+                        $hashtag->delete();
+                    }
+                }
 
-            Log::info("Post ID $id deleted by doctor " . Auth::id());
-            return response()->json([
-                'value' => true,
-                'message' => 'Post deleted successfully'
-            ]);
+                // Delete the post
+                $post->delete();
+
+                DB::commit();
+                Log::info("Post ID $id and its hashtags deleted by doctor " . Auth::id());
+                
+                return response()->json([
+                    'value' => true,
+                    'message' => 'Post deleted successfully'
+                ]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::warning("Post ID $id not found for deletion");
             return response()->json([

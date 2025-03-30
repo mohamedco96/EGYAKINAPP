@@ -80,14 +80,11 @@ class PatientsResource extends Resource
                             Notification::make()
                                 ->success()
                                 ->title('Export Started')
-                                ->body('Your export is being downloaded in a new tab.')
+                                ->body('Your export is being downloaded.')
                                 ->send();
 
-                            // Return the file URL to be handled by JavaScript
-                            return [
-                                'url' => $result['file_url'],
-                                'openUrlInNewTab' => true
-                            ];
+                            // Redirect to the file URL
+                            return redirect($result['file_url']);
                         }
                         
                         // Show error notification

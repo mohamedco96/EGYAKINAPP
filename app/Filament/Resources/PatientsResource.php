@@ -205,17 +205,15 @@ class PatientsResource extends Resource
                 }
             };
 
-            // Generate a unique filename
-            $filename = 'patients_export_' . date('Y-m-d_His') . '.xlsx';
-
-            // Ensure the 'exports' directory exists in the public disk
-            Storage::disk('public')->makeDirectory('exports');
+            // Generate a unique filename with timestamp
+            $timestamp = time() . '_' . uniqid();
+            $filename = "patients_export_{$timestamp}.xlsx";
 
             // Store the Excel file in the public disk
-            Excel::store($export, 'exports/' . $filename);
+            $storedPath = Excel::store($export, 'exports/' . $filename, 'public');
 
-            // Generate the URL for the Excel file
-            $fileUrl = Storage::disk('public')->url('exports/' . $filename);
+            // Construct the full URL for the exported file
+            $fileUrl = config('app.url') . '/storage/' . $storedPath;
 
             // Log successful export
             Log::info('Successfully exported all patients to Excel.', ['file_url' => $fileUrl]);

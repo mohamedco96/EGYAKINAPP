@@ -16,6 +16,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Collection;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithBatchInserts;
 
 class PatientsResource extends Resource
 {
@@ -60,13 +66,39 @@ class PatientsResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    ExportBulkAction::make(),
+                    ExportBulkAction::make()
+                        ->chunkSize(100)
+                        ->modifyQueryUsing(fn (Builder $query) => $query->with(['answers' => function($query) {
+                            $query->select(['id', 'patient_id', 'question_id', 'answer']);
+                        }]))
+                        ->fileName('patients_export_' . date('Y-m-d_His'))
+                        ->withColumns(function () {
+                            $columns = [
+                                'id' => fn ($record) => $record->id,
+                                'doctor_id' => fn ($record) => $record->doctor_id,
+                            ];
+
+                            // Get questions from cache
+                            $questions = Cache::remember('all_questions', now()->addHour(), function() {
+                                return Questions::query()
+                                    ->select(['id', 'question'])
+                                    ->get();
+                            });
+
+                            // Add question columns
+                            foreach ($questions as $question) {
+                                $columns["question_{$question->id}"] = function ($record) use ($question) {
+                                    return $record->answers->firstWhere('question_id', $question->id)?->answer;
+                                };
+                            }
+
+                            return $columns;
+                        }),
                 ]),
             ])
             ->emptyStateActions([
                 Tables\Actions\CreateAction::make(),
             ]);
-            
     }
 
     protected static function getTableQuery(): Builder

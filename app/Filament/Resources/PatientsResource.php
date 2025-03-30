@@ -25,6 +25,7 @@ use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Filament\Notifications\Notification;
 
 class PatientsResource extends Resource
 {
@@ -66,6 +67,26 @@ class PatientsResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+            ])
+            ->headerActions([
+                Tables\Actions\Action::make('exportAll')
+                    ->label('Export All Patients')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->action(function () {
+                        $result = static::exportAllPatients();
+                        
+                        if ($result['success']) {
+                            // Redirect to the file URL
+                            return redirect($result['file_url']);
+                        }
+                        
+                        // Show error notification
+                        Notification::make()
+                            ->title('Export Failed')
+                            ->body($result['message'])
+                            ->danger()
+                            ->send();
+                    })
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

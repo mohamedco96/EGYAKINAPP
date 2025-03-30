@@ -30,7 +30,9 @@ class ConsultationOverview extends ChartWidget
                 start: now()->startOfMonth(),
                 end: now()->endOfMonth(),
             )
-            ->query(Consultation::query()->where('status', 'complete'))
+            ->query(function ($query) {
+                return $query->where('status', 'complete');
+            })
             ->count();
 
         return [

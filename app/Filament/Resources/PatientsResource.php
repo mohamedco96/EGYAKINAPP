@@ -22,6 +22,9 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithBatchInserts;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class PatientsResource extends Resource
 {
@@ -124,5 +127,90 @@ class PatientsResource extends Resource
             'create' => Pages\CreatePatients::route('/create'),
             'edit' => Pages\EditPatients::route('/{record}/edit'),
         ];
+    }
+
+    public static function exportAllPatients()
+    {
+        try {
+            // Get all questions from cache
+            $questions = Cache::remember('all_questions', now()->addHour(), function() {
+                return Questions::query()
+                    ->select(['id', 'question'])
+                    ->get();
+            });
+
+            // Create the export class
+            $export = new class($questions) implements FromCollection, WithHeadings, WithMapping {
+                private $questions;
+
+                public function __construct($questions)
+                {
+                    $this->questions = $questions;
+                }
+
+                public function collection()
+                {
+                    return Patients::with(['answers' => function($query) {
+                        $query->select(['id', 'patient_id', 'question_id', 'answer']);
+                    }])->get();
+                }
+
+                public function headings(): array
+                {
+                    $headings = [
+                        'ID',
+                        'Doctor ID',
+                    ];
+
+                    foreach ($this->questions as $question) {
+                        $headings[] = $question->question;
+                    }
+
+                    return $headings;
+                }
+
+                public function map($record): array
+                {
+                    $data = [
+                        $record->id,
+                        $record->doctor_id,
+                    ];
+
+                    foreach ($this->questions as $question) {
+                        $data[] = $record->answers->firstWhere('question_id', $question->id)?->answer;
+                    }
+
+                    return $data;
+                }
+            };
+
+            // Generate a unique filename
+            $filename = 'patients_export_' . date('Y-m-d_His') . '.xlsx';
+
+            // Ensure the 'exports' directory exists in the public disk
+            Storage::disk('public')->makeDirectory('exports');
+
+            // Store the Excel file in the public disk
+            Excel::store($export, 'exports/' . $filename);
+
+            // Generate the URL for the Excel file
+            $fileUrl = Storage::disk('public')->url('exports/' . $filename);
+
+            // Log successful export
+            Log::info('Successfully exported all patients to Excel.', ['file_url' => $fileUrl]);
+
+            return [
+                'success' => true,
+                'file_url' => $fileUrl,
+                'message' => 'Export completed successfully'
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error exporting patients to Excel: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Failed to export data: ' . $e->getMessage()
+            ];
+        }
     }
 }

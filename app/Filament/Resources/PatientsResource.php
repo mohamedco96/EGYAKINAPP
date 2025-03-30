@@ -76,11 +76,8 @@ class PatientsResource extends Resource
                         $result = static::exportAllPatients();
                         
                         if ($result['success']) {
-                            // Create a download response
-                            return response()->download(
-                                $result['file_path'],
-                                basename($result['file_path'])
-                            );
+                            // Redirect to the file URL
+                            return redirect($result['file_url']);
                         }
                         
                         // Show error notification
@@ -211,19 +208,21 @@ class PatientsResource extends Resource
             // Generate a unique filename
             $filename = 'patients_export_' . date('Y-m-d_His') . '.xlsx';
 
-            // Store the Excel file in the storage/app/exports directory
-            $path = 'exports/' . $filename;
-            Excel::store($export, $path);
+            // Ensure the 'exports' directory exists in the public disk
+            Storage::disk('public')->makeDirectory('exports');
 
-            // Get the full path to the file
-            $fullPath = storage_path('app/public/' . $path);
+            // Store the Excel file in the public disk
+            Excel::store($export, 'exports/' . $filename);
+
+            // Generate the URL for the Excel file
+            $fileUrl = Storage::disk('public')->url('exports/' . $filename);
 
             // Log successful export
-            Log::info('Successfully exported all patients to Excel.', ['file_path' => $fullPath]);
+            Log::info('Successfully exported all patients to Excel.', ['file_url' => $fileUrl]);
 
             return [
                 'success' => true,
-                'file_path' => $fullPath,
+                'file_url' => $fileUrl,
                 'message' => 'Export completed successfully'
             ];
 

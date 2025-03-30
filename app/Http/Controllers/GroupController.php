@@ -97,31 +97,50 @@ class GroupController extends Controller
             }
         }
 
-        // Create the group and assign the authenticated user as the owner
-        $group = Group::create([
-            'name' => $validated['name'],
-            'description' => $validated['description'],
-            'header_picture' => $headerPicturePath,  // Save uploaded header picture path
-            'group_image' => $groupImagePath,        // Save uploaded group image path
-            'privacy' => $validated['privacy'],
-            'owner_id' => Auth::id(),
-        ]);
+        try {
+            DB::beginTransaction();
 
-        $group->doctors()->attach(Auth::id(), ['status' => 'joined']);
+            // Create the group and assign the authenticated user as the owner
+            $group = Group::create([
+                'name' => $validated['name'],
+                'description' => $validated['description'],
+                'header_picture' => $headerPicturePath,  // Save uploaded header picture path
+                'group_image' => $groupImagePath,        // Save uploaded group image path
+                'privacy' => $validated['privacy'],
+                'owner_id' => Auth::id(),
+            ]);
 
-        // Log the creation of a new group
-        Log::info('Group created', [
-            'group_id' => $group->id,
-            'owner_id' => Auth::id(),
-            'name' => $group->name
-        ]);
+            $group->doctors()->attach(Auth::id(), ['status' => 'joined']);
 
-        // Return success response
-        return response()->json([
-            'value' => true,
-            'data' => $group,
-            'message' => 'Group created successfully'
-        ], 201);
+            DB::commit();
+
+            // Log the creation of a new group
+            Log::info('Group created', [
+                'group_id' => $group->id,
+                'owner_id' => Auth::id(),
+                'name' => $group->name
+            ]);
+
+            // Return success response
+            return response()->json([
+                'value' => true,
+                'data' => $group,
+                'message' => 'Group created successfully'
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            // Log the error
+            Log::error('Error creating group', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'An error occurred while creating the group'
+            ], 500);
+        }
     }
 
     /**
@@ -140,12 +159,12 @@ class GroupController extends Controller
             // Check if the authenticated user is the group owner
             $this->authorizeOwner($group);
 
-            // Validate the incoming request data
+            // Validate the incoming request data with stricter rules
             $validated = $request->validate([
                 'name' => 'string|max:255',
-                'description' => 'string',
-                'header_picture' => 'file|mimes:jpeg,png,jpg,gif|max:20480',  // Validate file input for images
-                'group_image' => 'file|mimes:jpeg,png,jpg,gif|max:20480',     // Validate file input for images
+                'description' => 'nullable|string',
+                'header_picture' => 'nullable|file|mimes:jpeg,png,jpg,gif',
+                'group_image' => 'nullable|file|mimes:jpeg,png,jpg,gif',
                 'privacy' => 'in:public,private'
             ]);
 
@@ -153,62 +172,63 @@ class GroupController extends Controller
             $headerPicturePath = $group->header_picture; // Keep the existing value if not updated
             $groupImagePath = $group->group_image;       // Keep the existing value if not updated
 
-            // Check if a new header picture is provided and process the upload
-            if ($request->hasFile('header_picture')) {
-                $headerPicture = $request->file('header_picture');
-                $uploadResponse = $this->mainController->uploadImageAndVideo($headerPicture, 'header_pictures');
+            try {
+                DB::beginTransaction();
 
-                // Check if the upload was successful
-                if ($uploadResponse->getData()->value) {
-                    $headerPicturePath = $uploadResponse->getData()->image;  // Update the uploaded image URL
-                } else {
-                    // Handle upload error
-                    return response()->json([
-                        'value' => false,
-                        'message' => 'Header picture upload failed.'
-                    ], 500);
+                // Check if a new header picture is provided and process the upload
+                if ($request->hasFile('header_picture')) {
+                    $headerPicture = $request->file('header_picture');
+                    $uploadResponse = $this->mainController->uploadImageAndVideo($headerPicture, 'header_pictures');
+
+                    // Check if the upload was successful
+                    if ($uploadResponse->getData()->value) {
+                        $headerPicturePath = $uploadResponse->getData()->image;  // Update the uploaded image URL
+                    } else {
+                        throw new \Exception('Header picture upload failed.');
+                    }
                 }
-            }
 
-            // Check if a new group image is provided and process the upload
-            if ($request->hasFile('group_image')) {
-                $groupImage = $request->file('group_image');
-                $uploadResponse = $this->mainController->uploadImageAndVideo($groupImage, 'group_images');
+                // Check if a new group image is provided and process the upload
+                if ($request->hasFile('group_image')) {
+                    $groupImage = $request->file('group_image');
+                    $uploadResponse = $this->mainController->uploadImageAndVideo($groupImage, 'group_images');
 
-                // Check if the upload was successful
-                if ($uploadResponse->getData()->value) {
-                    $groupImagePath = $uploadResponse->getData()->image;  // Update the uploaded image URL
-                } else {
-                    // Handle upload error
-                    return response()->json([
-                        'value' => false,
-                        'message' => 'Group image upload failed.'
-                    ], 500);
+                    // Check if the upload was successful
+                    if ($uploadResponse->getData()->value) {
+                        $groupImagePath = $uploadResponse->getData()->image;  // Update the uploaded image URL
+                    } else {
+                        throw new \Exception('Group image upload failed.');
+                    }
                 }
+
+                // Update the group details
+                $group->update([
+                    'name' => $validated['name'] ?? $group->name,
+                    'description' => $validated['description'] ?? $group->description,
+                    'header_picture' => $headerPicturePath,  // Update header picture path if changed
+                    'group_image' => $groupImagePath,        // Update group image path if changed
+                    'privacy' => $validated['privacy'] ?? $group->privacy,
+                ]);
+
+                DB::commit();
+
+                // Log the update action with sanitized data
+                Log::info('Group updated', [
+                    'group_id' => $group->id,
+                    'updated_by' => Auth::id(),
+                    'changes' => array_intersect_key($validated, array_flip(['name', 'privacy'])) // Only log non-sensitive fields
+                ]);
+
+                // Return success response
+                return response()->json([
+                    'value' => true,
+                    'data' => $group,
+                    'message' => 'Group updated successfully'
+                ], 200);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
             }
-
-            // Update the group details
-            $group->update([
-                'name' => $validated['name'] ?? $group->name,
-                'description' => $validated['description'] ?? $group->description,
-                'header_picture' => $headerPicturePath,  // Update header picture path if changed
-                'group_image' => $groupImagePath,        // Update group image path if changed
-                'privacy' => $validated['privacy'] ?? $group->privacy,
-            ]);
-
-            // Log the update action
-            Log::info('Group updated', [
-                'group_id' => $group->id,
-                'updated_by' => Auth::id(),
-                'changes' => $validated  // Log changes made
-            ]);
-
-            // Return success response
-            return response()->json([
-                'value' => true,
-                'data' => $group,
-                'message' => 'Group updated successfully'
-            ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             // Log the error
             Log::error('Group not found', [
@@ -221,6 +241,31 @@ class GroupController extends Controller
                 'value' => false,
                 'message' => 'Group not found'
             ], 404);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Log validation errors
+            Log::warning('Group update validation failed', [
+                'group_id' => $id,
+                'errors' => $e->errors(),
+                'user_id' => Auth::id()
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            // Log the error
+            Log::error('Error updating group', [
+                'group_id' => $id,
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'An error occurred while updating the group'
+            ], 500);
         }
     }
 
@@ -296,116 +341,136 @@ class GroupController extends Controller
         // Check if the authenticated user is the group owner
         //$this->authorizeOwner($group);
 
-        // Iterate over each doctor_id in the list
-        foreach ($validated['doctor_ids'] as $doctorId) {
-            // Check if the doctor is already invited or a member of the group
-            $existingStatus = $group->doctors()->where('doctor_id', $doctorId)->value('status');
+        try {
+            DB::beginTransaction();
 
-            if ($existingStatus === 'joined') {
-                // Log the attempt to invite an existing member
-                Log::info('Doctor is already a member of the group', [
-                    'group_id' => $groupId,
-                    'doctor_id' => $doctorId,
-                    'attempted_by' => Auth::id()
-                ]);
-            } elseif ($existingStatus === 'invited' || $existingStatus === 'pending') {
-                // Log the attempt to invite an already invited member
-                Log::info('Doctor is already invited to the group', [
-                    'group_id' => $groupId,
-                    'doctor_id' => $doctorId,
-                    'attempted_by' => Auth::id()
-                ]);
-            } elseif ($existingStatus === 'declined') {
-                // Update the status to invited again
-                $group->doctors()->updateExistingPivot($doctorId, ['status' => 'invited']);
-                    
-                // Check if the post owner is not the one liking the post
-                if ($doctorId !== Auth::id()) {
-                    $notification = AppNotification::create([
+            // Iterate over each doctor_id in the list
+            foreach ($validated['doctor_ids'] as $doctorId) {
+                // Check if the doctor is already invited or a member of the group
+                $existingStatus = $group->doctors()->where('doctor_id', $doctorId)->value('status');
+
+                if ($existingStatus === 'joined') {
+                    // Log the attempt to invite an existing member
+                    Log::info('Doctor is already a member of the group', [
+                        'group_id' => $groupId,
                         'doctor_id' => $doctorId,
-                        'type' => 'group_invitation',
-                        'type_id' => $groupId,
-                        'content' => sprintf('Dr. %s Invited you to his group', Auth::user()->name . ' ' . Auth::user()->lname),
-                        'type_doctor_id' => Auth::id(),
-                        'created_at' => now(),
-                        'updated_at' => now()
+                        'attempted_by' => Auth::id()
                     ]);
-    
-                    Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $groupId);
-                }
-    
-                // Notifying other doctors
-                $doctors = User::role(['Admin', 'Tester'])
-                ->where('id', '!=', Auth::id())
-                ->pluck('id'); // Get only the IDs of the users
-
-                $title = 'New Invitation was created 📣';
-                $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' invited you to his group';
-                $tokens = FcmToken::whereIn('doctor_id', $doctors)
-                    ->pluck('token')
-                    ->toArray();
-            
-                $this->notificationController->sendPushNotification($title, $body, $tokens);
-
-                // Log the re-invitation
-                Log::info('Doctor re-invited to the group', [
-                    'group_id' => $groupId,
-                    'doctor_id' => $doctorId,
-                    'invited_by' => Auth::id()
-                ]);
-            } elseif ($existingStatus === 'accepted') {
-                // Log the attempt to invite an already invited member
-                Log::info('Doctor is already accepted the invitation', [
-                    'group_id' => $groupId,
-                    'doctor_id' => $doctorId,
-                    'attempted_by' => Auth::id()
-                ]);
-            } else {
-                // Invite the user to the group (attach the user to the group members with status "invited")
-                $group->doctors()->attach($doctorId, ['status' => 'invited']);
-
-                // Log the invitation
-                Log::info('User invited to group', [
-                    'group_id' => $groupId,
-                    'invited_doctor_id' => $doctorId,
-                    'invited_by' => Auth::id()
-                ]);
-    
-                // Check if the post owner is not the one liking the post
-                if ($doctorId !== Auth::id()) {
-                    $notification = AppNotification::create([
+                } elseif ($existingStatus === 'invited' || $existingStatus === 'pending') {
+                    // Log the attempt to invite an already invited member
+                    Log::info('Doctor is already invited to the group', [
+                        'group_id' => $groupId,
                         'doctor_id' => $doctorId,
-                        'type' => 'group_invitation',
-                        'type_id' => $groupId,
-                        'content' => sprintf('Dr. %s Invited you to his group', Auth::user()->name . ' ' . Auth::user()->lname),
-                        'type_doctor_id' => Auth::id(),
-                        'created_at' => now(),
-                        'updated_at' => now()
+                        'attempted_by' => Auth::id()
                     ]);
-    
-                    Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $groupId);
-                }
-    
-                // Notifying other doctors
-                $doctors = User::role(['Admin', 'Tester'])
-                ->where('id', '!=', Auth::id())
-                ->pluck('id'); // Get only the IDs of the users
-
-                $title = 'New Invitation was created 📣';
-                $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' invited you to his group';
-                $tokens = FcmToken::whereIn('doctor_id', $doctors)
-                    ->pluck('token')
-                    ->toArray();
+                } elseif ($existingStatus === 'declined') {
+                    // Update the status to invited again
+                    $group->doctors()->updateExistingPivot($doctorId, ['status' => 'invited']);
+                        
+                    // Check if the post owner is not the one liking the post
+                    if ($doctorId !== Auth::id()) {
+                        $notification = AppNotification::create([
+                            'doctor_id' => $doctorId,
+                            'type' => 'group_invitation',
+                            'type_id' => $groupId,
+                            'content' => sprintf('Dr. %s Invited you to his group', Auth::user()->name . ' ' . Auth::user()->lname),
+                            'type_doctor_id' => Auth::id(),
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
             
-                $this->notificationController->sendPushNotification($title, $body, $tokens);
+                        Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $groupId);
+                    }
+            
+                    // Notifying other doctors
+                    $doctors = User::role(['Admin', 'Tester'])
+                    ->where('id', '!=', Auth::id())
+                    ->pluck('id'); // Get only the IDs of the users
+
+                    $title = 'New Invitation was created 📣';
+                    $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' invited you to his group';
+                    $tokens = FcmToken::whereIn('doctor_id', $doctors)
+                        ->pluck('token')
+                        ->toArray();
+                
+                    $this->notificationController->sendPushNotification($title, $body, $tokens);
+
+                    // Log the re-invitation
+                    Log::info('Doctor re-invited to the group', [
+                        'group_id' => $groupId,
+                        'doctor_id' => $doctorId,
+                        'invited_by' => Auth::id()
+                    ]);
+                } elseif ($existingStatus === 'accepted') {
+                    // Log the attempt to invite an already invited member
+                    Log::info('Doctor is already accepted the invitation', [
+                        'group_id' => $groupId,
+                        'doctor_id' => $doctorId,
+                        'attempted_by' => Auth::id()
+                    ]);
+                } else {
+                    // Invite the user to the group (attach the user to the group members with status "invited")
+                    $group->doctors()->attach($doctorId, ['status' => 'invited']);
+
+                    // Log the invitation
+                    Log::info('User invited to group', [
+                        'group_id' => $groupId,
+                        'invited_doctor_id' => $doctorId,
+                        'invited_by' => Auth::id()
+                    ]);
+            
+                    // Check if the post owner is not the one liking the post
+                    if ($doctorId !== Auth::id()) {
+                        $notification = AppNotification::create([
+                            'doctor_id' => $doctorId,
+                            'type' => 'group_invitation',
+                            'type_id' => $groupId,
+                            'content' => sprintf('Dr. %s Invited you to his group', Auth::user()->name . ' ' . Auth::user()->lname),
+                            'type_doctor_id' => Auth::id(),
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+            
+                        Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $groupId);
+                    }
+            
+                    // Notifying other doctors
+                    $doctors = User::role(['Admin', 'Tester'])
+                    ->where('id', '!=', Auth::id())
+                    ->pluck('id'); // Get only the IDs of the users
+
+                    $title = 'New Invitation was created 📣';
+                    $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' invited you to his group';
+                    $tokens = FcmToken::whereIn('doctor_id', $doctors)
+                        ->pluck('token')
+                        ->toArray();
+                
+                    $this->notificationController->sendPushNotification($title, $body, $tokens);
+                }
             }
-        }
 
-        // Return success response with details of successful and failed invites
-        return response()->json([
-            'value' => true,
-            'message' => 'Invitations processed'
-        ], 200);
+            DB::commit();
+
+            // Return success response with details of successful and failed invites
+            return response()->json([
+                'value' => true,
+                'message' => 'Invitations processed'
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            // Log the error
+            Log::error('Error processing group invitations', [
+                'error' => $e->getMessage(),
+                'group_id' => $groupId,
+                'user_id' => Auth::id()
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'An error occurred while processing invitations'
+            ], 500);
+        }
     }
 
     /**
@@ -418,7 +483,7 @@ class GroupController extends Controller
     public function handleInvitation(Request $request, $groupId)
     {
         try {
-            // Validate the request
+            // Validate the request with stricter rules
             $validated = $request->validate([
                 'status' => 'required|in:accepted,declined',
                 'invitation_id' => 'required|exists:group_user,id'
@@ -448,63 +513,72 @@ class GroupController extends Controller
                 ], 400);
             }
 
-            // Update the invitation status
-            $newStatus = $validated['status'] === 'accepted' ? 'joined' : 'declined';
-            DB::table('group_user')
-                ->where('id', $validated['invitation_id'])
-                ->update([
-                    'status' => $newStatus,
-                    'updated_at' => now()
-                ]);
+            try {
+                DB::beginTransaction();
 
-            if ($validated['status'] === 'accepted') {
-                // Send notification to group owner
-                if ($group->owner_id !== $userId) {
-                    $notification = AppNotification::create([
-                        'doctor_id' => $group->owner_id,
-                        'type' => 'group_invitation_accepted',
-                        'type_id' => $groupId,
-                        'content' => sprintf('Dr. %s accepted your group invitation', Auth::user()->name . ' ' . Auth::user()->lname),
-                        'type_doctor_id' => $userId,
-                        'created_at' => now(),
+                // Update the invitation status
+                $newStatus = $validated['status'] === 'accepted' ? 'joined' : 'declined';
+                DB::table('group_user')
+                    ->where('id', $validated['invitation_id'])
+                    ->update([
+                        'status' => $newStatus,
                         'updated_at' => now()
                     ]);
 
-                    Log::info("Notification sent to group owner", [
-                        'owner_id' => $group->owner_id,
-                        'group_id' => $groupId
-                    ]);
+                if ($validated['status'] === 'accepted') {
+                    // Send notification to group owner
+                    if ($group->owner_id !== $userId) {
+                        $notification = AppNotification::create([
+                            'doctor_id' => $group->owner_id,
+                            'type' => 'group_invitation_accepted',
+                            'type_id' => $groupId,
+                            'content' => sprintf('Dr. %s accepted your group invitation', Auth::user()->name . ' ' . Auth::user()->lname),
+                            'type_doctor_id' => $userId,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
 
-                    // Get admin and tester users
-                    $adminUsers = User::role(['Admin', 'Tester'])
-                        ->where('id', '!=', $userId)
-                        ->get();
+                        Log::info("Notification sent to group owner", [
+                            'owner_id' => $group->owner_id,
+                            'group_id' => $groupId
+                        ]);
 
-                    // Get FCM tokens for admin users
-                    $adminTokens = FcmToken::whereIn('doctor_id', $adminUsers->pluck('id'))
-                        ->pluck('token')
-                        ->toArray();
+                        // Get admin and tester users
+                        $adminUsers = User::role(['Admin', 'Tester'])
+                            ->where('id', '!=', $userId)
+                            ->get();
 
-                    if (!empty($adminTokens)) {
-                        $title = 'Group invitation accepted 📣';
-                        $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' accepted the group invitation';
-                        $this->notificationController->sendPushNotification($title, $body, $adminTokens);
+                        // Get FCM tokens for admin users
+                        $adminTokens = FcmToken::whereIn('doctor_id', $adminUsers->pluck('id'))
+                            ->pluck('token')
+                            ->toArray();
+
+                        if (!empty($adminTokens)) {
+                            $title = 'Group invitation accepted 📣';
+                            $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' accepted the group invitation';
+                            $this->notificationController->sendPushNotification($title, $body, $adminTokens);
+                        }
                     }
                 }
+
+                DB::commit();
+
+                // Log the invitation status change
+                Log::info('Invitation status updated', [
+                    'group_id' => $groupId,
+                    'doctor_id' => $userId,
+                    'invitation_id' => $validated['invitation_id'],
+                    'status' => $newStatus
+                ]);
+
+                return response()->json([
+                    'value' => true,
+                    'message' => sprintf('Invitation %s successfully', $validated['status'])
+                ], 200);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
             }
-
-            // Log the invitation status change
-            Log::info('Invitation status updated', [
-                'group_id' => $groupId,
-                'doctor_id' => $userId,
-                'invitation_id' => $validated['invitation_id'],
-                'status' => $newStatus
-            ]);
-
-            return response()->json([
-                'value' => true,
-                'message' => sprintf('Invitation %s successfully', $validated['status'])
-            ], 200);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::error('Group not found', [
@@ -516,6 +590,18 @@ class GroupController extends Controller
                 'value' => false,
                 'message' => 'Group not found'
             ], 404);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::warning('Invitation handling validation failed', [
+                'group_id' => $groupId,
+                'errors' => $e->errors(),
+                'user_id' => Auth::id()
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
             Log::error('Error handling invitation', [
                 'group_id' => $groupId,
@@ -1134,34 +1220,26 @@ class GroupController extends Controller
     {
         $userId = Auth::id();
 
-        // Retrieve groups owned by the authenticated user with pagination
-        //$groups = Group::where('owner_id', $userId)->paginate(10);
-
-        $MyGroups = Group::with(['owner' => function ($query) {
+        // Retrieve groups owned by the authenticated user with optimized queries
+        $myGroups = Group::with(['owner' => function ($query) {
             $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
         }])
-            ->where('owner_id', $userId)
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
-
-
-        foreach ($MyGroups as $group) {
-            // Fetch user status for the authenticated user
-            $userStatus = DB::table('group_user')
-                ->where('group_id', $group->id)
-                ->where('doctor_id', $userId)
-                ->value('status');
-
-            $group->user_status = $userStatus ?? null;
-
-            // Fetch member count for the group from the group_user table
-            $memberCount = DB::table('group_user')
-                ->where('group_id', $group->id)
-                ->where('status', 'joined')
-                ->count();
-
-            $group->member_count = $memberCount; // Add member count to the group object
-        }
+        ->withCount(['doctors' => function ($query) {
+            $query->where('status', 'joined');
+        }])
+        ->with(['doctors' => function ($query) use ($userId) {
+            $query->where('doctor_id', $userId)
+                ->select('group_user.status', 'group_user.group_id');
+        }])
+        ->where('owner_id', $userId)
+        ->orderBy('created_at', 'desc')
+        ->paginate(20)
+        ->through(function ($group) use ($userId) {
+            $group->user_status = $group->doctors->first()->status ?? null;
+            $group->member_count = $group->doctors_count;
+            unset($group->doctors);
+            return $group;
+        });
 
         // Log the action
         Log::info('User groups fetched with pagination', [
@@ -1171,10 +1249,11 @@ class GroupController extends Controller
         // Return success response
         return response()->json([
             'value' => true,
-            'data' => $MyGroups,
+            'data' => $myGroups,
             'message' => 'User groups fetched successfully'
         ], 200);
     }
+
     /**
      * Fetch all groups with pagination.
      * 
@@ -1182,32 +1261,27 @@ class GroupController extends Controller
      */
     public function fetchAllGroups()
     {
-        // Retrieve all groups with pagination
+        $userId = Auth::id();
+
+        // Retrieve all groups with optimized queries
         $groups = Group::with(['owner' => function ($query) {
             $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
         }])
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
-
-        // Check if the authenticated user is a member of each group and get their status
-        $userId = Auth::id();
-
-        foreach ($groups as $group) {
-            $userStatus = DB::table('group_user')
-                ->where('group_id', $group->id)
-                ->where('doctor_id', $userId)
-                ->value('status');
-
-            $group->user_status = $userStatus ?? null;
-
-            // Fetch member count for the group from the group_user table
-            $memberCount = DB::table('group_user')
-                ->where('group_id', $group->id)
-                ->where('status', 'joined')
-                ->count();
-
-            $group->member_count = $memberCount; // Add member count to the group object
-        }
+        ->withCount(['doctors' => function ($query) {
+            $query->where('status', 'joined');
+        }])
+        ->with(['doctors' => function ($query) use ($userId) {
+            $query->where('doctor_id', $userId)
+                ->select('group_user.status', 'group_user.group_id');
+        }])
+        ->orderBy('created_at', 'desc')
+        ->paginate(20)
+        ->through(function ($group) use ($userId) {
+            $group->user_status = $group->doctors->first()->status ?? null;
+            $group->member_count = $group->doctors_count;
+            unset($group->doctors);
+            return $group;
+        });
 
         // Log the action
         Log::info('All groups fetched with pagination', [

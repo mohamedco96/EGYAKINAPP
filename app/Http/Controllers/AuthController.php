@@ -767,7 +767,7 @@ class AuthController extends Controller
             // Get the number of patients associated with the user
             $patientCount = $user->patients()->count();
 
-            $postsCount = $user->posts()->count();
+            $postsCount = $user->feedPosts()->count();
 
             $savedPostsCount = $user->saves()->count();
 

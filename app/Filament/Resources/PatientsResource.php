@@ -67,7 +67,6 @@ class PatientsResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     ExportBulkAction::make()
-                        ->fileName('patients_export_' . date('Y-m-d_His'))
                         ->withColumns(function () {
                             $columns = [
                                 'id' => fn ($record) => $record->id,

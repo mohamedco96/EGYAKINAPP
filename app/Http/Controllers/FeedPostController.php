@@ -698,7 +698,7 @@ class FeedPostController extends Controller
             $this->attachHashtags($post, $request->input('content'));
     
             // Handle poll update or creation
-            if (isset($validatedData['poll'])) {
+            if (isset($validatedData['poll']) && isset($validatedData['poll']['options'])) {
                 // Check if post already has a poll
                 if ($post->poll) {
                     // Update existing poll

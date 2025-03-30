@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\ConsultationDoctors;
+use App\Models\Consultation;
 use App\Models\User;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -14,15 +15,15 @@ class DoctorPerformanceOverview extends BaseWidget
 
     protected function getStats(): array
     {
-        $topDoctors = ConsultationDoctors::select('doctor_id', DB::raw('count(*) as consultation_count'))
-            ->groupBy('doctor_id')
+        $topDoctors = ConsultationDoctors::select('consult_doctor_id', DB::raw('count(*) as consultation_count'))
+            ->groupBy('consult_doctor_id')
             ->orderByDesc('consultation_count')
             ->limit(5)
             ->get();
 
         $totalConsultations = ConsultationDoctors::count();
         $completedConsultations = ConsultationDoctors::whereHas('consultation', function ($query) {
-            $query->where('status', 'completed');
+            $query->where('status', 'replied');
         })->count();
 
         $completionRate = $totalConsultations > 0 

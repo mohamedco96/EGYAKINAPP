@@ -2,7 +2,7 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\PatientStatuses;
+use App\Models\PatientStatus;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Facades\DB;
 
@@ -15,8 +15,8 @@ class PatientStatusOverview extends ChartWidget
 
     protected function getData(): array
     {
-        $statuses = PatientStatuses::select('status', DB::raw('count(*) as count'))
-            ->groupBy('status')
+        $statuses = PatientStatus::select('key', DB::raw('count(*) as count'))
+            ->groupBy('key')
             ->get();
 
         return [
@@ -33,7 +33,7 @@ class PatientStatusOverview extends ChartWidget
                     ],
                 ],
             ],
-            'labels' => $statuses->pluck('status')->toArray(),
+            'labels' => $statuses->pluck('key')->toArray(),
         ];
     }
 

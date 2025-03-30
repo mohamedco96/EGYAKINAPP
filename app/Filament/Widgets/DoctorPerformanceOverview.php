@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 class DoctorPerformanceOverview extends BaseWidget
 {
     protected static ?string $pollingInterval = '15s';
+    protected static ?int $sort = 4;
 
     protected function getStats(): array
     {

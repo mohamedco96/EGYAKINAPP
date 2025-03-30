@@ -4,8 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\Consultation;
 use Filament\Widgets\ChartWidget;
-use Flowframe\Trend\Trend;
-use Flowframe\Trend\TrendValue;
+use Illuminate\Support\Facades\DB;
 
 class ConsultationOverview extends ChartWidget
 {
@@ -13,46 +12,52 @@ class ConsultationOverview extends ChartWidget
     protected static ?string $description = 'Track consultation patterns and completion rates';
     protected static string $color = 'success';
     protected static ?string $pollingInterval = '15s';
+    protected static ?int $sort = 3;
 
     protected function getData(): array
     {
-        $data = Trend::model(Consultation::class)
-            ->interval('day')
-            ->between(
-                start: now()->startOfMonth(),
-                end: now()->endOfMonth(),
-            )
-            ->count();
+        $startDate = now()->startOfMonth();
+        $endDate = now()->endOfMonth();
 
-        $completedData = Trend::model(Consultation::class)
-            ->interval('day')
-            ->between(
-                start: now()->startOfMonth(),
-                end: now()->endOfMonth(),
-            )
-            ->query(function ($query) {
-                return $query->where('status', 'complete');
-            })
-            ->count();
+        // Get total consultations per day
+        $totalData = Consultation::select(
+            DB::raw('DATE(created_at) as date'),
+            DB::raw('COUNT(*) as count')
+        )
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        // Get completed consultations per day
+        $completedData = Consultation::select(
+            DB::raw('DATE(created_at) as date'),
+            DB::raw('COUNT(*) as count')
+        )
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->where('status', 'complete')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
 
         return [
             'datasets' => [
                 [
                     'label' => 'Total Consultations',
-                    'data' => $data->map(fn (TrendValue $value) => $value->aggregate),
+                    'data' => $totalData->pluck('count')->toArray(),
                     'borderColor' => '#3b82f6',
                     'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
                     'fill' => true,
                 ],
                 [
                     'label' => 'Completed Consultations',
-                    'data' => $completedData->map(fn (TrendValue $value) => $value->aggregate),
+                    'data' => $completedData->pluck('count')->toArray(),
                     'borderColor' => '#22c55e',
                     'backgroundColor' => 'rgba(34, 197, 94, 0.1)',
                     'fill' => true,
                 ],
             ],
-            'labels' => $data->map(fn (TrendValue $value) => $value->date),
+            'labels' => $totalData->pluck('date')->toArray(),
         ];
     }
 

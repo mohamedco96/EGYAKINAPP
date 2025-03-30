@@ -17,19 +17,19 @@ class ConsultationOverview extends ChartWidget
     protected function getData(): array
     {
         $data = Trend::model(Consultation::class)
+            ->interval('day')
             ->between(
                 start: now()->startOfMonth(),
                 end: now()->endOfMonth(),
             )
-            ->perDay()
             ->count();
 
         $completedData = Trend::model(Consultation::class)
+            ->interval('day')
             ->between(
                 start: now()->startOfMonth(),
                 end: now()->endOfMonth(),
             )
-            ->perDay()
             ->query(Consultation::query()->where('status', 'complete'))
             ->count();
 

@@ -76,11 +76,18 @@ class PatientsResource extends Resource
                         $result = static::exportAllPatients();
                         
                         if ($result['success']) {
-                            // Open file URL in new tab using JavaScript
-                            return response()->json([
-                                'success' => true,
-                                'file_url' => $result['file_url']
-                            ]);
+                            // Show success notification
+                            Notification::make()
+                                ->success()
+                                ->title('Export Started')
+                                ->body('Your export is being downloaded in a new tab.')
+                                ->send();
+
+                            // Return the file URL to be handled by JavaScript
+                            return [
+                                'url' => $result['file_url'],
+                                'openUrlInNewTab' => true
+                            ];
                         }
                         
                         // Show error notification
@@ -90,12 +97,6 @@ class PatientsResource extends Resource
                             ->danger()
                             ->send();
                     })
-                    ->successNotification(
-                        Notification::make()
-                            ->success()
-                            ->title('Export Started')
-                            ->body('Your export is being downloaded in a new tab.')
-                    )
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

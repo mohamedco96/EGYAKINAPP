@@ -693,9 +693,36 @@ class FeedPostController extends Controller
                 'visibility' => $validatedData['visibility'] ?? 'Public',
                 'group_id' => $validatedData['group_id'] ?? null,
             ]);
-    
-            // Attach hashtags to the post
-            $this->attachHashtags($post, $request->input('content'));
+
+            // Handle hashtag cleanup and update only if content changed
+            if ($post->wasChanged('content')) {
+                DB::beginTransaction();
+                try {
+                    // Get old hashtags before detaching
+                    $oldHashtags = $post->hashtags;
+                    
+                    // Detach old hashtags
+                    $post->hashtags()->detach();
+                    
+                    // Decrement usage count for old hashtags
+                    foreach ($oldHashtags as $hashtag) {
+                        $hashtag->decrement('usage_count', 1);
+                        
+                        // If usage count reaches 0, delete the hashtag
+                        if ($hashtag->usage_count <= 0) {
+                            $hashtag->delete();
+                        }
+                    }
+
+                    // Attach new hashtags from updated content
+                    $this->attachHashtags($post, $request->input('content'));
+
+                    DB::commit();
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    throw $e;
+                }
+            }
     
             // Handle poll update or creation
             if (isset($validatedData['poll']) && isset($validatedData['poll']['options'])) {

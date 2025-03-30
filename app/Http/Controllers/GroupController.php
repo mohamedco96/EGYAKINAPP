@@ -323,7 +323,7 @@ class GroupController extends Controller
                 if ($doctorId !== Auth::id()) {
                     $notification = AppNotification::create([
                         'doctor_id' => $doctorId,
-                        'type' => 'Other',
+                        'type' => 'group_invitation',
                         'type_id' => $groupId,
                         'content' => sprintf('Dr. %s Invited you to his group', Auth::user()->name . ' ' . Auth::user()->lname),
                         'type_doctor_id' => Auth::id(),
@@ -375,7 +375,7 @@ class GroupController extends Controller
                 if ($doctorId !== Auth::id()) {
                     $notification = AppNotification::create([
                         'doctor_id' => $doctorId,
-                        'type' => 'Other',
+                        'type' => 'group_invitation',
                         'type_id' => $groupId,
                         'content' => sprintf('Dr. %s Invited you to his group', Auth::user()->name . ' ' . Auth::user()->lname),
                         'type_doctor_id' => Auth::id(),
@@ -462,7 +462,7 @@ class GroupController extends Controller
                 if ($group->owner_id !== $userId) {
                     $notification = AppNotification::create([
                         'doctor_id' => $group->owner_id,
-                        'type' => 'Other',
+                        'type' => 'group_invitation_accepted',
                         'type_id' => $groupId,
                         'content' => sprintf('Dr. %s accepted your group invitation', Auth::user()->name . ' ' . Auth::user()->lname),
                         'type_doctor_id' => $userId,
@@ -1044,9 +1044,9 @@ class GroupController extends Controller
     {
         // Notify group owner
         if ($group->owner_id !== Auth::id()) {
-            AppNotification::create([
+            $notification = AppNotification::create([
                 'doctor_id' => $group->owner_id,
-                'type' => 'Other',
+                'type' => 'group_join_request',
                 'type_id' => $group->id,
                 'content' => sprintf('Dr. %s requested to join group', Auth::user()->name . ' ' . Auth::user()->lname),
                 'type_doctor_id' => Auth::id(),

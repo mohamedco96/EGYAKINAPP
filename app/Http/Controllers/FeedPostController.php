@@ -557,8 +557,8 @@ class FeedPostController extends Controller
 
             DB::commit();
 
-            // Notify doctors
-            $this->notifyDoctors($post);
+            // Create notifications for doctors
+            $notifications = $this->notifyDoctors($post);
 
             return response()->json([
                 'value' => true,
@@ -910,7 +910,7 @@ class FeedPostController extends Controller
         $notifications = $doctors->map(function ($doctorId) use ($post, $doctorName, $user) {
             return [
                 'doctor_id' => $doctorId,
-                'type' => 'Other',
+                'type' => 'Post',
                 'type_id' => $post->id,
                 'content' => sprintf('Dr. %s added a new post', $doctorName),
                 'type_doctor_id' => $user->id,
@@ -919,7 +919,7 @@ class FeedPostController extends Controller
             ];
         })->toArray();
     
-        AppNotification::insert($notifications);
+        $createdNotifications = AppNotification::insert($notifications);
     
         $title = 'New Post was created 📣';
         $body = 'Dr. ' . ucfirst($user->name) . ' added a new post ';
@@ -930,6 +930,8 @@ class FeedPostController extends Controller
         $this->notificationController->sendPushNotification($title, $body, $tokens);
     
         Log::info("Notifications inserted successfully for post ID: " . $post->id);
+        
+        return $notifications;
     }
 
     // Delete a post
@@ -1005,11 +1007,12 @@ class FeedPostController extends Controller
     
                 $postOwner = $post->doctor;
     
-                // Check if the post owner is not the one liking the post
+                // Create notification for post owner if not the same user
+                $notification = null;
                 if ($postOwner->id !== Auth::id()) {
                     $notification = AppNotification::create([
                         'doctor_id' => $postOwner->id,
-                        'type' => 'Other',
+                        'type' => 'PostLike',
                         'type_id' => $post->id,
                         'content' => sprintf('Dr. %s liked your post', Auth::user()->name . ' ' . Auth::user()->lname),
                         'type_doctor_id' => Auth::id(),
@@ -1023,7 +1026,7 @@ class FeedPostController extends Controller
                 // Notifying other doctors
                 $doctors = User::role(['Admin', 'Tester'])
                 ->where('id', '!=', Auth::id())
-                ->pluck('id'); // Get only the IDs of the users
+                ->pluck('id');
 
                 $title = 'Post was liked 📣';
                 $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' liked your post';
@@ -1159,14 +1162,14 @@ class FeedPostController extends Controller
         try {
             $validatedData = $request->validate([
                 'comment' => 'required|string|max:500',
-                'parent_id' => 'nullable|exists:feed_post_comments,id',  // Validate parent_id if provided
+                'parent_id' => 'nullable|exists:feed_post_comments,id',
             ]);
     
             $comment = FeedPostComment::create([
                 'feed_post_id' => $postId,
                 'doctor_id' => Auth::id(),
                 'comment' => $validatedData['comment'],
-                'parent_id' => $validatedData['parent_id'] ?? null,  // Set parent_id if it's a reply
+                'parent_id' => $validatedData['parent_id'] ?? null,
             ]);
     
             Log::info("Comment added to post ID $postId by doctor " . Auth::id());
@@ -1174,11 +1177,12 @@ class FeedPostController extends Controller
             $post = FeedPost::findOrFail($postId);
             $postOwner = $post->doctor;
     
-            // Check if the post owner is not the one commenting on the post
+            // Create notification for post owner if not the same user
+            $notification = null;
             if ($postOwner->id !== Auth::id()) {
                 $notification = AppNotification::create([
                     'doctor_id' => $postOwner->id,
-                    'type' => 'Other',
+                    'type' => 'PostComment',
                     'type_id' => $post->id,
                     'content' => sprintf('Dr. %s commented on your post', Auth::user()->name . ' ' . Auth::user()->lname),
                     'type_doctor_id' => Auth::id(),
@@ -1192,7 +1196,7 @@ class FeedPostController extends Controller
             // Notifying other doctors
             $doctors = User::role(['Admin', 'Tester'])
             ->where('id', '!=', Auth::id())
-            ->pluck('id'); // Get only the IDs of the users
+            ->pluck('id');
     
             $title = 'New Comment was added 📣';
             $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' commented on your post ';
@@ -1263,7 +1267,7 @@ class FeedPostController extends Controller
             $status = $request->input('status'); // 'like' or 'unlike'
     
             // Find if the comment exists
-            $comment = FeedPostComment::find($commentId);  // use find instead of findOrFail
+            $comment = FeedPostComment::find($commentId);
     
             if (!$comment) {
                 Log::error("No comment was found with ID: $commentId");
@@ -1299,12 +1303,13 @@ class FeedPostController extends Controller
                 $comment = FeedPostComment::findOrFail($commentId);
                 $commentOwner = $comment->doctor;
     
-                // Check if the comment owner is not the one liking the comment
+                // Create notification for comment owner if not the same user
+                $notification = null;
                 if ($commentOwner->id !== Auth::id()) {
                     $notification = AppNotification::create([
                         'doctor_id' => $commentOwner->id,
-                        'type' => 'Other',
-                        'type_id' => $comment->id,
+                        'type' => 'CommentLike',
+                        'type_id' => $comment->feed_post_id ,
                         'content' => sprintf('Dr. %s liked your comment', Auth::user()->name . ' ' . Auth::user()->lname),
                         'type_doctor_id' => Auth::id(),
                         'created_at' => now(),
@@ -1317,7 +1322,7 @@ class FeedPostController extends Controller
                 // Notifying other doctors
                 $doctors = User::role(['Admin', 'Tester'])
                 ->where('id', '!=', Auth::id())
-                ->pluck('id'); // Get only the IDs of the users
+                ->pluck('id');
                                 
                 $title = 'New Comment was liked 📣';
                 $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' liked your comment ';
@@ -1501,11 +1506,23 @@ class FeedPostController extends Controller
         $query = $request->input('query');
 
         if (!$query) {
+            // Create an empty paginated response with the same structure
+            $emptyPaginator = new \Illuminate\Pagination\LengthAwarePaginator(
+                [], // Empty data array
+                0,  // Total items
+                10, // Items per page
+                1,  // Current page
+                [
+                    'path' => request()->url(),
+                    'query' => request()->query()
+                ]
+            );
+
             return response()->json([
-                'value' => false,
-                'data' => [],
-                'message' => 'Query parameter is required'
-            ], 400);
+                'value' => true,
+                'data' => $emptyPaginator,
+                'message' => 'No query provided'
+            ]);
         }
 
         try {

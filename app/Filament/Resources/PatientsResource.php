@@ -67,7 +67,6 @@ class PatientsResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     ExportBulkAction::make()
-                        ->chunkSize(100)
                         ->modifyQueryUsing(fn (Builder $query) => $query->with(['answers' => function($query) {
                             $query->select(['id', 'patient_id', 'question_id', 'answer']);
                         }]))

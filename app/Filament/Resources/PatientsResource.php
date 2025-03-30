@@ -66,29 +66,7 @@ class PatientsResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    ExportBulkAction::make()
-                        ->withColumns(function () {
-                            $columns = [
-                                'id' => fn ($record) => $record->id,
-                                'doctor_id' => fn ($record) => $record->doctor_id,
-                            ];
-
-                            // Get questions from cache
-                            $questions = Cache::remember('all_questions', now()->addHour(), function() {
-                                return Questions::query()
-                                    ->select(['id', 'question'])
-                                    ->get();
-                            });
-
-                            // Add question columns
-                            foreach ($questions as $question) {
-                                $columns["question_{$question->id}"] = function ($record) use ($question) {
-                                    return $record->answers->firstWhere('question_id', $question->id)?->answer;
-                                };
-                            }
-
-                            return $columns;
-                        }),
+                    ExportBulkAction::make(),
                 ]),
             ])
             ->emptyStateActions([

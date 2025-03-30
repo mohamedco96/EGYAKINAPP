@@ -80,7 +80,7 @@ class PatientsResource extends Resource
                             return response()->download(
                                 $result['file_path'],
                                 basename($result['file_path'])
-                            )->deleteFileAfterSend(true);
+                            );
                         }
                         
                         // Show error notification
@@ -211,15 +211,12 @@ class PatientsResource extends Resource
             // Generate a unique filename
             $filename = 'patients_export_' . date('Y-m-d_His') . '.xlsx';
 
-            // Create the exports directory if it doesn't exist
-            $exportPath = public_path('storage/exports');
-            if (!file_exists($exportPath)) {
-                mkdir($exportPath, 0755, true);
-            }
+            // Store the Excel file in the storage/app/exports directory
+            $path = 'exports/' . $filename;
+            Excel::store($export, $path);
 
-            // Store the Excel file
-            $fullPath = $exportPath . '/' . $filename;
-            Excel::store($export, $fullPath);
+            // Get the full path to the file
+            $fullPath = storage_path('app/public/' . $path);
 
             // Log successful export
             Log::info('Successfully exported all patients to Excel.', ['file_path' => $fullPath]);

@@ -66,7 +66,7 @@ class PatientsResource extends Resource
             ->emptyStateActions([
                 Tables\Actions\CreateAction::make(),
             ])
-            ->paginated([10, 25, 50, 100]); // Added reasonable pagination limits
+            ->paginated([10, 25, 50, 100,-1]); // Added reasonable pagination limits
     }
 
     protected static function getTableQuery(): Builder

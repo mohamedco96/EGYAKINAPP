@@ -157,53 +157,53 @@ class PatientsController extends Controller
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
             $isVerified = $user->isSyndicateCardRequired === 'Verified';
             $doctorId = $user->id;
+
+            $feedPosts = FeedPost::with([
+                'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                'poll.options' => function ($query) use ($user) {
+                    $query->withCount('votes')
+                        ->with(['votes' => function ($voteQuery) use ($user) {
+                            $voteQuery->where('doctor_id', $user->id);
+                        }]);
+                }
+            ])
+            ->withCount(['likes', 'comments'])
+            ->with([
+                'saves' => function ($query) use ($user) {
+                    $query->where('doctor_id', $user->id);
+                },
+                'likes' => function ($query) use ($user) {
+                    $query->where('doctor_id', $user->id);
+                }
+            ])
+            ->where('group_id', null)
+            ->latest('created_at')
+            ->limit(5)
+            ->get();
+
+            // Process each post
+            $feedPosts->transform(function ($post) use ($user) {
+                // Add 'is_saved' and 'is_liked' fields
+                $post->isSaved = $post->saves->isNotEmpty();
+                $post->isLiked = $post->likes->isNotEmpty();
+
+                // Sort poll options by vote count (highest first) and check if the user has voted
+                if ($post->poll) {
+                    $post->poll->options = $post->poll->options->map(function ($option) use ($user) {
+                        $option->is_voted = $option->votes->isNotEmpty();
+                        unset($option->votes);
+                        return $option;
+                    })->sortByDesc('votes_count')->values();
+                }
+
+                // Remove unnecessary data
+                unset($post->saves, $post->likes);
+
+                return $post;
+            });
+            
             // If user is not verified and not admin/tester, return limited data
             if (!$isVerified && !$isAdminOrTester) {
-
-                $feedPosts = FeedPost::with([
-                    'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
-                    'poll.options' => function ($query) use ($user) {
-                        $query->withCount('votes')
-                            ->with(['votes' => function ($voteQuery) use ($user) {
-                                $voteQuery->where('doctor_id', $user->id);
-                            }]);
-                    }
-                ])
-                ->withCount(['likes', 'comments'])
-                ->with([
-                    'saves' => function ($query) use ($user) {
-                        $query->where('doctor_id', $user->id);
-                    },
-                    'likes' => function ($query) use ($user) {
-                        $query->where('doctor_id', $user->id);
-                    }
-                ])
-                ->where('group_id', null)
-                ->latest('created_at')
-                ->limit(5)
-                ->get();
-    
-                // Process each post
-                $feedPosts->transform(function ($post) use ($user) {
-                    // Add 'is_saved' and 'is_liked' fields
-                    $post->isSaved = $post->saves->isNotEmpty();
-                    $post->isLiked = $post->likes->isNotEmpty();
-    
-                    // Sort poll options by vote count (highest first) and check if the user has voted
-                    if ($post->poll) {
-                        $post->poll->options = $post->poll->options->map(function ($option) use ($user) {
-                            $option->is_voted = $option->votes->isNotEmpty();
-                            unset($option->votes);
-                            return $option;
-                        })->sortByDesc('votes_count')->values();
-                    }
-    
-                    // Remove unnecessary data
-                    unset($post->saves, $post->likes);
-    
-                    return $post;
-                });
-
                 $trendingHashtags = Hashtag::orderBy('usage_count', 'desc')
                 ->limit(5)
                 ->get();

@@ -387,7 +387,9 @@ class PatientsController extends Controller
                     'all_patients' => $allPatientsResponseData,
                     'current_patient' => $currentPatientsResponseData,
                     'posts' => $posts,
-                    'feed_posts' => $feedPosts
+                    'feed_posts' => $feedPosts,
+                    'trending_hashtags' => [],
+                    'latest_groups' => []
                 ],
             ];
 

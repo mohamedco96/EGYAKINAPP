@@ -201,7 +201,7 @@ class PatientsController extends Controller
 
                 return $post;
             });
-            
+
             // If user is not verified and not admin/tester, return limited data
             if (!$isVerified && !$isAdminOrTester) {
                 $trendingHashtags = Hashtag::orderBy('usage_count', 'desc')
@@ -387,6 +387,7 @@ class PatientsController extends Controller
                     'all_patients' => $allPatientsResponseData,
                     'current_patient' => $currentPatientsResponseData,
                     'posts' => $posts,
+                    'feed_posts' => $feedPosts
                 ],
             ];
 

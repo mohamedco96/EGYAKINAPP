@@ -240,7 +240,7 @@ class PatientsController extends Controller
 
                 // Get counts in one query
                 $counts = [
-                    'userPatientCount' => $user->patients->count(),
+                    'userPatientCount' => $user->patients()->count(),
                     'allPatientCount' => Patients::count(),
                     'postsCount' => $user->feedPosts()->count(),
                     'savedPostsCount' => $user->saves()->count(),

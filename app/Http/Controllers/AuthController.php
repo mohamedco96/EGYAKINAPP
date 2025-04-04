@@ -57,7 +57,7 @@ class AuthController extends Controller
                     'phone' => 'nullable|string|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
                     'job' => 'nullable|string|max:255',
                     'highestdegree' => 'nullable|string|max:255',
-                    'registration_number' => 'required|string|unique:users',
+                    'registration_number' => 'nullable|string|unique:users',
                     'fcmToken' => 'nullable|string|max:255'
                 ]);
             } catch (ValidationException $e) {

@@ -179,6 +179,9 @@ class PatientsController extends Controller
             ])
             ->withCount(['likes', 'comments'])
             ->where('group_id', null)
+            ->where('media_type', 'image')
+            ->whereNotNull('media_path')
+            ->where('media_path', '!=', '[]')
             ->latest('created_at')
             ->limit(5)
             ->get();

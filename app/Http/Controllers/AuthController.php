@@ -189,7 +189,7 @@ class AuthController extends Controller
             } catch (ValidationException $e) {
                 return response()->json([
                     'value' => false,
-                    'message' => 'Validation failed',
+                    'message' => array_values($e->errors())[0][0],
                     'errors' => $e->errors()
                 ], 422);
             }
@@ -311,7 +311,7 @@ class AuthController extends Controller
             } catch (ValidationException $e) {
                 return response()->json([
                     'value' => false,
-                    'message' => 'Validation failed',
+                    'message' => array_values($e->errors())[0][0],
                     'errors' => $e->errors()
                 ], 422);
             }
@@ -548,7 +548,7 @@ class AuthController extends Controller
             } catch (ValidationException $e) {
                 return response()->json([
                     'value' => false,
-                    'message' => 'Validation failed',
+                    'message' => array_values($e->errors())[0][0],
                     'errors' => $e->errors()
                 ], 422);
             }

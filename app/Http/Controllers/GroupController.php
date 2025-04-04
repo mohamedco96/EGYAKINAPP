@@ -366,10 +366,11 @@ class GroupController extends Controller
                 } elseif ($existingStatus === 'declined') {
                     // Update the status to invited again
                     $group->doctors()->updateExistingPivot($doctorId, ['status' => 'invited']);
-                        
-                    // Check if the post owner is not the one liking the post
+                     
+                    
+
                     if ($doctorId !== Auth::id()) {
-                        $notification = AppNotification::create([
+                        AppNotification::create([
                             'doctor_id' => $doctorId,
                             'type' => 'group_invitation',
                             'type_id' => $groupId,
@@ -378,23 +379,23 @@ class GroupController extends Controller
                             'created_at' => now(),
                             'updated_at' => now()
                         ]);
-            
+
                         Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $groupId);
+
+                        // Get FCM tokens for push notification
+                        $tokens = FcmToken::where('doctor_id', $doctorId)
+                            ->pluck('token')
+                            ->toArray();
+
+                        if (!empty($tokens)) {
+                            $this->notificationController->sendPushNotification(
+                                'New Invitation was created 📣',
+                                'Dr. ' . ucfirst(Auth::user()->name) . ' invited you to his group',
+                                $tokens
+                            );
+                        }
                     }
-            
-                    // Notifying other doctors
-                    $doctors = User::role(['Admin', 'Tester'])
-                    ->where('id', '!=', Auth::id())
-                    ->pluck('id'); // Get only the IDs of the users
-
-                    $title = 'New Invitation was created 📣';
-                    $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' invited you to his group';
-                    $tokens = FcmToken::whereIn('doctor_id', $doctors)
-                        ->pluck('token')
-                        ->toArray();
-                
-                    $this->notificationController->sendPushNotification($title, $body, $tokens);
-
+                    
                     // Log the re-invitation
                     Log::info('Doctor re-invited to the group', [
                         'group_id' => $groupId,
@@ -419,9 +420,8 @@ class GroupController extends Controller
                         'invited_by' => Auth::id()
                     ]);
             
-                    // Check if the post owner is not the one liking the post
                     if ($doctorId !== Auth::id()) {
-                        $notification = AppNotification::create([
+                        AppNotification::create([
                             'doctor_id' => $doctorId,
                             'type' => 'group_invitation',
                             'type_id' => $groupId,
@@ -430,22 +430,22 @@ class GroupController extends Controller
                             'created_at' => now(),
                             'updated_at' => now()
                         ]);
-            
-                        Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $groupId);
-                    }
-            
-                    // Notifying other doctors
-                    $doctors = User::role(['Admin', 'Tester'])
-                    ->where('id', '!=', Auth::id())
-                    ->pluck('id'); // Get only the IDs of the users
 
-                    $title = 'New Invitation was created 📣';
-                    $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' invited you to his group';
-                    $tokens = FcmToken::whereIn('doctor_id', $doctors)
-                        ->pluck('token')
-                        ->toArray();
-                
-                    $this->notificationController->sendPushNotification($title, $body, $tokens);
+                        Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $groupId);
+
+                        // Get FCM tokens for push notification
+                        $tokens = FcmToken::where('doctor_id', $doctorId)
+                            ->pluck('token')
+                            ->toArray();
+
+                        if (!empty($tokens)) {
+                            $this->notificationController->sendPushNotification(
+                                'New Invitation was created 📣',
+                                'Dr. ' . ucfirst(Auth::user()->name) . ' invited you to his group',
+                                $tokens
+                            );
+                        }
+                    }
                 }
             }
 
@@ -542,22 +542,6 @@ class GroupController extends Controller
                             'owner_id' => $group->owner_id,
                             'group_id' => $groupId
                         ]);
-
-                        // Get admin and tester users
-                        $adminUsers = User::role(['Admin', 'Tester'])
-                            ->where('id', '!=', $userId)
-                            ->get();
-
-                        // Get FCM tokens for admin users
-                        $adminTokens = FcmToken::whereIn('doctor_id', $adminUsers->pluck('id'))
-                            ->pluck('token')
-                            ->toArray();
-
-                        if (!empty($adminTokens)) {
-                            $title = 'Group invitation accepted 📣';
-                            $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' accepted the group invitation';
-                            $this->notificationController->sendPushNotification($title, $body, $adminTokens);
-                        }
                     }
                 }
 
@@ -1128,9 +1112,8 @@ class GroupController extends Controller
 
     private function sendJoinRequestNotification($group, $userId)
     {
-        // Notify group owner
         if ($group->owner_id !== Auth::id()) {
-            $notification = AppNotification::create([
+            AppNotification::create([
                 'doctor_id' => $group->owner_id,
                 'type' => 'group_join_request',
                 'type_id' => $group->id,
@@ -1139,20 +1122,22 @@ class GroupController extends Controller
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
+
+            Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $groupId);
+
+            // Get FCM tokens for push notification
+            $tokens = FcmToken::where('doctor_id', $group->owner_id)
+                ->pluck('token')
+                ->toArray();
+
+            if (!empty($tokens)) {
+                $this->notificationController->sendPushNotification(
+                    'New Join Request 📣',
+                    'Dr. ' . ucfirst(Auth::user()->name) . ' requested to join group',
+                    $tokens
+                );
+            }
         }
-
-        // Notify admins and testers
-        $doctors = User::role(['Admin', 'Tester'])
-            ->where('id', '!=', Auth::id())
-            ->pluck('id');
-
-        $title = 'New Join Request 📣';
-        $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' requested to join group';
-        $tokens = FcmToken::whereIn('doctor_id', $doctors)
-            ->pluck('token')
-            ->toArray();
-    
-        $this->notificationController->sendPushNotification($title, $body, $tokens);
     }
 
     /**

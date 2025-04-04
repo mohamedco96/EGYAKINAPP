@@ -1307,10 +1307,9 @@ class FeedPostController extends Controller
             $post = FeedPost::findOrFail($postId);
             $postOwner = $post->doctor;
     
-            // Create notification for post owner if not the same user
-            $notification = null;
+
             if ($postOwner->id !== Auth::id()) {
-                $notification = AppNotification::create([
+                AppNotification::create([
                     'doctor_id' => $postOwner->id,
                     'type' => 'PostComment',
                     'type_id' => $post->id,
@@ -1319,22 +1318,22 @@ class FeedPostController extends Controller
                     'created_at' => now(),
                     'updated_at' => now()
                 ]);
-    
-                Log::info("Notification sent to post owner ID: " . $postOwner->id . " for post ID: " . $post->id);
-            }
 
-            // Notifying other doctors
-            $doctors = User::role(['Admin', 'Tester'])
-            ->where('id', '!=', Auth::id())
-            ->pluck('id');
-    
-            $title = 'New Comment was added 📣';
-            $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' commented on your post ';
-            $tokens = FcmToken::whereIn('doctor_id', $doctors)
-                ->pluck('token')
-                ->toArray();
-        
-            $this->notificationController->sendPushNotification($title, $body, $tokens);
+                Log::info("Notification sent to post owner ID: " . $postOwner->id . " for post ID: " . $post->id);
+
+                // Get FCM tokens for push notification
+                $tokens = FcmToken::where('doctor_id', $postOwner->id)
+                    ->pluck('token')
+                    ->toArray();
+
+                if (!empty($tokens)) {
+                    $this->notificationController->sendPushNotification(
+                        'New Comment was added 📣',
+                        'Dr. ' . ucfirst(Auth::user()->name) . ' commented on your post ',
+                        $tokens
+                    );
+                }
+            }
     
             return response()->json([
                 'value' => true,
@@ -1432,11 +1431,10 @@ class FeedPostController extends Controller
     
                 $comment = FeedPostComment::findOrFail($commentId);
                 $commentOwner = $comment->doctor;
-    
-                // Create notification for comment owner if not the same user
-                $notification = null;
+
+
                 if ($commentOwner->id !== Auth::id()) {
-                    $notification = AppNotification::create([
+                    AppNotification::create([
                         'doctor_id' => $commentOwner->id,
                         'type' => 'CommentLike',
                         'type_id' => $comment->feed_post_id ,
@@ -1447,20 +1445,20 @@ class FeedPostController extends Controller
                     ]);
     
                     Log::info("Notification sent to comment owner ID: " . $commentOwner->id . " for comment ID: " . $comment->id);
-                }
     
-                // Notifying other doctors
-                $doctors = User::role(['Admin', 'Tester'])
-                ->where('id', '!=', Auth::id())
-                ->pluck('id');
-                                
-                $title = 'New Comment was liked 📣';
-                $body = 'Dr. ' . ucfirst(Auth::user()->name) . ' liked your comment ';
-                $tokens = FcmToken::whereIn('doctor_id', $doctors)
-                    ->pluck('token')
-                    ->toArray();
-            
-                $this->notificationController->sendPushNotification($title, $body, $tokens);
+                    // Get FCM tokens for push notification
+                    $tokens = FcmToken::where('doctor_id', $commentOwner->id)
+                        ->pluck('token')
+                        ->toArray();
+    
+                    if (!empty($tokens)) {
+                        $this->notificationController->sendPushNotification(
+                            'New Comment was liked 📣',
+                            'Dr. ' . ucfirst(Auth::user()->name) . ' liked your comment ',
+                            $tokens
+                        );
+                    }
+                }
     
                 return response()->json([
                     'value' => true,

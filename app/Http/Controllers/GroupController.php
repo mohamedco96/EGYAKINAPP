@@ -1305,7 +1305,7 @@ class GroupController extends Controller
     public function fetchLatestGroupsWithRandomPosts()
     {
         try {
-            // Fetch the latest three groups
+            // First try to fetch non-joined groups
             $latestGroups = Group::with(['owner' => function ($query) {
                 $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
             }])
@@ -1316,6 +1316,20 @@ class GroupController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->take(3)
                 ->get();
+
+            // If no non-joined groups found, fetch joined groups
+            if ($latestGroups->isEmpty()) {
+                $latestGroups = Group::with(['owner' => function ($query) {
+                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
+                }])
+                    ->whereHas('doctors', function ($query) {
+                        $query->where('doctor_id', Auth::id())
+                            ->where('status', 'joined'); // Include only joined groups
+                    })
+                    ->orderBy('created_at', 'desc')
+                    ->take(3)
+                    ->get();
+            }
 
             // Add user status and member count to each group
             $userId = Auth::id();

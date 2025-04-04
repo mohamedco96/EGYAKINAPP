@@ -238,18 +238,27 @@ class PatientsController extends Controller
                     $group->member_count = $groupMemberCounts[$group->id] ?? 0;
                 });
 
+                // Get counts in one query
+                $counts = [
+                    'userPatientCount' => $user->patients->count(),
+                    'allPatientCount' => Patients::count(),
+                    'postsCount' => $user->feedPosts()->count(),
+                    'savedPostsCount' => $user->saves()->count(),
+                    'unreadCount' => AppNotification::where('doctor_id', $user->id)->where('read', false)->count()
+                ];
+
                 return response()->json([
                     'value' => true,
                     'app_update_message' => '<ul><li><strong>Doctor Consultations</strong>: Doctors can now consult one or more colleagues for advice on their patients.</li><li><strong>User Achievements</strong>: Earn achievements by adding a set number of patients or completing specific outcomes.</li></ul>',
                     'verified' => false,
-                    'unreadCount' => '0',
-                    'doctor_patient_count' => '0',
+                    'unreadCount' => (string)$counts['unreadCount'], // Return unreadCount
+                    'doctor_patient_count' => (string)$counts['userPatientCount'], // Return doctor_patient_count
                     'isSyndicateCardRequired' => $user->isSyndicateCardRequired,
                     'isUserBlocked' => $user->blocked,
-                    'all_patient_count' => '0',
+                    'all_patient_count' => (string)$counts['allPatientCount'],
                     'score_value' => '0',
-                    'posts_count' => '0',
-                    'saved_posts_count' => '0',
+                    'posts_count' => (string)$counts['postsCount'], // Return posts_count
+                    'saved_posts_count' => (string)$counts['savedPostsCount'], // Return saved_posts_count
                     'role' => $user->roles->first()->name ?? "User",
                     'data' => [
                         'topDoctors' => [],

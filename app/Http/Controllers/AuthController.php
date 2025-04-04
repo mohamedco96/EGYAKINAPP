@@ -260,8 +260,8 @@ class AuthController extends Controller
         try {
             $user = Auth::user();
             
-            // Revoke all tokens
-            $user->tokens()->delete();
+            // Revoke only the current token
+            $request->user()->currentAccessToken()->delete();
 
             Log::info('User logged out successfully', [
                 'user_id' => $user->id

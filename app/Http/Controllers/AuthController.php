@@ -78,6 +78,9 @@ class AuthController extends Controller
                     $this->storeFcmToken($user->id, $validated['fcmToken']);
                 }
 
+                // Retrieve the user from the database to get default values
+                $user = User::find($user->id); // Fetch the user again
+
                 // Generate token
                 $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -92,7 +95,7 @@ class AuthController extends Controller
                     'value' => true,
                     'message' => 'User Created Successfully',
                     'token' => $token,
-                    'data' => $user
+                    'data' => $user // Return the user data with defaults
                 ], 201);
 
             } catch (\Exception $e) {

@@ -496,9 +496,9 @@ class FeedPostController extends Controller
                 }
             }
 
-            // Prepare the paginated response
+            // Create a new paginator instance with the transformed data
             $paginatedResponse = new \Illuminate\Pagination\LengthAwarePaginator(
-                $paginatedComments,
+                $paginatedComments->values(), // Ensure we're passing a collection with sequential keys
                 $comments->count(), // Total items count
                 $perPage,
                 $page,

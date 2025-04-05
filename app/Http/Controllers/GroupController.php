@@ -1132,7 +1132,7 @@ class GroupController extends Controller
                 'updated_at' => now()
             ]);
 
-            Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $groupId);
+            Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $group->id);
 
             // Get FCM tokens for push notification
             $tokens = FcmToken::where('doctor_id', $group->owner_id)

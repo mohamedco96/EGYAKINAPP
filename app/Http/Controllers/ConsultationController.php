@@ -396,19 +396,25 @@ class ConsultationController extends Controller
     public function consultationSearch($data)
     {
         try {
-            // Retrieve the authenticated user
             $user = Auth::user();
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
-            // Retrieve Users
+    
+            // Explode the input string into words
+            $keywords = explode(' ', $data);
+    
             $users = User::select('id', 'name', 'lname', 'email', 'phone', 'specialty', 'workingplace', 'image', 'syndicate_card', 'isSyndicateCardRequired')
-                //                ->where('id', '!=', Auth::id())
                 ->when(!$isAdminOrTester, function ($query) {
                     return $query->where('id', '!=', Auth::id());
                 })
-                ->where(function ($query) use ($data) {
-                    $query->where('name', 'like', '%' . $data . '%')
-                        ->orWhere('email', 'like', '%' . $data . '%')
-                        ->orWhere('phone', 'like', '%' . $data . '%');
+                ->where(function ($query) use ($keywords) {
+                    foreach ($keywords as $word) {
+                        $query->where(function ($subQuery) use ($word) {
+                            $subQuery->where('name', 'like', '%' . $word . '%')
+                                     ->orWhere('lname', 'like', '%' . $word . '%')
+                                     ->orWhere('email', 'like', '%' . $word . '%')
+                                     ->orWhere('phone', 'like', '%' . $word . '%');
+                        });
+                    }
                 })
                 ->withCount('patients')
                 ->selectSub(function ($query) {
@@ -425,18 +431,21 @@ class ConsultationController extends Controller
                 });
 
 
+
+    
+
             return response()->json([
                 'value' => true,
                 'data' => $users
             ], 200);
         } catch (\Exception $e) {
-            // Log error
             Log::error('Error searching for data.', ['exception' => $e]);
-
+            
             return response()->json([
                 'value' => false,
                 'message' => 'Failed to search for data.',
             ], 500);
         }
     }
+    
 }

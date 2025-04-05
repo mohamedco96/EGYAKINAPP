@@ -1062,12 +1062,15 @@ class FeedPostController extends Controller
                 $post->delete();
 
                 // Remove the associated AppNotification
-                $deletedCount = AppNotification::where('type', 'PostLike')
-                                ->orWhere('type', 'PostComment')
-                                ->orWhere('type', 'CommentLike')
-                                ->orWhere('type', 'Post')
-                                ->where('type_id', $id)
-                                ->delete();
+                $deletedCount = AppNotification::where(function ($query) {
+                    $query->where('type', 'PostLike')
+                          ->orWhere('type', 'PostComment')
+                          ->orWhere('type', 'CommentLike')
+                          ->orWhere('type', 'Post');
+                })
+                ->where('type_id', $id)
+                ->delete();
+            
         
                 Log::info("Deleted $deletedCount notifications for post ID $id.");
                     

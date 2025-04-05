@@ -287,6 +287,15 @@ class GroupController extends Controller
             // Delete the group
             $group->delete();
 
+            // Remove the associated AppNotification
+            $deletedCount = AppNotification::where('type', 'group_invitation')
+            ->orWhere('type', 'group_invitation_accepted')
+            ->orWhere('type', 'group_join_request')
+            ->where('type_id', $id)
+            ->delete();
+    
+            Log::info("Deleted $deletedCount notifications for post ID $id.");
+
             // Log the deletion
             Log::info('Group deleted', [
                 'group_id' => $id,

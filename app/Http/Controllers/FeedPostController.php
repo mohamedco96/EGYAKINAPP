@@ -1061,6 +1061,16 @@ class FeedPostController extends Controller
                 // Delete the post
                 $post->delete();
 
+                // Remove the associated AppNotification
+                $deletedCount = AppNotification::where('type', 'PostLike')
+                                ->orWhere('type', 'PostComment')
+                                ->orWhere('type', 'CommentLike')
+                                ->orWhere('type', 'Post')
+                                ->where('type_id', $id)
+                                ->delete();
+        
+                Log::info("Deleted $deletedCount notifications for post ID $id.");
+                    
                 DB::commit();
                 Log::info("Post ID $id and its hashtags deleted by doctor " . Auth::id());
                 

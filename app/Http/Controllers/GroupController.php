@@ -157,7 +157,7 @@ class GroupController extends Controller
             $group = Group::findOrFail($id);
 
             // Check if the authenticated user is the group owner
-            $this->authorizeOwner($group);
+            //$this->authorizeOwner($group);
 
             // Validate the incoming request data with stricter rules
             $validated = $request->validate([
@@ -282,7 +282,7 @@ class GroupController extends Controller
             $group = Group::findOrFail($id);
 
             // Check if the authenticated user is the group owner
-            $this->authorizeOwner($group);
+            //$this->authorizeOwner($group);
 
             // Delete the group
             $group->delete();
@@ -687,7 +687,7 @@ class GroupController extends Controller
             $group = Group::findOrFail($groupId);
 
             // Check if the authenticated user is the group owner
-            $this->authorizeOwner($group);
+            //$this->authorizeOwner($group);
 
             // Check if the member exists in the group
             if (!$group->doctors()->where('doctor_id', $doctorId)->exists()) {

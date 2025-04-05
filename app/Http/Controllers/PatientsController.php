@@ -348,7 +348,19 @@ class PatientsController extends Controller
                 ];
             };
 
-            $currentPatientsResponseData = $patients->map($transformPatientData);
+            // Get current patients for the user
+            $currentPatients = $user->patients()
+                ->when(!$isAdminOrTester, fn($query) => $query->where('hidden', false))
+                ->with([
+                    'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version',
+                    'status:id,patient_id,key,status,doctor_id',
+                    'answers:id,patient_id,answer,question_id'
+                ])
+                ->latest('updated_at')
+                ->limit(5)
+                ->get();
+
+            $currentPatientsResponseData = $currentPatients->map($transformPatientData);
             $allPatientsResponseData = $patients->map($transformPatientData);
 
             // Get counts in one query

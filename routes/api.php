@@ -6,6 +6,7 @@ use App\Http\Controllers\ProductController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\GroupController;
 
 /*
 |--------------------------------------------------------------------------
@@ -334,7 +335,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     // Feed Post Routes
     Route::get('feed/posts', 'FeedPostController@getFeedPosts');
     Route::post('feed/posts', 'FeedPostController@store');
-    Route::put('feed/posts/{id}', 'FeedPostController@update');
+    Route::post('feed/posts/{id}', 'FeedPostController@update');
     Route::delete('feed/posts/{id}', 'FeedPostController@destroy');
     Route::post('feed/posts/{id}/likeOrUnlikePost', 'FeedPostController@likeOrUnlikePost');
     Route::post('feed/posts/{id}/saveOrUnsavePost', 'FeedPostController@saveOrUnsavePost');
@@ -351,6 +352,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/feed/getPostsByHashtag/{hashtag}', 'FeedPostController@getPostsByHashtag');
     // Search Posts
     Route::post('/feed/searchPosts', 'FeedPostController@searchPosts');
+    Route::get('/doctorposts/{doctorId}', 'FeedPostController@getDoctorPosts');
+    Route::get('/doctorsavedposts/{doctorId}', 'FeedPostController@getDoctorSavedPosts');
+    Route::post('/polls/{pollId}/vote', 'PollController@voteUnvote');
+    Route::get('/polls/{pollId}/options/{optionId}/voters', 'PollController@getVotersByOption');
+    Route::post('/polls/{pollId}/options', 'PollController@addPollOption');
 
 
     // Groups
@@ -368,7 +374,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/groups/{groupId}/leave', 'GroupController@leaveGroup');
     Route::get('/mygroups', 'GroupController@fetchMyGroups');
     Route::get('/groups', 'GroupController@fetchAllGroups');
-
+    Route::get('/latest-groups-with-random-posts', 'GroupController@fetchLatestGroupsWithRandomPosts');
+    Route::get('/groups/invitations/{doctorId}', 'GroupController@getDoctorInvitations');
+    Route::get('/groups/{groupId}/invitations', 'GroupController@getGroupInvitations');
 
     Route::post('/AIconsultation/{patientId}', 'ChatController@sendConsultation');
     Route::get('/AIconsultation-history/{patientId}', 'ChatController@getConsultationHistory');

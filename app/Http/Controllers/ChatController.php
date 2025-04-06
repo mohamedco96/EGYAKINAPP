@@ -18,10 +18,12 @@ use App\Models\Patients;
 use Illuminate\Support\Facades\Log;
 
 
-class ChatController extends Controller {
+class ChatController extends Controller
+{
     protected $chatGPTService;
 
-    public function __construct(ChatGPTService $chatGPTService) {
+    public function __construct(ChatGPTService $chatGPTService)
+    {
         $this->chatGPTService = $chatGPTService;
     }
 
@@ -32,7 +34,8 @@ class ChatController extends Controller {
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function sendConsultation($patient_id) {
+    public function sendConsultation($patient_id)
+    {
         // Retrieve the patient from the database with related data
         $patient = Patients::with(['doctor', 'status', 'answers'])->findOrFail($patient_id);
 
@@ -182,7 +185,8 @@ class ChatController extends Controller {
      * @param int $patientId
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getConsultationHistory($patientId) {
+    public function getConsultationHistory($patientId)
+    {
         $doctor_id = Auth::id();
 
         // Check and reset the trial count if the reset date has passed

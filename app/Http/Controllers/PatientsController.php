@@ -31,6 +31,16 @@ use PDF;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\AchievementController;
 use function PHPUnit\Framework\assertNotTrue;
+use App\Models\Hashtag;
+use App\Models\Group;
+use App\Models\FeedPost;
+use App\Models\FeedPostComment;
+use App\Models\FeedPostCommentLike;
+use App\Models\FeedPostLike;
+use App\Models\FeedSaveLike;
+use App\Models\Poll;
+use App\Models\PollOption; // If you have a separate PollOption model
+use App\Models\PollVote;
 
 
 class PatientsController extends Controller
@@ -45,7 +55,6 @@ class PatientsController extends Controller
         $this->notificationController = $notificationController;
         $this->patients = $patients;
         $this->achievement = $achievement;
-
     }
 
     /**
@@ -67,7 +76,7 @@ class PatientsController extends Controller
             $filename = $file->getClientOriginalName();
 
             // Store the file in the storage/app/uploads directory
-            $path = $file->storeAs('reports', random_int(500,10000000000) .'_'. $filename, 'public');
+            $path = $file->storeAs('reports', random_int(500, 10000000000) . '_' . $filename, 'public');
 
             // Get the full URL of the uploaded file
             $relativePath = 'storage/' . $path;
@@ -143,33 +152,150 @@ class PatientsController extends Controller
     public function homeGetAllData()
     {
         try {
-            // Retrieve the authenticated user
-            $user = Auth::user();
+            // Retrieve the authenticated user with all needed relationships in one query
+            $user = Auth::user()->load(['roles', 'score', 'patients' => function($query) {
+                $query->where('hidden', false);
+            }]);
+            
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
-    
-            // Fetch all necessary data in fewer queries
+            $isVerified = $user->isSyndicateCardRequired === 'Verified';
+            $doctorId = $user->id;
+
+            // Get feed posts with all relationships in one query
+            $feedPosts = FeedPost::with([
+                'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                'poll.options' => function ($query) use ($user) {
+                    $query->withCount('votes')
+                        ->with(['votes' => function ($voteQuery) use ($user) {
+                            $voteQuery->where('doctor_id', $user->id);
+                        }]);
+                },
+                'likes' => function ($query) use ($user) {
+                    $query->where('doctor_id', $user->id);
+                },
+                'saves' => function ($query) use ($user) {
+                    $query->where('doctor_id', $user->id);
+                }
+            ])
+            ->withCount(['likes', 'comments'])
+            ->where('group_id', null)
+            ->where('media_type', 'image')
+            ->whereNotNull('media_path')
+            ->where('media_path', '!=', '[]')
+            ->latest('created_at')
+            ->limit(5)
+            ->get();
+
+            // Process feed posts
+            $feedPosts->transform(function ($post) use ($user) {
+                $post->isSaved = $post->saves->isNotEmpty();
+                $post->isLiked = $post->likes->isNotEmpty();
+
+                if ($post->poll) {
+                    $post->poll->options = $post->poll->options->map(function ($option) use ($user) {
+                        $option->is_voted = $option->votes->isNotEmpty();
+                        unset($option->votes);
+                        return $option;
+                    })->sortByDesc('votes_count')->values();
+                }
+
+                unset($post->saves, $post->likes);
+                return $post;
+            });
+
+            // If user is not verified and not admin/tester, return limited data
+            if (!$isVerified && !$isAdminOrTester) {
+                // Get trending hashtags and latest groups in parallel
+                $trendingHashtags = Hashtag::orderBy('usage_count', 'desc')
+                    ->limit(5)
+                    ->get();
+
+                $latestGroups = Group::with(['owner:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version'])
+                    ->whereDoesntHave('doctors', function ($query) use ($user) {
+                        $query->where('doctor_id', $user->id)
+                            ->where('status', 'joined');
+                    })
+                    ->orderBy('created_at', 'desc')
+                    ->take(5)
+                    ->get();
+
+                // Get all group user statuses and member counts in one query
+                $groupUserStatuses = DB::table('group_user')
+                    ->where('doctor_id', $user->id)
+                    ->whereIn('group_id', $latestGroups->pluck('id'))
+                    ->pluck('status', 'group_id');
+
+                $groupMemberCounts = DB::table('group_user')
+                    ->whereIn('group_id', $latestGroups->pluck('id'))
+                    ->where('status', 'joined')
+                    ->selectRaw('group_id, COUNT(*) as count')
+                    ->groupBy('group_id')
+                    ->pluck('count', 'group_id');
+
+                // Add status and member count to groups
+                $latestGroups->each(function ($group) use ($groupUserStatuses, $groupMemberCounts) {
+                    $group->user_status = $groupUserStatuses[$group->id] ?? null;
+                    $group->member_count = $groupMemberCounts[$group->id] ?? 0;
+                });
+
+                // Get counts in one query
+                $counts = [
+                    'userPatientCount' => $user->patients()->count(),
+                    'allPatientCount' => Patients::count(),
+                    'postsCount' => $user->feedPosts()->count(),
+                    'savedPostsCount' => $user->saves()->count(),
+                    'unreadCount' => AppNotification::where('doctor_id', $user->id)->where('read', false)->count()
+                ];
+
+                return response()->json([
+                    'value' => true,
+                    'app_update_message' => '<ul><li><strong>Doctor Consultations</strong>: Doctors can now consult one or more colleagues for advice on their patients.</li><li><strong>User Achievements</strong>: Earn achievements by adding a set number of patients or completing specific outcomes.</li></ul>',
+                    'verified' => false,
+                    'unreadCount' => (string)$counts['unreadCount'], // Return unreadCount
+                    'doctor_patient_count' => (string)$counts['userPatientCount'], // Return doctor_patient_count
+                    'isSyndicateCardRequired' => $user->isSyndicateCardRequired,
+                    'isUserBlocked' => $user->blocked,
+                    'all_patient_count' => (string)$counts['allPatientCount'],
+                    'score_value' => '0',
+                    'posts_count' => (string)$counts['postsCount'], // Return posts_count
+                    'saved_posts_count' => (string)$counts['savedPostsCount'], // Return saved_posts_count
+                    'role' => $user->roles->first()->name ?? "User",
+                    'data' => [
+                        'topDoctors' => [],
+                        'pendingSyndicateCard' => [],
+                        'all_patients' => [],
+                        'current_patient' => [],
+                        'posts' => [],
+                        'feed_posts' => $feedPosts,
+                        'trending_hashtags' => $trendingHashtags,
+                        'latest_groups' => $latestGroups,
+                    ],
+                ], 200);
+            }
+
+            // For verified users, get all data efficiently
             $posts = Posts::select('id', 'title', 'image', 'content', 'hidden', 'post_type', 'webinar_date', 'url', 'doctor_id', 'updated_at')
                 ->where('hidden', false)
                 ->with(['doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version'])
                 ->get();
-    
-            $currentPatients = $user->patients()
-                ->when(!$isAdminOrTester, fn($query) => $query->where('hidden', false))
-                ->with(['doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version', 'status', 'answers'])
+
+            // Get patients with all relationships in one query
+            $patients = Patients::when(!$isAdminOrTester, fn($query) => $query->where('hidden', false))
+                ->with([
+                    'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version',
+                    'status:id,patient_id,key,status,doctor_id',
+                    'answers:id,patient_id,answer,question_id'
+                ])
                 ->latest('updated_at')
                 ->limit(5)
                 ->get();
-    
-            $allPatients = Patients::when(!$isAdminOrTester, fn($query) => $query->where('hidden', false))
-                ->with(['doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version', 'status', 'answers'])
-                ->latest('updated_at')
-                ->limit(5)
-                ->get();
-    
+
+            // Get top doctors with all counts in one query
             $topDoctors = User::select('users.id', 'users.name', 'users.image', 'users.syndicate_card', 'users.isSyndicateCardRequired', 'users.version')
                 ->leftJoin('scores', 'users.id', '=', 'scores.doctor_id')
-                ->withCount('patients')
-                ->orderByRaw('patients_count DESC, COALESCE(scores.score, 0) DESC')
+                ->withCount(['patients', 'posts', 'saves'])
+                ->orderByDesc('patients_count')
+                ->orderByDesc('scores.score')
                 ->limit(5)
                 ->get()
                 ->map(function ($user) {
@@ -182,25 +308,25 @@ class PatientsController extends Controller
                         'version' => $user->version,
                         'patients_count' => (string) $user->patients_count,
                         'score' => (string) ($user->score->score ?? 0),
+                        'posts_count' => (string) $user->posts_count,
+                        'saved_posts_count' => (string) $user->saves_count,
                     ];
                 });
-    
+
+            // Get pending syndicate card users in one query if admin/tester
             $pendingSyndicateCard = $isAdminOrTester
                 ? User::select('id', 'name', 'image', 'syndicate_card', 'isSyndicateCardRequired')
                     ->where('isSyndicateCardRequired', 'Pending')
                     ->limit(10)
                     ->get()
                 : collect();
-    
-            // Transform the patient data
+
+            // Transform patient data
             $transformPatientData = function ($patient) {
                 $submit_status = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
                 $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
                 $outcomeSubmitterDoctorId = optional($patient->status->where('key', 'outcome_status')->first())->doctor_id;
-    
-                $submitter = User::select('id', 'name', 'lname', 'isSyndicateCardRequired')
-                    ->find($outcomeSubmitterDoctorId);
-    
+
                 return [
                     'id' => $patient->id,
                     'doctor_id' => $patient->doctor_id,
@@ -214,63 +340,70 @@ class PatientsController extends Controller
                         'outcome_status' => $outcomeStatus ?? false,
                     ],
                     'submitter' => [
-                        'submitter_id' => optional($submitter)->id,
-                        'submitter_fname' => optional($submitter)->name,
-                        'submitter_lname' => optional($submitter)->lname,
-                        'submitter_SyndicateCard' => optional($submitter)->isSyndicateCardRequired
+                        'submitter_id' => $outcomeSubmitterDoctorId,
+                        'submitter_fname' => optional($patient->doctor)->name,
+                        'submitter_lname' => optional($patient->doctor)->lname,
+                        'submitter_SyndicateCard' => optional($patient->doctor)->isSyndicateCardRequired
                     ]
                 ];
             };
-    
+
+            // Get current patients for the user
+            $currentPatients = $user->patients()
+                ->when(!$isAdminOrTester, fn($query) => $query->where('hidden', false))
+                ->with([
+                    'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version',
+                    'status:id,patient_id,key,status,doctor_id',
+                    'answers:id,patient_id,answer,question_id'
+                ])
+                ->latest('updated_at')
+                ->limit(5)
+                ->get();
+
             $currentPatientsResponseData = $currentPatients->map($transformPatientData);
-            $allPatientsResponseData = $allPatients->map($transformPatientData);
-    
-            $userPatientCount = $user->patients()->count();
-            $allPatientCount = Patients::count();
-            $scoreValue = optional($user->score)->score ?? 0;
-            $isVerified = (bool)$user->email_verified_at;
-            $unreadCount = AppNotification::where('doctor_id', $user->id)->where('read', false)->count();
-            $isSyndicateCardRequired = $user->isSyndicateCardRequired;
-            $isUserBlocked = $user->blocked;
-            $role = $user->roles->first();
-    
-            $update_message = '<ul><li><strong>Doctor Consultations</strong>: Doctors can now consult one or more colleagues for advice on their patients.</li><li><strong>User Achievements</strong>: Earn achievements by adding a set number of patients or completing specific outcomes.</li></ul>';
-    
-            $response = [
+            $allPatientsResponseData = $patients->map($transformPatientData);
+
+            // Get counts in one query
+            $counts = [
+                'userPatientCount' => $user->patients()->count(),
+                'allPatientCount' => Patients::count(),
+                'postsCount' => $user->feedPosts()->count(),
+                'savedPostsCount' => $user->saves()->count(),
+                'unreadCount' => AppNotification::where('doctor_id', $user->id)->where('read', false)->count()
+            ];
+
+            return response()->json([
                 'value' => true,
-                'app_update_message' => $update_message,
+                'app_update_message' => '<ul><li><strong>Doctor Consultations</strong>: Doctors can now consult one or more colleagues for advice on their patients.</li><li><strong>User Achievements</strong>: Earn achievements by adding a set number of patients or completing specific outcomes.</li></ul>',
                 'verified' => $isVerified,
-                'unreadCount' => (string)$unreadCount,
-                'doctor_patient_count' => (string)$userPatientCount,
-                'isSyndicateCardRequired' => $isSyndicateCardRequired,
-                'isUserBlocked' => $isUserBlocked,
-                'all_patient_count' => (string)$allPatientCount,
-                'score_value' => (string)$scoreValue,
-                'role' => $role->name ?? "User",
+                'unreadCount' => (string)$counts['unreadCount'],
+                'doctor_patient_count' => (string)$counts['userPatientCount'],
+                'isSyndicateCardRequired' => $user->isSyndicateCardRequired,
+                'isUserBlocked' => $user->blocked,
+                'all_patient_count' => (string)$counts['allPatientCount'],
+                'score_value' => (string)($user->score->score ?? 0),
+                'posts_count' => (string)$counts['postsCount'],
+                'saved_posts_count' => (string)$counts['savedPostsCount'],
+                'role' => $user->roles->first()->name ?? "User",
                 'data' => [
                     'topDoctors' => $topDoctors,
                     'pendingSyndicateCard' => $pendingSyndicateCard,
                     'all_patients' => $allPatientsResponseData,
                     'current_patient' => $currentPatientsResponseData,
                     'posts' => $posts,
+                    'feed_posts' => $feedPosts,
+                    'trending_hashtags' => [],
+                    'latest_groups' => []
                 ],
-            ];
-    
-            // Log successful response
-            Log::info('Successfully retrieved home data.', [
-                'user_id' => $user->id,
-                'response' => $response
-            ]);
-    
-            return response()->json($response, 200);
+            ], 200);
+
         } catch (\Exception $e) {
-            // Log error
             Log::error('Error retrieving home data.', [
                 'user_id' => optional(Auth::user())->id,
                 'exception' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-    
+
             return response()->json([
                 'value' => false,
                 'message' => 'Failed to retrieve home data.',
@@ -677,7 +810,7 @@ class PatientsController extends Controller
             $this->notificationController->sendPushNotification($title, $body, $tokens);
 
             // Check and assign achievements after creating the patient
-//            $this->achievement->checkAndAssignAchievements($user);
+            //            $this->achievement->checkAndAssignAchievements($user);
 
             $response = [
                 'value' => true,
@@ -1108,7 +1241,7 @@ class PatientsController extends Controller
             Log::info('Deleting patient', ['patient_id' => $id]);
 
             // Delete related consultation_doctors records
-            ConsultationDoctor::whereIn('consultation_id', function($query) use ($id) {
+            ConsultationDoctor::whereIn('consultation_id', function ($query) use ($id) {
                 $query->select('id')
                     ->from('consultations')
                     ->where('patient_id', $id);
@@ -1166,7 +1299,6 @@ class PatientsController extends Controller
             ];
 
             return response($response, 200);
-
         } catch (\Exception $e) {
             // Rollback the transaction if something goes wrong
             DB::rollBack();
@@ -1285,7 +1417,6 @@ class PatientsController extends Controller
                     'doses' => $doses,
                 ],
             ], 200);
-
         } catch (\Exception $e) {
             // Log error
             Log::error('Error searching for data.', ['exception' => $e]);
@@ -1383,7 +1514,6 @@ class PatientsController extends Controller
                     'doses' => $doses,
                 ],
             ], 200);
-
         } catch (\Exception $e) {
             // Log error
             Log::error('Error searching for data.', ['exception' => $e]);
@@ -1469,7 +1599,6 @@ class PatientsController extends Controller
                 'value' => true,
                 'data' => $data,
             ]);
-
         } catch (\Exception $e) {
             // Log error
             Log::error('Error searching for data.', ['exception' => $e]);
@@ -1499,7 +1628,7 @@ class PatientsController extends Controller
                 ->latest('updated_at')
                 ->get();
 
-// Retrieve patients
+            // Retrieve patients
             $patients = Patients::select('id', 'doctor_id', 'updated_at')
                 ->where('hidden', false)
                 ->where(function ($query) use ($patientQuery) {
@@ -1580,13 +1709,13 @@ class PatientsController extends Controller
 
             // Log successful search
             Log::info('Successfully retrieved data for the search term.', ['search_term' => $patientQuery]);
-//            return response()->json([
-//                'value' => true,
-//                'data' => [
-//                    'patients' => $transformedPatients,
-//                    'doses' => $doses,
-//                ],
-//            ], 200);
+            //            return response()->json([
+            //                'value' => true,
+            //                'data' => [
+            //                    'patients' => $transformedPatients,
+            //                    'doses' => $doses,
+            //                ],
+            //            ], 200);
 
             // After searching, return the view with the data
             return view('search', [
@@ -1612,27 +1741,27 @@ class PatientsController extends Controller
             // Fetch all questions and answers for the patient at once to minimize database queries
             $questions = Questions::orderBy('section_id')->orderBy('sort')->get();
             $answers = Answers::where('patient_id', $patient_id)
-            ->whereIn('question_id', $questions->pluck('id'))
-            ->get();
+                ->whereIn('question_id', $questions->pluck('id'))
+                ->get();
             // Initialize array to store questions and answers
             $data = [];
-    
+
             foreach ($questions as $question) {
                 // Skip questions flagged with 'skip'
                 if ($question->skip) {
                     Log::info("Question with ID {$question->id} skipped as per skip flag.");
                     continue;
                 }
-    
+
                 // Find answer for this question
                 $answer = $answers->where('question_id', $question->id)->first();
-    
+
                 // Skip hidden questions with no answer
                 if ($question->hidden && !$answer) {
                     Log::info("Hidden question with ID {$question->id} skipped due to no answer.");
                     continue;
                 }
-    
+
                 // Prepare question data
                 $questionData = [
                     'id' => $question->id,
@@ -1644,14 +1773,14 @@ class PatientsController extends Controller
                     'hidden' => $question->hidden,
                     'updated_at' => $question->updated_at,
                 ];
-    
+
                 // Handle different question types
                 if ($question->type === 'select') {
                     $questionData['answer'] = [
                         'answers' => null,
                         'other_field' => null,
                     ];
-    
+
                     $questionAnswers = $answers->where('question_id', $question->id);
                     foreach ($questionAnswers as $ans) {
                         if ($ans->type !== 'other') {
@@ -1666,7 +1795,7 @@ class PatientsController extends Controller
                         'answers' => [],
                         'other_field' => null,
                     ];
-    
+
                     $questionAnswers = $answers->where('question_id', $question->id);
                     foreach ($questionAnswers as $ans) {
                         if ($ans->type !== 'other') {
@@ -1678,12 +1807,12 @@ class PatientsController extends Controller
                     }
                 } elseif ($question->type === 'files') {
                     $questionData['answer'] = [];
-    
+
                     if ($answer === null) {
                         $questionData['answer'] = [];
                     } else {
                         $filePaths = json_decode($answer->answer);
-    
+
                         if (is_array($filePaths)) {
                             foreach ($filePaths as $filePath) {
                                 $absolutePath = Storage::disk('public')->url($filePath);
@@ -1695,40 +1824,39 @@ class PatientsController extends Controller
                     // For other types, directly set the answer
                     $questionData['answer'] = $answer ? $answer->answer : null;
                 }
-    
+
                 // Add question data to main data array
                 $data[] = $questionData;
             }
-    
+
             // Prepare data for the PDF
             $pdfData = [
                 'patient_id' => $patient_id,
                 'questionData' => $data,
             ];
-    
+
             // Generate the PDF using the blade view and data
             $pdf = PDF::loadView('patient_pdf2', $pdfData);
-    
+
             // Ensure the 'pdfs' directory exists in the public disk
             Storage::disk('public')->makeDirectory('pdfs');
-    
+
             // Generate a unique filename for the PDF
-            $pdfFileName = "Report" .'_'. date("dmy_His"). '.pdf';
-    
+            $pdfFileName = "Report" . '_' . date("dmy_His") . '.pdf';
+
             // Save the PDF file to the public disk
             Storage::disk('public')->put('pdfs/' . $pdfFileName, $pdf->output());
-    
+
             // Generate the URL for downloading the PDF file
             $pdfUrl = config('app.url') . '/' . 'storage/pdfs/' . $pdfFileName;
-    
+
             // Return the URL to download the PDF file along with patient data
             Log::info('Returning PDF generation response.', ['pdf_url' => $pdfUrl, 'data' => $pdfData]);
-    
+
             return response()->json([
                 'pdf_url' => $pdfUrl,
                 'data' => $pdfData
             ]);
-    
         } catch (\Exception $e) {
             // Log and return error if an exception occurs
             Log::error("Error while generating PDF: " . $e->getMessage());
@@ -1738,7 +1866,7 @@ class PatientsController extends Controller
             ], 500);
         }
     }
-    
+
 
     public function patientFilterConditions()
     {
@@ -1807,7 +1935,6 @@ class PatientsController extends Controller
 
             // Return successful response with the questions data
             return response()->json($response, 200);
-
         } catch (\Exception $e) {
             // Log the exception with a detailed message
             Log::error("Error while fetching questions filter conditions: " . $e->getMessage(), [
@@ -1925,7 +2052,6 @@ class PatientsController extends Controller
                     'to' => $patients->lastItem(),
                 ]
             ], 200);
-
         } catch (\Exception $e) {
             // Log error details
             Log::error('Error retrieving filtered patients.', ['exception' => $e]);
@@ -1937,5 +2063,4 @@ class PatientsController extends Controller
             ], 500);
         }
     }
-
 }

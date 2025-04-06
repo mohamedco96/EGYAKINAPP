@@ -18,6 +18,8 @@ function processQuestion($answers, $questionId) {
             return processMultipleAnswers($answers, $questionId);
         case 'select':
             return processSelectAnswer($answers, $questionId);
+        case 'files': // New type to handle file paths
+            return processFileAnswers($answers, $questionId);
         default: // string or other types
             return $question['answer'] ?? null;
     }
@@ -26,14 +28,24 @@ function processQuestion($answers, $questionId) {
 // Helper function to process "multiple" type answers
 function processMultipleAnswers($answers, $questionId) {
     $question = $answers[$questionId];
-    $filteredAnswers = array_filter($question['answer']['answers'] ?? [], function($answer) {
+    
+    // Ensure we have an array to work with
+    $answerData = $question['answer'] ?? [];
+    $answersArray = $answerData['answers'] ?? [];
+    
+    // If answers is a string, convert it to an array
+    if (is_string($answersArray)) {
+        $answersArray = [$answersArray];
+    }
+    
+    $filteredAnswers = array_filter($answersArray, function($answer) {
         return $answer !== "Others";
     });
 
     $answersText = implode(', ', $filteredAnswers);
 
-    if (!empty(trim($question['answer']['other_field'] ?? ''))) {
-        $answersText .= (!empty($answersText) ? ', ' : '') . $question['answer']['other_field'];
+    if (!empty(trim($answerData['other_field'] ?? ''))) {
+        $answersText .= (!empty($answersText) ? ', ' : '') . $answerData['other_field'];
     }
 
     return $answersText;
@@ -41,9 +53,11 @@ function processMultipleAnswers($answers, $questionId) {
 
 // Helper function to process "select" type answers
 function processSelectAnswer($answers, $questionId) {
-    $question = $answers[$questionId];
-    $answer = $question['answer']['answers'] ?? null;
-    $otherField = $question['answer']['other_field'] ?? null;
+    $question = $answers[$questionId] ?? [];
+    $answerData = $question['answer'] ?? [];
+    
+    $answer = $answerData['answers'] ?? null;
+    $otherField = $answerData['other_field'] ?? null;
 
     if ($answer === "Others" && !empty(trim($otherField))) {
         return $otherField;
@@ -51,6 +65,33 @@ function processSelectAnswer($answers, $questionId) {
 
     return $answer;
 }
+
+// Helper function to process "files" type answers
+function processFileAnswers($answers, $questionId) {
+    $question = $answers[$questionId] ?? null;
+    
+    if (!$question || !isset($question['answer'])) {
+        return null;
+    }
+
+    $filePaths = $question['answer'];
+    
+    // If it's not an array, make it one (in case single file is stored as string)
+    if (!is_array($filePaths)) {
+        $filePaths = [$filePaths];
+    }
+
+    return array_map(function($filePath) {
+        // If the path is already a full URL, return it as-is
+        if (filter_var($filePath, FILTER_VALIDATE_URL)) {
+            return $filePath;
+        }
+        
+        // Otherwise, convert storage path to URL
+        return url('storage/' . str_replace('\\/', '/', $filePath));
+    }, $filePaths);
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -827,6 +868,36 @@ function processSelectAnswer($answers, $questionId) {
     </div>
     <!--  -->
 
+
+<!-- Files Section -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="section">
+            <h2>Attached Files</h2>
+            @foreach ([145, 146, 147, 148] as $questionId)
+                @php
+                    $files = processQuestion($answers, $questionId);
+                    $questionName = $answers[$questionId]['question'] ?? 'File';
+                @endphp
+                
+                @if($files)
+                    <div class="file-group">
+                        @foreach((array)$files as $fileUrl)
+                            <div class="file-link">
+                                <a href="{{ $fileUrl }}" target="_blank" title="{{ basename($fileUrl) }}">
+                                    {{ $questionName }}
+                                    @if(count((array)$files) > 1)
+                                        (File {{ $loop->iteration }})
+                                    @endif
+                                </a>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            @endforeach
+        </div>
+    </div>
+</div>
 
     <!-- Footer -->
     <div class="footer">

@@ -51,7 +51,7 @@ class ContactController extends Controller
             ];
             $emailAddresses = ['mostafa_abdelsalam@egyakin.com', 'Darsh1980@mans.edu.eg'];
             $user = Auth::user();
-            $user->notify(new ContactRequestNotification($emailAddresses,$request->message));
+            $user->notify(new ContactRequestNotification($emailAddresses, $request->message));
             return response($response, 200);
         } else {
             $response = [

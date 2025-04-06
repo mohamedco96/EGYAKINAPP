@@ -73,7 +73,7 @@ class SectionsController extends Controller
         // Check if serumCreatinine is zero to avoid division by zero
         if ($serumCreatinine == 0) {
             return 0; // or you can throw an exception or return an error message
-        }else{
+        } else {
             $ccr = ((140 - $age) / $serumCreatinine) *
                 pow($weight, 0.54) *
                 pow($height, 0.40) *
@@ -81,9 +81,6 @@ class SectionsController extends Controller
 
             return number_format($ccr, 2, '.', '');
         }
-
-
-
     }
 
 
@@ -117,7 +114,6 @@ class SectionsController extends Controller
         $mdrd = $constant * $serumCrFactor * $ageFactor * $raceFactor * $genderFactor;
 
         return number_format($mdrd, 2, '.', '');
-
     }
 
     /**
@@ -182,7 +178,7 @@ class SectionsController extends Controller
                     'updated_at' => now(),
                 ]);
 
-//            $this->checkAndAssignAchievements($user);
+            //            $this->checkAndAssignAchievements($user);
 
             // Return success response
             $response = [
@@ -202,21 +198,21 @@ class SectionsController extends Controller
     }
 
 
-//    public function checkAndAssignAchievements(User $user)
-//    {
-//        $userScore = $user->score->score;
-//        $achievements = Achievement::all();
-//
-//        foreach ($achievements as $achievement) {
-//            $existingAchievement = $user->achievements()->where('achievement_id', $achievement->id)->first();
-//            if (!$existingAchievement) {
-//                $achieved = $userScore >= $achievement->score;
-//                $user->achievements()->attach($achievement->id, ['achieved' => $achieved]);
-//            } elseif ($existingAchievement->pivot->achieved == false && $userScore >= $achievement->score) {
-//                $user->achievements()->updateExistingPivot($achievement->id, ['achieved' => true]);
-//            }
-//        }
-//    }
+    //    public function checkAndAssignAchievements(User $user)
+    //    {
+    //        $userScore = $user->score->score;
+    //        $achievements = Achievement::all();
+    //
+    //        foreach ($achievements as $achievement) {
+    //            $existingAchievement = $user->achievements()->where('achievement_id', $achievement->id)->first();
+    //            if (!$existingAchievement) {
+    //                $achieved = $userScore >= $achievement->score;
+    //                $user->achievements()->attach($achievement->id, ['achieved' => $achieved]);
+    //            } elseif ($existingAchievement->pivot->achieved == false && $userScore >= $achievement->score) {
+    //                $user->achievements()->updateExistingPivot($achievement->id, ['achieved' => true]);
+    //            }
+    //        }
+    //    }
 
     /**
      * Show questions and answers for a specific section and patient.
@@ -236,36 +232,36 @@ class SectionsController extends Controller
                     'data' => [],
                 ], 200);
             }
-    
+
             // Fetch questions for the specified section
             $questions = Questions::where('section_id', $section_id)
                 ->orderBy('sort')
                 ->get();
-    
+
             // Fetch all answers for the patient related to these questions
             $answers = Answers::where('patient_id', $patient_id)
                 ->whereIn('question_id', $questions->pluck('id'))
                 ->get();
-    
+
             // Initialize array to store questions and answers
             $data = [];
-    
+
             foreach ($questions as $question) {
                 // Skip questions flagged with 'skip'
                 if ($question->skip) {
                     Log::info("Question with ID {$question->id} skipped as per skip flag.");
                     continue;
                 }
-    
+
                 // Find answer for this question
                 $answer = $answers->where('question_id', $question->id)->first();
-    
+
                 // Skip hidden questions with no answer
                 if ($question->hidden && !$answer) {
                     Log::info("Hidden question with ID {$question->id} skipped due to no answer.");
                     continue;
                 }
-    
+
                 // Prepare question data
                 $questionData = [
                     'id' => $question->id,
@@ -277,14 +273,14 @@ class SectionsController extends Controller
                     'hidden' => $question->hidden,
                     'updated_at' => $question->updated_at,
                 ];
-    
+
                 // Handle different question types
                 if ($question->type === 'select') {
                     $questionData['answer'] = [
                         'answers' => null,
                         'other_field' => null,
                     ];
-    
+
                     $questionAnswers = $answers->where('question_id', $question->id);
                     foreach ($questionAnswers as $ans) {
                         if ($ans->type !== 'other') {
@@ -299,7 +295,7 @@ class SectionsController extends Controller
                         'answers' => [],
                         'other_field' => null,
                     ];
-    
+
                     $questionAnswers = $answers->where('question_id', $question->id);
                     foreach ($questionAnswers as $ans) {
                         if ($ans->type !== 'other') {
@@ -311,12 +307,12 @@ class SectionsController extends Controller
                     }
                 } elseif ($question->type === 'files') {
                     $questionData['answer'] = [];
-    
+
                     if ($answer === null) {
                         $questionData['answer'] = [];
                     } else {
                         $filePaths = json_decode($answer->answer);
-    
+
                         if (is_array($filePaths)) {
                             foreach ($filePaths as $filePath) {
                                 $absolutePath = Storage::disk('public')->url($filePath);
@@ -328,11 +324,11 @@ class SectionsController extends Controller
                     // For other types, directly set the answer
                     $questionData['answer'] = $answer ? $answer->answer : null;
                 }
-    
+
                 // Add question data to main data array
                 $data[] = $questionData;
             }
-    
+
             // Fetch submitter information for section 8
             $submitter = PatientStatus::select('id', 'doctor_id')
                 ->where('patient_id', $patient_id)
@@ -341,7 +337,7 @@ class SectionsController extends Controller
                     $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
                 }])
                 ->first();
-    
+
             // Prepare response based on section 8 or other sections
             if ($section_id == 8) {
                 if ($submitter && $submitter->doctor) {
@@ -374,10 +370,10 @@ class SectionsController extends Controller
                     'data' => $data,
                 ];
             }
-    
+
             // Log successful retrieval of questions and answers
             Log::info("Questions and answers retrieved successfully for section ID {$section_id} and patient ID {$patient_id}.");
-    
+
             return response()->json($response, 200);
         } catch (\Exception $e) {
             // Log and return error response
@@ -388,9 +384,9 @@ class SectionsController extends Controller
             ], 500);
         }
     }
-    
-    
-    
+
+
+
 
     /**
      * Show sections and their statuses for a patient.
@@ -513,7 +509,7 @@ class SectionsController extends Controller
             $race = Answers::where('patient_id', $patient_id)
                 ->where('question_id', '149')->value('answer');
 
-// Convert to float values
+            // Convert to float values
             $c1 = floatval($CurrentCreatinine);
             $c2 = floatval($BasalCreatinine);
             $c3 = floatval($CreatinineOnDischarge);
@@ -523,10 +519,12 @@ class SectionsController extends Controller
             $genderValue = $gender; // Assuming gender is not a numerical value
             $raceValue = $race;
 
-// Check if all necessary parameters are present and valid
-            if (!is_null($gender) && !is_null($age) && $age != 0 &&
+            // Check if all necessary parameters are present and valid
+            if (
+                !is_null($gender) && !is_null($age) && $age != 0 &&
                 !is_null($height) && $height != 0 && !is_null($weight) && $weight != 0 &&
-                !is_null($race) && !is_null($CurrentCreatinine) && $CurrentCreatinine != 0) {
+                !is_null($race) && !is_null($CurrentCreatinine) && $CurrentCreatinine != 0
+            ) {
 
                 // Calculate CKD GFR values
                 $GFR['ckd']['current_GFR'] = $this->calculateGFRForCKD($genderValue, $ageValue, $c1);
@@ -538,9 +536,11 @@ class SectionsController extends Controller
                 $GFR['mdrd']['current_GFR'] = $this->calculateGFRforMDRD($c1, $ageValue, $raceValue, $genderValue);
             }
 
-            if (!is_null($gender) && !is_null($age) && $age != 0 &&
+            if (
+                !is_null($gender) && !is_null($age) && $age != 0 &&
                 !is_null($height) && $height != 0 && !is_null($weight) && $weight != 0 &&
-                !is_null($race) && !is_null($BasalCreatinine) && $BasalCreatinine != 0) {
+                !is_null($race) && !is_null($BasalCreatinine) && $BasalCreatinine != 0
+            ) {
 
                 // Calculate CKD GFR values
                 $GFR['ckd']['basal_creatinine_GFR'] = $this->calculateGFRForCKD($genderValue, $ageValue, $c2);
@@ -552,9 +552,11 @@ class SectionsController extends Controller
                 $GFR['mdrd']['basal_creatinine_GFR'] = $this->calculateGFRforMDRD($c2, $ageValue, $raceValue, $genderValue);
             }
 
-            if (!is_null($gender) && !is_null($age) && $age != 0 &&
+            if (
+                !is_null($gender) && !is_null($age) && $age != 0 &&
                 !is_null($height) && $height != 0 && !is_null($weight) && $weight != 0 &&
-                !is_null($race) && !is_null($CreatinineOnDischarge) && $CreatinineOnDischarge != 0) {
+                !is_null($race) && !is_null($CreatinineOnDischarge) && $CreatinineOnDischarge != 0
+            ) {
 
                 // Calculate CKD GFR values
                 $GFR['ckd']['creatinine_on_discharge_GFR'] = $this->calculateGFRForCKD($genderValue, $ageValue, $c3);
@@ -593,7 +595,4 @@ class SectionsController extends Controller
             ], 500);
         }
     }
-
-
 }
-

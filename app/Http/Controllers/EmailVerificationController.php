@@ -14,7 +14,8 @@ class EmailVerificationController extends Controller
 {
     private $otp;
 
-    public function __construct(){
+    public function __construct()
+    {
         $this->otp = new Otp;
     }
 
@@ -24,7 +25,8 @@ class EmailVerificationController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function sendEmailVerification(Request $request){
+    public function sendEmailVerification(Request $request)
+    {
         try {
             $request->user()->notify(new EmailVerificationNotification());
 
@@ -49,11 +51,12 @@ class EmailVerificationController extends Controller
      * @param  \App\Http\Requests\EmailVerificationRequest  $request
      * @return \Illuminate\Http\Response
      */
-    public function email_verification(EmailVerificationRequest $request){
+    public function email_verification(EmailVerificationRequest $request)
+    {
         try {
             $otp2 = $this->otp->validate(Auth::user()->email, $request->otp);
 
-            if(!$otp2->status){
+            if (!$otp2->status) {
                 Log::warning('Email verification failed', ['user_id' => Auth::user()->id]);
                 return response()->json([
                     'value' => false,

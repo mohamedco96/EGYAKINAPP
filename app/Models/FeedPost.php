@@ -11,6 +11,10 @@ class FeedPost extends Model
 
     protected $fillable = ['doctor_id', 'content', 'media_type', 'media_path', 'visibility', 'group_id'];
 
+    protected $casts = [
+        'media_path' => 'array', // Cast to array
+    ];
+
     public function doctor()
     {
         return $this->belongsTo(User::class, 'doctor_id');
@@ -40,5 +44,10 @@ class FeedPost extends Model
     public function group()
     {
         return $this->belongsTo(Group::class);
+    }
+
+    public function poll()
+    {
+        return $this->hasOne(Poll::class, 'feed_post_id');
     }
 }

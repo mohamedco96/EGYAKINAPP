@@ -79,5 +79,4 @@ class MainController extends Controller
             'message' => 'Please choose a video file.',
         ], 400);
     }
-
 }

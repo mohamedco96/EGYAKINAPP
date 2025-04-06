@@ -12,7 +12,7 @@ class CreateGroupUserTable extends Migration
             $table->id();
             $table->foreignId('group_id')->constrained('groups')->onDelete('cascade');
             $table->foreignId('doctor_id')->constrained('users')->onDelete('cascade');
-            $table->enum('status', ['invited', 'accepted', 'declined', 'joined'])->default('invited');
+            $table->enum('status', ['invited', 'accepted', 'declined', 'joined', 'pending'])->default('invited');
             $table->timestamps();
         });
     }

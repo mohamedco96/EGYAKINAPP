@@ -190,26 +190,26 @@ class DoseController extends Controller
         $dose = Dose::where('id', $id)->first();
 
         try {
-        if ($dose != null) {
-            $dose->update($request->all());
-            $response = [
-                'value' => true,
-                'data' => $dose,
-                'message' => 'Dose Updated Successfully',
-            ];
+            if ($dose != null) {
+                $dose->update($request->all());
+                $response = [
+                    'value' => true,
+                    'data' => $dose,
+                    'message' => 'Dose Updated Successfully',
+                ];
 
-            // Log successful dose update
-            Log::info('Dose updated successfully.', ['dose_id' => $id]);
+                // Log successful dose update
+                Log::info('Dose updated successfully.', ['dose_id' => $id]);
 
-            return response($response, 201);
-        } else {
-            $response = [
-                'value' => false,
-                'message' => 'No Dose was found',
-            ];
+                return response($response, 201);
+            } else {
+                $response = [
+                    'value' => false,
+                    'message' => 'No Dose was found',
+                ];
 
-            return response($response, 404);
-        }
+                return response($response, 404);
+            }
         } catch (\Exception $e) {
             // Log any exceptions that occur
             Log::error('Exception occurred while updating dose.', [
@@ -233,27 +233,27 @@ class DoseController extends Controller
         try {
             $dose = Dose::findOrFail($id);
 
-        if ($dose != null) {
-            // Delete the dose
-            $dose->delete();
+            if ($dose != null) {
+                // Delete the dose
+                $dose->delete();
 
-            // Log successful dose deletion
-            Log::info('Dose deleted successfully.', ['dose_id' => $id]);
+                // Log successful dose deletion
+                Log::info('Dose deleted successfully.', ['dose_id' => $id]);
 
-            $response = [
-                'value' => true,
-                'message' => 'Contact Deleted Successfully',
-            ];
+                $response = [
+                    'value' => true,
+                    'message' => 'Contact Deleted Successfully',
+                ];
 
-            return response($response, 201);
-        } else {
-            $response = [
-                'value' => false,
-                'message' => 'No Contact was found',
-            ];
+                return response($response, 201);
+            } else {
+                $response = [
+                    'value' => false,
+                    'message' => 'No Contact was found',
+                ];
 
-            return response($response, 404);
-        }
+                return response($response, 404);
+            }
         } catch (\Exception $e) {
             // Log any exceptions that occur
             Log::error('Exception occurred while deleting dose.', [

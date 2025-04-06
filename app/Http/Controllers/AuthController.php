@@ -25,6 +25,8 @@ use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\NotificationController;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Cache;
 
 class AuthController extends Controller
 {
@@ -34,87 +36,110 @@ class AuthController extends Controller
     {
         $this->notificationController = $notificationController;
     }
+
+
     public function register(Request $request)
     {
-        // Log the start of the user registration process
-        Log::info('Starting user registration process.', ['request_data' => $request->all()]);
-
-        // Start a database transaction to ensure data integrity
-        DB::beginTransaction();
-
         try {
-            // Create a new user from the request data
-            $user = $this->createUser($request);
-
-            // Generate an authentication token for the newly created user
-            $token = $user->createToken('apptoken')->plainTextToken;
-
-            // Send a welcome email notification to the user
-            $user->notify(new WelcomeMailNotification());
-
-            // If the request contains an FCM token, store it
-            if ($request->has('fcmToken')) {
-                $this->storeFcmToken($user->id, $request->fcmToken);
+            try {
+                $validated = $request->validate([
+                    'name' => 'required|string|max:255',
+                    'lname' => 'required|string|max:255',
+                    'email' => 'required|string|email|max:255|unique:users',
+                    'password' => [
+                        'required',
+                        'string',
+                        'min:6' // At least 8 chars, 1 letter and 1 number
+                    ],
+                    'age' => 'nullable|integer|min:18|max:100',
+                    'specialty' => 'nullable|string|max:255',
+                    'workingplace' => 'nullable|string|max:255',
+                    'phone' => 'nullable|string|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
+                    'job' => 'nullable|string|max:255',
+                    'highestdegree' => 'nullable|string|max:255',
+                    'registration_number' => 'nullable|string|unique:users',
+                    'fcmToken' => 'nullable|string|max:255'
+                ]);
+            } catch (ValidationException $e) {
+                return response()->json([
+                    'value' => false,
+                    'message' => array_values($e->errors())[0][0],
+                    'errors' => $e->errors()
+                ], 422);
             }
 
-            // Commit the transaction if everything went smoothly
-            DB::commit();
+            DB::beginTransaction();
+            try {
+                // Create user
+                $user = $this->createUser($validated);
 
-            // Log the successful registration
-            Log::info('User registration successful.', ['user_id' => $user->id]);
+                // Store FCM token if provided
+                if (isset($validated['fcmToken'])) {
+                    $this->storeFcmToken($user->id, $validated['fcmToken']);
+                }
 
-            // Prepare a successful response with user data and the generated token
-            $response = [
-                'value' => true,
-                'data' => $user,
-                'token' => $token,
-            ];
+                // Retrieve the user from the database to get default values
+                $user = User::find($user->id); // Fetch the user again
 
-            return response($response, 200);
+                // Generate token
+                $token = $user->createToken('auth_token')->plainTextToken;
+
+                DB::commit();
+
+                Log::info('User registered successfully', [
+                    'user_id' => $user->id,
+                    'email' => $user->email
+                ]);
+
+                return response()->json([
+                    'value' => true,
+                    'message' => 'User Created Successfully',
+                    'token' => $token,
+                    'data' => $user // Return the user data with defaults
+                ], 201);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
 
         } catch (\Exception $e) {
-            // Rollback the transaction in case of an error
-            DB::rollBack();
-
-            // Log the error with specific details for easier debugging
-            Log::error('Error during user registration.', [
-                'error_message' => $e->getMessage(),
-                'request_data' => $request->all()
+            Log::error('Registration failed', [
+                'error' => $e->getMessage(),
+                'email' => $request->input('email')
             ]);
 
-            // Return a concise error message with a 500 status code
-            return response([
+            return response()->json([
                 'value' => false,
-                'message' => 'Registration failed. Please try again later.'
+                'message' => 'Registration failed'
             ], 500);
         }
     }
 
     /**
-     * Create a new user with the provided request data.
+     * Create a new user with the provided validated data.
      *
-     * @param \Illuminate\Http\Request $request
+     * @param array $data
      * @return \App\Models\User
      */
-    protected function createUser(Request $request)
+    protected function createUser(array $data)
     {
-        // Log the user creation process
-        Log::info('Creating new user.', ['email' => $request->input('email')]);
-
-        // Return the created user after validation and hashing the password
+        // Sanitize inputs
+        $sanitized = array_map('trim', $data);
+        
         return User::create([
-            'name' => $request->input('name'),
-            'lname' => $request->input('lname'),
-            'email' => $request->input('email'),
-            'password' => bcrypt($request->input('password')), // Securely hash the password
-            'passwordValue' => $request->input('password'), // Consider encrypting this if storing plain password is necessary
-            'age' => $request->input('age'),
-            'specialty' => $request->input('specialty'),
-            'workingplace' => $request->input('workingplace'),
-            'phone' => $request->input('phone'),
-            'job' => $request->input('job'),
-            'highestdegree' => $request->input('highestdegree'),
-            'registration_number' => $request->input('registration_number'),
+            'name' => $sanitized['name'],
+            'lname' => $sanitized['lname'],
+            'email' => strtolower($sanitized['email']),
+            'password' => Hash::make($sanitized['password']),
+            'passwordValue' => encrypt($sanitized['password']), // Encrypt stored password
+            'age' => $sanitized['age'] ?? null,
+            'specialty' => $sanitized['specialty'] ?? null,
+            'workingplace' => $sanitized['workingplace'] ?? null,
+            'phone' => $sanitized['phone'] ?? null,
+            'job' => $sanitized['job'] ?? null,
+            'highestdegree' => $sanitized['highestdegree'] ?? null,
+            'registration_number' => $sanitized['registration_number'],
         ]);
     }
 
@@ -125,192 +150,140 @@ class AuthController extends Controller
      * @param string $fcmToken
      * @return void
      */
-    protected function storeFcmToken(int $userId, string $fcmToken)
+    protected function storeFcmToken($userId, $token)
     {
-        // Check if the FCM token already exists in the database
-        $existingToken = FcmToken::where('token', $fcmToken)->first();
-
-        // If the token does not exist, create a new one
-        if (!$existingToken) {
-            FcmToken::create([
-                'doctor_id' => $userId,
-                'token' => $fcmToken,
+        // Validate token format
+        if (!preg_match('/^[a-zA-Z0-9:_-]{1,255}$/', $token)) {
+            Log::warning('Invalid FCM token format', [
+                'user_id' => $userId,
+                'token' => substr($token, 0, 32) . '...' // Log only part of token
             ]);
+            return;
+        }
 
-            // Log the successful storage of the FCM token
-            Log::info('FCM token stored successfully.', [
-                'doctor_id' => $userId,
-                'token' => $fcmToken,
-            ]);
-        } else {
-            // Log that the token already exists
-            Log::info('FCM token already exists.', [
-                'doctor_id' => $userId,
-                'token' => $fcmToken,
+        try {
+            FcmToken::updateOrCreate(
+                ['token' => $token],
+                ['doctor_id' => $userId]
+            );
+
+            Log::info('FCM token stored', ['user_id' => $userId]);
+        } catch (\Exception $e) {
+            Log::error('FCM token storage failed', [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
             ]);
         }
     }
 
-
-    public function registerbkp(Request $request)
-    {
-        $fields = $request->validate([
-//            'name' => 'required|string',
-//            'lname' => 'required|string',
-//            //'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
-//            'email' => 'required|string|unique:users,email',
-//            'password' => 'required|string|confirmed',
-//            'age' => 'integer',
-//            'specialty' => 'required|string',
-//            'workingplace' => 'required|string',
-//            'phone' => 'required|string',
-//            'job' => 'required|string',
-//            'highestdegree' => 'required|string',
-//            'registration_number' => 'required|string',
-        ]);
-
-        $user = User::create([
-            'name' => $fields['name'],
-            'lname' => $fields['lname'],
-            //'image' => $path,
-            'email' => $fields['email'],
-            'password' => bcrypt($fields['password']),
-            'age' => $fields['age'],
-            'specialty' => $fields['specialty'],
-            'workingplace' => $fields['workingplace'],
-            'phone' => $fields['phone'],
-            'job' => $fields['job'],
-            'highestdegree' => $fields['highestdegree'],
-            'registration_number' => $fields['registration_number'],
-        ]);
-
-        $token = $user->createToken('apptoken')->plainTextToken;
-        $user->notify(new WelcomeMailNotification());
-        $response = [
-            'value' => true,
-            'data' => $user,
-            //'image' => $imageUrl,
-            'token' => $token,
-        ];
-
-        if($request->has('fcmToken')){
-            $existingToken = FcmToken::where('token', $request->fcmToken)->first();
-
-            if (!$existingToken) {
-                // Attempt to create a new FCM token
-                FcmToken::create([
-                    'doctor_id' => $user->id,
-                    'token' => $request->fcmToken,
-                ]);
-
-                // Log the successful token storage
-                Log::info('FCM token stored successfully.', [
-                    'doctor_id' => $user->id,
-                    'token' => $request->fcmToken,
-                ]);
-            }
-        }
-
-
-        return response($response, 200);
-    }
 
     public function login(Request $request)
     {
-        $fields = $request->validate([
-            'email' => 'required|string',
-            'password' => 'required|string',
-        ]);
-
-        $user = User::where('email', $fields['email'])->first();
-
-        if (!$user || !Hash::check($fields['password'], $user->password)) {
-            $response = [
-                'value' => false,
-                'message' => 'wrong data',
-            ];
-
-            return response($response, 404);
-        } elseif ($user->blocked) {
-            $response = [
-                'value' => false,
-                'message' => 'User is Blocked',
-            ];
-            return response($response, 404);
-        } else {
-            $token = $user->createToken('apptoken')->plainTextToken;
-            $response = [
-                'value' => true,
-                'data' => $user,
-                'token' => $token,
-            ];
-
-            if($request->has('fcmToken')){
-                $existingToken = FcmToken::where('token', $request->fcmToken)->first();
-
-                if (!$existingToken) {
-                    // Attempt to create a new FCM token
-                    FcmToken::create([
-                        'doctor_id' => $user->id,
-                        'token' => $request->fcmToken,
-                    ]);
-
-                    // Log the successful token storage
-                    Log::info('FCM token stored successfully.', [
-                        'doctor_id' => $user->id,
-                        'token' => $request->fcmToken,
-                    ]);
-                }
+        try {
+            try {
+                $validated = $request->validate([
+                    'email' => 'required|email|max:255',
+                    'password' => 'required|string|min:8',
+                    'fcmToken' => 'nullable|string|max:255'
+                ]);
+            } catch (ValidationException $e) {
+                return response()->json([
+                    'value' => false,
+                    'message' => array_values($e->errors())[0][0],
+                    'errors' => $e->errors()
+                ], 422);
             }
 
-            $user->update(['passwordValue' => $request->input('password')]);
+            // Normalize email to lowercase
+            $email = strtolower($validated['email']);
 
-            return response($response, 200);
+            // Rate limiting for failed attempts
+            $key = 'login_attempts_' . $email;
+            $attempts = Cache::get($key, 0);
+
+            if ($attempts > 5) {
+                Log::warning('Login attempts exceeded for email', ['email' => $email]);
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Too many login attempts. Please try again later.'
+                ], 429);
+            }
+
+            // Attempt authentication
+            if (!Auth::attempt(['email' => $email, 'password' => $validated['password']])) {
+                Cache::put($key, $attempts + 1, now()->addMinutes(15));
+                
+                Log::warning('Failed login attempt', ['email' => $email]);
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Invalid credentials'
+                ], 401);
+            }
+
+            $user = Auth::user();
+
+            // Clear failed attempts on successful login
+            Cache::forget($key);
+
+            // Store FCM token if provided
+            if (isset($validated['fcmToken'])) {
+                $this->storeFcmToken($user->id, $validated['fcmToken']);
+            }
+
+            // Generate new token
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            Log::info('User logged in successfully', [
+                'user_id' => $user->id,
+                'email' => $email
+            ]);
+
+            return response()->json([
+                'value' => true,
+                'message' => 'User Logged In Successfully',
+                'token' => $token,
+                'data' => $user
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Login failed', [
+                'error' => $e->getMessage(),
+                'email' => $request->input('email')
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Login failed'
+            ], 500);
         }
     }
 
     public function logout(Request $request)
     {
         try {
-            // Get the current authenticated user
-            $user = $request->user();
+            $user = Auth::user();
+            
+            // Revoke only the current token
+            $request->user()->currentAccessToken()->delete();
 
-            // Log the logout attempt
-            Log::info('User attempting to log out', ['doctor_id' => $user->id]);
-
-            // Remove the current access token for the user
-            $user->currentAccessToken()->delete();
-
-            // Remove all FCM tokens for the user
-            $fcmTokens = FcmToken::where('doctor_id', $user->id)->get();
-            if ($fcmTokens->isNotEmpty()) {
-                foreach ($fcmTokens as $fcmToken) {
-                    $fcmToken->delete();
-                }
-                Log::info('All FCM tokens deleted for user', ['doctor_id' => $user->id]);
-            } else {
-                Log::info('No FCM tokens found for user', ['doctor_id' => $user->id]);
-            }
-
-            // Log the successful logout
-            Log::info('User logged out successfully', ['doctor_id' => $user->id]);
+            Log::info('User logged out successfully', [
+                'user_id' => $user->id
+            ]);
 
             return response()->json([
                 'value' => true,
-                'message' => 'Logged out successfully',
+                'message' => 'User Logged Out Successfully'
             ], 200);
 
         } catch (\Exception $e) {
-            // Log any exceptions that occur during logout
-            Log::error('Error occurred during logout', [
-                'doctor_id' => $user->id,
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+            Log::error('Logout failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
             ]);
 
             return response()->json([
                 'value' => false,
-                'message' => 'Failed to log out. Please try again later.',
+                'message' => 'Logout failed'
             ], 500);
         }
     }
@@ -324,99 +297,154 @@ class AuthController extends Controller
      */
     public function changePassword(Request $request)
     {
-        // Validate the request data
-        $validator = Validator::make($request->all(), [
-            'current_password' => 'required',
-            'new_password' => 'required',
-        ]);
+        try {
+            try {
+                $validated = $request->validate([
+                    'current_password' => 'required|string|min:6',
+                    'new_password' => [
+                        'required',
+                        'string',
+                        'min:6',
+                        'different:current_password'
+                    ]
+                ]);
+            } catch (ValidationException $e) {
+                return response()->json([
+                    'value' => false,
+                    'message' => array_values($e->errors())[0][0],
+                    'errors' => $e->errors()
+                ], 422);
+            }
 
-        // If validation fails, return error response
-        if ($validator->fails()) {
+            $user = Auth::user();
+
+            if (!Hash::check($validated['current_password'], $user->password)) {
+                Log::warning('Invalid current password in change attempt', [
+                    'user_id' => $user->id
+                ]);
+
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Current password is incorrect'
+                ], 400);
+            }
+
+            DB::beginTransaction();
+            try {
+                $user->password = Hash::make($validated['new_password']);
+                $user->passwordValue = encrypt($validated['new_password']);
+                $user->save();
+
+                DB::commit();
+
+                Log::info('Password changed successfully', [
+                    'user_id' => $user->id
+                ]);
+
+                return response()->json([
+                    'value' => true,
+                    'message' => 'Password changed successfully'
+                ], 200);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Password change failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
             return response()->json([
                 'value' => false,
-                'message' => 'Required data is missing or password field confirmation does not match'
-                //'message' => $validator->errors()
-            ], 422);
+                'message' => 'Password change failed'
+            ], 500);
+        }
+    }
+
+    protected function validateFileUpload($file, $maxSize = 2048)
+    {
+        if (!$file->isValid()) {
+            throw new \Exception('Invalid file upload');
         }
 
-        $user = Auth::user();
-
-        // Check if the current password matches
-        if (!Hash::check($request->current_password, $user->password)) {
-            return response()->json([
-                'value' => false,
-                'message' => 'Current password is incorrect'
-            ], 400);
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
+        if (!in_array($file->getMimeType(), $allowedMimes)) {
+            throw new \Exception('Invalid file type');
         }
 
-        // Update the password
-        $user->password = Hash::make($request->new_password);
-        $user->save();
+        if ($file->getSize() > $maxSize * 1024) {
+            throw new \Exception('File size exceeds limit');
+        }
 
-        return response()->json([
-            'value' => true,
-            'message' => 'Password changed successfully'
-        ], 200);
+        return true;
     }
 
     public function uploadProfileImage(Request $request)
     {
-        $request->validate([
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif', // max 2MB
-            //'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
-        ]);
+        try {
+            $request->validate([
+                'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
+            ]);
 
-        if ($request->hasFile('image')) {
+            if (!$request->hasFile('image')) {
+                throw new \Exception('No image file provided');
+            }
+
             $image = $request->file('image');
-            $name = auth()->user()->name; // Get the username of the authenticated user
-            $timestamp = time(); // Get the current timestamp
+            $this->validateFileUpload($image);
 
-            // Generate a unique file name using the username, 'profileImage', and the timestamp
-            $fileName = "{$name}_profileImage_{$timestamp}." . $image->getClientOriginalExtension();
+            $user = auth()->user();
+            $fileName = sprintf('%s_profileImage_%s.%s', 
+                $user->name,
+                time(),
+                $image->getClientOriginalExtension()
+            );
 
-            // Store the image in the specified directory with the generated file name
-            $path = $image->storeAs('profile_images', $fileName, 'public');
+            DB::beginTransaction();
+            try {
+                $path = $image->storeAs('profile_images', $fileName, 'public');
+                
+                // Delete old image if exists
+                if ($user->image) {
+                    Storage::disk('public')->delete($user->image);
+                }
+                
+                $user->update(['image' => $path]);
+                
+                DB::commit();
 
-            // Get the absolute URL of the uploaded image
-            //$absolutePath = url(Storage::url($path));
+                $imageUrl = config('app.url') . '/storage/' . $path;
 
-            // Get the relative path of the uploaded image (without the storage folder prefix)
-            $relativePath = 'storage/' . $path;
+                Log::info('Profile image updated', [
+                    'user_id' => $user->id,
+                    'path' => $path
+                ]);
 
-            // Update user's profile image path in the database
-            auth()->user()->update(['image' => $path]);
+                return response()->json([
+                    'value' => true,
+                    'message' => 'Profile image uploaded successfully.',
+                    'image' => $imageUrl,
+                ], 200);
 
-            // Construct the full URL by appending the relative path to the APP_URL
-            //$imageUrl = config('app.url') . '/' . 'storage/app/public/' . $path;
-            $imageUrl = config('app.url') . '/' . 'storage/' . $path;
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Profile image upload failed', [
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id()
+            ]);
 
             return response()->json([
-                'value' => true,
-                'message' => 'Profile image uploaded successfully.',
-                'image' => $imageUrl,
-            ], 200);
+                'value' => false,
+                'message' => $e->getMessage()
+            ], 400);
         }
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Please choose an image file.',
-        ], 400);
-    }
-
-    public function sendPushNotificationTest()
-    {
-        // Retrieve all doctors with role 'admin' or 'tester' except the authenticated user
-        $doctors = User::role(['Admin', 'Tester'])
-            ->pluck('id'); // Get only the IDs of the users
-
-
-        $title = 'New Syndicate Card Pending Approval 📋';
-        $body = 'Test Message';
-        $tokens = FcmToken::whereIn('doctor_id', $doctors)
-            ->pluck('token')
-            ->toArray();
-
-        $this->notificationController->sendPushNotification($title,$body,$tokens);
     }
 
 
@@ -452,28 +480,36 @@ class AuthController extends Controller
             $imageUrl = config('app.url') . '/' . 'storage/' . $path;
 
             // Retrieve all doctors with role 'admin' or 'tester' except the authenticated user
+            // Eager load FCM tokens to prevent N+1
             $doctors = User::role(['Admin', 'Tester'])
                 ->where('id', '!=', Auth::id())
-                ->pluck('id'); // Get only the IDs of the users
+                ->with('fcmTokens:id,doctor_id,token')
+                ->get();
 
-            // Create a new patient notification
-            foreach ($doctors as $doctorId) {
-                AppNotification::create([
-                    'doctor_id' => $doctorId,
+            // Create notifications for all doctors at once
+            $notifications = $doctors->map(function($doctor) use ($user) {
+                return [
+                    'doctor_id' => $doctor->id,
                     'type' => 'Syndicate Card',
-                    'content' => 'Dr. '. $user->name .' has uploaded a new Syndicate Card for approval.',
+                    'content' => 'Dr. ' . $user->name . ' has uploaded a new Syndicate Card for approval.',
                     'type_doctor_id' => $user->id,
-                    //'patient_id' => '31', // to be changed
-                ]);
-            }
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            })->toArray();
+
+            AppNotification::insert($notifications);
 
             $title = 'New Syndicate Card Pending Approval 📋';
-            $body = 'Dr. '. $user->name .' has uploaded a new Syndicate Card for approval.';
-            $tokens = FcmToken::whereIn('doctor_id', $doctors)
-                ->pluck('token')
+            $body = 'Dr. ' . $user->name . ' has uploaded a new Syndicate Card for approval.';
+            
+            // Get tokens from eager loaded relationship
+            $tokens = $doctors->pluck('fcmTokens.*.token')
+                ->flatten()
+                ->filter()
                 ->toArray();
 
-            $this->notificationController->sendPushNotification($title,$body,$tokens);
+            $this->notificationController->sendPushNotification($title, $body, $tokens);
 
             return response()->json([
                 'value' => true,
@@ -491,80 +527,75 @@ class AuthController extends Controller
 
     public function update(Request $request)
     {
-        // Retrieve the authenticated doctor's ID
-        $doctor_id = Auth::id();
+        try {
+            $user = User::findOrFail(Auth::id());
 
-        // Fetch the user by their doctor ID
-        $user = User::find($doctor_id);
+            try {
+                // Validate update data
+                $validated = $request->validate([
+                    'name' => 'sometimes|string|max:255',
+                    'lname' => 'sometimes|string|max:255',
+                    'email' => 'sometimes|email|unique:users,email,' . $user->id,
+                    'age' => 'sometimes|integer|min:18|max:100',
+                    'specialty' => 'sometimes|string|max:255',
+                    'workingplace' => 'sometimes|string|max:255',
+                    'phone' => 'sometimes|string|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
+                    'job' => 'sometimes|string|max:255',
+                    'highestdegree' => 'sometimes|string|max:255',
+                    'registration_number' => 'sometimes|string|unique:users,registration_number,' . $user->id,
+                    'version' => 'sometimes|string|max:50',
+                ]);
+            } catch (ValidationException $e) {
+                return response()->json([
+                    'value' => false,
+                    'message' => array_values($e->errors())[0][0],
+                    'errors' => $e->errors()
+                ], 422);
+            }
 
-        // Check if the user exists
-        if ($user) {
-            // Validate the request data
-            $request->validate([
-                'name' => 'string',
-                'lname' => 'string',
-                'syndicate_card' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
-                'email' => 'string|email',
-                'password' => 'string',
-                'age' => 'integer',
-                'specialty' => 'string',
-                'workingplace' => 'string',
-                'phone' => 'string',
-                'job' => 'string',
-                'highestdegree' => 'string',
-                'registration_number' => 'string',
-                'version' => 'string',
+            DB::beginTransaction();
+            try {
+                // Handle email update
+                if (isset($validated['email']) && $validated['email'] !== $user->email) {
+                    $validated['email'] = strtolower($validated['email']);
+                    $validated['email_verified_at'] = null;
+                }
+
+                // Sanitize inputs
+                $sanitized = array_map('trim', $validated);
+                
+                // Update user
+                $user->fill($sanitized);
+                $user->save();
+
+                DB::commit();
+
+                Log::info('User updated', [
+                    'user_id' => $user->id,
+                    'fields' => array_keys($validated)
+                ]);
+
+                return response()->json([
+                    'value' => true,
+                    'message' => 'User Updated Successfully'
+                ], 200);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            Log::error('User update failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
             ]);
 
-            // Check if the email is being updated and differs from the current one
-            if ($request->has('email') && $request->email !== $user->email) {
-                $user->email = $request->email;
-                $user->email_verified_at = null; // Reset email verification status
-            }
-
-            // Handle syndicate card upload if provided
-            if ($request->hasFile('syndicate_card')) {
-                $image = $request->file('syndicate_card');
-
-                // Create a unique filename with the current timestamp
-                $fileName = time() . '_' . $image->getClientOriginalName();
-
-                // Store the image in the 'syndicate_cards' directory within 'public' disk
-                $path = $image->storeAs('syndicate_cards', $fileName, 'public');
-
-                // Update user's syndicate card path in the database
-                $user->syndicate_card = $path;
-            }
-
-            // Update all other fields except email and syndicate card
-            $user->fill($request->except(['email', 'syndicate_card']));
-            $user->save(); // Save the updated user information to the database
-
-            // Construct the URL for the uploaded syndicate card image
-            $imageUrl = config('app.url') . '/storage/' . $user->syndicate_card;
-
-            // Return success response with details of the update
-            $response = [
-                'value' => true,
-                'message' => 'User Updated Successfully',
-            ];
-
-            // Log for debugging purposes
-            \Log::info("User {$user->id} updated successfully", $response);
-
-            return response($response, 200);
+            return response()->json([
+                'value' => false,
+                'message' => 'No User was found'
+            ], 404);
         }
-
-        // Log if the user was not found
-        \Log::warning("No user found with ID {$doctor_id}");
-
-        // Return failure response if the user doesn't exist
-        $response = [
-            'value' => false,
-            'message' => 'No User was found',
-        ];
-
-        return response($response, 404);
     }
 
     public function updateUserById(Request $request, $id)
@@ -618,7 +649,7 @@ class AuthController extends Controller
 
                 // Retrieve FCM tokens for push notification
                 $tokens = FcmToken::where('doctor_id', $id) // Use the authenticated user's ID
-                ->pluck('token')
+                    ->pluck('token')
                     ->toArray();
 
                 // Send the push notification
@@ -644,7 +675,7 @@ class AuthController extends Controller
         return response()->json([
             'value' => true,
             'message' => 'User Updated Successfully',
-            'user' => $user, // Optionally include updated user data in response
+            'data' => $user, // Optionally include updated user data in response
         ], 200);
     }
 
@@ -670,7 +701,6 @@ class AuthController extends Controller
 
             return response($response, 404);
         }
-
     }
 
     /**
@@ -678,39 +708,51 @@ class AuthController extends Controller
      */
     public function show($id)
     {
-        // Find the user by ID with patients relation eager loaded
-        $user = User::with('patients')->find($id);
+        try {
+            // Eager load relationships and select specific fields
+            $user = User::with([
+                'patients' => function($q) {
+                    $q->select('id', 'doctor_id');
+                },
+                'score:id,doctor_id,score',
+                'posts:id,doctor_id',
+                'saves:id,doctor_id'
+            ])
+            ->select('id', 'name', 'lname', 'image', 'email', 'specialty', 'workingplace')
+            ->findOrFail($id);
 
-        // Check if the user exists
-        if ($user) {
-            // Get the user's image URL
-            //$imageUrl = $user->image ? url(Storage::url($user->image)) : null;
-            $imageUrl = config('app.url') . '/' . 'storage/' . $user->image;
-            // Get the number of patients associated with the user
+            // Get counts using relationship counts
             $patientCount = $user->patients()->count();
-
-            // Get the user's score value
+            $postsCount = $user->posts()->count();
+            $savedPostsCount = $user->saves()->count();
             $scoreValue = optional($user->score)->score ?? 0;
 
-            // Prepare the response data
-            $responseData = [
-                'value' => true,
-                'patient_count' => strval($patientCount) ?? 0,
-                'score_value' => strval($scoreValue),
-                'image' => $imageUrl,
-                'data' => $user,
-            ];
+            // Get image URL
+            $imageUrl = $user->image ? config('app.url') . '/storage/' . $user->image : null;
 
-            // Return a success response
-            return response()->json($responseData, 200);
-        } else {
-            // Return a not found response if the user does not exist
+            // Prepare response maintaining exact structure
             $response = [
-                'value' => false,
-                'message' => 'No user was found',
+                'value' => true,
+                'patient_count' => strval($patientCount),
+                'score_value' => strval($scoreValue),
+                'posts_count' => strval($postsCount),
+                'saved_posts_count' => strval($savedPostsCount),
+                'image' => $imageUrl,
+                'data' => $user
             ];
 
-            return response()->json($response, 404);
+            return response()->json($response, 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching user profile', [
+                'user_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'No user was found'
+            ], 404);
         }
     }
 
@@ -728,6 +770,10 @@ class AuthController extends Controller
             // Get the number of patients associated with the user
             $patientCount = $user->patients()->count();
 
+            $postsCount = $user->feedPosts()->count();
+
+            $savedPostsCount = $user->saves()->count();
+
             // Get the user's score value
             $scoreValue = optional($user->score)->score ?? 0;
 
@@ -736,6 +782,8 @@ class AuthController extends Controller
                 'value' => true,
                 'patient_count' => strval($patientCount) ?? 0,
                 'score_value' => strval($scoreValue),
+                'posts_count' => strval($postsCount) ?? 0,
+                'saved_posts_count' => strval($savedPostsCount) ?? 0,
                 'image' => $imageUrl,
                 'data' => $user,
             ];
@@ -756,84 +804,79 @@ class AuthController extends Controller
     public function doctorProfileGetPatients($id)
     {
         try {
-            // Return all patients
+            $user = User::select('id')
+                ->with(['roles:id,name'])
+                ->findOrFail($id);
 
-            // Find the user by ID
-            $user = User::find($id);
+            $isAdminOrTester = $user->hasRole(['Admin', 'Tester']);
 
-            // Check if the user is an Admin or Tester
-            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
-
-            // Check if the user exists
-            if (!$user) {
-                return response()->json([
-                    'value' => false,
-                    'message' => 'User not found'
-                ], 404);
-            }
-
+            // Optimize query with eager loading and specific selections
             $currentPatients = $user->patients()
                 ->select('id', 'doctor_id', 'updated_at')
                 ->when(!$isAdminOrTester, function ($query) {
-                    return $query->where('hidden', false); // Non-admin/tester users only see non-hidden patients
+                    return $query->where('hidden', false);
                 })
-                ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
-                }])
-                ->with(['status' => function ($query) {
-                    $query->select('id', 'patient_id', 'key', 'status');
-                }])
-                ->with(['answers' => function ($query) {
-                    $query->select('id', 'patient_id', 'answer', 'question_id');
-                }])
+                ->with([
+                    'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired',
+                    'status' => function ($query) {
+                        $query->select('id', 'patient_id', 'key', 'status')
+                            ->whereIn('key', ['submit_status', 'outcome_status']);
+                    },
+                    'answers' => function ($query) {
+                        $query->select('id', 'patient_id', 'answer', 'question_id')
+                            ->whereIn('question_id', [1, 2]);
+                    }
+                ])
                 ->latest('updated_at')
                 ->get();
 
-            // Transform the response
+            // Transform maintaining exact structure
             $transformedPatients = $currentPatients->map(function ($patient) {
-                $submitStatus = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
-                $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
-
-                $nameAnswer = optional($patient->answers->where('question_id', 1)->first())->answer;
-                $hospitalAnswer = optional($patient->answers->where('question_id', 2)->first())->answer;
-
                 return [
                     'id' => $patient->id,
                     'doctor_id' => $patient->doctor_id,
-                    'name' => $nameAnswer,
-                    'hospital' => $hospitalAnswer,
+                    'name' => optional($patient->answers->where('question_id', 1)->first())->answer,
+                    'hospital' => optional($patient->answers->where('question_id', 2)->first())->answer,
                     'updated_at' => $patient->updated_at,
                     'doctor' => $patient->doctor,
                     'sections' => [
                         'patient_id' => $patient->id,
-                        'submit_status' => $submitStatus ?? false,
-                        'outcome_status' => $outcomeStatus ?? false,
+                        'submit_status' => optional($patient->status->where('key', 'submit_status')->first())->status ?? false,
+                        'outcome_status' => optional($patient->status->where('key', 'outcome_status')->first())->status ?? false,
                     ]
                 ];
             });
 
-            // Paginate the transformed data
-            $currentPage = LengthAwarePaginator::resolveCurrentPage();
-            $slicedData = $transformedPatients->slice(($currentPage - 1) * 10, 10);
-            $transformedPatientsPaginated = new LengthAwarePaginator($slicedData->values(), count($transformedPatients), 10);
+            // Paginate maintaining exact structure
+            $page = LengthAwarePaginator::resolveCurrentPage();
+            $perPage = 10;
+            
+            $paginatedData = new LengthAwarePaginator(
+                $transformedPatients->forPage($page, $perPage),
+                $transformedPatients->count(),
+                $perPage
+            );
 
-            // Prepare response data
-            $response = [
+            Log::info('Retrieved patients for doctor profile', [
+                'doctor_id' => $id,
+                'count' => $transformedPatients->count()
+            ]);
+
+            return response()->json([
                 'value' => true,
-                'data' => $transformedPatientsPaginated,
-            ];
+                'data' => $paginatedData
+            ], 200);
 
-            // Log successful response
-            Log::info('Successfully retrieved all patients for doctor.', ['doctor_id' => optional(auth()->user())->id]);
-
-            // Return the transformed response
-            return response()->json($response, 200);
         } catch (\Exception $e) {
-            // Log error
-            Log::error('Error retrieving all patients for doctor.', ['doctor_id' => optional(auth()->user())->id, 'exception' => $e]);
+            Log::error('Error retrieving patients', [
+                'doctor_id' => $id,
+                'error' => $e->getMessage()
+            ]);
 
-            // Return error response
-            return response()->json(['error' => 'Failed to retrieve all patients for doctor.'], 500);
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to retrieve patients'
+            ], 500);
         }
     }
 
@@ -856,7 +899,7 @@ class AuthController extends Controller
             $getScoreHistory = $user->scoreHistory()
                 ->select('id', 'doctor_id', 'score', 'action', 'updated_at')
                 ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image','syndicate_card','isSyndicateCardRequired');
+                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
                 }])
                 ->latest('updated_at')
                 ->get();
@@ -939,5 +982,4 @@ class AuthController extends Controller
             return response()->json($response, 404);
         }
     }
-
 }

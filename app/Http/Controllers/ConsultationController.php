@@ -68,19 +68,19 @@ class ConsultationController extends Controller
                 'doctor_id' => $doctorId,
                 'type' => 'Consultation',
                 'type_id' => $consultation->id,
-                'content' => 'Dr. '. $user->name .' is seeking your advice for his patient',
+                'content' => 'Dr. ' . $user->name . ' is seeking your advice for his patient',
                 'type_doctor_id' => Auth::id(),
                 'patient_id' => $request->patient_id
             ]);
         }
 
         $title = 'New consultation request was created 📣';
-        $body = 'Dr. '. $user->name .' is seeking your advice for his patient';
+        $body = 'Dr. ' . $user->name . ' is seeking your advice for his patient';
         $tokens = FcmToken::whereIn('doctor_id', $doctors)
             ->pluck('token')
             ->toArray();
 
-        $this->notificationController->sendPushNotification($title,$body,$tokens);
+        $this->notificationController->sendPushNotification($title, $body, $tokens);
 
         return response($response, 201);
     }
@@ -163,7 +163,7 @@ class ConsultationController extends Controller
                 'doctor_lname' => $ConsultationDoctor->consultation->doctor->lname,
                 'workingplace' => $ConsultationDoctor->consultation->doctor->workingplace,
                 'image' => $ConsultationDoctor->consultation->doctor->image,
-//                'isSyndicateCard' => $ConsultationDoctor->consultDoctor->isSyndicateCardRequired === 'Verified' ? 'true' : 'false',
+                //                'isSyndicateCard' => $ConsultationDoctor->consultDoctor->isSyndicateCardRequired === 'Verified' ? 'true' : 'false',
                 'isSyndicateCard' => $ConsultationDoctor->consultation->doctor->isSyndicateCardRequired,
                 'patient_id' => strval($ConsultationDoctor->consultation->patient_id),
                 'patient_name' => $patientName,
@@ -176,10 +176,10 @@ class ConsultationController extends Controller
             $response[] = $consultationData;
         }
 
-//        // Sort the response array by updated_at in descending order (in case you want additional sorting)
-//        usort($response, function ($a, $b) {
-//            return strtotime($b['updated_at']) - strtotime($a['updated_at']);
-//        });
+        //        // Sort the response array by updated_at in descending order (in case you want additional sorting)
+        //        usort($response, function ($a, $b) {
+        //            return strtotime($b['updated_at']) - strtotime($a['updated_at']);
+        //        });
 
         // Return the response as JSON
         return response()->json($response);
@@ -229,7 +229,7 @@ class ConsultationController extends Controller
                 ->latest('updated_at')
                 ->first(); // Use first() to get a single object
 
-// Transform the single patient
+            // Transform the single patient
             $transformedPatient = null;
 
             if ($patient) {
@@ -268,7 +268,7 @@ class ConsultationController extends Controller
                 'created_at' => $consultation->created_at,
                 'updated_at' => $consultation->updated_at,
                 'patient_info' => $transformedPatient,
-                'consultationDoctors' => $consultation->consultationDoctors->map(function($consultationDoctor) {
+                'consultationDoctors' => $consultation->consultationDoctors->map(function ($consultationDoctor) {
                     return [
                         'id' => strval($consultationDoctor->id),
                         'consultation_id' => strval($consultationDoctor->consultation_id),
@@ -312,8 +312,8 @@ class ConsultationController extends Controller
 
             // Check if all doctors involved in the consultation have replied
             $allReplied = ConsultationDoctor::where('consultation_id', $id)
-                    ->where('status', '!=', 'replied')
-                    ->count() === 0;
+                ->where('status', '!=', 'replied')
+                ->count() === 0;
 
             // If all doctors have replied, mark the consultation as complete
             if ($allReplied) {
@@ -340,7 +340,7 @@ class ConsultationController extends Controller
             $title = 'New Reply on Consultation Request 🔔';
             $body = 'Dr. ' . $user->name . ' has replied to your consultation request. 📩';
             $tokens = FcmToken::whereIn('doctor_id', [$doctorId]) // Wrap $doctorId in an array
-            ->pluck('token')
+                ->pluck('token')
                 ->toArray();
 
 
@@ -366,7 +366,6 @@ class ConsultationController extends Controller
                     'all_replied' => $allReplied
                 ]
             ]);
-
         } catch (ModelNotFoundException $e) {
             // Handle the case where the consultation doctor record was not found
             Log::warning('Consultation doctor not found.', [
@@ -397,19 +396,25 @@ class ConsultationController extends Controller
     public function consultationSearch($data)
     {
         try {
-            // Retrieve the authenticated user
             $user = Auth::user();
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
-            // Retrieve Users
+    
+            // Explode the input string into words
+            $keywords = explode(' ', $data);
+    
             $users = User::select('id', 'name', 'lname', 'email', 'phone', 'specialty', 'workingplace', 'image', 'syndicate_card', 'isSyndicateCardRequired')
-//                ->where('id', '!=', Auth::id())
                 ->when(!$isAdminOrTester, function ($query) {
                     return $query->where('id', '!=', Auth::id());
                 })
-                ->where(function ($query) use ($data) {
-                    $query->where('name', 'like', '%' . $data . '%')
-                        ->orWhere('email', 'like', '%' . $data . '%')
-                        ->orWhere('phone', 'like', '%' . $data . '%');
+                ->where(function ($query) use ($keywords) {
+                    foreach ($keywords as $word) {
+                        $query->where(function ($subQuery) use ($word) {
+                            $subQuery->where('name', 'like', '%' . $word . '%')
+                                     ->orWhere('lname', 'like', '%' . $word . '%')
+                                     ->orWhere('email', 'like', '%' . $word . '%')
+                                     ->orWhere('phone', 'like', '%' . $word . '%');
+                        });
+                    }
                 })
                 ->withCount('patients')
                 ->selectSub(function ($query) {
@@ -426,19 +431,21 @@ class ConsultationController extends Controller
                 });
 
 
+
+    
+
             return response()->json([
                 'value' => true,
-                'data' => $users ], 200);
-
+                'data' => $users
+            ], 200);
         } catch (\Exception $e) {
-            // Log error
             Log::error('Error searching for data.', ['exception' => $e]);
-
+            
             return response()->json([
                 'value' => false,
                 'message' => 'Failed to search for data.',
             ], 500);
         }
     }
-
+    
 }

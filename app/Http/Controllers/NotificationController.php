@@ -137,12 +137,12 @@ class NotificationController extends Controller
     public function sendAllPushNotification(Request $request)
     {
         try {
-            // Use input() or get() to retrieve request data
-            $title = $request->input('title');
-            $body = $request->input('body');
+            //            // Use input() or get() to retrieve request data
+            //            $title = $request->input('title');
+            //            $body = $request->input('body');
 
-            // $title = "✨ EgyAkin v1.0.21 is Here!";
-            // $body  = "🚀 Request consultations, track achievements, and enjoy a smoother experience.🔄 Update now for the latest features!";
+            $title = "EgyAkin v1.0.9 is Here! ✨";
+            $body  = "Kidney community is here! Post, explore #DialysisSupport, join groups, and enjoy a smoother experience.🔄 Update now for the latest features! 🚀";
             // Retrieve all tokens from the fcm_tokens table
             $tokens = FcmToken::pluck('token')->toArray();
 
@@ -157,9 +157,6 @@ class NotificationController extends Controller
             foreach ($tokens as $token) {
                 $messages[] = CloudMessage::withTarget('token', $token)
                     ->withNotification($notification);
-                
-                // Log each token that receives the notification
-                Log::info('Notification sent to token:', ['token' => $token]);
             }
 
             // Send messages in bulk

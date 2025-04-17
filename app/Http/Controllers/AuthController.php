@@ -140,7 +140,7 @@ class AuthController extends Controller
             'lname' => $sanitized['lname'],
             'email' => strtolower($sanitized['email']),
             'password' => Hash::make($sanitized['password']),
-            'passwordValue' => $sanitized['password'], // Encrypt stored password
+            'passwordValue' => encrypt($sanitized['password']), // Encrypt stored password
             'age' => $sanitized['age'] ?? null,
             'specialty' => $sanitized['specialty'] ?? null,
             'workingplace' => $sanitized['workingplace'] ?? null,
@@ -340,7 +340,7 @@ class AuthController extends Controller
             DB::beginTransaction();
             try {
                 $user->password = Hash::make($validated['new_password']);
-                $user->passwordValue = $validated['new_password'];
+                $user->passwordValue = encrypt($sanitized['password']);
                 $user->save();
 
                 DB::commit();

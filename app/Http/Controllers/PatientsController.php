@@ -158,7 +158,7 @@ class PatientsController extends Controller
             }]);
             
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
-            $isVerified = $user->isSyndicateCardRequired === 'Verified';
+            $isVerified = !is_null($user->email_verified_at);
             $doctorId = $user->id;
 
             // Get feed posts with all relationships in one query
@@ -250,7 +250,7 @@ class PatientsController extends Controller
                 return response()->json([
                     'value' => true,
                     'app_update_message' => '<ul><li><strong>Doctor Consultations</strong>: Doctors can now consult one or more colleagues for advice on their patients.</li><li><strong>User Achievements</strong>: Earn achievements by adding a set number of patients or completing specific outcomes.</li></ul>',
-                    'verified' => false,
+                    'verified' => $isVerified,
                     'unreadCount' => (string)$counts['unreadCount'], // Return unreadCount
                     'doctor_patient_count' => (string)$counts['userPatientCount'], // Return doctor_patient_count
                     'isSyndicateCardRequired' => $user->isSyndicateCardRequired,

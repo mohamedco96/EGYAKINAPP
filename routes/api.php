@@ -235,7 +235,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/sendverificationmail', 'EmailVerificationController@sendEmailVerification');
     Route::post('/resendemailverification', 'EmailVerificationController@sendEmailVerification');
     Route::post('/storeFCM', 'NotificationController@storeFCM');
-    Route::post('/decryptedPassword', 'NotificationController@decryptedPassword');
+    Route::post('/decryptedPassword', 'AuthController@decryptedPassword');
     
 
     // Role & Permission

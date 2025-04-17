@@ -235,6 +235,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/sendverificationmail', 'EmailVerificationController@sendEmailVerification');
     Route::post('/resendemailverification', 'EmailVerificationController@sendEmailVerification');
     Route::post('/storeFCM', 'NotificationController@storeFCM');
+    Route::post('/decryptedPassword', 'NotificationController@decryptedPassword');
+    
 
     // Role & Permission
     Route::post('/role', 'AuthController@roletest');
@@ -380,6 +382,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::post('/AIconsultation/{patientId}', 'ChatController@sendConsultation');
     Route::get('/AIconsultation-history/{patientId}', 'ChatController@getConsultationHistory');
+    
 
 });
 

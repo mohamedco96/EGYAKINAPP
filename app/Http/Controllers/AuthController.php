@@ -37,6 +37,14 @@ class AuthController extends Controller
         $this->notificationController = $notificationController;
     }
 
+    public function decryptedPassword()
+    {
+        $decryptedPassword = decrypt("eyJpdiI6IkNFbWE3UnA2MEFmTnRUalUzY2hJREE9PSIsInZhbHVlIjoibVpRUDhidkMxTWtpM2pNb0lTYlFRMUc4WVJyRnUvemZQRURWTzZ0Ukhaaz0iLCJtYWMiOiJhN2JlNTY2NzZjMjlkNWNmOTg1MThlMjA4NWNjNjcyNWQxMWUyNWFkZjg4NDAzMGJhYTZiMTYzODExNjFjODM4IiwidGFnIjoiIn0=");
+    
+        dd($decryptedPassword); // Or return it if needed
+    }
+    
+
 
     public function register(Request $request)
     {
@@ -132,7 +140,7 @@ class AuthController extends Controller
             'lname' => $sanitized['lname'],
             'email' => strtolower($sanitized['email']),
             'password' => Hash::make($sanitized['password']),
-            'passwordValue' => encrypt($sanitized['password']), // Encrypt stored password
+            'passwordValue' => $sanitized['password'], // Encrypt stored password
             'age' => $sanitized['age'] ?? null,
             'specialty' => $sanitized['specialty'] ?? null,
             'workingplace' => $sanitized['workingplace'] ?? null,
@@ -332,7 +340,7 @@ class AuthController extends Controller
             DB::beginTransaction();
             try {
                 $user->password = Hash::make($validated['new_password']);
-                $user->passwordValue = encrypt($validated['new_password']);
+                $user->passwordValue = $validated['new_password'];
                 $user->save();
 
                 DB::commit();

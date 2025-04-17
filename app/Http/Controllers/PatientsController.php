@@ -159,6 +159,7 @@ class PatientsController extends Controller
             
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
             $isVerified = !is_null($user->email_verified_at);
+            $isSyndicateCardRequired = $user->isSyndicateCardRequired === 'Verified';
             $doctorId = $user->id;
 
             // Get feed posts with all relationships in one query
@@ -204,7 +205,7 @@ class PatientsController extends Controller
             });
 
             // If user is not verified and not admin/tester, return limited data
-            if (!$isVerified && !$isAdminOrTester) {
+            if (!$isSyndicateCardRequired && !$isAdminOrTester) {
                 // Get trending hashtags and latest groups in parallel
                 $trendingHashtags = Hashtag::orderBy('usage_count', 'desc')
                     ->limit(5)

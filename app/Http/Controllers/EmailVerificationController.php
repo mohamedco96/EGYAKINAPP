@@ -20,63 +20,93 @@ class EmailVerificationController extends Controller
     }
 
     /**
-     * Send email verification notification to the authenticated user.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * Send email verification notification
      */
-    public function sendEmailVerification(Request $request)
+    public function sendVerificationEmail(Request $request)
     {
         try {
-            $request->user()->notify(new EmailVerificationNotification());
+            $request->validate([
+                'email' => 'required|email|exists:users,email'
+            ]);
 
-            Log::info('Email verification mail sent', ['user_id' => $request->user()->id]);
+            $user = User::where('email', $request->email)->first();
+            
+            // Send verification notification
+            $user->notify(new EmailVerificationNotification());
+
+            Log::info('Email verification sent', [
+                'user_id' => $user->id,
+                'email' => $user->email
+            ]);
 
             return response()->json([
-                'value' => true,
-                'message' => 'Verification Mail sent to user',
-            ], 200);
+                'status' => 'success',
+                'message' => 'Verification email sent successfully'
+            ]);
+
         } catch (\Exception $e) {
-            Log::error('Error sending email verification mail', ['error' => $e->getMessage()]);
+            Log::error('Failed to send verification email', [
+                'error' => $e->getMessage(),
+                'email' => $request->email ?? null
+            ]);
+
             return response()->json([
-                'value' => false,
-                'message' => 'Error sending verification mail',
+                'status' => 'error',
+                'message' => 'Failed to send verification email',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Verify email using OTP.
-     *
-     * @param  \App\Http\Requests\EmailVerificationRequest  $request
-     * @return \Illuminate\Http\Response
+     * Verify email using OTP
      */
-    public function email_verification(EmailVerificationRequest $request)
+    public function verifyEmail(EmailVerificationRequest $request)
     {
         try {
-            $otp2 = $this->otp->validate(Auth::user()->email, $request->otp);
+            $user = Auth::user() ?? User::where('email', $request->email)->first();
+            
+            if (!$user) {
+                throw new \Exception('User not found');
+            }
 
-            if (!$otp2->status) {
-                Log::warning('Email verification failed', ['user_id' => Auth::user()->id]);
+            $otpValidation = $this->otp->validate($user->email, $request->otp);
+
+            if (!$otpValidation->status) {
+                Log::warning('Invalid OTP attempt', [
+                    'user_id' => $user->id,
+                    'email' => $user->email
+                ]);
+
                 return response()->json([
-                    'value' => false,
-                    'message' => 'OTP does not exist',
+                    'status' => 'error',
+                    'message' => 'Invalid OTP'
                 ], 401);
             }
 
-            $user = User::where('email', Auth::user()->email)->first();
+            // Mark email as verified
             $user->update(['email_verified_at' => now()]);
 
-            Log::info('Email verified successfully', ['user_id' => Auth::user()->id]);
+            Log::info('Email verified successfully', [
+                'user_id' => $user->id,
+                'email' => $user->email
+            ]);
+
             return response()->json([
-                'value' => true,
-                'message' => 'User Email verified successfully',
-            ], 200);
+                'status' => 'success',
+                'message' => 'Email verified successfully'
+            ]);
+
         } catch (\Exception $e) {
-            Log::error('Error verifying email', ['error' => $e->getMessage()]);
+            Log::error('Email verification failed', [
+                'error' => $e->getMessage(),
+                'email' => $request->email ?? null
+            ]);
+
             return response()->json([
-                'value' => false,
-                'message' => 'Error verifying email',
+                'status' => 'error',
+                'message' => 'Email verification failed',
+                'error' => $e->getMessage()
             ], 500);
         }
     }

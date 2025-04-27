@@ -205,6 +205,10 @@ Route::get('/userPatient', 'AuthController@userPatient');
 Route::post('/send-notification', 'AuthController@sendPushNotificationTest');
 Route::post('/sendAllPushNotification', 'NotificationController@sendAllPushNotification');
 
+// routes/api.php
+Route::post('/email/verification-notification', 'EmailVerificationController@sendVerificationEmail');
+Route::post('/email/verify', 'EmailVerificationController@verifyEmail');
+
 // Settings
 Route::get('/settings', 'SettingsController@index');
 Route::post('/settings', 'SettingsController@store');
@@ -231,9 +235,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/changePassword', 'AuthController@changePassword');
     Route::post('/upload-profile-image', 'AuthController@uploadProfileImage');
     Route::post('/uploadSyndicateCard', 'AuthController@uploadSyndicateCard');
-    Route::post('/emailverification', 'EmailVerificationController@email_verification');
-    Route::post('/sendverificationmail', 'EmailVerificationController@sendEmailVerification');
-    Route::post('/resendemailverification', 'EmailVerificationController@sendEmailVerification');
+    Route::post('/emailverification', 'EmailVerificationController@verifyEmail');
+    Route::post('/sendverificationmail', 'EmailVerificationController@sendVerificationEmail');
+    Route::post('/resendemailverification', 'EmailVerificationController@sendVerificationEmail');
     Route::post('/storeFCM', 'NotificationController@storeFCM');
     Route::post('/decryptedPassword', 'AuthController@decryptedPassword');
     

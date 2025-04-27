@@ -788,8 +788,8 @@ class PatientsController extends Controller
             DB::commit();
 
             // Notifying other doctors
-            $doctors = User::role(['Admin', 'Tester'])
-                ->where('id', '!=', Auth::id())
+            $doctors = User::where('id', '!=', Auth::id())
+                ->where('isSyndicateCardRequired', 'Verified')
                 ->pluck('id'); // Get only the IDs of the users
 
             // Create a new patient notification

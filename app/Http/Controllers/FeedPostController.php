@@ -987,9 +987,9 @@ class FeedPostController extends Controller
 
     private function notifyDoctors(FeedPost $post)
     {
-        $doctors = User::role(['Admin', 'Tester'])
-            ->where('id', '!=', Auth::id())
-            ->pluck('id');
+        $doctors = User::where('id', '!=', Auth::id())
+        ->where('isSyndicateCardRequired', 'Verified')
+        ->pluck('id'); 
     
         $user = Auth::user();
         $doctorName = $user->name . ' ' . $user->lname;

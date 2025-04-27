@@ -9,19 +9,25 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Mailgun\Mailgun;
+use Illuminate\Support\Facades\Auth;
 
 class EmailVerificationController extends Controller
 {
     /**
      * Send verification email
      */
-    public function sendVerificationEmail(Request $request)
+    public function sendVerificationEmail()
     {
-        $request->validate([
-            'email' => 'required|email|exists:users,email'
-        ]);
+        $user = Auth::user();
 
-        $user = User::where('email', $request->email)->first();
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not authenticated'
+            ], 401);
+        }
+
+        $user = User::where('email', $user->email)->first();
 
         // Generate signed verification URL (valid for 60 minutes)
         $verificationUrl = URL::temporarySignedRoute(

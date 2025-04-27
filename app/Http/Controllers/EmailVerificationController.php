@@ -22,14 +22,20 @@ class EmailVerificationController extends Controller
     /**
      * Send email verification notification
      */
-    public function sendVerificationEmail(Request $request)
+    public function sendVerificationEmail()
     {
         try {
-            $request->validate([
-                'email' => 'required|email|exists:users,email'
-            ]);
 
-            $user = User::where('email', $request->email)->first();
+            $user = Auth::user();
+
+            if (!$user) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+    
+            $user = User::where('email', $user->email)->first();
             
             // Send verification notification
             $user->notify(new EmailVerificationNotification());
@@ -47,7 +53,7 @@ class EmailVerificationController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to send verification email', [
                 'error' => $e->getMessage(),
-                'email' => $request->email ?? null
+                'email' => $user->email ?? null
             ]);
 
             return response()->json([

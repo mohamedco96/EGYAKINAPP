@@ -10,6 +10,7 @@ use Otp;
 
 class EmailVerificationNotification extends Notification implements ShouldQueue
 {
+    // test
     use Queueable;
 
     public $message;

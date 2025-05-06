@@ -46,3 +46,5 @@ Route::get('/post/{id}', function ($id) {
     }
     return view('post.web_fallback', ['id' => $id]); // Web fallback
 });
+
+// test

@@ -38,3 +38,11 @@ Route::get('/search', function () {
     return view('search');
 });
 
+
+Route::get('/post/{id}', function ($id) {
+    // Optional: Check if request is from a mobile device
+    if (str_contains(request()->header('User-Agent'), 'Mobile')) {
+        return redirect("egyakin://post/$id"); // Custom scheme fallback
+    }
+    return view('post.web_fallback', ['id' => $id]); // Web fallback
+});

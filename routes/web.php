@@ -40,11 +40,19 @@ Route::get('/search', function () {
 
 
 Route::get('/post/{id}', function ($id) {
-    // Optional: Check if request is from a mobile device
-    if (str_contains(request()->header('User-Agent'), 'Mobile')) {
-        return redirect("egyakin://post/$id"); // Custom scheme fallback
+    // Check if the request is from a mobile device
+    $isMobile = preg_match('/(android|iphone|ipad|mobile)/i', request()->header('User-Agent'));
+
+    if ($isMobile) {
+        // Redirect to the app's custom scheme (e.g., "egyakin://post/837")
+        return redirect()->away("egyakin://post/$id");
+    } else {
+        // Fallback for web browsers/API calls (no view needed)
+        return response()->json([
+            'error' => 'not_found',
+            'message' => 'This is a deep link. Open the app to view the content.',
+        ], 404);
     }
-    return view('post.web_fallback', ['id' => $id]); // Web fallback
 });
 
 // test

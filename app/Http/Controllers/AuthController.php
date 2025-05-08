@@ -815,9 +815,9 @@ class AuthController extends Controller
             $user = User::select('id')
                 ->with(['roles:id,name'])
                 ->findOrFail($id);
-
+    
             $isAdminOrTester = $user->hasRole(['Admin', 'Tester']);
-
+    
             // Optimize query with eager loading and specific selections
             $currentPatients = $user->patients()
                 ->select('id', 'doctor_id', 'updated_at')
@@ -835,11 +835,14 @@ class AuthController extends Controller
                             ->whereIn('question_id', [1, 2]);
                     }
                 ])
-                ->latest('updated_at')
-                ->get();
-
-            // Transform maintaining exact structure
-            $transformedPatients = $currentPatients->map(function ($patient) {
+                ->latest('updated_at');
+    
+            // Get paginated results directly from the query builder
+            $perPage = 10;
+            $paginatedPatients = $currentPatients->paginate($perPage);
+                
+            // Transform the paginated results
+            $transformedData = collect($paginatedPatients->items())->map(function ($patient) {
                 return [
                     'id' => $patient->id,
                     'doctor_id' => $patient->doctor_id,
@@ -853,34 +856,36 @@ class AuthController extends Controller
                         'outcome_status' => optional($patient->status->where('key', 'outcome_status')->first())->status ?? false,
                     ]
                 ];
-            });
-
-            // Paginate maintaining exact structure
-            $page = LengthAwarePaginator::resolveCurrentPage();
-            $perPage = 10;
-            
-            $paginatedData = new LengthAwarePaginator(
-                $transformedPatients->forPage($page, $perPage),
-                $transformedPatients->count(),
-                $perPage
+            })->values()->all(); // Use values() to ensure indexed array and all() to convert to a plain array
+    
+            // Create a new paginator with the transformed data
+            $result = new LengthAwarePaginator(
+                $transformedData,
+                $paginatedPatients->total(),
+                $perPage,
+                $paginatedPatients->currentPage(),
+                [
+                    'path' => LengthAwarePaginator::resolveCurrentPath(),
+                    'pageName' => 'page'
+                ]
             );
-
+    
             Log::info('Retrieved patients for doctor profile', [
                 'doctor_id' => $id,
-                'count' => $transformedPatients->count()
+                'count' => $paginatedPatients->total()
             ]);
-
+    
             return response()->json([
                 'value' => true,
-                'data' => $paginatedData
+                'data' => $result
             ], 200);
-
+    
         } catch (\Exception $e) {
             Log::error('Error retrieving patients', [
                 'doctor_id' => $id,
                 'error' => $e->getMessage()
             ]);
-
+    
             return response()->json([
                 'value' => false,
                 'message' => 'Failed to retrieve patients'

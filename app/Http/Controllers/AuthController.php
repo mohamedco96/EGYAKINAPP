@@ -891,8 +891,6 @@ class AuthController extends Controller
     public function doctorProfileGetScoreHistory($id)
     {
         try {
-            // Return all patients
-
             // Find the user by ID
             $user = User::find($id);
 
@@ -926,8 +924,17 @@ class AuthController extends Controller
 
             // Paginate the transformed data
             $currentPage = LengthAwarePaginator::resolveCurrentPage();
-            $slicedData = $transformedPatients->slice(($currentPage - 1) * 10, 10);
-            $transformedPatientsPaginated = new LengthAwarePaginator($slicedData->values(), count($transformedPatients), 10);
+            $perPage = 10;
+            $slicedData = $transformedPatients->slice(($currentPage - 1) * $perPage, $perPage);
+            
+            // Create paginator with values() to ensure array format
+            $transformedPatientsPaginated = new LengthAwarePaginator(
+                $slicedData->values(),
+                $transformedPatients->count(),
+                $perPage,
+                $currentPage,
+                ['path' => request()->url()]
+            );
 
             // Prepare response data
             $response = [
@@ -936,16 +943,19 @@ class AuthController extends Controller
             ];
 
             // Log successful response
-            Log::info('Successfully retrieved all patients for doctor.', ['doctor_id' => optional(auth()->user())->id]);
+            Log::info('Successfully retrieved score history for doctor.', ['doctor_id' => $id]);
 
             // Return the transformed response
             return response()->json($response, 200);
         } catch (\Exception $e) {
             // Log error
-            Log::error('Error retrieving all patients for doctor.', ['doctor_id' => optional(auth()->user())->id, 'exception' => $e]);
+            Log::error('Error retrieving score history for doctor.', ['doctor_id' => $id, 'exception' => $e]);
 
             // Return error response
-            return response()->json(['error' => 'Failed to retrieve all patients for doctor.'], 500);
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to retrieve score history for doctor.'
+            ], 500);
         }
     }
 

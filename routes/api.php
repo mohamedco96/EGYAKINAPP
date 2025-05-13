@@ -235,12 +235,20 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/changePassword', 'AuthController@changePassword');
     Route::post('/upload-profile-image', 'AuthController@uploadProfileImage');
     Route::post('/uploadSyndicateCard', 'AuthController@uploadSyndicateCard');
-    Route::post('/emailverification', 'EmailVerificationController@verifyEmail');
-    Route::post('/sendverificationmail', 'EmailVerificationController@sendVerificationEmail');
-    Route::post('/resendemailverification', 'EmailVerificationController@sendVerificationEmail');
+    // Route::post('/emailverification', 'EmailVerificationController@verifyEmail');
+    // Route::post('/sendverificationmail', 'EmailVerificationController@sendVerificationEmail');
+    // Route::post('/resendemailverification', 'EmailVerificationController@sendVerificationEmail');
     Route::post('/storeFCM', 'NotificationController@storeFCM');
     Route::post('/decryptedPassword', 'AuthController@decryptedPassword');
     
+
+    Route::post('/emailverification', 'OtpController@verifyOtp');
+    Route::post('/sendverificationmail', 'OtpController@sendOtp');
+    Route::post('/resendemailverification', 'OtpController@resendOtp');
+
+    Route::post('/send-otp', 'OtpController@sendOtp');
+    Route::post('/verify-otp', 'OtpController@verifyOtp');
+    Route::post('/resend-otp', 'OtpController@resendOtp');
 
     // Role & Permission
     Route::post('/role', 'AuthController@roletest');

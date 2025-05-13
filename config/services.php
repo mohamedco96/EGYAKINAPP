@@ -14,13 +14,19 @@ return [
     |
     */
 
-    'mailgun' => [
-        'domain' => env('MAILGUN_DOMAIN'),
-        'secret' => env('MAILGUN_SECRET'),
-        'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
-        'scheme' => 'https',
-    ],
+    // 'mailgun' => [
+    //     'domain' => env('MAILGUN_DOMAIN'),
+    //     'secret' => env('MAILGUN_SECRET'),
+    //     'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
+    //     'scheme' => 'https',
+    // ],
 
+    'mailgun' => [
+    'domain' => env('MAILGUN_DOMAIN'),
+    'secret' => env('MAILGUN_SECRET'),
+    'endpoint' => env('MAILGUN_ENDPOINT', 'https://api.eu.mailgun.net'),
+    'from' => env('MAILGUN_FROM_NAME', 'OTP Verification').' <'.env('MAILGUN_FROM_ADDRESS', 'verification@egyakin.com').'>',
+    ],
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],

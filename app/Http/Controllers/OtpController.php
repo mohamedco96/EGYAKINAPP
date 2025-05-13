@@ -61,7 +61,7 @@ class OtpController extends Controller
      */
     public function verifyOtp(VerifyOtpRequest $request): JsonResponse
     {
-        $user = User::where('email', $request->email)->first();
+        $user = Auth::user();
         
         if (!$user) {
             return response()->json([

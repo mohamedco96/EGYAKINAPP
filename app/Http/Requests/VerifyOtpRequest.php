@@ -24,8 +24,7 @@ class VerifyOtpRequest extends FormRequest
     public function rules()
     {
         return [
-            'email' => 'required|email|exists:users,email',
-            'otp' => 'required|string|min:6|max:6',
+            'otp' => 'required|string|min:4|max:4',
         ];
     }
 
@@ -41,8 +40,8 @@ class VerifyOtpRequest extends FormRequest
             'email.email' => 'Invalid email format',
             'email.exists' => 'This email is not registered in our system',
             'otp.required' => 'OTP is required',
-            'otp.min' => 'OTP must be 6 digits',
-            'otp.max' => 'OTP must be 6 digits',
+            'otp.min' => 'OTP must be 4 digits',
+            'otp.max' => 'OTP must be 4 digits',
         ];
     }
 }

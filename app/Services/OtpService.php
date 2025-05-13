@@ -3,15 +3,16 @@
 namespace App\Services;
 
 use App\Models\User;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Mailgun\Mailgun;
+use Otp;
 
 class OtpService
 {
     protected $mailgun;
     protected $domain;
     protected $from;
+    protected $otp;
     
     public function __construct()
     {
@@ -23,6 +24,9 @@ class OtpService
         
         // Initialize Mailgun client
         $this->mailgun = Mailgun::create($apiKey, $endpoint);
+        
+        // Initialize OTP
+        $this->otp = new Otp;
     }
     
     /**
@@ -33,13 +37,9 @@ class OtpService
      */
     public function generateOtp(User $user): string
     {
-        // Generate a 4-digit OTP
-        $otp = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
-        
-        // Store the OTP in cache with 10 minutes expiration
-        Cache::put('otp_' . $user->id, $otp, now()->addMinutes(10));
-        
-        return $otp;
+        // Generate a 4-digit OTP that expires in 10 minutes
+        $otpResult = $this->otp->generate($user->email, 'numeric', 4, 10);
+        return $otpResult->token;
     }
     
     /**
@@ -104,15 +104,7 @@ class OtpService
      */
     public function verifyOtp(User $user, string $otp): bool
     {
-        $cacheKey = 'user_otp_' . $user->id;
-        $storedOtp = Cache::get($cacheKey);
-        
-        if ($storedOtp && $storedOtp === $otp) {
-            // OTP verified, remove it from cache
-            Cache::forget($cacheKey);
-            return true;
-        }
-        
-        return false;
+        $validation = $this->otp->validate($user->email, $otp);
+        return $validation->status;
     }
 }

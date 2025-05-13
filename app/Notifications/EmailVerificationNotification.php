@@ -4,8 +4,8 @@ namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Mailgun\Mailgun;
 use Otp;
 
 class EmailVerificationNotification extends Notification implements ShouldQueue
@@ -16,8 +16,9 @@ class EmailVerificationNotification extends Notification implements ShouldQueue
     public $message;
     public $subject;
     public $fromEmail;
-    public $mailer;
+    public $domain;
     public $otp;
+    protected $mailgun;
 
     /**
      * Create a new notification instance.
@@ -27,8 +28,14 @@ class EmailVerificationNotification extends Notification implements ShouldQueue
         $this->message = 'Use the below code for verification process';
         $this->subject = 'EGYAKIN Mail Verification';
         $this->fromEmail = config('mail.from.address');
-        $this->mailer = config('mail.default');
+        $this->domain = 'egyakin.com';
         $this->otp = new Otp;
+        
+        // Initialize Mailgun client
+        $this->mailgun = Mailgun::create(
+            config('services.mailgun.secret'),
+            'https://api.eu.mailgun.net'
+        );
     }
 
     /**
@@ -36,24 +43,28 @@ class EmailVerificationNotification extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mailgun'];
     }
 
     /**
-     * Get the mail representation of the notification.
+     * Send the notification using Mailgun API.
      */
-    public function toMail(object $notifiable): MailMessage
+    public function toMailgun(object $notifiable)
     {
         $otp = $this->otp->generate($notifiable->email, 'numeric', 4, 10);
+        
+        $emailContent = "Hello {$notifiable->name},\n\n";
+        $emailContent .= "{$this->message}\n";
+        $emailContent .= "Your verification code: {$otp->token}\n";
+        $emailContent .= "This code will expire in 10 minutes\n";
+        $emailContent .= "If you did not request this, please ignore this email.";
 
-        return (new MailMessage)
-            ->mailer($this->mailer)
-            ->subject($this->subject)
-            ->greeting("Hello {$notifiable->name}")
-            ->line($this->message)
-            ->line("Your verification code: {$otp->token}")
-            ->line('This code will expire in 10 minutes')
-            ->line('If you did not request this, please ignore this email.');
+        return $this->mailgun->messages()->send($this->domain, [
+            'from'    => "EGYAKIN <{$this->fromEmail}>",
+            'to'      => "{$notifiable->name} <{$notifiable->email}>",
+            'subject' => $this->subject,
+            'text'    => $emailContent
+        ]);
     }
 
     /**

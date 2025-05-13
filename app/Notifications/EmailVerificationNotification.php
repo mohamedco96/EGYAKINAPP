@@ -2,10 +2,10 @@
 
 namespace App\Notifications;
 
-use App\Notifications\Channels\MailgunChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
+use Mailgun\Mailgun;
 use Otp;
 
 class EmailVerificationNotification extends Notification implements ShouldQueue
@@ -18,6 +18,7 @@ class EmailVerificationNotification extends Notification implements ShouldQueue
     public $fromEmail;
     public $domain;
     public $otp;
+    protected $mailgun;
 
     /**
      * Create a new notification instance.
@@ -29,6 +30,12 @@ class EmailVerificationNotification extends Notification implements ShouldQueue
         $this->fromEmail = config('mail.from.address');
         $this->domain = 'egyakin.com';
         $this->otp = new Otp;
+        
+        // Initialize Mailgun client
+        $this->mailgun = Mailgun::create(
+            config('services.mailgun.secret'),
+            'https://api.eu.mailgun.net'
+        );
     }
 
     /**
@@ -36,7 +43,7 @@ class EmailVerificationNotification extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return [MailgunChannel::class];
+        return ['mailgun'];
     }
 
     /**
@@ -52,7 +59,7 @@ class EmailVerificationNotification extends Notification implements ShouldQueue
         $emailContent .= "This code will expire in 10 minutes\n";
         $emailContent .= "If you did not request this, please ignore this email.";
 
-        return app(MailgunChannel::class)->mailgun->messages()->send($this->domain, [
+        return $this->mailgun->messages()->send($this->domain, [
             'from'    => "EGYAKIN <{$this->fromEmail}>",
             'to'      => "{$notifiable->name} <{$notifiable->email}>",
             'subject' => $this->subject,

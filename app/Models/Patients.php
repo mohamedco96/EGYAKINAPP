@@ -34,6 +34,11 @@ class Patients extends Model
         return $this->belongsTo(User::class, 'doctor_id');
     }
 
+    public function recommendations(): HasMany
+    {
+        return $this->hasMany(Recommendation::class, 'patient_id');
+    }
+
     public function answers(): HasMany
     {
         return $this->hasMany(Answers::class, 'patient_id');

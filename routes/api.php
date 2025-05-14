@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\GroupController;
+use App\Http\Controllers\RecommendationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -185,6 +186,12 @@ use App\Http\Controllers\GroupController;
 |   - POST /groups/{groupId}/leave: Leave a group.
 |   - GET /mygroups: Get the authenticated user's groups.
 |   - GET /groups: Get all groups.
+|
+| - Recommendations:
+|   - GET /recommendations/{patient_id}: Get recommendations for a patient.
+|   - POST /recommendations/{patient_id}: Create a new recommendation for a patient.
+|   - PUT /recommendations/{patient_id}: Update an existing recommendation for a patient.
+|   - DELETE /recommendations/{patient_id}: Delete a recommendation for a patient.
 |
 | Fallback Route:
 | - Returns a 404 response if the route does not exist.
@@ -395,6 +402,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/AIconsultation/{patientId}', 'ChatController@sendConsultation');
     Route::get('/AIconsultation-history/{patientId}', 'ChatController@getConsultationHistory');
     
+
+    // Recommendations
+    Route::get('/recommendations/{patient_id}', 'RecommendationController@index');
+    Route::post('/recommendations/{patient_id}', 'RecommendationController@store');
+    Route::put('/recommendations/{patient_id}', 'RecommendationController@update');
+    Route::delete('/recommendations/{patient_id}', 'RecommendationController@destroy');
 
 });
 

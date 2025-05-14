@@ -104,6 +104,7 @@ class DoseController extends Controller
             // Return success response
             return response()->json([
                 'value' => true,
+                'data' => $dose,
                 'message' => 'Dose created successfully',
                 //'dose' => $dose, // Optionally return the created dose object
             ], 200);

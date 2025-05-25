@@ -269,4 +269,40 @@ class DoseController extends Controller
             ], 500);
         }
     }
+
+    public function doseSearch(Request $request)
+    {
+        try {
+            $query = (string) $request->input('query');
+    
+            // Log the incoming query
+            Log::info('Starting dose search', ['query' => $query]);
+    
+            $doses = Dose::where('title', 'like', "%$query%")->get();
+    
+            // Log the number of results found
+            Log::info('Dose search completed', [
+                'query' => $query,
+                'results_count' => $doses->count(),
+            ]);
+    
+            return response()->json([
+                'value' => true,
+                'data' => $doses,
+                'message' => 'Dose retrieved successfully',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Exception occurred while searching for doses.', [
+                'query' => $request->input('query'),
+                'message' => $e->getMessage(),
+                'trace' => $e->getTrace(),
+            ]);
+    
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to search for doses. Please try again later.',
+            ], 500);
+        }
+    }
+    
 }

@@ -4,7 +4,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // API Version 1 Routes
-Route::prefix('v1')->group(function () {
     // Public routes with strict rate limiting
     Route::group(['middleware' => 'throttle:5,1'], function () {
         Route::post('/register', 'AuthController@register');
@@ -232,7 +231,6 @@ Route::prefix('v1')->group(function () {
 
         });
     });
-});
 
 // API Version 2 Routes (for future use)
 Route::prefix('v2')->group(function () {

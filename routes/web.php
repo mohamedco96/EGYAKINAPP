@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\PatientsController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,7 +37,6 @@ Route::get('/realTimeSearch', [PatientsController::class, 'realTimeSearch'])->na
 Route::get('/search', function () {
     return view('search');
 });
-
 
 Route::get('/post/{id}', function ($id) {
     // Check if the request is from a mobile device

@@ -16,5 +16,4 @@ class Dose extends Model
      * @var array
      */
     protected $fillable = ['title', 'description', 'dose'];
-
 }

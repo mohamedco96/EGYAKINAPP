@@ -21,8 +21,6 @@ class Score extends Model
 
     /**
      * Define the relationship with the doctor.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function doctor(): BelongsTo
     {

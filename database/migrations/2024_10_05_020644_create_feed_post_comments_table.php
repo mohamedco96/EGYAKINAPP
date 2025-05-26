@@ -28,9 +28,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('feed_post_comments');
-//        Schema::table('feed_post_comments', function (Blueprint $table) {
-//            $table->dropForeign(['parent_id']);
-//            $table->dropColumn('parent_id');
-//        });
+        //        Schema::table('feed_post_comments', function (Blueprint $table) {
+        //            $table->dropForeign(['parent_id']);
+        //            $table->dropColumn('parent_id');
+        //        });
     }
 };

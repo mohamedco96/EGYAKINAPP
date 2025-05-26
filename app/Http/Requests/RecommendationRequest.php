@@ -30,4 +30,4 @@ class RecommendationRequest extends FormRequest
             'recommendations.*.duration' => 'required|string|max:100',
         ];
     }
-} 
+}

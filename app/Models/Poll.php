@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Poll extends Model
@@ -13,13 +12,13 @@ class Poll extends Model
     {
         return $this->belongsTo(FeedPost::class, 'feed_post_id');
     }
-    
+
     public function options()
     {
         return $this->hasMany(PollOption::class, 'poll_id');
     }
 
-        /**
+    /**
      * The attributes that should be cast.
      *
      * @var array

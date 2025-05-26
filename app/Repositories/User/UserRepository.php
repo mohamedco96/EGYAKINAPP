@@ -2,10 +2,9 @@
 
 namespace App\Repositories\User;
 
-use App\Models\User;
-use App\Models\FcmToken;
 use App\Models\AppNotification;
-use Illuminate\Support\Facades\DB;
+use App\Models\FcmToken;
+use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
 class UserRepository
@@ -13,7 +12,7 @@ class UserRepository
     public function create(array $data): User
     {
         $sanitized = array_map('trim', $data);
-        
+
         return User::create([
             'name' => $sanitized['name'],
             'lname' => $sanitized['lname'],
@@ -38,15 +37,15 @@ class UserRepository
     public function findByIdWithRelations($id): ?User
     {
         return User::with([
-            'patients' => function($q) {
+            'patients' => function ($q) {
                 $q->select('id', 'doctor_id');
             },
             'score:id,doctor_id,score',
             'posts:id,doctor_id',
-            'saves:id,doctor_id'
+            'saves:id,doctor_id',
         ])
-        ->select('id', 'name', 'lname', 'image', 'email', 'specialty', 'workingplace')
-        ->find($id);
+            ->select('id', 'name', 'lname', 'image', 'email', 'specialty', 'workingplace')
+            ->find($id);
     }
 
     public function update(User $user, array $data): bool
@@ -70,7 +69,7 @@ class UserRepository
     public function getAdminAndTesterUsers($excludeUserId = null)
     {
         $query = User::role(['Admin', 'Tester']);
-        
+
         if ($excludeUserId) {
             $query->where('id', '!=', $excludeUserId);
         }
@@ -87,4 +86,4 @@ class UserRepository
     {
         AppNotification::insert($notifications);
     }
-} 
+}

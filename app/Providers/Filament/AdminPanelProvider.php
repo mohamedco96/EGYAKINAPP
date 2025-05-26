@@ -2,6 +2,16 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\ConsultationOverview;
+use App\Filament\Widgets\DoctorPerformanceOverview;
+use App\Filament\Widgets\FeedPostsOverview;
+use App\Filament\Widgets\GroupsOverview;
+use App\Filament\Widgets\PatientChart;
+use App\Filament\Widgets\PatientStatusOverview;
+use App\Filament\Widgets\PatientTypeOverview;
+use App\Filament\Widgets\RecentFeedPosts;
+use App\Filament\Widgets\RecentGroups;
+use App\Filament\Widgets\RecentPatientActivity;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
@@ -10,16 +20,6 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
-use App\Filament\Widgets\PatientTypeOverview;
-use App\Filament\Widgets\PatientChart;
-use App\Filament\Widgets\ConsultationOverview;
-use App\Filament\Widgets\DoctorPerformanceOverview;
-use App\Filament\Widgets\PatientStatusOverview;
-use App\Filament\Widgets\RecentPatientActivity;
-use App\Filament\Widgets\FeedPostsOverview;
-use App\Filament\Widgets\GroupsOverview;
-use App\Filament\Widgets\RecentFeedPosts;
-use App\Filament\Widgets\RecentGroups;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;

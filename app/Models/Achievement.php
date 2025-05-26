@@ -15,7 +15,6 @@ class Achievement extends Model
      * Get the Achievement's image URL with prefix.
      *
      * @param  string|null  $value
-     * @return string|null
      */
     public function getImageAttribute($value): ?string
     {
@@ -26,17 +25,17 @@ class Achievement extends Model
      * Get the URL with prefix.
      *
      * @param  string|null  $value
-     * @return string|null
      */
     private function getPrefixedUrl($value): ?string
     {
-        if (!$value) {
+        if (! $value) {
             return null;
         }
 
         // Add your prefix here
-        $prefix = config('app.url') . '/' . 'storage/';
-        return $prefix . $value;
+        $prefix = config('app.url').'/'.'storage/';
+
+        return $prefix.$value;
     }
 
     public function users()

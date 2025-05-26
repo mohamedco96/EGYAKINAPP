@@ -3,8 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Kreait\Firebase\Factory;
 use Kreait\Firebase\Contract\Messaging as FirebaseMessaging;
+use Kreait\Firebase\Factory;
 
 class FirebaseServiceProvider extends ServiceProvider
 {

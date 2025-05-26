@@ -20,7 +20,6 @@ class FeedPost extends Model
         return $this->belongsTo(User::class, 'doctor_id');
     }
 
-
     public function comments()
     {
         return $this->hasMany(FeedPostComment::class);

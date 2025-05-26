@@ -3,17 +3,21 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class ReachingSpecificPoints extends Notification
 {
     use Queueable;
+
     public $mesaage;
+
     public $subject;
+
     public $fromEmail;
+
     public $mailer;
+
     protected $score;
 
     /**
@@ -21,9 +25,9 @@ class ReachingSpecificPoints extends Notification
      */
     public function __construct($score)
     {
-        //$this->message = 'Use the below code for verification process';
+        // $this->message = 'Use the below code for verification process';
         $this->subject = 'Congrats from EGYAKIN';
-        $this->fromEmail = "noreply@egyakin.com";
+        $this->fromEmail = 'noreply@egyakin.com';
         $this->mailer = 'smtp';
         $this->score = $score;
     }
@@ -45,14 +49,14 @@ class ReachingSpecificPoints extends Notification
     {
 
         return (new MailMessage)
-                    ->mailer('smtp')
-                    ->subject($this->subject)
-                    ->greeting('Hello Doctor ' . $notifiable->name)
-                    ->line('Congrats! You have earned 50 points.')
-                    ->line('Your score is ' . $this->score->score .' points overall. Keep up your outstanding work.')
-                    ->line('Thank you for using our application!')
-                    ->line('Sincerely,')
-                    ->salutation('EGYAKIN Scientific Team.');
+            ->mailer('smtp')
+            ->subject($this->subject)
+            ->greeting('Hello Doctor '.$notifiable->name)
+            ->line('Congrats! You have earned 50 points.')
+            ->line('Your score is '.$this->score->score.' points overall. Keep up your outstanding work.')
+            ->line('Thank you for using our application!')
+            ->line('Sincerely,')
+            ->salutation('EGYAKIN Scientific Team.');
     }
 
     /**

@@ -2,12 +2,13 @@
 
 namespace App\Services;
 
-use App\Models\AppNotification;
-use App\Models\FcmToken;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
+use App\Models\FcmToken;
+use App\Models\AppNotification;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class UserService
 {
@@ -35,12 +36,12 @@ class UserService
 
             Log::info('User updated', [
                 'user_id' => $user->id,
-                'fields' => array_keys($data),
+                'fields' => array_keys($data)
             ]);
 
             return [
                 'value' => true,
-                'message' => 'User Updated Successfully',
+                'message' => 'User Updated Successfully'
             ];
 
         } catch (\Exception $e) {
@@ -53,12 +54,11 @@ class UserService
     {
         $user = User::find($id);
 
-        if (! $user) {
+        if (!$user) {
             Log::warning("No user found with ID {$id}");
-
             return [
                 'value' => false,
-                'message' => 'No User was found',
+                'message' => 'No User was found'
             ];
         }
 
@@ -74,13 +74,13 @@ class UserService
         return [
             'value' => true,
             'message' => 'User Updated Successfully',
-            'data' => $user,
+            'data' => $user
         ];
     }
 
     public function uploadProfileImage($user, $image)
     {
-        $fileName = sprintf('%s_profileImage_%s.%s',
+        $fileName = sprintf('%s_profileImage_%s.%s', 
             $user->name,
             time(),
             $image->getClientOriginalExtension()
@@ -89,26 +89,26 @@ class UserService
         DB::beginTransaction();
         try {
             $path = $image->storeAs('profile_images', $fileName, 'public');
-
+            
             if ($user->image) {
                 Storage::disk('public')->delete($user->image);
             }
-
+            
             $user->update(['image' => $path]);
-
+            
             DB::commit();
 
-            $imageUrl = config('app.url').'/storage/'.$path;
+            $imageUrl = config('app.url') . '/storage/' . $path;
 
             Log::info('Profile image updated', [
                 'user_id' => $user->id,
-                'path' => $path,
+                'path' => $path
             ]);
 
             return [
                 'value' => true,
                 'message' => 'Profile image uploaded successfully.',
-                'image' => $imageUrl,
+                'image' => $imageUrl
             ];
 
         } catch (\Exception $e) {
@@ -119,14 +119,14 @@ class UserService
 
     public function uploadSyndicateCard($user, $image)
     {
-        $fileName = time().'_'.$image->getClientOriginalName();
+        $fileName = time() . '_' . $image->getClientOriginalName();
         $path = $image->storeAs('syndicate_card', $fileName, 'public');
-        $relativePath = 'storage/'.$path;
-        $imageUrl = config('app.url').'/'.'storage/'.$path;
+        $relativePath = 'storage/' . $path;
+        $imageUrl = config('app.url') . '/' . 'storage/' . $path;
 
         $user->update([
             'syndicate_card' => $path,
-            'isSyndicateCardRequired' => 'Pending',
+            'isSyndicateCardRequired' => 'Pending'
         ]);
 
         $this->notifyAdminsAboutSyndicateCard($user);
@@ -134,7 +134,7 @@ class UserService
         return [
             'value' => true,
             'message' => 'User syndicate card uploaded successfully.',
-            'image' => $imageUrl,
+            'image' => $imageUrl
         ];
     }
 
@@ -142,7 +142,7 @@ class UserService
     {
         if ($user->isSyndicateCardRequired === 'Pending') {
             $messages = $this->getSyndicateCardMessages($status);
-
+            
             AppNotification::create([
                 'doctor_id' => $user->id,
                 'type' => 'Other',
@@ -168,12 +168,12 @@ class UserService
             case 'Required':
                 return [
                     'title' => 'Syndicate Card Rejected ❌',
-                    'body' => 'Your Syndicate Card was rejected. Please upload the correct one.',
+                    'body' => 'Your Syndicate Card was rejected. Please upload the correct one.'
                 ];
             case 'Verified':
                 return [
                     'title' => 'Syndicate Card Approved ✅',
-                    'body' => 'Congratulations! 🎉 Your Syndicate Card has been approved.',
+                    'body' => 'Congratulations! 🎉 Your Syndicate Card has been approved.'
                 ];
             default:
                 throw new \Exception('Invalid value for isSyndicateCardRequired.');
@@ -187,14 +187,14 @@ class UserService
             ->with('fcmTokens:id,doctor_id,token')
             ->get();
 
-        $notifications = $doctors->map(function ($doctor) use ($user) {
+        $notifications = $doctors->map(function($doctor) use ($user) {
             return [
                 'doctor_id' => $doctor->id,
                 'type' => 'Syndicate Card',
-                'content' => 'Dr. '.$user->name.' has uploaded a new Syndicate Card for approval.',
+                'content' => 'Dr. ' . $user->name . ' has uploaded a new Syndicate Card for approval.',
                 'type_doctor_id' => $user->id,
                 'created_at' => now(),
-                'updated_at' => now(),
+                'updated_at' => now()
             ];
         })->toArray();
 
@@ -207,8 +207,8 @@ class UserService
 
         $this->notificationController->sendPushNotification(
             'New Syndicate Card Pending Approval 📋',
-            'Dr. '.$user->name.' has uploaded a new Syndicate Card for approval.',
+            'Dr. ' . $user->name . ' has uploaded a new Syndicate Card for approval.',
             $tokens
         );
     }
-}
+} 

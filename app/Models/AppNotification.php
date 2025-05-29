@@ -48,8 +48,9 @@ class AppNotification extends Model
         return $this->belongsTo(Patients::class, 'patient_id');
     }
 
-    public function typeDoctor()
+        public function typeDoctor()
     {
         return $this->belongsTo(User::class, 'type_doctor_id', 'id');
     }
+
 }

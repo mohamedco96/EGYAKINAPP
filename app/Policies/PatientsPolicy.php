@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Patients;
 use App\Models\User;
+use Illuminate\Auth\Access\Response;
 
 class PatientsPolicy
 {

@@ -17,8 +17,8 @@ class FeedPostFactory extends Factory
         $mediaType = $this->faker->randomElement($mediaTypes);
 
         // Define media path based on media type
-        $mediaPath = $mediaType === 'image'
-            ? $this->faker->imageUrl()
+        $mediaPath = $mediaType === 'image' 
+            ? $this->faker->imageUrl() 
             : $this->faker->url();
 
         return [

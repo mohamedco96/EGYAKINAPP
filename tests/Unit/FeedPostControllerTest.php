@@ -3,21 +3,24 @@
 namespace Tests\Unit;
 
 use App\Http\Controllers\FeedPostController;
-use App\Http\Controllers\MainController;
 use App\Models\FeedPost;
 use App\Models\FeedPostComment;
+use App\Models\FeedPostCommentLike;
 use App\Models\FeedPostLike;
+use App\Models\FeedSaveLike;
 use App\Models\Hashtag;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
+use App\Http\Controllers\MainController;
 
 class FeedPostControllerTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $mainControllerMock;
-
     protected $feedPostController;
 
     protected function setUp(): void
@@ -28,9 +31,9 @@ class FeedPostControllerTest extends TestCase
         $this->feedPostController = new FeedPostController($this->mainControllerMock);
     }
 
-    public function test_extract_hashtags()
+    public function testExtractHashtags()
     {
-        $content = 'This is a #test post with #multiple #hashtags.';
+        $content = "This is a #test post with #multiple #hashtags.";
         $expected = ['test', 'multiple', 'hashtags'];
 
         $result = $this->feedPostController->extractHashtags($content);
@@ -38,7 +41,7 @@ class FeedPostControllerTest extends TestCase
         $this->assertEquals($expected, $result);
     }
 
-    public function test_index()
+    public function testIndex()
     {
         FeedPost::factory()->count(5)->create();
 
@@ -49,7 +52,7 @@ class FeedPostControllerTest extends TestCase
         $this->assertStringContainsString('Feed posts retrieved successfully', $response->getContent());
     }
 
-    public function test_show()
+    public function testShow()
     {
         $post = FeedPost::factory()->create();
 
@@ -60,7 +63,7 @@ class FeedPostControllerTest extends TestCase
         $this->assertStringContainsString('Post retrieved successfully', $response->getContent());
     }
 
-    public function test_show_not_found()
+    public function testShowNotFound()
     {
         $response = $this->feedPostController->show(999);
 
@@ -69,7 +72,7 @@ class FeedPostControllerTest extends TestCase
         $this->assertStringContainsString('Post not found', $response->getContent());
     }
 
-    public function test_get_feed_posts()
+    public function testGetFeedPosts()
     {
         $this->actingAs(FeedPost::factory()->create()->doctor);
 
@@ -80,7 +83,7 @@ class FeedPostControllerTest extends TestCase
         $this->assertStringContainsString('Feed posts retrieved successfully', $response->getContent());
     }
 
-    public function test_get_post_by_id()
+    public function testGetPostById()
     {
         $post = FeedPost::factory()->create();
 
@@ -91,7 +94,7 @@ class FeedPostControllerTest extends TestCase
         $this->assertStringContainsString('Post retrieved successfully', $response->getContent());
     }
 
-    public function test_get_post_likes()
+    public function testGetPostLikes()
     {
         $post = FeedPost::factory()->create();
         FeedPostLike::factory()->count(5)->create(['feed_post_id' => $post->id]);
@@ -103,7 +106,7 @@ class FeedPostControllerTest extends TestCase
         $this->assertStringContainsString('Post likes retrieved successfully', $response->getContent());
     }
 
-    public function test_get_post_comments()
+    public function testGetPostComments()
     {
         $post = FeedPost::factory()->create();
         FeedPostComment::factory()->count(5)->create(['feed_post_id' => $post->id]);
@@ -115,14 +118,14 @@ class FeedPostControllerTest extends TestCase
         $this->assertStringContainsString('Post comments retrieved successfully', $response->getContent());
     }
 
-    public function test_store()
+    public function testStore()
     {
         $this->actingAs(FeedPost::factory()->create()->doctor);
 
         $request = Request::create('/store', 'POST', [
             'content' => 'This is a test post',
             'media_type' => 'image',
-            'visibility' => 'Public',
+            'visibility' => 'Public'
         ]);
 
         $response = $this->feedPostController->store($request);
@@ -132,7 +135,7 @@ class FeedPostControllerTest extends TestCase
         $this->assertStringContainsString('Post created successfully', $response->getContent());
     }
 
-    public function test_destroy()
+    public function testDestroy()
     {
         $post = FeedPost::factory()->create();
         $this->actingAs($post->doctor);
@@ -144,14 +147,14 @@ class FeedPostControllerTest extends TestCase
         $this->assertStringContainsString('Post deleted successfully', $response->getContent());
     }
 
-    public function test_update()
+    public function testUpdate()
     {
         $post = FeedPost::factory()->create();
         $this->actingAs($post->doctor);
 
         $request = Request::create('/update', 'PUT', [
             'content' => 'Updated content',
-            'visibility' => 'Friends',
+            'visibility' => 'Friends'
         ]);
 
         $response = $this->feedPostController->update($request, $post->id);
@@ -161,7 +164,7 @@ class FeedPostControllerTest extends TestCase
         $this->assertStringContainsString('Post updated successfully', $response->getContent());
     }
 
-    public function test_like_or_unlike_post()
+    public function testLikeOrUnlikePost()
     {
         $post = FeedPost::factory()->create();
         $this->actingAs($post->doctor);
@@ -181,7 +184,7 @@ class FeedPostControllerTest extends TestCase
         $this->assertStringContainsString('Post unliked successfully', $response->getContent());
     }
 
-    public function test_save_or_unsave_post()
+    public function testSaveOrUnsavePost()
     {
         $post = FeedPost::factory()->create();
         $this->actingAs($post->doctor);
@@ -201,13 +204,13 @@ class FeedPostControllerTest extends TestCase
         $this->assertStringContainsString('Post unsaved successfully', $response->getContent());
     }
 
-    public function test_add_comment()
+    public function testAddComment()
     {
         $post = FeedPost::factory()->create();
         $this->actingAs($post->doctor);
 
         $request = Request::create('/comment', 'POST', [
-            'comment' => 'This is a test comment',
+            'comment' => 'This is a test comment'
         ]);
 
         $response = $this->feedPostController->addComment($request, $post->id);
@@ -217,7 +220,7 @@ class FeedPostControllerTest extends TestCase
         $this->assertStringContainsString('Comment added successfully', $response->getContent());
     }
 
-    public function test_delete_comment()
+    public function testDeleteComment()
     {
         $comment = FeedPostComment::factory()->create();
         $this->actingAs($comment->doctor);
@@ -229,7 +232,7 @@ class FeedPostControllerTest extends TestCase
         $this->assertStringContainsString('Comment deleted successfully', $response->getContent());
     }
 
-    public function test_like_or_unlike_comment()
+    public function testLikeOrUnlikeComment()
     {
         $comment = FeedPostComment::factory()->create();
         $this->actingAs($comment->doctor);
@@ -249,7 +252,7 @@ class FeedPostControllerTest extends TestCase
         $this->assertStringContainsString('Comment unliked successfully', $response->getContent());
     }
 
-    public function test_trending()
+    public function testTrending()
     {
         Hashtag::factory()->count(10)->create();
 

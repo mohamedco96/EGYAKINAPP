@@ -2,14 +2,15 @@
 
 namespace App\Services;
 
-use App\Http\Controllers\NotificationController;
-use App\Models\FcmToken;
 use App\Models\User;
+use App\Models\FcmToken;
+use App\Models\AppNotification;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\NotificationController;
 
 class AuthService
 {
@@ -37,14 +38,14 @@ class AuthService
 
             Log::info('User registered successfully', [
                 'user_id' => $user->id,
-                'email' => $user->email,
+                'email' => $user->email
             ]);
 
             return [
                 'value' => true,
                 'message' => 'User Created Successfully',
                 'token' => $token,
-                'data' => $user,
+                'data' => $user
             ];
 
         } catch (\Exception $e) {
@@ -56,26 +57,24 @@ class AuthService
     public function login(array $data)
     {
         $email = strtolower($data['email']);
-        $key = 'login_attempts_'.$email;
+        $key = 'login_attempts_' . $email;
         $attempts = Cache::get($key, 0);
 
         if ($attempts > 5) {
             Log::warning('Login attempts exceeded for email', ['email' => $email]);
-
             return [
                 'value' => false,
-                'message' => 'Too many login attempts. Please try again later.',
+                'message' => 'Too many login attempts. Please try again later.'
             ];
         }
 
-        if (! Auth::attempt(['email' => $email, 'password' => $data['password']])) {
+        if (!Auth::attempt(['email' => $email, 'password' => $data['password']])) {
             Cache::put($key, $attempts + 1, now()->addMinutes(15));
-
+            
             Log::warning('Failed login attempt', ['email' => $email]);
-
             return [
                 'value' => false,
-                'message' => 'Invalid credentials',
+                'message' => 'Invalid credentials'
             ];
         }
 
@@ -90,14 +89,14 @@ class AuthService
 
         Log::info('User logged in successfully', [
             'user_id' => $user->id,
-            'email' => $email,
+            'email' => $email
         ]);
 
         return [
             'value' => true,
             'message' => 'User Logged In Successfully',
             'token' => $token,
-            'data' => $user,
+            'data' => $user
         ];
     }
 
@@ -106,19 +105,19 @@ class AuthService
         $user->currentAccessToken()->delete();
 
         Log::info('User logged out successfully', [
-            'user_id' => $user->id,
+            'user_id' => $user->id
         ]);
 
         return [
             'value' => true,
-            'message' => 'User Logged Out Successfully',
+            'message' => 'User Logged Out Successfully'
         ];
     }
 
     protected function createUser(array $data)
     {
         $sanitized = array_map('trim', $data);
-
+        
         return User::create([
             'name' => $sanitized['name'],
             'lname' => $sanitized['lname'],
@@ -137,12 +136,11 @@ class AuthService
 
     protected function storeFcmToken($userId, $token)
     {
-        if (! preg_match('/^[a-zA-Z0-9:_-]{1,255}$/', $token)) {
+        if (!preg_match('/^[a-zA-Z0-9:_-]{1,255}$/', $token)) {
             Log::warning('Invalid FCM token format', [
                 'user_id' => $userId,
-                'token' => substr($token, 0, 32).'...',
+                'token' => substr($token, 0, 32) . '...'
             ]);
-
             return;
         }
 
@@ -156,8 +154,8 @@ class AuthService
         } catch (\Exception $e) {
             Log::error('FCM token storage failed', [
                 'user_id' => $userId,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage()
             ]);
         }
     }
-}
+} 

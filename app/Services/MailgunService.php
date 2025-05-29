@@ -20,11 +20,11 @@ class MailgunService
         $name = config('mail.from.name');
 
         return $this->mg->messages()->send($domain, [
-            'from' => "{$name} <{$from}>",
-            'to' => "{$toName} <{$toEmail}>",
+            'from'    => "{$name} <{$from}>",
+            'to'      => "{$toName} <{$toEmail}>",
             'subject' => 'Verify Your Email Address',
-            'html' => view('emails.verify', ['url' => $verificationUrl])->render(),
-            'text' => "Please visit this link to verify your email: {$verificationUrl}",
+            'html'    => view('emails.verify', ['url' => $verificationUrl])->render(),
+            'text'    => "Please visit this link to verify your email: {$verificationUrl}"
         ]);
     }
 }

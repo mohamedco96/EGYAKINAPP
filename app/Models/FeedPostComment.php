@@ -10,7 +10,7 @@ class FeedPostComment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'feed_post_id', 'doctor_id', 'comment', 'parent_id',
+        'feed_post_id', 'doctor_id', 'comment', 'parent_id'
     ];
 
     public function post()
@@ -34,4 +34,5 @@ class FeedPostComment extends Model
     {
         return $this->hasMany(FeedPostCommentLike::class, 'post_comment_id');
     }
+
 }

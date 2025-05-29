@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class FeedPostCommentLike extends Model
 {
     protected $fillable = [
-        'post_comment_id', 'doctor_id',
+        'post_comment_id', 'doctor_id'
     ];
 
     public function comment()
@@ -20,3 +20,4 @@ class FeedPostCommentLike extends Model
         return $this->belongsTo(Doctor::class, 'doctor_id');
     }
 }
+

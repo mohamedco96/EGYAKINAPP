@@ -21,7 +21,7 @@ class RegisterRequest extends FormRequest
             'password' => [
                 'required',
                 'string',
-                'min:6',
+                'min:6'
             ],
             'age' => 'nullable|integer|min:18|max:100',
             'specialty' => 'nullable|string|max:255',
@@ -30,7 +30,7 @@ class RegisterRequest extends FormRequest
             'job' => 'nullable|string|max:255',
             'highestdegree' => 'nullable|string|max:255',
             'registration_number' => 'nullable|string|unique:users',
-            'fcmToken' => 'nullable|string|max:255',
+            'fcmToken' => 'nullable|string|max:255'
         ];
     }
 
@@ -39,7 +39,7 @@ class RegisterRequest extends FormRequest
         throw new ValidationException($validator, response()->json([
             'value' => false,
             'message' => array_values($validator->errors()->toArray())[0][0],
-            'errors' => $validator->errors(),
+            'errors' => $validator->errors()
         ], 422));
     }
-}
+} 

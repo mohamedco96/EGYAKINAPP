@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\RolePermission;
 use App\Models\User;
+use Illuminate\Auth\Access\Response;
 
 class RolePermissionPolicy
 {
@@ -12,7 +13,7 @@ class RolePermissionPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasRole('admin');
+        return true;
     }
 
     /**
@@ -20,7 +21,7 @@ class RolePermissionPolicy
      */
     public function view(User $user, RolePermission $rolePermission): bool
     {
-        return $user->hasRole('admin');
+        return true;
     }
 
     /**
@@ -28,7 +29,7 @@ class RolePermissionPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasRole('admin');
+        return true;
     }
 
     /**
@@ -36,7 +37,7 @@ class RolePermissionPolicy
      */
     public function update(User $user, RolePermission $rolePermission): bool
     {
-        return $user->hasRole('admin');
+        return true;
     }
 
     /**
@@ -44,7 +45,7 @@ class RolePermissionPolicy
      */
     public function delete(User $user, RolePermission $rolePermission): bool
     {
-        return $user->hasRole('admin');
+        return true;
     }
 
     /**
@@ -52,7 +53,7 @@ class RolePermissionPolicy
      */
     public function restore(User $user, RolePermission $rolePermission): bool
     {
-        return $user->hasRole('admin');
+        return true;
     }
 
     /**
@@ -60,6 +61,6 @@ class RolePermissionPolicy
      */
     public function forceDelete(User $user, RolePermission $rolePermission): bool
     {
-        return $user->hasRole('admin');
+        return true;
     }
 }

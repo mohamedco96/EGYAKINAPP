@@ -49,6 +49,8 @@ class Section extends Model
 
     /**
      * Define the relationship with the doctor.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function doctor(): BelongsTo
     {
@@ -57,6 +59,8 @@ class Section extends Model
 
     /**
      * Define the relationship with the patient.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function patient(): BelongsTo
     {
@@ -65,6 +69,8 @@ class Section extends Model
 
     /**
      * Define the relationship with the complaint.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
      */
     public function complaint(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
@@ -73,6 +79,8 @@ class Section extends Model
 
     /**
      * Define the relationship with the cause.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
      */
     public function cause(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
@@ -81,6 +89,8 @@ class Section extends Model
 
     /**
      * Define the relationship with the risk.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
      */
     public function risk(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
@@ -89,6 +99,8 @@ class Section extends Model
 
     /**
      * Define the relationship with the assessment.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
      */
     public function assessment(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
@@ -97,6 +109,8 @@ class Section extends Model
 
     /**
      * Define the relationship with the examination.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
      */
     public function examination(): \Illuminate\Database\Eloquent\Relations\HasOne
     {

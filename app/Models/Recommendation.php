@@ -31,4 +31,4 @@ class Recommendation extends Model
     {
         return $this->belongsTo(Patients::class);
     }
-}
+} 

@@ -6,12 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Spatie\Permission\Traits\HasPermissions;
 use Spatie\Permission\Traits\HasRoles;
+use Spatie\Permission\Traits\HasPermissions;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, HasPermissions, HasRoles, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles, HasPermissions;
 
     /**
      * The attributes that are mass assignable.
@@ -41,7 +41,7 @@ class User extends Authenticatable
         'version',
         'isSyndicateCardRequired',
         'blocked',
-        'email_verified_at',
+        'email_verified_at'
     ];
 
     /**
@@ -52,7 +52,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'passwordValue',
+        'passwordValue'
     ];
 
     /**
@@ -70,6 +70,7 @@ class User extends Authenticatable
      * Get the user's image URL with prefix.
      *
      * @param  string|null  $value
+     * @return string|null
      */
     public function getImageAttribute($value): ?string
     {
@@ -80,6 +81,7 @@ class User extends Authenticatable
      * Get the user's syndicate card URL with prefix.
      *
      * @param  string|null  $value
+     * @return string|null
      */
     public function getSyndicateCardAttribute($value): ?string
     {
@@ -90,17 +92,17 @@ class User extends Authenticatable
      * Get the URL with prefix.
      *
      * @param  string|null  $value
+     * @return string|null
      */
     private function getPrefixedUrl($value): ?string
     {
-        if (! $value) {
+        if (!$value) {
             return null;
         }
 
         // Add your prefix here
-        $prefix = config('app.url').'/'.'storage/';
-
-        return $prefix.$value;
+        $prefix = config('app.url') . '/' . 'storage/';
+        return $prefix . $value;
     }
 
     /**
@@ -121,6 +123,9 @@ class User extends Authenticatable
 
     /**
      * Check if user can access the panel.
+     *
+     * @param  Panel  $panel
+     * @return bool
      */
     public function canAccessPanel(Panel $panel): bool
     {
@@ -194,6 +199,7 @@ class User extends Authenticatable
     {
         return $this->hasMany(PatientStatus::class);
     }
+
 
     //    New
     public function feedPosts()

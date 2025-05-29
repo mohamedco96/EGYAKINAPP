@@ -10,7 +10,7 @@ class Group extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name', 'description', 'header_picture', 'group_image', 'privacy', 'owner_id',
+        'name', 'description', 'header_picture', 'group_image', 'privacy', 'owner_id'
     ];
 
     // Define the relationship to the owner (User)
@@ -23,7 +23,7 @@ class Group extends Model
     public function doctors()
     {
         return $this->belongsToMany(User::class, 'group_user', 'group_id', 'doctor_id')
-            ->withTimestamps();
+                    ->withTimestamps();
     }
 
     // Define relation with Post

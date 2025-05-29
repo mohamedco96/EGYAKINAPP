@@ -17,51 +17,18 @@ return [
 
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
 
-    'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
-        'https://api.egyakin.com',
-        'https://test.egyakin.com',
-    ],
+    'allowed_origins' => ['*'],
 
-    'allowed_origins_patterns' => [
-        '/^https:\/\/[a-zA-Z0-9-]+\.egyakin\.com$/',
-        '/^https:\/\/[a-zA-Z0-9-]+\.egyakin\.app$/',
-    ],
+    'allowed_origins_patterns' => [],
 
-    'allowed_headers' => [
-        'X-Requested-With',
-        'Content-Type',
-        'Accept',
-        'Authorization',
-        'X-CSRF-TOKEN',
-        'X-XSRF-TOKEN',
-        'X-API-KEY',
-        'X-RateLimit-Limit',
-        'X-RateLimit-Remaining',
-        'X-RateLimit-Reset',
-    ],
+    'allowed_headers' => ['*'],
 
-    'exposed_headers' => [
-        'X-RateLimit-Limit',
-        'X-RateLimit-Remaining',
-        'X-RateLimit-Reset',
-        'X-Content-Type-Options',
-        'X-Frame-Options',
-        'X-XSS-Protection',
-    ],
+    'exposed_headers' => [],
 
-    'max_age' => 60 * 60 * 24, // 24 hours
+    'max_age' => 0,
 
-    'supports_credentials' => true,
-
-    'preflight_max_age' => 60 * 60 * 24, // 24 hours
-
-    'allowed_credentials' => true,
-
-    'allowed_origin_patterns' => [
-        '/^https:\/\/[a-zA-Z0-9-]+\.egyakin\.com$/',
-        '/^https:\/\/[a-zA-Z0-9-]+\.egyakin\.app$/',
-    ],
+    'supports_credentials' => false,
 
 ];

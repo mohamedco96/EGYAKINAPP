@@ -34,16 +34,6 @@ return [
             'driver' => 'local',
             'root' => storage_path('app'),
             'throw' => false,
-            'permissions' => [
-                'file' => [
-                    'public' => 0644,
-                    'private' => 0600,
-                ],
-                'dir' => [
-                    'public' => 0755,
-                    'private' => 0700,
-                ],
-            ],
         ],
 
         'public' => [
@@ -52,34 +42,6 @@ return [
             'url' => env('APP_URL').'/storage',
             'visibility' => 'public',
             'throw' => false,
-            'permissions' => [
-                'file' => [
-                    'public' => 0644,
-                    'private' => 0600,
-                ],
-                'dir' => [
-                    'public' => 0755,
-                    'private' => 0700,
-                ],
-            ],
-        ],
-
-        'private' => [
-            'driver' => 'local',
-            'root' => storage_path('app/private'),
-            'url' => env('APP_URL').'/private',
-            'visibility' => 'private',
-            'throw' => false,
-            'permissions' => [
-                'file' => [
-                    'public' => 0644,
-                    'private' => 0600,
-                ],
-                'dir' => [
-                    'public' => 0755,
-                    'private' => 0700,
-                ],
-            ],
         ],
 
         's3' => [
@@ -92,13 +54,6 @@ return [
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => false,
-            'visibility' => 'private',
-            'options' => [
-                'CacheControl' => 'max-age=31536000, public',
-                'Metadata' => [
-                    'x-amz-meta-uploaded-by' => 'egyakin-app',
-                ],
-            ],
         ],
 
     ],
@@ -116,7 +71,6 @@ return [
 
     'links' => [
         public_path('storage') => storage_path('app/public'),
-        public_path('private') => storage_path('app/private'),
     ],
 
 ];

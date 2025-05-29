@@ -4,8 +4,10 @@ use PHPUnit\Framework\TestCase;
 
 class HelloWorldTest extends TestCase
 {
-    public function test_hello_world()
+    public function testHelloWorld()
     {
         // Test case code goes here
     }
 }
+
+?>

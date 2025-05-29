@@ -2,18 +2,17 @@
 
 namespace App\Services\Auth;
 
-use App\Http\Controllers\NotificationController;
-use App\Repositories\User\UserRepository;
 use App\Services\Auth\Interfaces\AuthServiceInterface;
+use App\Repositories\User\UserRepository;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class AuthService implements AuthServiceInterface
 {
     protected $userRepository;
-
     protected $notificationController;
 
     public function __construct(
@@ -41,14 +40,14 @@ class AuthService implements AuthServiceInterface
 
             Log::info('User registered successfully', [
                 'user_id' => $user->id,
-                'email' => $user->email,
+                'email' => $user->email
             ]);
 
             return [
                 'value' => true,
                 'message' => 'User Created Successfully',
                 'token' => $token,
-                'data' => $user,
+                'data' => $user
             ];
 
         } catch (\Exception $e) {
@@ -60,26 +59,24 @@ class AuthService implements AuthServiceInterface
     public function login(array $data): array
     {
         $email = strtolower($data['email']);
-        $key = 'login_attempts_'.$email;
+        $key = 'login_attempts_' . $email;
         $attempts = Cache::get($key, 0);
 
         if ($attempts > 5) {
             Log::warning('Login attempts exceeded for email', ['email' => $email]);
-
             return [
                 'value' => false,
-                'message' => 'Too many login attempts. Please try again later.',
+                'message' => 'Too many login attempts. Please try again later.'
             ];
         }
 
-        if (! Auth::attempt(['email' => $email, 'password' => $data['password']])) {
+        if (!Auth::attempt(['email' => $email, 'password' => $data['password']])) {
             Cache::put($key, $attempts + 1, now()->addMinutes(15));
-
+            
             Log::warning('Failed login attempt', ['email' => $email]);
-
             return [
                 'value' => false,
-                'message' => 'Invalid credentials',
+                'message' => 'Invalid credentials'
             ];
         }
 
@@ -94,14 +91,14 @@ class AuthService implements AuthServiceInterface
 
         Log::info('User logged in successfully', [
             'user_id' => $user->id,
-            'email' => $email,
+            'email' => $email
         ]);
 
         return [
             'value' => true,
             'message' => 'User Logged In Successfully',
             'token' => $token,
-            'data' => $user,
+            'data' => $user
         ];
     }
 
@@ -110,12 +107,12 @@ class AuthService implements AuthServiceInterface
         $user->currentAccessToken()->delete();
 
         Log::info('User logged out successfully', [
-            'user_id' => $user->id,
+            'user_id' => $user->id
         ]);
 
         return [
             'value' => true,
-            'message' => 'User Logged Out Successfully',
+            'message' => 'User Logged Out Successfully'
         ];
     }
-}
+} 

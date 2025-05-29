@@ -15,13 +15,9 @@ class EmailVerificationNotification extends Notification implements ShouldQueue
     use Queueable;
 
     public $message;
-
     public $subject;
-
     public $fromEmail;
-
     public $domain;
-
     public $otp;
 
     /**
@@ -40,12 +36,12 @@ class EmailVerificationNotification extends Notification implements ShouldQueue
                 'fromEmail' => $this->fromEmail,
                 'domain' => $this->domain,
                 'mailgun_domain_config' => config('services.mailgun.domain'),
-                'mail_from_config' => config('mail.from.address'),
+                'mail_from_config' => config('mail.from.address')
             ]);
         } catch (\Exception $e) {
             Log::error('EmailVerificationNotification Construction Error:', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+                'trace' => $e->getTraceAsString()
             ]);
             throw $e;
         }
@@ -68,40 +64,39 @@ class EmailVerificationNotification extends Notification implements ShouldQueue
             Log::info('Preparing to send verification email:', [
                 'notifiable_email' => $notifiable->email,
                 'notifiable_name' => $notifiable->name,
-                'domain' => $this->domain,
+                'domain' => $this->domain
             ]);
 
             $otp = $this->otp->generate($notifiable->email, 'numeric', 4, 10);
             Log::info('OTP generated successfully', ['email' => $notifiable->email]);
-
+            
             $emailContent = "Hello {$notifiable->name},\n\n";
             $emailContent .= "{$this->message}\n";
             $emailContent .= "Your verification code: {$otp->token}\n";
             $emailContent .= "This code will expire in 10 minutes\n";
-            $emailContent .= 'If you did not request this, please ignore this email.';
+            $emailContent .= "If you did not request this, please ignore this email.";
 
             Log::info('Attempting to send email via Mailgun', [
                 'domain' => $this->domain,
                 'from' => "EGYAKIN <{$this->fromEmail}>",
-                'to' => "{$notifiable->name} <{$notifiable->email}>",
+                'to' => "{$notifiable->name} <{$notifiable->email}>"
             ]);
 
             $result = app(MailgunChannel::class)->mailgun->messages()->send($this->domain, [
-                'from' => "EGYAKIN <{$this->fromEmail}>",
-                'to' => "{$notifiable->name} <{$notifiable->email}>",
+                'from'    => "EGYAKIN <{$this->fromEmail}>",
+                'to'      => "{$notifiable->name} <{$notifiable->email}>",
                 'subject' => $this->subject,
-                'text' => $emailContent,
+                'text'    => $emailContent
             ]);
 
             Log::info('Email sent successfully via Mailgun', ['result' => $result]);
-
             return $result;
 
         } catch (\Exception $e) {
             Log::error('Failed to send verification email:', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'notifiable_email' => $notifiable->email,
+                'notifiable_email' => $notifiable->email
             ]);
             throw $e;
         }

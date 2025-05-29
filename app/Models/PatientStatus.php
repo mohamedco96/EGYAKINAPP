@@ -33,6 +33,7 @@ class PatientStatus extends Model
         'status' => 'boolean',
     ];
 
+
     public function patient(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Patients::class, 'patient_id');

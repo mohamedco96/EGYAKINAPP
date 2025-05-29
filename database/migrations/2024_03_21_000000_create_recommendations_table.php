@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('recommendations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('patient_id')
-                ->constrained('patients')
-                ->onDelete('cascade');
+                  ->constrained('patients')
+                  ->onDelete('cascade');
             $table->string('dose_name', 255);
             $table->string('dose', 255);
             $table->string('route', 100);
@@ -36,4 +36,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('recommendations');
     }
-};
+}; 

@@ -185,7 +185,23 @@ class PatientsController extends Controller
             ->where('media_path', '!=', '[]')
             ->latest('created_at')
             ->limit(5)
-            ->get();
+            ->get()
+            ->map(function ($post) {
+                $post->doctor_id = (int)$post->doctor_id;
+                $post->likes_count = (int)$post->likes_count;
+                $post->comments_count = (int)$post->comments_count;
+                return $post;
+            });
+
+            // For posts transformation
+            $posts = Posts::select('id', 'title', 'image', 'content', 'hidden', 'post_type', 'webinar_date', 'url', 'doctor_id', 'updated_at')
+                ->where('hidden', false)
+                ->with(['doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version'])
+                ->get()
+                ->map(function($post) {
+                    $post->doctor_id = (int)$post->doctor_id;
+                    return $post;
+                });
 
             // Process feed posts
             $feedPosts->transform(function ($post) use ($user) {
@@ -330,7 +346,7 @@ class PatientsController extends Controller
 
                 return [
                     'id' => $patient->id,
-                    'doctor_id' => $patient->doctor_id,
+                    'doctor_id' => (int)$patient->doctor_id,
                     'name' => optional($patient->answers->where('question_id', 1)->first())->answer,
                     'hospital' => optional($patient->answers->where('question_id', 2)->first())->answer,
                     'updated_at' => $patient->updated_at,
@@ -341,7 +357,7 @@ class PatientsController extends Controller
                         'outcome_status' => $outcomeStatus ?? false,
                     ],
                     'submitter' => [
-                        'submitter_id' => $outcomeSubmitterDoctorId,
+                        'submitter_id' => $outcomeSubmitterDoctorId ? (int)$outcomeSubmitterDoctorId : null,
                         'submitter_fname' => optional($patient->doctor)->name,
                         'submitter_lname' => optional($patient->doctor)->lname,
                         'submitter_SyndicateCard' => optional($patient->doctor)->isSyndicateCardRequired
@@ -492,7 +508,7 @@ class PatientsController extends Controller
 
                 return [
                     'id' => $patient->id,
-                    'doctor_id' => $patient->doctor_id,
+                    'doctor_id' => (int)$patient->doctor_id,
                     'name' => $nameAnswer,
                     'hospital' => $hospitalAnswer,
                     'updated_at' => $patient->updated_at,
@@ -567,7 +583,7 @@ class PatientsController extends Controller
 
                 return [
                     'id' => $patient->id,
-                    'doctor_id' => $patient->doctor_id,
+                    'doctor_id' => (int)$patient->doctor_id,
                     'name' => $nameAnswer,
                     'hospital' => $hospitalAnswer,
                     'updated_at' => $patient->updated_at,
@@ -648,7 +664,7 @@ class PatientsController extends Controller
 
                 return [
                     'id' => $patient->id,
-                    'doctor_id' => $patient->doctor_id,
+                    'doctor_id' => (int)$patient->doctor_id,
                     'name' => $nameAnswer,
                     'hospital' => $hospitalAnswer,
                     'updated_at' => $patient->updated_at,
@@ -1366,7 +1382,7 @@ class PatientsController extends Controller
 
                 return [
                     'id' => $patient->id,
-                    'doctor_id' => $patient->doctor_id,
+                    'doctor_id' => (int)$patient->doctor_id,
                     'name' => $nameAnswer,
                     'hospital' => $hospitalAnswer,
                     'updated_at' => $patient->updated_at,
@@ -1476,7 +1492,7 @@ class PatientsController extends Controller
 
                 return [
                     'id' => $patient->id,
-                    'doctor_id' => $patient->doctor_id,
+                    'doctor_id' => (int)$patient->doctor_id,
                     'name' => $nameAnswer,
                     'hospital' => $hospitalAnswer,
                     'updated_at' => $patient->updated_at,
@@ -1578,7 +1594,7 @@ class PatientsController extends Controller
 
                 return [
                     'id' => $patient->id,
-                    'doctor_id' => $patient->doctor_id,
+                    'doctor_id' => (int)$patient->doctor_id,
                     'name' => $nameAnswer,
                     'hospital' => $hospitalAnswer,
                     'updated_at' => $patient->updated_at,
@@ -2024,7 +2040,7 @@ class PatientsController extends Controller
 
                 return [
                     'id' => $patient->id,
-                    'doctor_id' => $patient->doctor_id,
+                    'doctor_id' => (int)$patient->doctor_id,
                     'name' => $nameAnswer,
                     'hospital' => $hospitalAnswer,
                     'updated_at' => $patient->updated_at,

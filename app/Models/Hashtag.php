@@ -15,4 +15,8 @@ class Hashtag extends Model
     {
         return $this->belongsToMany(FeedPost::class, 'post_hashtags', 'hashtag_id', 'post_id');
     }
+
+    protected $casts = [
+    'usage_count' => 'integer'
+];
 }

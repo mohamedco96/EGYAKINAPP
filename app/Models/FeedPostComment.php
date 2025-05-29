@@ -13,6 +13,14 @@ class FeedPostComment extends Model
         'feed_post_id', 'doctor_id', 'comment', 'parent_id'
     ];
 
+    protected $casts = [
+        'likes_count' => 'integer',
+        'replies_count' => 'integer',
+        'doctor_id' => 'integer',
+        'feed_post_id' => 'integer',
+        'parent_id' => 'integer'
+    ];
+
     public function post()
     {
         return $this->belongsTo(FeedPost::class);

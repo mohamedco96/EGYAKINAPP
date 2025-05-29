@@ -13,6 +13,9 @@ class FeedPost extends Model
 
     protected $casts = [
         'media_path' => 'array', // Cast to array
+        'likes_count' => 'integer',
+        'comments_count' => 'integer',
+        'doctor_id' => 'integer'
     ];
 
     public function doctor()

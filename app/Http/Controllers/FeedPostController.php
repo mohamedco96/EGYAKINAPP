@@ -114,6 +114,9 @@ class FeedPostController extends Controller
             $feedPosts->getCollection()->transform(function ($post) use ($doctorId) {
                 $post->isSaved = $post->saves->isNotEmpty();
                 $post->isLiked = $post->likes->isNotEmpty();
+                $post->doctor_id = (int)$post->doctor_id;
+                $post->comments_count = (int)$post->comments_count;
+                $post->likes_count = (int)$post->likes_count;
 
                 if ($post->poll) {
                     $post->poll->options = $post->poll->options

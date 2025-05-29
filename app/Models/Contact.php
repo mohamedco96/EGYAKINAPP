@@ -20,6 +20,10 @@ class Contact extends Model
         'message',
     ];
 
+    protected $casts = [
+        'doctor_id' => 'integer'
+    ];
+
     /**
      * Get the doctor who received the contact message.
      */

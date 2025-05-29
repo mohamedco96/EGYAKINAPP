@@ -34,6 +34,7 @@ class Questions extends Model
         'values' => 'array',
         'mandatory' => 'boolean',
         'hidden' => 'boolean',
+        'section_id' => 'integer'
     ];
 
     /**

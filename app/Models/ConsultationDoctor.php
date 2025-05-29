@@ -16,6 +16,11 @@ class ConsultationDoctor extends Model
         'status',
     ];
 
+    protected $casts = [
+        'consultation_id' => 'integer',
+        'consult_doctor_id' => 'integer'
+    ];
+
     public function consultation()
     {
         return $this->belongsTo(Consultation::class);

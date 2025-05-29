@@ -26,7 +26,8 @@ class Patients extends Model
     ];
 
     protected $casts = [
-        'hidden' => 'boolean'
+        'hidden' => 'boolean',
+        'doctor_id' => 'integer'
     ];
 
     public function doctor(): \Illuminate\Database\Eloquent\Relations\BelongsTo

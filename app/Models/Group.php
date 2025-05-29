@@ -13,6 +13,15 @@ class Group extends Model
         'name', 'description', 'header_picture', 'group_image', 'privacy', 'owner_id'
     ];
 
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'owner_id' => 'integer'
+    ];
+
     // Define the relationship to the owner (User)
     public function owner()
     {

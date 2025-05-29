@@ -12,6 +12,15 @@ class Achievement extends Model
     protected $fillable = ['name', 'description', 'score', 'image'];
 
     /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'score' => 'integer'
+    ];
+
+    /**
      * Get the Achievement's image URL with prefix.
      *
      * @param  string|null  $value

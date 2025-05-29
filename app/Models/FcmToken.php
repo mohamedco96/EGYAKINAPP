@@ -21,6 +21,15 @@ class FcmToken extends Model
     ];
 
     /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'doctor_id' => 'integer'
+    ];
+
+    /**
      * Get the doctor who received the contact message.
      */
     public function doctor(): BelongsTo

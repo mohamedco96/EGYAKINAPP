@@ -21,6 +21,16 @@ class PostComments extends Model
     ];
 
     /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'doctor_id' => 'integer',
+        'post_id' => 'integer'
+    ];
+
+    /**
      * Get the doctor that owns the comment.
      */
     public function doctor()

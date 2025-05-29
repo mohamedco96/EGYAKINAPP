@@ -14,4 +14,14 @@ class AIConsultation extends Model
     use HasApiTokens, HasFactory, Notifiable;
     protected $table = 'ai_consultations'; // Explicitly set the table name
     protected $fillable = ['doctor_id', 'patient_id', 'question', 'response'];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'doctor_id' => 'integer',
+        'patient_id' => 'integer',
+    ];
 }

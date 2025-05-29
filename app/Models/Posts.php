@@ -29,6 +29,7 @@ class Posts extends Model
      */
     protected $casts = [
         'hidden' => 'boolean',
+        'doctor_id' => 'integer'
     ];
 
     /**

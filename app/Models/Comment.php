@@ -22,6 +22,11 @@ class Comment extends Model
         'content',
     ];
 
+    protected $casts = [
+        'doctor_id' => 'integer',
+        'patient_id' => 'integer'
+    ];
+
     /**
      * Get the doctor that owns the comment.
      */

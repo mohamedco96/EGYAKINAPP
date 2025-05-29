@@ -11,6 +11,11 @@ class FeedPostLike extends Model
 
     protected $fillable = ['feed_post_id', 'doctor_id'];
 
+    protected $casts = [
+        'feed_post_id' => 'integer',
+        'doctor_id' => 'integer'
+    ];
+
     public function doctor()
     {
         return $this->belongsTo(User::class, 'doctor_id');

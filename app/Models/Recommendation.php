@@ -25,10 +25,19 @@ class Recommendation extends Model
     ];
 
     /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'patient_id' => 'integer'
+    ];
+
+    /**
      * Get the patient that owns the recommendation.
      */
     public function patient(): BelongsTo
     {
         return $this->belongsTo(Patients::class);
     }
-} 
+}

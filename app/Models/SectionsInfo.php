@@ -19,6 +19,15 @@ class SectionsInfo extends Model
         'section_description',
     ];
 
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'id' => 'integer'
+    ];
+
     public function questions()
     {
         return $this->hasMany(Questions::class);

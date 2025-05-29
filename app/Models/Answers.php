@@ -13,6 +13,10 @@ class Answers extends Model
 
     protected $casts = [
         'answer' => 'array',
+        'patient_id' => 'integer',
+        'section_id' => 'integer',
+        'question_id' => 'integer',
+        'doctor_id' => 'integer'
     ];
 
     public function patient()

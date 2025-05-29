@@ -17,4 +17,13 @@ class Dose extends Model
      */
     protected $fillable = ['title', 'description', 'dose'];
 
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'id' => 'integer'
+    ];
+
 }

@@ -16,6 +16,11 @@ class Consultation extends Model
         'status',
     ];
 
+    protected $casts = [
+        'doctor_id' => 'integer',
+        'patient_id' => 'integer'
+    ];
+
     public function consultationDoctors()
     {
         return $this->hasMany(ConsultationDoctor::class);

@@ -31,6 +31,8 @@ class PatientStatus extends Model
      */
     protected $casts = [
         'status' => 'boolean',
+        'doctor_id' => 'integer',
+        'patient_id' => 'integer'
     ];
 
 

@@ -30,7 +30,12 @@ class AppNotification extends Model
      *
      * @var array
      */
-    protected $casts = ['read' => 'boolean'];
+    protected $casts = [
+        'read' => 'boolean',
+        'patient_id' => 'integer',
+        'doctor_id' => 'integer',
+        'type_id' => 'integer'
+    ];
 
     /**
      * Get the doctor associated with the notification.

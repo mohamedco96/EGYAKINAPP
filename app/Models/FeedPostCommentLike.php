@@ -10,6 +10,11 @@ class FeedPostCommentLike extends Model
         'post_comment_id', 'doctor_id'
     ];
 
+    protected $casts = [
+        'post_comment_id' => 'integer',
+        'doctor_id' => 'integer'
+    ];
+
     public function comment()
     {
         return $this->belongsTo(FeedPostComment::class, 'post_comment_id');

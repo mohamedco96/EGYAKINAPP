@@ -15,4 +15,8 @@ class DoctorMonthlyTrial extends Model
     use HasApiTokens, HasFactory, Notifiable;
     protected $fillable = ['doctor_id', 'trial_count', 'reset_date'];
 
+    protected $casts = [
+        'doctor_id' => 'integer',
+        'trial_count' => 'integer'
+    ];
 }

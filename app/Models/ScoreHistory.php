@@ -16,7 +16,22 @@ class ScoreHistory extends Model
      * @var array
      */
     protected $fillable = [
+        'doctor_id',
+        'score',
+        'threshold',
+        'action',
+        'timestamp'
+    ];
 
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'doctor_id' => 'integer',
+        'score' => 'integer',
+        'threshold' => 'integer'
     ];
 
     /**

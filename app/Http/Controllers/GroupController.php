@@ -628,7 +628,7 @@ class GroupController extends Controller
                 ->findOrFail($id);
 
             // Count the number of members in the group
-            $group->members_count = $group->doctors()->where('status', 'joined')->count();
+            $group->members_count = (int)$group->doctors()->where('status', 'joined')->count();
 
             // Check if the authenticated user is a member of the group and get their status
             $userId = Auth::id();
@@ -933,7 +933,7 @@ class GroupController extends Controller
             $group->has_pending_invitations = $hasPendingInvitations;
 
             // Fetch member count for the group from the group_user table
-            $memberCount = DB::table('group_user')
+            $memberCount = (int)DB::table('group_user')
                 ->where('group_id', $group->id)
                 ->where('status', 'joined')
                 ->count();
@@ -1233,7 +1233,7 @@ class GroupController extends Controller
         ->paginate(20)
         ->through(function ($group) use ($userId) {
             $group->user_status = $group->doctors->first()->status ?? null;
-            $group->member_count = $group->doctors_count;
+            $group->member_count = (int)$group->doctors_count;
             unset($group->doctors);
             return $group;
         });
@@ -1275,7 +1275,7 @@ class GroupController extends Controller
         ->paginate(20)
         ->through(function ($group) use ($userId) {
             $group->user_status = $group->doctors->first()->status ?? null;
-            $group->member_count = $group->doctors_count;
+            $group->member_count = (int)$group->doctors_count;
             unset($group->doctors);
             return $group;
         });
@@ -1345,7 +1345,7 @@ class GroupController extends Controller
                     ->where('status', 'joined')
                     ->count();
 
-                $group->member_count = $memberCount; // Add member count to the group object
+                $group->member_count = (int)$memberCount; // Add member count to the group object
             }
 
 
@@ -1462,7 +1462,7 @@ class GroupController extends Controller
                     ->where('status', 'joined')
                     ->count();
 
-                $group->member_count = $memberCount;
+                $group->member_count = (int)$memberCount;
                 $group->user_status = 'invited';
                 // Add the invitation_id from the pivot table
                 $group->invitation_id = $group->doctors->first()->invitation_id ?? null;

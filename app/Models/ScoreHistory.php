@@ -29,9 +29,6 @@ class ScoreHistory extends Model
      * @var array
      */
     protected $casts = [
-        'doctor_id' => 'integer',
-        'score' => 'integer',
-        'threshold' => 'integer'
     ];
 
     /**

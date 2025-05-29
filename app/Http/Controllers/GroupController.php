@@ -849,7 +849,7 @@ class GroupController extends Controller
                         'syndicate_card' => $doctor->syndicate_card,
                         'isSyndicateCardRequired' => $doctor->isSyndicateCardRequired,
                         'version' => $doctor->version,
-                        'invitation_id' => $doctor->invitation_id,
+                        'invitation_id' => (int)$doctor->invitation_id,
                         'invited_at' => $doctor->invited_at
                     ];
                 });
@@ -922,7 +922,7 @@ class GroupController extends Controller
                 ->first();
 
             $group->user_status = $userGroupData->status ?? null;
-            $group->invitation_id = $userGroupData->invitation_id ?? null;
+            $group->invitation_id = $userGroupData->invitation_id ? (int)$userGroupData->invitation_id : null;
 
             // Check if group has pending invitations
             $hasPendingInvitations = $group->doctors()
@@ -1465,7 +1465,7 @@ class GroupController extends Controller
                 $group->member_count = (int)$memberCount;
                 $group->user_status = 'invited';
                 // Add the invitation_id from the pivot table
-                $group->invitation_id = $group->doctors->first()->invitation_id ?? null;
+                $group->invitation_id = $group->doctors->first() ? (int)$group->doctors->first()->invitation_id : null;
                 // Remove the doctors relationship from the response
                 unset($group->doctors);
             }

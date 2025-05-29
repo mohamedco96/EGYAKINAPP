@@ -32,7 +32,8 @@ class Group extends Model
     public function doctors()
     {
         return $this->belongsToMany(User::class, 'group_user', 'group_id', 'doctor_id')
-                    ->withTimestamps();
+                    ->withTimestamps()
+                    ->withCasts(['id' => 'integer']); // Cast the pivot table ID (invitation_id) to integer
     }
 
     // Define relation with Post

@@ -274,16 +274,19 @@ class DoseController extends Controller
     {
         try {
             $query = (string) $request->input('query');
+            $perPage = $request->input('per_page', 15); // Default to 15 items per page
     
             // Log the incoming query
-            Log::info('Starting dose search', ['query' => $query]);
+            Log::info('Starting dose search', ['query' => $query, 'per_page' => $perPage]);
     
-            $doses = Dose::where('title', 'like', "%$query%")->get();
+            $doses = Dose::where('title', 'like', "%$query%")->paginate($perPage);
     
             // Log the number of results found
             Log::info('Dose search completed', [
                 'query' => $query,
-                'results_count' => $doses->count(),
+                'results_count' => $doses->total(),
+                'current_page' => $doses->currentPage(),
+                'per_page' => $doses->perPage(),
             ]);
     
             return response()->json([

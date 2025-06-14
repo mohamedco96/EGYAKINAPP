@@ -584,15 +584,18 @@ class PatientsController extends Controller
 
                 public function map($patient): array
                 {
+                    // Ensure patient data is properly structured
+                    $patient = is_array($patient) ? $patient : [];
+                    
                     $data = [
-                        $patient['id'],
-                        $patient['doctor_id'],
-                        $patient['doctor']['name'] ?? '',
+                        $patient['id'] ?? '',
+                        $patient['doctor_id'] ?? '',
+                        isset($patient['doctor']['name']) ? $patient['doctor']['name'] : '',
                         $patient['name'] ?? '',
                         $patient['hospital'] ?? '',
-                        $patient['sections']['submit_status'] ? 'Yes' : 'No',
-                        $patient['sections']['outcome_status'] ? 'Yes' : 'No',
-                        $patient['updated_at']
+                        isset($patient['sections']['submit_status']) && $patient['sections']['submit_status'] ? 'Yes' : 'No',
+                        isset($patient['sections']['outcome_status']) && $patient['sections']['outcome_status'] ? 'Yes' : 'No',
+                        $patient['updated_at'] ?? ''
                     ];
 
                     // Add answer data for each question
@@ -602,9 +605,24 @@ class PatientsController extends Controller
                         if (isset($patient['answers'])) {
                             foreach ($patient['answers'] as $patientAnswer) {
                                 if ($patientAnswer['question_id'] == $question->id) {
-                                    $answer = $patientAnswer['answer'] ?? '';
-                                    // Remove quotes if present
-                                    $answer = trim($answer, '"');
+                                    $rawAnswer = $patientAnswer['answer'] ?? '';
+                                    
+                                    // Handle different answer types
+                                    if (is_array($rawAnswer)) {
+                                        // If it's an array, join the values
+                                        $answer = implode(', ', array_map('strval', $rawAnswer));
+                                    } else if (is_string($rawAnswer)) {
+                                        // If it's a string, use it directly
+                                        $answer = $rawAnswer;
+                                    } else {
+                                        // For any other type, convert to string
+                                        $answer = (string) $rawAnswer;
+                                    }
+                                    
+                                    // Remove quotes if present (only for strings)
+                                    if (is_string($answer)) {
+                                        $answer = trim($answer, '"');
+                                    }
                                     break;
                                 }
                             }
@@ -657,6 +675,7 @@ class PatientsController extends Controller
         } catch (\Exception $e) {
             Log::error('Error exporting filtered patients to CSV: ' . $e->getMessage(), [
                 'user_id' => auth()->id(),
+                'filter_params' => $request->except(['page', 'per_page', 'sort', 'direction', 'offset', 'limit']),
                 'exception' => $e,
                 'trace' => $e->getTraceAsString()
             ]);

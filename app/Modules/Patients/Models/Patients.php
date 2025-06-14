@@ -2,6 +2,13 @@
 
 namespace App\Modules\Patients\Models;
 
+use App\Models\AIConsultation;
+use App\Models\Answers;
+use App\Models\AppNotification;
+use App\Models\Comment;
+use App\Models\Recommendation;
+use App\Models\SectionsInfo;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

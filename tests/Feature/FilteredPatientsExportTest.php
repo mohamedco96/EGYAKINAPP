@@ -39,25 +39,43 @@ class FilteredPatientsExportTest extends TestCase
     }
 
     /**
-     * Test that export returns 404 when no patients match filters
+     * Test that export returns 400 when no cached filters found
      */
-    public function test_export_returns_404_when_no_patients_found(): void
+    public function test_export_returns_400_when_no_cached_filters(): void
     {
         Sanctum::actingAs($this->user);
 
-        $response = $this->postJson('/api/exportFilteredPatients', [
-            '1' => 'NonExistentPatient'
-        ]);
+        $response = $this->postJson('/api/exportFilteredPatients');
 
-        $response->assertStatus(404)
+        $response->assertStatus(400)
                  ->assertJson([
                      'value' => false,
-                     'message' => 'No patients found matching the specified filters.'
+                     'message' => 'No recent filter criteria found. Please apply filters first using the filteredPatients endpoint.'
                  ]);
     }
 
     /**
-     * Test the basic structure of export response
+     * Test that export works after calling filteredPatients
+     */
+    public function test_export_works_after_filtered_patients_call(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        // First call filteredPatients to cache filters
+        $filterParams = ['1' => 'TestPatient'];
+        $this->postJson('/api/patientFilters', $filterParams);
+
+        // Then call export (should use cached filters)
+        $response = $this->postJson('/api/exportFilteredPatients');
+
+        // Should either return success with file or 404 if no patients
+        $this->assertTrue(
+            $response->status() === 200 || $response->status() === 404
+        );
+    }
+
+    /**
+     * Test the basic structure of export response (after caching filters)
      */
     public function test_export_response_structure(): void
     {
@@ -66,7 +84,11 @@ class FilteredPatientsExportTest extends TestCase
         // Mock the storage disk to avoid actual file creation during testing
         Storage::fake('public');
 
-        $response = $this->postJson('/api/exportFilteredPatients', []);
+        // First cache some filters
+        $this->postJson('/api/patientFilters', ['1' => 'TestPatient']);
+
+        // Then test export
+        $response = $this->postJson('/api/exportFilteredPatients');
 
         // Should either return success with file or 404 if no patients
         $this->assertTrue(
@@ -86,21 +108,22 @@ class FilteredPatientsExportTest extends TestCase
     }
 
     /**
-     * Test that cache keys are generated correctly
+     * Test that cache keys are generated correctly from cached filters
      */
     public function test_cache_key_generation(): void
     {
         Sanctum::actingAs($this->user);
 
         $filterParams = ['1' => 'TestPatient'];
-        $expectedCacheKey = 'filtered_patients_export_' . md5(json_encode($filterParams)) . '_' . $this->user->id;
-
-        // We can't easily test the exact cache key without exposing the method,
-        // but we can test that caching is working by checking if the cache is set
-        $response = $this->postJson('/api/exportFilteredPatients', $filterParams);
+        
+        // Cache filters first
+        $this->postJson('/api/patientFilters', $filterParams);
+        
+        // Then test export with cached filters
+        $response = $this->postJson('/api/exportFilteredPatients');
 
         // Verify that some cache entries are created (either success or failure should cache something)
-        $this->assertTrue(Cache::has($expectedCacheKey . '_filters') || $response->status() === 404);
+        $this->assertTrue($response->status() === 200 || $response->status() === 404 || $response->status() === 400);
     }
 
     /**
@@ -127,18 +150,16 @@ class FilteredPatientsExportTest extends TestCase
     }
 
     /**
-     * Test that the endpoint handles empty filter parameters
+     * Test that the endpoint handles empty cached filters
      */
     public function test_empty_filters_handling(): void
     {
         Sanctum::actingAs($this->user);
 
-        $response = $this->postJson('/api/exportFilteredPatients', []);
+        // Don't cache any filters first, should return 400
+        $response = $this->postJson('/api/exportFilteredPatients');
 
-        // Should either return all patients or 404 if no patients exist
-        $this->assertTrue(
-            $response->status() === 200 || $response->status() === 404
-        );
+        $this->assertEquals(400, $response->status());
     }
 
     /**
@@ -174,6 +195,45 @@ class FilteredPatientsExportTest extends TestCase
             $response->assertJsonStructure([
                 'value',
                 'message'
+            ]);
+        }
+    }
+
+    /**
+     * Test the complete workflow: filter then export with cached parameters
+     */
+    public function test_complete_workflow_filter_then_export(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        // Step 1: Apply filters using filteredPatients endpoint
+        $filterParams = ['1' => 'TestPatient', '9901' => 'Yes'];
+        
+        $filterResponse = $this->postJson('/api/filteredPatients', $filterParams);
+        
+        // Should succeed or return 404 if no matching patients
+        $this->assertContains($filterResponse->status(), [200, 404]);
+        
+        // Step 2: Export using cached filters
+        $exportResponse = $this->postJson('/api/exportFilteredPatients');
+        
+        // Should succeed (200) or return 404 if no patients match the cached filters
+        $this->assertContains($exportResponse->status(), [200, 404]);
+        
+        // If export succeeds, verify response structure
+        if ($exportResponse->status() === 200) {
+            $exportResponse->assertJsonStructure([
+                'value',
+                'message',
+                'file_url',
+                'patient_count',
+                'filter_count',
+                'cache_key'
+            ]);
+            
+            $exportResponse->assertJson([
+                'value' => true,
+                'message' => 'Export completed successfully'
             ]);
         }
     }

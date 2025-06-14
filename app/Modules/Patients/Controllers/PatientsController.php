@@ -487,10 +487,18 @@ class PatientsController extends Controller
             $perPage = $request->input('per_page', 10);
             $page = $request->input('page', 1);
 
+            // Extract filter parameters (excluding pagination)
+            $filterParams = $request->except(['page', 'per_page', 'sort', 'direction', 'offset', 'limit']);
+            
+            // Cache the latest filter parameters for this user (for export functionality)
+            $userFilterCacheKey = 'latest_filter_params_user_' . auth()->id();
+            Cache::put($userFilterCacheKey, $filterParams, now()->addHours(24));
+
             $result = $this->patientFilterService->filterPatients($request->all(), $perPage, $page);
 
             Log::info('Successfully retrieved filtered patients.', [
-                'filter_count' => count($request->except(['page', 'per_page', 'sort', 'direction', 'offset', 'limit']))
+                'filter_count' => count($filterParams),
+                'user_id' => auth()->id()
             ]);
 
             return response()->json([
@@ -508,19 +516,31 @@ class PatientsController extends Controller
         }
     }
 
-    public function exportFilteredPatients(Request $request)
+    public function exportFilteredPatients()
     {
         try {
+            // Get the latest filter parameters used by this user from cache
+            $userFilterCacheKey = 'latest_filter_params_user_' . auth()->id();
+            $filterParams = Cache::get($userFilterCacheKey, []);
+            
+            // If no cached filters found, return error
+            if (empty($filterParams)) {
+                return response()->json([
+                    'value' => false,
+                    'message' => 'No recent filter criteria found. Please apply filters first using the filteredPatients endpoint.'
+                ], 400);
+            }
+
             // Generate cache key from filter parameters
-            $filterParams = $request->except(['page', 'per_page', 'sort', 'direction', 'offset', 'limit']);
             $cacheKey = 'filtered_patients_export_' . md5(json_encode($filterParams)) . '_' . auth()->id();
             
             // Cache the filter parameters for tracking
             Cache::put($cacheKey . '_filters', $filterParams, now()->addHours(24));
             
-            Log::info('Starting filtered patients export', [
+            Log::info('Starting filtered patients export with cached filters', [
                 'user_id' => auth()->id(),
                 'filter_count' => count($filterParams),
+                'filter_params' => $filterParams,
                 'cache_key' => $cacheKey
             ]);
 
@@ -531,7 +551,7 @@ class PatientsController extends Controller
             if ($patients->isEmpty()) {
                 return response()->json([
                     'value' => false,
-                    'message' => 'No patients found matching the specified filters.'
+                    'message' => 'No patients found matching the cached filter criteria.'
                 ], 404);
             }
 
@@ -675,7 +695,7 @@ class PatientsController extends Controller
         } catch (\Exception $e) {
             Log::error('Error exporting filtered patients to CSV: ' . $e->getMessage(), [
                 'user_id' => auth()->id(),
-                'filter_params' => $request->except(['page', 'per_page', 'sort', 'direction', 'offset', 'limit']),
+                'cached_filter_params' => Cache::get('latest_filter_params_user_' . auth()->id(), []),
                 'exception' => $e,
                 'trace' => $e->getTraceAsString()
             ]);

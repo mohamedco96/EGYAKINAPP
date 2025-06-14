@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the new API endpoint for exporting filtered patients as a CSV file. The endpoint allows users to export all patient data that matches specific filter criteria to an Excel (.xlsx) file.
+This document describes the API endpoint for exporting filtered patients as a CSV file. The endpoint automatically uses the filter criteria from the most recent call to `filteredPatients` for the authenticated user.
 
 ## Endpoint
 
@@ -15,31 +15,19 @@ This endpoint requires authentication using Laravel Sanctum tokens.
 ## Workflow
 
 1. **Get Filter Conditions**: First, call `GET /api/patientFilters` to get available filter conditions
-2. **Apply Filters**: Use `POST /api/patientFilters` to get filtered patients data (with pagination)
-3. **Export Filtered Data**: Call `POST /api/exportFilteredPatients` with the same filter parameters to export all matching patients to CSV
+2. **Apply Filters**: Use `POST /api/patientFilters` with your desired filter parameters
+3. **Export Data**: Call `POST /api/exportFilteredPatients` (no parameters needed - uses cached filters)
 
 ## Request Parameters
 
-The endpoint accepts the same filter parameters as the `filteredPatients` endpoint, excluding pagination parameters:
-
-- Filter parameters (question IDs and their values)
-- Special filters:
-  - `9901`: Submit Status filter ("Yes"/"No")
-  - `9902`: Outcome Status filter ("Yes"/"No")
-
-**Excluded Parameters** (automatically filtered out):
-- `page`
-- `per_page`
-- `sort`
-- `direction`
-- `offset`
-- `limit`
+**No parameters required** - The endpoint automatically uses the filter parameters from the most recent `filteredPatients` call for the authenticated user.
 
 ## Example Request
 
 ```bash
+# Step 1: Apply filters first
 curl -X POST \
-  http://your-domain.com/api/exportFilteredPatients \
+  http://your-domain.com/api/patientFilters \
   -H 'Authorization: Bearer YOUR_TOKEN' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -47,6 +35,12 @@ curl -X POST \
     "2": "General Hospital",
     "9901": "Yes"
   }'
+
+# Step 2: Export using cached filters
+curl -X POST \
+  http://your-domain.com/api/exportFilteredPatients \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Content-Type: application/json'
 ```
 
 ## Response
@@ -64,12 +58,21 @@ curl -X POST \
 }
 ```
 
+### No Cached Filters (400)
+
+```json
+{
+  "value": false,
+  "message": "No recent filter criteria found. Please apply filters first using the filteredPatients endpoint."
+}
+```
+
 ### No Data Found (404)
 
 ```json
 {
   "value": false,
-  "message": "No patients found matching the specified filters."
+  "message": "No patients found matching the cached filter criteria."
 }
 ```
 
@@ -83,6 +86,15 @@ curl -X POST \
 ```
 
 ## Features
+
+### Automatic Filter Retrieval
+
+The API automatically uses filter parameters from the most recent `filteredPatients` call:
+
+- **User-Specific**: Each user's filter criteria are cached separately
+- **Auto-Sync**: No need to manually send filter parameters to export
+- **24-Hour Cache**: Filter criteria are cached for 24 hours
+- **Error Handling**: Clear error message if no recent filters are found
 
 ### Caching
 

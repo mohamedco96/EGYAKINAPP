@@ -37,13 +37,13 @@ class PatientStatus extends Model
     ];
 
 
-    public function patient(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function patient(): BelongsTo
     {
         return $this->belongsTo(Patients::class, 'patient_id');
     }
 
     public function doctor(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'doctor_id');
+        return $this->belongsTo(\App\Models\User::class, 'doctor_id');
     }
 }

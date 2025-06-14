@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PatientHistoryController;
 use App\Http\Controllers\ProductController;
+use App\Modules\Patients\Controllers\PatientsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
@@ -207,7 +208,7 @@ Route::post('/login', 'AuthController@login');
 Route::post('/forgotpassword', 'ForgetPasswordController@forgotPassword');
 Route::post('/resetpasswordverification', 'ResetPasswordController@resetpasswordverification');
 Route::post('/resetpassword', 'ResetPasswordController@resetpassword');
-Route::get('/generatePDF/{patient_id}', 'PatientsController@generatePatientPDF');
+Route::get('/generatePDF/{patient_id}', [PatientsController::class, 'generatePatientPDF']);
 Route::get('/userPatient', 'AuthController@userPatient');
 Route::post('/send-notification', 'AuthController@sendPushNotificationTest');
 Route::post('/sendAllPushNotification', 'NotificationController@sendAllPushNotification');
@@ -264,22 +265,22 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/checkPermission', 'RolePermissionController@checkRoleAndPermission');
 
     // Patient
-    Route::post('/patient', 'PatientsController@storePatient');
+    Route::post('/patient', [PatientsController::class, 'storePatient']);
     Route::get('/patient/{section_id}/{patient_id}', 'SectionsController@showQuestionsAnswers');
-    Route::put('/patientsection/{patient_id}', 'PatientsController@updateFinalSubmit');
-    Route::put('/patientsection/{section_id}/{patient_id}', 'PatientsController@updatePatient');
+    Route::put('/patientsection/{patient_id}', [PatientsController::class, 'updateFinalSubmit']);
+    Route::put('/patientsection/{section_id}/{patient_id}', [PatientsController::class, 'updatePatient']);
     Route::put('/submitStatus/{patient_id}', 'SectionsController@updateFinalSubmit');
     Route::get('/showSections/{patient_id}', 'SectionsController@showSections');
-    Route::delete('/patient/{id}', 'PatientsController@destroyPatient');
-    Route::post('/searchNew', 'PatientsController@searchNew');
-    Route::get('/homeNew', 'PatientsController@homeGetAllData');
-    Route::get('/currentPatientsNew', 'PatientsController@doctorPatientGet');
-    Route::get('/allPatientsNew', 'PatientsController@doctorPatientGetAll');
-    Route::get('/test', 'PatientsController@test');
-    Route::post('/uploadFile', 'PatientsController@uploadFile');
-    Route::post('/uploadFileNew', 'PatientsController@uploadFileNew');
-    Route::get('/patientFilters', 'PatientsController@patientFilterConditions');
-    Route::post('/patientFilters', 'PatientsController@filteredPatients');
+    Route::delete('/patient/{id}', [PatientsController::class, 'destroyPatient']);
+    Route::post('/searchNew', [PatientsController::class, 'searchNew']);
+    Route::get('/homeNew', [PatientsController::class, 'homeGetAllData']);
+    Route::get('/currentPatientsNew', [PatientsController::class, 'doctorPatientGet']);
+    Route::get('/allPatientsNew', [PatientsController::class, 'doctorPatientGetAll']);
+    Route::get('/test', [PatientsController::class, 'test']);
+    Route::post('/uploadFile', [PatientsController::class, 'uploadFile']);
+    Route::post('/uploadFileNew', [PatientsController::class, 'uploadFileNew']);
+    Route::get('/patientFilters', [PatientsController::class, 'patientFilterConditions']);
+    Route::post('/patientFilters', [PatientsController::class, 'filteredPatients']);
 
     // Questions
     Route::get('/questions', 'QuestionsController@index');

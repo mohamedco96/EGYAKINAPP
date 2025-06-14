@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Patients;
+use App\Modules\Patients\Models\Patients;
 use App\Models\User;
 use App\Models\Questions;
 use App\Models\Dose;

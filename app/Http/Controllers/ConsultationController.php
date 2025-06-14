@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Answers;
 use App\Models\AppNotification;
 use App\Models\FcmToken;
-use App\Models\Patients;
+use App\Modules\Patients\Models\Patients;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Models\Consultation;

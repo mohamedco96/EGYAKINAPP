@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Modules\Patients\Controllers;
 
 use App\Events\SearchResultsUpdated;
-use App\Http\Requests\UpdatePatientsRequest;
+use App\Http\Controllers\Controller;
+use App\Modules\Patients\Requests\UpdatePatientsRequest;
 use App\Modules\Patients\Services\PatientService;
 use App\Services\HomeDataService;
 use App\Services\SearchService;

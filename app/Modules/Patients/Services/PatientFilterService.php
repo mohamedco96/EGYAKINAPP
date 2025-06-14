@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Services;
+namespace App\Modules\Patients\Services;
 
 use App\Modules\Patients\Models\Patients;
+use App\Modules\Patients\Services\PatientService;
 use App\Models\Questions;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;

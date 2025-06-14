@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Achievement;
-use App\Models\Patients;
+use App\Modules\Patients\Models\Patients;
 use App\Http\Requests\UpdatePatientsRequest;
-use App\Models\PatientStatus;
+use App\Modules\Patients\Models\PatientStatus;
 use App\Models\Questions;
 use App\Models\Score;
 use App\Models\ScoreHistory;

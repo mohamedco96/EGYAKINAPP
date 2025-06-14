@@ -2,7 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\Patients;
+use App\Modules\Patients\Models\Patients;
+use App\Modules\Patients\Services\PatientService;
 use App\Models\User;
 use App\Models\FeedPost;
 use App\Models\Posts;

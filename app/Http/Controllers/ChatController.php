@@ -14,7 +14,7 @@ use Illuminate\Http\Request;
 //import the Auth facade
 use Illuminate\Support\Facades\Auth;
 //import the Patients model
-use App\Models\Patients;
+use App\Modules\Patients\Models\Patients;
 use Illuminate\Support\Facades\Log;
 
 

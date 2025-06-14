@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Patients;
+use App\Modules\Patients\Models\Patients;
 use App\Models\Recommendation;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;

@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ChatController;
-use App\Http\Controllers\PatientsController;
+use App\Modules\Patients\Controllers\PatientsController;
 
 /*
 |--------------------------------------------------------------------------

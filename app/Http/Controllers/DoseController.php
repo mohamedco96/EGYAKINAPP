@@ -284,7 +284,7 @@ class DoseController extends Controller
                 ], 400);
             }
             
-            $perPage = $request->input('per_page', 15); // Default to 15 items per page
+            $perPage = $request->input('per_page', 10); // Default to 15 items per page
     
             // Log the incoming query
             Log::info('Starting dose search', ['query' => $query, 'per_page' => $perPage]);

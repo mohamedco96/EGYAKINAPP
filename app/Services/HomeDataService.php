@@ -62,7 +62,7 @@ class HomeDataService
     /**
      * Get feed posts for user
      */
-    private function getFeedPosts(User $user): \Illuminate\Database\Eloquent\Collection
+    private function getFeedPosts(User $user): \Illuminate\Support\Collection
     {
         return FeedPost::with([
             'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
@@ -173,7 +173,7 @@ class HomeDataService
     /**
      * Get all posts
      */
-    private function getPosts(): \Illuminate\Database\Eloquent\Collection
+    private function getPosts(): \Illuminate\Support\Collection
     {
         return Posts::select('id', 'title', 'image', 'content', 'hidden', 'post_type', 'webinar_date', 'url', 'doctor_id', 'updated_at')
             ->where('hidden', false)
@@ -221,7 +221,7 @@ class HomeDataService
     /**
      * Get top doctors
      */
-    private function getTopDoctors(): \Illuminate\Database\Eloquent\Collection
+    private function getTopDoctors(): \Illuminate\Support\Collection
     {
         return User::select('users.id', 'users.name', 'users.image', 'users.syndicate_card', 'users.isSyndicateCardRequired', 'users.version')
             ->leftJoin('scores', 'users.id', '=', 'scores.doctor_id')
@@ -249,7 +249,7 @@ class HomeDataService
     /**
      * Get pending syndicate card users
      */
-    private function getPendingSyndicateCard(bool $isAdminOrTester): \Illuminate\Database\Eloquent\Collection
+    private function getPendingSyndicateCard(bool $isAdminOrTester): \Illuminate\Support\Collection
     {
         return $isAdminOrTester
             ? User::select('id', 'name', 'image', 'syndicate_card', 'isSyndicateCardRequired')

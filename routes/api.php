@@ -281,6 +281,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/uploadFileNew', [PatientsController::class, 'uploadFileNew']);
     Route::get('/patientFilters', [PatientsController::class, 'patientFilterConditions']);
     Route::post('/patientFilters', [PatientsController::class, 'filteredPatients']);
+    Route::post('/exportFilteredPatients', [PatientsController::class, 'exportFilteredPatients']);
 
     // Questions
     Route::get('/questions', 'QuestionsController@index');

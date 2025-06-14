@@ -31,6 +31,34 @@ class PatientFilterService
 
         $this->applyFilters($patientsQuery, $cleanFilters);
 
+        // If perPage is very large (used for exports), get all results without pagination
+        if ($perPage >= PHP_INT_MAX) {
+            $patients = $patientsQuery->with([
+                'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired',
+                'status:id,patient_id,key,status',
+                'answers:id,patient_id,answer,question_id'
+            ])
+            ->latest('updated_at')
+            ->get();
+
+            $transformedPatients = $patients->map(function ($patient) {
+                return $this->transformPatientData($patient);
+            });
+
+            return [
+                'data' => $transformedPatients,
+                'pagination' => [
+                    'total' => $patients->count(),
+                    'per_page' => $patients->count(),
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'from' => 1,
+                    'to' => $patients->count(),
+                ]
+            ];
+        }
+
+        // Regular pagination
         $patients = $patientsQuery->with([
             'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired',
             'status:id,patient_id,key,status',
@@ -143,6 +171,7 @@ class PatientFilterService
             'hospital' => $hospitalAnswer,
             'updated_at' => $patient->updated_at,
             'doctor' => $patient->doctor,
+            'answers' => $patient->answers,
             'sections' => [
                 'patient_id' => $patient->id,
                 'submit_status' => $submitStatus ?? false,

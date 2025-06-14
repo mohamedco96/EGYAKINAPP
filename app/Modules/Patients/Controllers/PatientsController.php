@@ -15,6 +15,8 @@ use App\Services\PdfGenerationService;
 use App\Models\Questions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 
 class PatientsController extends Controller
 {
@@ -502,6 +504,166 @@ class PatientsController extends Controller
             return response()->json([
                 'value' => false,
                 'message' => 'Failed to retrieve filtered patients.',
+            ], 500);
+        }
+    }
+
+    public function exportFilteredPatients(Request $request)
+    {
+        try {
+            // Generate cache key from filter parameters
+            $filterParams = $request->except(['page', 'per_page', 'sort', 'direction', 'offset', 'limit']);
+            $cacheKey = 'filtered_patients_export_' . md5(json_encode($filterParams)) . '_' . auth()->id();
+            
+            // Cache the filter parameters for tracking
+            Cache::put($cacheKey . '_filters', $filterParams, now()->addHours(24));
+            
+            Log::info('Starting filtered patients export', [
+                'user_id' => auth()->id(),
+                'filter_count' => count($filterParams),
+                'cache_key' => $cacheKey
+            ]);
+
+            // Get all filtered patients (without pagination)
+            $result = $this->patientFilterService->filterPatients($filterParams, PHP_INT_MAX, 1);
+            $patients = $result['data'];
+
+            if ($patients->isEmpty()) {
+                return response()->json([
+                    'value' => false,
+                    'message' => 'No patients found matching the specified filters.'
+                ], 404);
+            }
+
+            // Get all questions for CSV headers
+            $questions = Cache::remember('all_questions_export', now()->addHour(), function() {
+                return \App\Models\Questions::query()
+                    ->select(['id', 'question'])
+                    ->orderBy('id')
+                    ->get();
+            });
+
+            // Create the export class
+            $export = new class($patients, $questions, $filterParams) implements \Maatwebsite\Excel\Concerns\FromCollection, \Maatwebsite\Excel\Concerns\WithHeadings, \Maatwebsite\Excel\Concerns\WithMapping {
+                private $patients;
+                private $questions;
+                private $filterParams;
+
+                public function __construct($patients, $questions, $filterParams)
+                {
+                    $this->patients = $patients;
+                    $this->questions = $questions;
+                    $this->filterParams = $filterParams;
+                }
+
+                public function collection()
+                {
+                    return $this->patients;
+                }
+
+                public function headings(): array
+                {
+                    $headings = [
+                        'Patient ID',
+                        'Doctor ID',
+                        'Doctor Name',
+                        'Patient Name',
+                        'Hospital',
+                        'Submit Status',
+                        'Outcome Status',
+                        'Last Updated'
+                    ];
+
+                    // Add question headers
+                    foreach ($this->questions as $question) {
+                        $headings[] = $question->question;
+                    }
+
+                    return $headings;
+                }
+
+                public function map($patient): array
+                {
+                    $data = [
+                        $patient['id'],
+                        $patient['doctor_id'],
+                        $patient['doctor']['name'] ?? '',
+                        $patient['name'] ?? '',
+                        $patient['hospital'] ?? '',
+                        $patient['sections']['submit_status'] ? 'Yes' : 'No',
+                        $patient['sections']['outcome_status'] ? 'Yes' : 'No',
+                        $patient['updated_at']
+                    ];
+
+                    // Add answer data for each question
+                    foreach ($this->questions as $question) {
+                        // Find the answer for this question from the patient's answers
+                        $answer = '';
+                        if (isset($patient['answers'])) {
+                            foreach ($patient['answers'] as $patientAnswer) {
+                                if ($patientAnswer['question_id'] == $question->id) {
+                                    $answer = $patientAnswer['answer'] ?? '';
+                                    // Remove quotes if present
+                                    $answer = trim($answer, '"');
+                                    break;
+                                }
+                            }
+                        }
+                        $data[] = $answer;
+                    }
+
+                    return $data;
+                }
+            };
+
+            // Generate a unique filename with timestamp and filter info
+            $timestamp = now()->format('Y-m-d_H-i-s');
+            $filterCount = count($filterParams);
+            $filename = "filtered_patients_export_{$filterCount}_filters_{$timestamp}.xlsx";
+
+            // Ensure the exports directory exists
+            Storage::disk('public')->makeDirectory('exports');
+
+            // Store the Excel file
+            \Maatwebsite\Excel\Facades\Excel::store($export, 'exports/' . $filename, 'public');
+
+            // Construct the full URL for the exported file
+            $fileUrl = config('app.url') . '/storage/exports/' . $filename;
+
+            // Cache the export result for future reference
+            Cache::put($cacheKey . '_result', [
+                'filename' => $filename,
+                'file_url' => $fileUrl,
+                'patient_count' => $patients->count(),
+                'created_at' => now()->toISOString()
+            ], now()->addHours(24));
+
+            Log::info('Successfully exported filtered patients to CSV', [
+                'file_url' => $fileUrl,
+                'patient_count' => $patients->count(),
+                'filter_count' => $filterCount,
+                'user_id' => auth()->id()
+            ]);
+
+            return response()->json([
+                'value' => true,
+                'message' => 'Export completed successfully',
+                'file_url' => $fileUrl,
+                'patient_count' => $patients->count(),
+                'filter_count' => $filterCount,
+                'cache_key' => $cacheKey
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error exporting filtered patients to CSV: ' . $e->getMessage(), [
+                'user_id' => auth()->id(),
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to export data: ' . $e->getMessage()
             ], 500);
         }
     }

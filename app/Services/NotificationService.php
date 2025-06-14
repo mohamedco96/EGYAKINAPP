@@ -1,0 +1,52 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\FcmToken;
+use App\Http\Controllers\NotificationController;
+use Illuminate\Support\Facades\Log;
+
+class NotificationService
+{
+    protected $notificationController;
+
+    public function __construct(NotificationController $notificationController)
+    {
+        $this->notificationController = $notificationController;
+    }
+
+    /**
+     * Send push notification to multiple tokens
+     */
+    public function sendPushNotification(string $title, string $body, array $tokens): void
+    {
+        try {
+            if (empty($tokens)) {
+                Log::info('No FCM tokens found for push notification');
+                return;
+            }
+
+            $this->notificationController->sendPushNotification($title, $body, $tokens);
+            
+            Log::info('Push notification sent successfully', [
+                'title' => $title,
+                'token_count' => count($tokens)
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send push notification', [
+                'title' => $title,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get FCM tokens for specific doctors
+     */
+    public function getDoctorTokens(array $doctorIds): array
+    {
+        return FcmToken::whereIn('doctor_id', $doctorIds)
+            ->pluck('token')
+            ->toArray();
+    }
+}

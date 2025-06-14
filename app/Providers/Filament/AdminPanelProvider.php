@@ -12,6 +12,8 @@ use Filament\Support\Colors\Color;
 use Filament\Widgets;
 use App\Modules\Patients\Widgets\PatientTypeOverview;
 use App\Modules\Patients\Widgets\PatientChart;
+use App\Modules\Patients\Resources\PatientsResource;
+use App\Modules\Patients\Resources\PatientStatusesResource;
 use App\Filament\Widgets\ConsultationOverview;
 use App\Filament\Widgets\DoctorPerformanceOverview;
 use App\Modules\Patients\Widgets\PatientStatusOverview;
@@ -41,6 +43,10 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Amber,
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
+            ->resources([
+                PatientsResource::class,
+                PatientStatusesResource::class,
+            ])
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 Pages\Dashboard::class,

@@ -331,7 +331,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/dose/{id}', 'DoseController@show');
     Route::put('/dose/{id}', 'DoseController@update');
     Route::delete('/dose/{id}', 'DoseController@destroy');
-    Route::post('/dose/search', 'DoseController@doseSearch');
+    Route::get('/dose/search/{query}', 'DoseController@doseSearch');
     // Achievement
     Route::get('/achievement', 'AchievementController@index');
     Route::post('/achievement', 'AchievementController@store');

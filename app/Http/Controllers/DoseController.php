@@ -270,10 +270,20 @@ class DoseController extends Controller
         }
     }
 
-    public function doseSearch(Request $request)
+    public function doseSearch(Request $request, $query)
     {
         try {
-            $query = (string) $request->input('query');
+            // Decode the query parameter in case it's URL encoded
+            $query = urldecode($query);
+            
+            // Validate that query is not empty
+            if (empty(trim($query))) {
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Search query cannot be empty',
+                ], 400);
+            }
+            
             $perPage = $request->input('per_page', 15); // Default to 15 items per page
     
             // Log the incoming query
@@ -296,7 +306,7 @@ class DoseController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Exception occurred while searching for doses.', [
-                'query' => $request->input('query'),
+                'query' => $query ?? 'N/A',
                 'message' => $e->getMessage(),
                 'trace' => $e->getTrace(),
             ]);

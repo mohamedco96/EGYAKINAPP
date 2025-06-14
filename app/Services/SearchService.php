@@ -29,7 +29,7 @@ class SearchService
     /**
      * Search for doses by title
      */
-    private function searchDoses(string $query): \Illuminate\Database\Eloquent\Collection
+    private function searchDoses(string $query): \Illuminate\Support\Collection
     {
         if (empty($query)) {
             return collect();
@@ -44,7 +44,7 @@ class SearchService
     /**
      * Search for patients by doctor name or answer content
      */
-    private function searchPatients(string $query): \Illuminate\Database\Eloquent\Collection
+    private function searchPatients(string $query): \Illuminate\Support\Collection
     {
         if (empty($query)) {
             return collect();

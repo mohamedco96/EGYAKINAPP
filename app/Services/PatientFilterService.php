@@ -58,7 +58,7 @@ class PatientFilterService
     /**
      * Get patients for doctor with pagination
      */
-    public function getDoctorPatients(bool $allPatients = false): array
+    public function getDoctorPatients(bool $allPatients = false): \Illuminate\Pagination\LengthAwarePaginator
     {
         $user = Auth::user();
         $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');

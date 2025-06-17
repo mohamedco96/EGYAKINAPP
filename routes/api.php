@@ -213,7 +213,6 @@ Route::post('/forgotpassword', [ForgetPasswordController::class, 'forgotPassword
 Route::post('/resetpasswordverification', [ResetPasswordController::class, 'resetpasswordverification']);
 Route::post('/resetpassword', [ResetPasswordController::class, 'resetpassword']);
 Route::get('/generatePDF/{patient_id}', [PatientsController::class, 'generatePatientPDF']);
-Route::get('/userPatient', [AuthController::class, 'userPatient']); //not found
 Route::post('/send-notification', [AuthController::class, 'sendPushNotificationTest']);
 Route::post('/sendAllPushNotification', 'NotificationController@sendAllPushNotification');
 

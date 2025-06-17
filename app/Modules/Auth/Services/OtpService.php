@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Modules\Auth\Services;
 
 use App\Models\User;
 use Illuminate\Support\Str;
@@ -22,8 +22,10 @@ class OtpService
         $this->domain = config('services.mailgun.domain', 'egyakin.com');
         $this->from = config('services.mailgun.from', 'OTP Verification <verification@egyakin.com>');
         
-        // Initialize Mailgun client
-        $this->mailgun = Mailgun::create($apiKey, $endpoint);
+        // Initialize Mailgun client only if API key is provided
+        if ($apiKey) {
+            $this->mailgun = Mailgun::create($apiKey, $endpoint);
+        }
         
         // Initialize OTP
         $this->otp = new Otp;
@@ -68,6 +70,14 @@ class OtpService
                   . "<p>This code will expire in 10 minutes.</p>"
                   . "<p>If you didn't request this code, please ignore this email.</p>"
                   . "</body></html>";
+            
+            // Check if Mailgun is configured
+            if (!$this->mailgun) {
+                logger()->error('Mailgun not configured - cannot send OTP email', [
+                    'user' => $user->id
+                ]);
+                return false;
+            }
             
             // Send email using Mailgun
             $result = $this->mailgun->messages()->send(

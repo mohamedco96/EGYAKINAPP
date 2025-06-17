@@ -1,6 +1,10 @@
 <?php
 
-use App\Http\Controllers\AuthController;
+use App\Modules\Auth\Controllers\AuthController;
+use App\Modules\Auth\Controllers\ForgetPasswordController;
+use App\Modules\Auth\Controllers\ResetPasswordController;
+use App\Modules\Auth\Controllers\EmailVerificationController;
+use App\Modules\Auth\Controllers\OtpController;
 use App\Http\Controllers\PatientHistoryController;
 use App\Http\Controllers\ProductController;
 use App\Modules\Patients\Controllers\PatientsController;
@@ -203,19 +207,19 @@ use App\Http\Controllers\RecommendationController;
 */
 
 // Public routes
-Route::post('/register', 'AuthController@register');
-Route::post('/login', 'AuthController@login');
-Route::post('/forgotpassword', 'ForgetPasswordController@forgotPassword');
-Route::post('/resetpasswordverification', 'ResetPasswordController@resetpasswordverification');
-Route::post('/resetpassword', 'ResetPasswordController@resetpassword');
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgotpassword', [ForgetPasswordController::class, 'forgotPassword']);
+Route::post('/resetpasswordverification', [ResetPasswordController::class, 'resetpasswordverification']);
+Route::post('/resetpassword', [ResetPasswordController::class, 'resetpassword']);
 Route::get('/generatePDF/{patient_id}', [PatientsController::class, 'generatePatientPDF']);
-Route::get('/userPatient', 'AuthController@userPatient');
-Route::post('/send-notification', 'AuthController@sendPushNotificationTest');
+Route::get('/userPatient', [AuthController::class, 'userPatient']); //not found
+Route::post('/send-notification', [AuthController::class, 'sendPushNotificationTest']);
 Route::post('/sendAllPushNotification', 'NotificationController@sendAllPushNotification');
 
 // routes/api.php
-Route::post('/email/verification-notification', 'EmailVerificationController@sendVerificationEmail');
-Route::post('/email/verify', 'EmailVerificationController@verifyEmail');
+Route::post('/email/verification-notification', [EmailVerificationController::class, 'sendVerificationEmail']);
+Route::post('/email/verify', [EmailVerificationController::class, 'verifyEmail']);
 
 // Settings
 Route::get('/settings', 'SettingsController@index');
@@ -231,35 +235,35 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/uploadVideo', 'MainController@uploadVideo');
 
     // Users
-    Route::get('/users', 'AuthController@index');
-    Route::get('/users/{id}', 'AuthController@show');
-    Route::get('/showAnotherProfile/{id}', 'AuthController@showAnotherProfile');
-    Route::get('/doctorProfileGetPatients/{id}', 'AuthController@doctorProfileGetPatients');
-    Route::get('/doctorProfileGetScoreHistory/{id}', 'AuthController@doctorProfileGetScoreHistory');
-    Route::put('/users', 'AuthController@update');
-    Route::put('/users/{id}', 'AuthController@updateUserById');
-    Route::delete('/users/{id}', 'AuthController@destroy');
-    Route::post('/logout', 'AuthController@logout');
-    Route::post('/changePassword', 'AuthController@changePassword');
-    Route::post('/upload-profile-image', 'AuthController@uploadProfileImage');
-    Route::post('/uploadSyndicateCard', 'AuthController@uploadSyndicateCard');
-    // Route::post('/emailverification', 'EmailVerificationController@verifyEmail');
-    // Route::post('/sendverificationmail', 'EmailVerificationController@sendVerificationEmail');
-    // Route::post('/resendemailverification', 'EmailVerificationController@sendVerificationEmail');
+    Route::get('/users', [AuthController::class, 'index']);
+    Route::get('/users/{id}', [AuthController::class, 'show']);
+    Route::get('/showAnotherProfile/{id}', [AuthController::class, 'showAnotherProfile']);
+    Route::get('/doctorProfileGetPatients/{id}', [AuthController::class, 'doctorProfileGetPatients']);
+    Route::get('/doctorProfileGetScoreHistory/{id}', [AuthController::class, 'doctorProfileGetScoreHistory']);
+    Route::put('/users', [AuthController::class, 'update']);
+    Route::put('/users/{id}', [AuthController::class, 'updateUserById']);
+    Route::delete('/users/{id}', [AuthController::class, 'destroy']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/changePassword', [AuthController::class, 'changePassword']);
+    Route::post('/upload-profile-image', [AuthController::class, 'uploadProfileImage']);
+    Route::post('/uploadSyndicateCard', [AuthController::class, 'uploadSyndicateCard']);
+    // Route::post('/emailverification', [EmailVerificationController::class, 'verifyEmail']);
+    // Route::post('/sendverificationmail', [EmailVerificationController::class, 'sendVerificationEmail']);
+    // Route::post('/resendemailverification', [EmailVerificationController::class, 'sendVerificationEmail']);
     Route::post('/storeFCM', 'NotificationController@storeFCM');
-    Route::post('/decryptedPassword', 'AuthController@decryptedPassword');
+    Route::post('/decryptedPassword', [AuthController::class, 'decryptedPassword']);
     
 
-    Route::post('/emailverification', 'OtpController@verifyOtp');
-    Route::post('/sendverificationmail', 'OtpController@sendOtp');
-    Route::post('/resendemailverification', 'OtpController@resendOtp');
+    Route::post('/emailverification', [OtpController::class, 'verifyOtp']);
+    Route::post('/sendverificationmail', [OtpController::class, 'sendOtp']);
+    Route::post('/resendemailverification', [OtpController::class, 'resendOtp']);
 
-    Route::post('/send-otp', 'OtpController@sendOtp');
-    Route::post('/verify-otp', 'OtpController@verifyOtp');
-    Route::post('/resend-otp', 'OtpController@resendOtp');
+    // Route::post('/send-otp', [OtpController::class, 'sendOtp']);
+    // Route::post('/verify-otp', [OtpController::class, 'verifyOtp']);
+    // Route::post('/resend-otp', [OtpController::class, 'resendOtp']);
 
     // Role & Permission
-    Route::post('/role', 'AuthController@roletest');
+    Route::post('/role', [AuthController::class, 'roletest']);
     Route::post('/createRoleAndPermission', 'RolePermissionController@createRoleAndPermission');
     Route::post('/assignRoleToUser', 'RolePermissionController@assignRoleToUser');
     Route::post('/checkPermission', 'RolePermissionController@checkRoleAndPermission');

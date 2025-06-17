@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Modules\Auth\Controllers;
 
-use App\Http\Requests\VerifyOtpRequest;
+use App\Http\Controllers\Controller;
+use App\Modules\Auth\Requests\VerifyOtpRequest;
 use App\Models\User;
-use App\Services\OtpService;
+use App\Modules\Auth\Services\OtpService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;

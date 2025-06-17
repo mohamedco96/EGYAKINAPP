@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Modules\Auth\Controllers;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Http\Requests\ResetPasswordRequest;
+use App\Modules\Auth\Requests\ResetPasswordRequest;
 use App\Models\User;
 use App\Notifications\ResetPasswordVerificationNotification;
 use Otp;

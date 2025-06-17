@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Modules\Auth\Controllers;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Http\Requests\EmailVerificationRequest;
+use App\Modules\Auth\Requests\EmailVerificationRequest;
 use Otp;
 use App\Models\User;
 use App\Notifications\EmailVerificationNotification;

@@ -1,10 +1,9 @@
 <?php
 
-namespace App\Filament\Resources;
+namespace App\Modules\Achievements\Filament\Resources;
 
-use App\Filament\Resources\AchievementResource\Pages;
-use App\Filament\Resources\AchievementResource\RelationManagers;
-use App\Models\Achievement;
+use App\Modules\Achievements\Filament\Resources\AchievementResource\Pages;
+use App\Modules\Achievements\Models\Achievement;
 use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Form;
@@ -26,6 +25,7 @@ class AchievementResource extends Resource
     protected static ?string $navigationGroup = 'App Data';
 
     protected static ?int $navigationSort = 5;
+    
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::count();

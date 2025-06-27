@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Resources\AchievementResource\Pages;
+namespace App\Modules\Achievements\Filament\Resources\AchievementResource\Pages;
 
-use App\Filament\Resources\AchievementResource;
+use App\Modules\Achievements\Filament\Resources\AchievementResource;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 

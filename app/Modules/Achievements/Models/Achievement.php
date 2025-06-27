@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Models;
+namespace App\Modules\Achievements\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -9,7 +10,7 @@ class Achievement extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'description', 'score', 'image'];
+    protected $fillable = ['name', 'description', 'type', 'score', 'image'];
 
     /**
      * The attributes that should be cast.

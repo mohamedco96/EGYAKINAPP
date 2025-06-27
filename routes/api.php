@@ -9,6 +9,7 @@ use App\Http\Controllers\PatientHistoryController;
 use App\Http\Controllers\ProductController;
 use App\Modules\Patients\Controllers\PatientsController;
 use App\Modules\Sections\Controllers\SectionsController;
+use App\Modules\Achievements\Controllers\AchievementController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
@@ -339,11 +340,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::delete('/dose/{id}', 'DoseController@destroy');
     Route::get('/dose/search/{query}', 'DoseController@doseSearch');
     // Achievement
-    Route::get('/achievement', 'App\Modules\Achievements\Controllers\AchievementController@index');
-    Route::post('/achievement', 'App\Modules\Achievements\Controllers\AchievementController@store');
-    Route::get('/achievement/{id}', 'App\Modules\Achievements\Controllers\AchievementController@show');
-    Route::put('/achievement/{id}', 'App\Modules\Achievements\Controllers\AchievementController@update');
-    Route::delete('/achievement/{id}', 'App\Modules\Achievements\Controllers\AchievementController@destroy');
+    Route::get('/achievement', [AchievementController::class, 'index']);
+    Route::post('/achievement', [AchievementController::class, 'store']);
+    Route::get('/achievement/{id}', [AchievementController::class, 'show']);
+    Route::put('/achievement/{id}', [AchievementController::class, 'update']);
+    Route::delete('/achievement/{id}', [AchievementController::class, 'destroy']);
 
     // Consultations
     Route::post('/consultations', 'ConsultationController@store');
@@ -354,10 +355,10 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/consultationDoctorSearch/{data}', 'ConsultationController@consultationSearch');
 
     // Achievements
-    Route::post('/achievements', 'App\Modules\Achievements\Controllers\AchievementController@createAchievement');
-    Route::get('/achievements', 'App\Modules\Achievements\Controllers\AchievementController@listAchievements');
-    Route::get('/users/{user}/achievements', 'App\Modules\Achievements\Controllers\AchievementController@getUserAchievements');
-    Route::post('/checkAndAssignAchievementsForAllUsers', 'App\Modules\Achievements\Controllers\AchievementController@checkAndAssignAchievementsForAllUsers');
+    Route::post('/achievements', [AchievementController::class, 'createAchievement']);
+    Route::get('/achievements', [AchievementController::class, 'listAchievements']);
+    Route::get('/users/{user}/achievements', [AchievementController::class, 'getUserAchievements']);
+    Route::post('/checkAndAssignAchievementsForAllUsers', [AchievementController::class, 'checkAndAssignAchievementsForAllUsers']);
 
     // Feed Post Routes
     Route::get('feed/posts', 'FeedPostController@getFeedPosts');

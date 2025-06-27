@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ChatController;
+use App\Modules\Chat\Controllers\ChatController;
 use App\Modules\Patients\Controllers\PatientsController;
 
 /*
@@ -31,7 +31,7 @@ Route::get('/ChatGPT', function () {
     return view('chat');
 });
 
-Route::post('/chat', [ChatController::class, 'chat']);
+// Route::post('/chat', [ChatController::class, 'chat']); // Method doesn't exist, commented out
 
 Route::get('/realTimeSearch', [PatientsController::class, 'realTimeSearch'])->name('realTimeSearch');
 Route::get('/search', function () {

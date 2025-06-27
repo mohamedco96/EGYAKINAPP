@@ -5,6 +5,10 @@ use App\Models\FeedPost;
 use App\Policies\FeedPostPolicy;
 use App\Modules\Settings\Models\Settings;
 use App\Modules\Settings\Policies\SettingsPolicy;
+use App\Modules\Chat\Models\AIConsultation;
+use App\Modules\Chat\Models\DoctorMonthlyTrial;
+use App\Modules\Chat\Policies\AIConsultationPolicy;
+use App\Modules\Chat\Policies\DoctorMonthlyTrialPolicy;
 // use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
@@ -18,6 +22,8 @@ class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         FeedPost::class => FeedPostPolicy::class,
         Settings::class => SettingsPolicy::class,
+        AIConsultation::class => AIConsultationPolicy::class,
+        DoctorMonthlyTrial::class => DoctorMonthlyTrialPolicy::class,
     ];
 
     /**

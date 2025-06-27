@@ -11,6 +11,7 @@ use App\Modules\Patients\Controllers\PatientsController;
 use App\Modules\Sections\Controllers\SectionsController;
 use App\Modules\Achievements\Controllers\AchievementController;
 use App\Modules\Settings\Controllers\SettingsController;
+use App\Modules\Chat\Controllers\ChatController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
@@ -407,8 +408,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/groups/invitations/{doctorId}', 'GroupController@getDoctorInvitations');
     Route::get('/groups/{groupId}/invitations', 'GroupController@getGroupInvitations');
 
-    Route::post('/AIconsultation/{patientId}', 'ChatController@sendConsultation');
-    Route::get('/AIconsultation-history/{patientId}', 'ChatController@getConsultationHistory');
+    Route::post('/AIconsultation/{patientId}', [ChatController::class, 'sendConsultation']);
+    Route::get('/AIconsultation-history/{patientId}', [ChatController::class, 'getConsultationHistory']);
     
 
     // Recommendations

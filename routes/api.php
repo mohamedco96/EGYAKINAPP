@@ -8,6 +8,7 @@ use App\Modules\Auth\Controllers\OtpController;
 use App\Http\Controllers\PatientHistoryController;
 use App\Http\Controllers\ProductController;
 use App\Modules\Patients\Controllers\PatientsController;
+use App\Modules\Sections\Controllers\SectionsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
@@ -269,11 +270,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     // Patient
     Route::post('/patient', [PatientsController::class, 'storePatient']);
-    Route::get('/patient/{section_id}/{patient_id}', 'SectionsController@showQuestionsAnswers');
+    Route::get('/patient/{section_id}/{patient_id}', [SectionsController::class, 'showQuestionsAnswers']);
     Route::put('/patientsection/{patient_id}', [PatientsController::class, 'updateFinalSubmit']);
     Route::put('/patientsection/{section_id}/{patient_id}', [PatientsController::class, 'updatePatient']);
-    Route::put('/submitStatus/{patient_id}', 'SectionsController@updateFinalSubmit');
-    Route::get('/showSections/{patient_id}', 'SectionsController@showSections');
+    Route::put('/submitStatus/{patient_id}', [SectionsController::class, 'updateFinalSubmit']);
+    Route::get('/showSections/{patient_id}', [SectionsController::class, 'showSections']);
     Route::delete('/patient/{id}', [PatientsController::class, 'destroyPatient']);
     Route::post('/searchNew', [PatientsController::class, 'searchNew']);
     Route::get('/homeNew', [PatientsController::class, 'homeGetAllData']);

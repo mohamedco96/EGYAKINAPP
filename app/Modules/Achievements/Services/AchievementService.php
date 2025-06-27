@@ -2,7 +2,7 @@
 
 namespace App\Modules\Achievements\Services;
 
-use App\Models\Achievement;
+use App\Modules\Achievements\Models\Achievement;
 use App\Models\AppNotification;
 use App\Models\User;
 use App\Models\FcmToken;

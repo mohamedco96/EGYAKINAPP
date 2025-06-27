@@ -9,6 +9,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Spatie\Permission\Traits\HasPermissions;
 use App\Modules\Patients\Models\Patients;
+use App\Modules\Achievements\Models\Achievement;
 
 class User extends Authenticatable
 {

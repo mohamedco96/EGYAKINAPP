@@ -10,6 +10,7 @@ use App\Http\Controllers\ProductController;
 use App\Modules\Patients\Controllers\PatientsController;
 use App\Modules\Sections\Controllers\SectionsController;
 use App\Modules\Achievements\Controllers\AchievementController;
+use App\Modules\Settings\Controllers\SettingsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
@@ -223,11 +224,11 @@ Route::post('/email/verification-notification', [EmailVerificationController::cl
 Route::post('/email/verify', [EmailVerificationController::class, 'verifyEmail']);
 
 // Settings
-Route::get('/settings', 'SettingsController@index');
-Route::post('/settings', 'SettingsController@store');
-Route::get('/settings/{id}', 'SettingsController@show');
-Route::put('/settings/{id}', 'SettingsController@update');
-Route::delete('/settings/{id}', 'SettingsController@destroy');
+Route::get('/settings', [SettingsController::class, 'index']);
+Route::post('/settings', [SettingsController::class, 'store']);
+Route::get('/settings/{settings}', [SettingsController::class, 'show']);
+Route::put('/settings/{settings}', [SettingsController::class, 'update']);
+Route::delete('/settings/{settings}', [SettingsController::class, 'destroy']);
 
 // Protected routes
 Route::group(['middleware' => ['auth:sanctum']], function () {

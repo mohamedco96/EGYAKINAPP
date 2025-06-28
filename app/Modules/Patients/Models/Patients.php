@@ -44,7 +44,7 @@ class Patients extends Model
 
     public function recommendations(): HasMany
     {
-        return $this->hasMany(\App\Models\Recommendation::class, 'patient_id');
+        return $this->hasMany(\App\Modules\Recommendations\Models\Recommendation::class, 'patient_id');
     }
 
     public function answers(): HasMany

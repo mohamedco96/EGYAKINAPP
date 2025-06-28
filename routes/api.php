@@ -17,7 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\GroupController;
-use App\Http\Controllers\RecommendationController;
+use App\Modules\Recommendations\Controllers\RecommendationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -414,10 +414,10 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     
 
     // Recommendations
-    Route::get('/recommendations/{patient_id}', 'RecommendationController@index');
-    Route::post('/recommendations/{patient_id}', 'RecommendationController@store');
-    Route::put('/recommendations/{patient_id}', 'RecommendationController@update');
-    Route::delete('/recommendations/{patient_id}', 'RecommendationController@destroy');
+    Route::get('/recommendations/{patient_id}', [RecommendationController::class, 'index']);
+    Route::post('/recommendations/{patient_id}', [RecommendationController::class, 'store']);
+    Route::put('/recommendations/{patient_id}', [RecommendationController::class, 'update']);
+    Route::delete('/recommendations/{patient_id}', [RecommendationController::class, 'destroy']);
 
 });
 

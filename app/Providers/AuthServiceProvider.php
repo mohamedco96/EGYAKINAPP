@@ -11,6 +11,8 @@ use App\Modules\Chat\Policies\AIConsultationPolicy;
 use App\Modules\Chat\Policies\DoctorMonthlyTrialPolicy;
 use App\Modules\RolePermission\Models\RolePermission;
 use App\Modules\RolePermission\Policies\RolePermissionPolicy;
+use App\Modules\Recommendations\Models\Recommendation;
+use App\Modules\Recommendations\Policies\RecommendationPolicy;
 // use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
@@ -27,6 +29,7 @@ class AuthServiceProvider extends ServiceProvider
         AIConsultation::class => AIConsultationPolicy::class,
         DoctorMonthlyTrial::class => DoctorMonthlyTrialPolicy::class,
         RolePermission::class => RolePermissionPolicy::class,
+        Recommendation::class => RecommendationPolicy::class,
     ];
 
     /**

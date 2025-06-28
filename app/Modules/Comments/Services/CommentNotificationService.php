@@ -2,7 +2,7 @@
 
 namespace App\Modules\Comments\Services;
 
-use App\Models\Comment;
+use App\Modules\Comments\Models\Comment;
 use App\Modules\Patients\Models\Patients;
 use App\Modules\Notifications\Models\AppNotification;
 use Illuminate\Support\Facades\Auth;

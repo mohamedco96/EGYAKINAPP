@@ -189,3 +189,6 @@ All existing functionality preserved:
 - Complete modular replacement following established patterns
 
 The CommentController refactoring is now complete and follows the same high-quality pattern established by the PatientsController module. ✅
+
+## Issue Resolution
+**Fixed Import Issue**: Updated all import statements in services and Filament resources to use the modular Comment model (`App\Modules\Comments\Models\Comment`) instead of the removed original model (`App\Models\Comment`). All functionality is now working correctly.

@@ -2,8 +2,8 @@
 
 namespace App\Modules\Notifications\Services;
 
-use App\Models\AppNotification;
-use App\Models\FcmToken;
+use App\Modules\Notifications\Models\AppNotification;
+use App\Modules\Notifications\Models\FcmToken;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;

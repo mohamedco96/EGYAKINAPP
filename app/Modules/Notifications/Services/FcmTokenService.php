@@ -2,7 +2,7 @@
 
 namespace App\Modules\Notifications\Services;
 
-use App\Models\FcmToken;
+use App\Modules\Notifications\Models\FcmToken;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;

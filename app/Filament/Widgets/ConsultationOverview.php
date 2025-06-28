@@ -2,7 +2,7 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Consultation;
+use App\Modules\Consultations\Models\Consultation;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Facades\DB;
 

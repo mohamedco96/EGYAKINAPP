@@ -2,8 +2,8 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\ConsultationDoctor;
-use App\Models\Consultation;
+use App\Modules\Consultations\Models\ConsultationDoctor;
+use App\Modules\Consultations\Models\Consultation;
 use App\Models\User;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;

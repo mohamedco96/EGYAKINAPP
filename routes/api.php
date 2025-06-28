@@ -349,13 +349,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/achievement/{id}', [AchievementController::class, 'update']);
     Route::delete('/achievement/{id}', [AchievementController::class, 'destroy']);
 
-    // Consultations
-    Route::post('/consultations', 'ConsultationController@store');
-    Route::get('/consultations/sent', 'ConsultationController@sentRequests');
-    Route::get('/consultations/received', 'ConsultationController@receivedRequests');
-    Route::get('/consultations/{id}', 'ConsultationController@consultationDetails');
-    Route::put('/consultations/{id}', 'ConsultationController@update');
-    Route::post('/consultationDoctorSearch/{data}', 'ConsultationController@consultationSearch');
+    // Consultations - Using modular structure
+    Route::post('/consultations', [\App\Modules\Consultations\Controllers\ConsultationController::class, 'store']);
+    Route::get('/consultations/sent', [\App\Modules\Consultations\Controllers\ConsultationController::class, 'sentRequests']);
+    Route::get('/consultations/received', [\App\Modules\Consultations\Controllers\ConsultationController::class, 'receivedRequests']);
+    Route::get('/consultations/{id}', [\App\Modules\Consultations\Controllers\ConsultationController::class, 'consultationDetails']);
+    Route::put('/consultations/{id}', [\App\Modules\Consultations\Controllers\ConsultationController::class, 'update']);
+    Route::post('/consultationDoctorSearch/{data}', [\App\Modules\Consultations\Controllers\ConsultationController::class, 'consultationSearch']);
 
     // Achievements
     Route::post('/achievements', [AchievementController::class, 'createAchievement']);

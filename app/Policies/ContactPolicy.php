@@ -2,7 +2,7 @@
 
 namespace App\Policies;
 
-use App\Models\Contact;
+use App\Modules\Contacts\Models\Contact;
 use App\Models\User;
 
 class ContactPolicy

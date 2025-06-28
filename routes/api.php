@@ -307,11 +307,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::delete('/comment/{patient_id}', [\App\Modules\Comments\Controllers\CommentController::class, 'destroy']);
 
     // Contact
-    Route::get('/contact', 'ContactController@index');
-    Route::post('/contact', 'ContactController@store');
-    Route::get('/contact/{id}', 'ContactController@show');
-    Route::put('/contact/{id}', 'ContactController@update');
-    Route::delete('/contact/{id}', 'ContactController@destroy');
+    Route::get('/contact', [\App\Modules\Contacts\Controllers\ContactController::class, 'index']);
+    Route::post('/contact', [\App\Modules\Contacts\Controllers\ContactController::class, 'store']);
+    Route::get('/contact/{id}', [\App\Modules\Contacts\Controllers\ContactController::class, 'show']);
+    Route::put('/contact/{id}', [\App\Modules\Contacts\Controllers\ContactController::class, 'update']);
+    Route::delete('/contact/{id}', [\App\Modules\Contacts\Controllers\ContactController::class, 'destroy']);
 
     // Post
     Route::get('/post', 'PostsController@index');

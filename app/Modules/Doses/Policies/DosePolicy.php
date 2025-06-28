@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Policies;
+namespace App\Modules\Doses\Policies;
 
 use App\Modules\Doses\Models\Dose;
 use App\Models\User;
@@ -29,7 +29,8 @@ class DosePolicy
      */
     public function create(User $user): bool
     {
-        return true;
+        // Add more specific authorization logic here if needed
+        return $user->hasRole(['Admin', 'Doctor', 'Tester']);
     }
 
     /**
@@ -37,7 +38,8 @@ class DosePolicy
      */
     public function update(User $user, Dose $dose): bool
     {
-        return true;
+        // Add more specific authorization logic here if needed
+        return $user->hasRole(['Admin', 'Doctor', 'Tester']);
     }
 
     /**
@@ -45,7 +47,8 @@ class DosePolicy
      */
     public function delete(User $user, Dose $dose): bool
     {
-        return true;
+        // Add more specific authorization logic here if needed
+        return $user->hasRole(['Admin', 'Tester']);
     }
 
     /**
@@ -53,7 +56,7 @@ class DosePolicy
      */
     public function restore(User $user, Dose $dose): bool
     {
-        return true;
+        return $user->hasRole(['Admin', 'Tester']);
     }
 
     /**
@@ -61,6 +64,6 @@ class DosePolicy
      */
     public function forceDelete(User $user, Dose $dose): bool
     {
-        return true;
+        return $user->hasRole(['Admin']);
     }
 }

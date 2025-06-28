@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Modules\Patients\Models\Patients;
 use App\Models\User;
 use App\Models\Questions;
-use App\Models\Dose;
+use App\Modules\Doses\Models\Dose;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;

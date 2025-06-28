@@ -1,21 +1,16 @@
 <?php
 
-namespace App\Filament\Resources;
+namespace App\Modules\Doses\Resources;
 
-use App\Filament\Resources\DoseResource\Pages;
-use App\Filament\Resources\DoseResource\RelationManagers;
 use App\Modules\Doses\Models\Dose;
+use App\Modules\Doses\Resources\DoseResource\Pages;
 use Filament\Forms;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class DoseResource extends Resource
@@ -41,9 +36,11 @@ class DoseResource extends Resource
             ->schema([
                 Forms\Components\TextInput::make('title')
                     ->label('Title')
-                    ->required(),
+                    ->required()
+                    ->maxLength(255),
 
                 Forms\Components\RichEditor::make('description')
+                    ->label('Description')
                     ->toolbarButtons([
                         'blockquote',
                         'bold',
@@ -52,67 +49,19 @@ class DoseResource extends Resource
                         'h2',
                         'h3',
                         'italic',
+                        'link',
                         'orderedList',
                         'redo',
                         'strike',
                         'underline',
                         'undo',
-                    ]),
-                Forms\Components\RichEditor::make('dose')
-                            ->required()
-                            ->toolbarButtons([
-                                'blockquote',
-                                'bold',
-                                'bulletList',
-                                'codeBlock',
-                                'h2',
-                                'h3',
-                                'italic',
-                                'orderedList',
-                                'redo',
-                                'strike',
-                                'underline',
-                                'undo',
-                            ]),
-//                Forms\Components\FieldSet::make()
-//                    ->label('Description')
-//                    ->schema([
-//                        RichEditor::make('description')->toolbarButtons([
-//                            'blockquote',
-//                            'bold',
-//                            'bulletList',
-//                            'codeBlock',
-//                            'h2',
-//                            'h3',
-//                            'italic',
-//                            'orderedList',
-//                            'redo',
-//                            'strike',
-//                            'underline',
-//                            'undo',
-//                        ]),
-//                    ]),
-//
-//                Forms\Components\FieldSet::make()
-//                    ->label('Dose')
-//                    ->schema([
-//                        RichEditor::make('dose')
-//                            ->required()
-//                            ->toolbarButtons([
-//                                'blockquote',
-//                                'bold',
-//                                'bulletList',
-//                                'codeBlock',
-//                                'h2',
-//                                'h3',
-//                                'italic',
-//                                'orderedList',
-//                                'redo',
-//                                'strike',
-//                                'underline',
-//                                'undo',
-//                            ]),
-//                    ]),
+                    ])
+                    ->columnSpanFull(),
+
+                Forms\Components\TextInput::make('dose')
+                    ->label('Dose')
+                    ->required()
+                    ->maxLength(255),
             ]);
     }
 
@@ -120,21 +69,55 @@ class DoseResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->toggleable(isToggledHiddenByDefault: false)->searchable(),
-                Tables\Columns\TextColumn::make('title')->toggleable(isToggledHiddenByDefault: false)->searchable(),
-                Tables\Columns\TextColumn::make('description')->toggleable(isToggledHiddenByDefault: false),
-                Tables\Columns\TextColumn::make('dose')->toggleable(isToggledHiddenByDefault: false),
-                Tables\Columns\TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false),
-                Tables\Columns\TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('id')
+                    ->label('ID')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('title')
+                    ->label('Title')
+                    ->searchable()
+                    ->sortable()
+                    ->limit(50),
+
+                Tables\Columns\TextColumn::make('description')
+                    ->label('Description')
+                    ->html()
+                    ->limit(100)
+                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                        $state = $column->getState();
+                        
+                        if (strlen($state) <= $column->getCharacterLimit()) {
+                            return null;
+                        }
+                
+                        return $state;
+                    }),
+
+                Tables\Columns\TextColumn::make('dose')
+                    ->label('Dose')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Created')
+                    ->dateTime('M j, Y')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Updated')
+                    ->dateTime('M j, Y')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->persistSearchInSession()
-            ->persistColumnSearchesInSession()
-            ->persistSortInSession()
             ->filters([
                 Tables\Filters\Filter::make('created_at')
                     ->form([
-                        DatePicker::make('created_from'),
-                        DatePicker::make('created_until'),
+                        Forms\Components\DatePicker::make('created_from')
+                            ->label('Created from'),
+                        Forms\Components\DatePicker::make('created_until')
+                            ->label('Created until'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query

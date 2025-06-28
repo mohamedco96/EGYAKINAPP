@@ -335,13 +335,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/notification', 'NotificationController@markAllAsRead');
     Route::delete('/notification/{id}', 'NotificationController@destroy');
 
-    // Dose
-    Route::get('/dose', 'DoseController@index');
-    Route::post('/dose', 'DoseController@store');
-    Route::get('/dose/{id}', 'DoseController@show');
-    Route::put('/dose/{id}', 'DoseController@update');
-    Route::delete('/dose/{id}', 'DoseController@destroy');
-    Route::get('/dose/search/{query}', 'DoseController@doseSearch');
+    // Dose - Using modular structure
+    Route::get('/dose', [\App\Modules\Doses\Controllers\DoseController::class, 'index']);
+    Route::post('/dose', [\App\Modules\Doses\Controllers\DoseController::class, 'store']);
+    Route::get('/dose/{id}', [\App\Modules\Doses\Controllers\DoseController::class, 'show']);
+    Route::put('/dose/{id}', [\App\Modules\Doses\Controllers\DoseController::class, 'update']);
+    Route::delete('/dose/{id}', [\App\Modules\Doses\Controllers\DoseController::class, 'destroy']);
+    Route::get('/dose/search/{query}', [\App\Modules\Doses\Controllers\DoseController::class, 'doseSearch']);
     // Achievement
     Route::get('/achievement', [AchievementController::class, 'index']);
     Route::post('/achievement', [AchievementController::class, 'store']);

@@ -13,6 +13,8 @@ use App\Modules\RolePermission\Models\RolePermission;
 use App\Modules\RolePermission\Policies\RolePermissionPolicy;
 use App\Modules\Recommendations\Models\Recommendation;
 use App\Modules\Recommendations\Policies\RecommendationPolicy;
+use App\Modules\Doses\Models\Dose;
+use App\Modules\Doses\Policies\DosePolicy;
 // use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
@@ -30,6 +32,7 @@ class AuthServiceProvider extends ServiceProvider
         DoctorMonthlyTrial::class => DoctorMonthlyTrialPolicy::class,
         RolePermission::class => RolePermissionPolicy::class,
         Recommendation::class => RecommendationPolicy::class,
+        Dose::class => DosePolicy::class,
     ];
 
     /**

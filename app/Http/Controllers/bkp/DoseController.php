@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Modules\Doses\Models\Dose;
+use App\Models\Dose;
 use Illuminate\Http\Request;
 use App\Http\Requests\StoreDoseRequest;
 use App\Http\Requests\UpdateDoseRequest;
@@ -156,7 +156,7 @@ class DoseController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  \App\Modules\Doses\Models\Dose  $dose
+     * @param  \App\Models\Dose  $dose
      * @return \Illuminate\Http\JsonResponse
      */
     public function edit(Dose $dose)

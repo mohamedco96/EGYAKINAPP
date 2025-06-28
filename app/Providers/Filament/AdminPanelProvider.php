@@ -15,6 +15,7 @@ use App\Modules\Patients\Widgets\PatientChart;
 use App\Modules\Patients\Resources\PatientsResource;
 use App\Modules\Patients\Resources\PatientStatusesResource;
 use App\Modules\Achievements\Filament\Resources\AchievementResource;
+use App\Modules\Doses\Resources\DoseResource;
 use App\Filament\Widgets\ConsultationOverview;
 use App\Filament\Widgets\DoctorPerformanceOverview;
 use App\Modules\Patients\Widgets\PatientStatusOverview;
@@ -48,6 +49,7 @@ class AdminPanelProvider extends PanelProvider
                 PatientsResource::class,
                 PatientStatusesResource::class,
                 AchievementResource::class,
+                DoseResource::class,
             ])
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([

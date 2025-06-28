@@ -2,7 +2,7 @@
 
 namespace App\Policies;
 
-use App\Modules\Doses\Models\Dose;
+use App\Models\Dose;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 

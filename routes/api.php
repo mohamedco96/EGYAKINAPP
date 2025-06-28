@@ -12,6 +12,7 @@ use App\Modules\Sections\Controllers\SectionsController;
 use App\Modules\Achievements\Controllers\AchievementController;
 use App\Modules\Settings\Controllers\SettingsController;
 use App\Modules\Chat\Controllers\ChatController;
+use App\Modules\RolePermission\Controllers\RolePermissionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
@@ -267,9 +268,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     // Role & Permission
     Route::post('/role', [AuthController::class, 'roletest']);
-    Route::post('/createRoleAndPermission', 'RolePermissionController@createRoleAndPermission');
-    Route::post('/assignRoleToUser', 'RolePermissionController@assignRoleToUser');
-    Route::post('/checkPermission', 'RolePermissionController@checkRoleAndPermission');
+    Route::post('/createRoleAndPermission', [RolePermissionController::class, 'createRoleAndPermission']);
+    Route::post('/assignRoleToUser', [RolePermissionController::class, 'assignRoleToUser']);
+    Route::post('/checkPermission', [RolePermissionController::class, 'checkRoleAndPermission']);
 
     // Patient
     Route::post('/patient', [PatientsController::class, 'storePatient']);

@@ -313,19 +313,19 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/contact/{id}', [\App\Modules\Contacts\Controllers\ContactController::class, 'update']);
     Route::delete('/contact/{id}', [\App\Modules\Contacts\Controllers\ContactController::class, 'destroy']);
 
-    // Post
-    Route::get('/post', 'PostsController@index');
-    Route::post('/post', 'PostsController@store');
-    Route::get('/post/{id}', 'PostsController@show');
-    Route::put('/post/{id}', 'PostsController@update');
-    Route::delete('/post/{id}', 'PostsController@destroy');
+    // Post - Using modular structure
+    Route::get('/post', [\App\Modules\Posts\Controllers\PostsController::class, 'index']);
+    Route::post('/post', [\App\Modules\Posts\Controllers\PostsController::class, 'store']);
+    Route::get('/post/{id}', [\App\Modules\Posts\Controllers\PostsController::class, 'show']);
+    Route::put('/post/{id}', [\App\Modules\Posts\Controllers\PostsController::class, 'update']);
+    Route::delete('/post/{id}', [\App\Modules\Posts\Controllers\PostsController::class, 'destroy']);
 
-    // PostComments
-    Route::get('/Postcomments', 'PostCommentsController@index');
-    Route::post('/Postcomments', 'PostCommentsController@store');
-    Route::get('/Postcomments/{id}', 'PostCommentsController@show');
-    Route::put('/Postcomments/{id}', 'PostCommentsController@update');
-    Route::delete('/Postcomments/{id}', 'PostCommentsController@destroy');
+    // PostComments - Using modular structure
+    Route::get('/Postcomments', [\App\Modules\Posts\Controllers\PostCommentsController::class, 'index']);
+    Route::post('/Postcomments', [\App\Modules\Posts\Controllers\PostCommentsController::class, 'store']);
+    Route::get('/Postcomments/{id}', [\App\Modules\Posts\Controllers\PostCommentsController::class, 'show']);
+    Route::put('/Postcomments/{id}', [\App\Modules\Posts\Controllers\PostCommentsController::class, 'update']);
+    Route::delete('/Postcomments/{id}', [\App\Modules\Posts\Controllers\PostCommentsController::class, 'destroy']);
 
     // AppNotification - Using modular structure
     Route::post('/notification', [\App\Modules\Notifications\Controllers\NotificationController::class, 'store']);

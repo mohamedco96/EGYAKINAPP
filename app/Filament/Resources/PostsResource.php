@@ -3,7 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PostsResource\Pages;
-use App\Models\Posts;
+use App\Modules\Posts\Models\Posts;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;

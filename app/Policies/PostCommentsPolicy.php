@@ -2,7 +2,7 @@
 
 namespace App\Policies;
 
-use App\Models\PostComments;
+use App\Modules\Posts\Models\PostComments;
 use App\Models\User;
 
 class PostCommentsPolicy

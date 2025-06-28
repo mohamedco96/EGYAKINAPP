@@ -184,12 +184,12 @@ class User extends Authenticatable
 
     public function posts()
     {
-        return $this->hasMany(Posts::class, 'doctor_id');
+        return $this->hasMany(\App\Modules\Posts\Models\Posts::class, 'doctor_id');
     }
 
     public function postcomments()
     {
-        return $this->hasMany(PostComments::class, 'doctor_id');
+        return $this->hasMany(\App\Modules\Posts\Models\PostComments::class, 'doctor_id');
     }
 
     public function notification()

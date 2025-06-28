@@ -14,24 +14,24 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\MainController;
 use App\Models\Hashtag;
 use App\Models\Group;
-use App\Models\AppNotification;
+use App\Modules\Notifications\Models\AppNotification;
 use App\Models\User;
 use App\Models\Poll;
 use App\Models\PollOption; // If you have a separate PollOption model
 use App\Models\PollVote;
-use App\Http\Controllers\NotificationController;
-use App\Models\FcmToken;
+use App\Modules\Notifications\Services\NotificationService;
+use App\Modules\Notifications\Models\FcmToken;
 
 
 class FeedPostController extends Controller
 {
     protected $mainController;
-    protected $notificationController;
+    protected $notificationService;
 
-    public function __construct(MainController $mainController, NotificationController $notificationController)
+    public function __construct(MainController $mainController, NotificationService $notificationService)
     {
         $this->mainController = $mainController;
-        $this->notificationController = $notificationController;
+        $this->notificationService = $notificationService;
     }
 
     // Helper function to extract hashtags from post content
@@ -1017,7 +1017,7 @@ class FeedPostController extends Controller
             ->pluck('token')
             ->toArray();
     
-        $this->notificationController->sendPushNotification($title, $body, $tokens);
+        $this->notificationService->sendPushNotification($title, $body, $tokens);
     
         Log::info("Notifications inserted successfully for post ID: " . $post->id);
         
@@ -1168,7 +1168,7 @@ class FeedPostController extends Controller
                             ->toArray();
 
                         if (!empty($tokens)) {
-                            $this->notificationController->sendPushNotification(
+                            $this->notificationService->sendPushNotification(
                                 'Post was liked 📣',
                                 'Dr. ' . ucfirst(Auth::user()->name) . ' liked your post',
                                 $tokens
@@ -1343,7 +1343,7 @@ class FeedPostController extends Controller
                     ->toArray();
 
                 if (!empty($tokens)) {
-                    $this->notificationController->sendPushNotification(
+                    $this->notificationService->sendPushNotification(
                         'New Comment was added 📣',
                         'Dr. ' . ucfirst(Auth::user()->name) . ' commented on your post ',
                         $tokens
@@ -1468,7 +1468,7 @@ class FeedPostController extends Controller
                         ->toArray();
     
                     if (!empty($tokens)) {
-                        $this->notificationController->sendPushNotification(
+                        $this->notificationService->sendPushNotification(
                             'New Comment was liked 📣',
                             'Dr. ' . ucfirst(Auth::user()->name) . ' liked your comment ',
                             $tokens

@@ -9,20 +9,20 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\MainController;
 use App\Models\FeedPost;
 use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\NotificationController;
-use App\Models\FcmToken;
-use App\Models\AppNotification;
+use App\Modules\Notifications\Services\NotificationService;
+use App\Modules\Notifications\Models\FcmToken;
+use App\Modules\Notifications\Models\AppNotification;
 
 
 class GroupController extends Controller
 {
     protected $mainController;
-    protected $notificationController;
+    protected $notificationService;
 
-    public function __construct(MainController $mainController, NotificationController $notificationController)
+    public function __construct(MainController $mainController, NotificationService $notificationService)
     {
         $this->mainController = $mainController;
-        $this->notificationController = $notificationController;
+        $this->notificationService = $notificationService;
     }
 
     /**
@@ -400,7 +400,7 @@ class GroupController extends Controller
                             ->toArray();
 
                         if (!empty($tokens)) {
-                            $this->notificationController->sendPushNotification(
+                            $this->notificationService->sendPushNotification(
                                 'New Invitation was created 📣',
                                 'Dr. ' . ucfirst(Auth::user()->name) . ' invited you to his group',
                                 $tokens
@@ -451,7 +451,7 @@ class GroupController extends Controller
                             ->toArray();
 
                         if (!empty($tokens)) {
-                            $this->notificationController->sendPushNotification(
+                            $this->notificationService->sendPushNotification(
                                 'New Invitation was created 📣',
                                 'Dr. ' . ucfirst(Auth::user()->name) . ' invited you to his group',
                                 $tokens
@@ -1143,7 +1143,7 @@ class GroupController extends Controller
                 ->toArray();
 
             if (!empty($tokens)) {
-                $this->notificationController->sendPushNotification(
+                $this->notificationService->sendPushNotification(
                     'New Join Request 📣',
                     'Dr. ' . ucfirst(Auth::user()->name) . ' requested to join group',
                     $tokens

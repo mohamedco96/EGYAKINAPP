@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Answers;
-use App\Models\AppNotification;
-use App\Models\FcmToken;
+use App\Modules\Notifications\Models\AppNotification;
+use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Patients\Models\Patients;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -14,17 +14,17 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use App\Http\Controllers\NotificationController;
+use App\Modules\Notifications\Services\NotificationService;
 
 class ConsultationController extends Controller
 {
 
-    protected $notificationController;
+    protected $notificationService;
     protected $patients;
 
-    public function __construct(NotificationController $notificationController, Patients $patients)
+    public function __construct(NotificationService $notificationService, Patients $patients)
     {
-        $this->notificationController = $notificationController;
+        $this->notificationService = $notificationService;
         $this->patients = $patients;
     }
 
@@ -80,7 +80,7 @@ class ConsultationController extends Controller
             ->pluck('token')
             ->toArray();
 
-        $this->notificationController->sendPushNotification($title, $body, $tokens);
+        $this->notificationService->sendPushNotification($title, $body, $tokens);
 
         return response($response, 201);
     }
@@ -345,7 +345,7 @@ class ConsultationController extends Controller
 
 
             // Send push notifications
-            $this->notificationController->sendPushNotification($title, $body, $tokens);
+            $this->notificationService->sendPushNotification($title, $body, $tokens);
 
             // Return success response with detailed log
             Log::info('Consultation request updated successfully.', [

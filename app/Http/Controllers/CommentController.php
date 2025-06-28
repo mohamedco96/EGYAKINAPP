@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreCommentRequest;
 use App\Http\Requests\UpdateCommentRequest;
 use App\Models\Comment;
-use App\Models\AppNotification;
+use App\Modules\Notifications\Models\AppNotification;
 use App\Modules\Patients\Models\Patients;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;

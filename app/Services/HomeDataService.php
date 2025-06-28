@@ -9,7 +9,7 @@ use App\Models\FeedPost;
 use App\Models\Posts;
 use App\Models\Hashtag;
 use App\Models\Group;
-use App\Models\AppNotification;
+use App\Modules\Notifications\Models\AppNotification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 

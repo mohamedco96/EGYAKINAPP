@@ -3,10 +3,10 @@
 namespace App\Modules\Achievements\Services;
 
 use App\Modules\Achievements\Models\Achievement;
-use App\Models\AppNotification;
+use App\Modules\Notifications\Models\AppNotification;
 use App\Models\User;
-use App\Models\FcmToken;
-use App\Services\NotificationService;
+use App\Modules\Notifications\Models\FcmToken;
+use App\Modules\Notifications\Services\NotificationService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 

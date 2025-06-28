@@ -3,9 +3,9 @@
 namespace App\Modules\Auth\Services;
 
 use App\Models\User;
-use App\Models\FcmToken;
-use App\Models\AppNotification;
-use App\Http\Controllers\NotificationController;
+use App\Modules\Notifications\Models\FcmToken;
+use App\Modules\Notifications\Models\AppNotification;
+use App\Modules\Notifications\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -17,11 +17,11 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class AuthService
 {
-    protected $notificationController;
+    protected $notificationService;
 
-    public function __construct(NotificationController $notificationController)
+    public function __construct(NotificationService $notificationService)
     {
-        $this->notificationController = $notificationController;
+        $this->notificationService = $notificationService;
     }
 
     /**
@@ -705,7 +705,7 @@ class AuthService
             ->filter()
             ->toArray();
 
-        $this->notificationController->sendPushNotification($title, $body, $tokens);
+        $this->notificationService->sendPushNotification($title, $body, $tokens);
     }
 
     /**
@@ -745,7 +745,7 @@ class AuthService
             ->pluck('token')
             ->toArray();
 
-        $this->notificationController->sendPushNotification($titleMessage, $bodyMessage, $tokens);
+        $this->notificationService->sendPushNotification($titleMessage, $bodyMessage, $tokens);
     }
 
     /**

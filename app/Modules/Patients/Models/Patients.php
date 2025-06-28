@@ -70,7 +70,7 @@ class Patients extends Model
 
     public function notification()
     {
-        return $this->hasMany(\App\Models\AppNotification::class, 'doctor_id');
+        return $this->hasMany(\App\Modules\Notifications\Models\AppNotification::class, 'doctor_id');
     }
 
     public function consultations()

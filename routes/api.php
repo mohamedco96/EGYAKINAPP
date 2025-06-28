@@ -219,7 +219,7 @@ Route::post('/resetpasswordverification', [ResetPasswordController::class, 'rese
 Route::post('/resetpassword', [ResetPasswordController::class, 'resetpassword']);
 Route::get('/generatePDF/{patient_id}', [PatientsController::class, 'generatePatientPDF']);
 Route::post('/send-notification', [AuthController::class, 'sendPushNotificationTest']);
-Route::post('/sendAllPushNotification', 'NotificationController@sendAllPushNotification');
+Route::post('/sendAllPushNotification', [\App\Modules\Notifications\Controllers\NotificationController::class, 'sendAllPushNotification']);
 
 // routes/api.php
 Route::post('/email/verification-notification', [EmailVerificationController::class, 'sendVerificationEmail']);
@@ -254,7 +254,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     // Route::post('/emailverification', [EmailVerificationController::class, 'verifyEmail']);
     // Route::post('/sendverificationmail', [EmailVerificationController::class, 'sendVerificationEmail']);
     // Route::post('/resendemailverification', [EmailVerificationController::class, 'sendVerificationEmail']);
-    Route::post('/storeFCM', 'NotificationController@storeFCM');
+    Route::post('/storeFCM', [\App\Modules\Notifications\Controllers\NotificationController::class, 'storeFCM']);
     Route::post('/decryptedPassword', [AuthController::class, 'decryptedPassword']);
     
 
@@ -327,13 +327,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/Postcomments/{id}', 'PostCommentsController@update');
     Route::delete('/Postcomments/{id}', 'PostCommentsController@destroy');
 
-    // AppNotification
-    Route::post('/notification', 'NotificationController@store');
-    Route::get('/notification', 'NotificationController@show');
-    Route::get('/shownotification', 'NotificationController@showNew');
-    Route::put('/notification/{id}', 'NotificationController@update');
-    Route::put('/notification', 'NotificationController@markAllAsRead');
-    Route::delete('/notification/{id}', 'NotificationController@destroy');
+    // AppNotification - Using modular structure
+    Route::post('/notification', [\App\Modules\Notifications\Controllers\NotificationController::class, 'store']);
+    Route::get('/notification', [\App\Modules\Notifications\Controllers\NotificationController::class, 'index']);
+    Route::get('/shownotification', [\App\Modules\Notifications\Controllers\NotificationController::class, 'showNew']);
+    Route::put('/notification/{id}', [\App\Modules\Notifications\Controllers\NotificationController::class, 'update']);
+    Route::put('/notification', [\App\Modules\Notifications\Controllers\NotificationController::class, 'markAllAsRead']);
+    Route::delete('/notification/{id}', [\App\Modules\Notifications\Controllers\NotificationController::class, 'destroy']);
 
     // Dose - Using modular structure
     Route::get('/dose', [\App\Modules\Doses\Controllers\DoseController::class, 'index']);

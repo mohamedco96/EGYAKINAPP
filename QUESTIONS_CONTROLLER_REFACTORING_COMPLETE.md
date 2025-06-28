@@ -3,6 +3,13 @@
 ## Summary
 The `QuestionsController` has been successfully refactored following Laravel best practices and moved to a modular structure. The refactoring maintains all existing functionality while improving code structure, readability, and maintainability, following the same pattern as the PatientsController module.
 
+## 🔧 **Important Bug Fix Applied**
+Fixed critical validation issue that was causing SQL errors when creating questions:
+- **Problem**: `section_id` field didn't have default value, causing "Field 'section_id' doesn't have a default value" error
+- **Solution**: Added comprehensive validation rules to request classes
+- **Added**: Default values for optional fields in the model
+- **Enhanced**: Error handling in service layer with try-catch blocks
+
 ## Key Improvements Implemented
 
 ### 1. **Modular Structure**
@@ -69,6 +76,16 @@ The `QuestionsController` has been successfully refactored following Laravel bes
 5. `app/Modules/Patients/Services/PatientService.php` - Updated namespace
 6. `app/Filament/Resources/QuestionsResource.php` - Updated namespace
 
+### Request Classes Enhanced:
+1. `app/Modules/Questions/Requests/StoreQuestionsRequest.php` - Added comprehensive validation rules
+2. `app/Modules/Questions/Requests/UpdateQuestionsRequest.php` - Added validation rules for updates
+
+### Model Improvements:
+1. `app/Modules/Questions/Models/Questions.php` - Added missing fillable fields, casts, and default values
+
+### Service Layer Enhancements:
+1. `app/Modules/Questions/Services/QuestionService.php` - Added error handling and data validation
+
 ### Files Moved to Backup:
 1. `app/Http/Controllers/bkp/QuestionsController.php` - Original controller backed up
 
@@ -91,6 +108,43 @@ The `QuestionsController` has been successfully refactored following Laravel bes
 - `ShowQuestitionsAnswars($sectionId, $patientId)` - Complex questions with answers
 - `update(UpdateQuestionsRequest $request, $id)` - Update with validation
 - `destroy($id)` - Delete question handling
+
+## Validation Rules Added
+
+### StoreQuestionsRequest Validation:
+- `section_id`: Required integer that exists in sections_infos table
+- `section_name`: Required string (max 255 characters)
+- `question`: Required string (question text)
+- `values`: Optional string (JSON string for options)
+- `type`: Required enum (text, number, select, multiple, checkbox, radio, date, time, datetime)
+- `keyboard_type`: Optional string (max 255 characters)
+- `mandatory`: Boolean (defaults to false)
+- `hidden`: Boolean (defaults to false)
+- `skip`: Boolean (defaults to false)
+- `sort`: Integer minimum 0 (defaults to 0)
+
+### UpdateQuestionsRequest Validation:
+- Same rules as store but with `sometimes` rule for optional updates
+- Allows partial updates while maintaining data integrity
+
+## Bug Fix Details
+
+### Original Error:
+```
+SQLSTATE[HY000]: General error: 1364 Field 'section_id' doesn't have a default value 
+(SQL: insert into `questions` (`updated_at`, `created_at`) values (...))
+```
+
+### Root Cause:
+- Request validation was empty, allowing creation without required fields
+- Model didn't have proper default values for optional fields
+- No error handling in service layer
+
+### Solution Applied:
+1. **Comprehensive Validation**: Added strict validation rules to prevent invalid data
+2. **Model Defaults**: Set default values for optional boolean and integer fields
+3. **Error Handling**: Added try-catch blocks in service methods
+4. **Data Sanitization**: Added logic to handle JSON values properly
 
 ## Technical Improvements
 

@@ -53,17 +53,45 @@ class QuestionService
      */
     public function storeQuestion(array $data): array
     {
-        $question = Questions::create($data);
+        try {
+            // Ensure required fields have default values if not provided
+            $data = array_merge([
+                'mandatory' => false,
+                'hidden' => false,
+                'skip' => false,
+                'sort' => 0,
+            ], $data);
 
-        Log::info("Question stored successfully. ID: {$question->id}");
+            // Convert values to JSON string if it's an array
+            if (isset($data['values']) && is_array($data['values'])) {
+                $data['values'] = json_encode($data['values']);
+            }
 
-        return [
-            'data' => [
-                'value' => true,
-                'data' => $question
-            ],
-            'status_code' => 201
-        ];
+            $question = Questions::create($data);
+
+            Log::info("Question stored successfully. ID: {$question->id}");
+
+            return [
+                'data' => [
+                    'value' => true,
+                    'data' => $question
+                ],
+                'status_code' => 201
+            ];
+        } catch (\Exception $e) {
+            Log::error("Failed to store question: " . $e->getMessage(), [
+                'data' => $data,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'data' => [
+                    'value' => false,
+                    'message' => 'Failed to create question: ' . $e->getMessage()
+                ],
+                'status_code' => 500
+            ];
+        }
     }
 
     /**
@@ -221,31 +249,52 @@ class QuestionService
      */
     public function updateQuestion(int $id, array $data): array
     {
-        $question = Questions::find($id);
+        try {
+            $question = Questions::find($id);
 
-        if (!$question) {
-            Log::warning("No questions found for update. ID: {$id}");
+            if (!$question) {
+                Log::warning("No questions found for update. ID: {$id}");
+                return [
+                    'data' => [
+                        'value' => false,
+                        'message' => 'No questions found.'
+                    ],
+                    'status_code' => 404
+                ];
+            }
+
+            // Convert values to JSON string if it's an array
+            if (isset($data['values']) && is_array($data['values'])) {
+                $data['values'] = json_encode($data['values']);
+            }
+
+            $question->update($data);
+
+            Log::info("Questions updated successfully. ID: {$id}");
+
+            return [
+                'data' => [
+                    'value' => true,
+                    'data' => $question,
+                    'message' => 'Questions updated successfully.'
+                ],
+                'status_code' => 200
+            ];
+        } catch (\Exception $e) {
+            Log::error("Failed to update question: " . $e->getMessage(), [
+                'id' => $id,
+                'data' => $data,
+                'error' => $e->getMessage()
+            ]);
+
             return [
                 'data' => [
                     'value' => false,
-                    'message' => 'No questions found.'
+                    'message' => 'Failed to update question: ' . $e->getMessage()
                 ],
-                'status_code' => 404
+                'status_code' => 500
             ];
         }
-
-        $question->update($data);
-
-        Log::info("Questions updated successfully. ID: {$id}");
-
-        return [
-            'data' => [
-                'value' => true,
-                'data' => $question,
-                'message' => 'Questions updated successfully.'
-            ],
-            'status_code' => 200
-        ];
     }
 
     /**

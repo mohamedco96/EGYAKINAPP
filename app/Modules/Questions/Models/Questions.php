@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\PatientHistory;
 use App\Models\SectionsInfo;
+use App\Models\Answers;
 
 class Questions extends Model
 {
@@ -25,6 +26,8 @@ class Questions extends Model
         'keyboard_type',
         'mandatory',
         'hidden',
+        'skip',
+        'sort',
     ];
 
     /**
@@ -36,7 +39,21 @@ class Questions extends Model
         'values' => 'array',
         'mandatory' => 'boolean',
         'hidden' => 'boolean',
-        'section_id' => 'integer'
+        'skip' => 'boolean',
+        'section_id' => 'integer',
+        'sort' => 'integer',
+    ];
+
+    /**
+     * The attributes with their default values.
+     *
+     * @var array
+     */
+    protected $attributes = [
+        'mandatory' => false,
+        'hidden' => false,
+        'skip' => false,
+        'sort' => 0,
     ];
 
     /**

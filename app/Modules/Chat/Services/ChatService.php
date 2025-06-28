@@ -6,7 +6,7 @@ use App\Modules\Chat\Models\AIConsultation;
 use App\Modules\Chat\Models\DoctorMonthlyTrial;
 use App\Models\User;
 use App\Models\SectionsInfo;
-use App\Models\Questions;
+use App\Modules\Questions\Models\Questions;
 use App\Services\ChatGPTService;
 use App\Modules\Patients\Models\Patients;
 use Carbon\Carbon;

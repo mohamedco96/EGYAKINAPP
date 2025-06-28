@@ -3,7 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\QuestionsResource\Pages;
-use App\Models\Questions;
+use App\Modules\Questions\Models\Questions;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Form;

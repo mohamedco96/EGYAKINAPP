@@ -3,7 +3,7 @@
 namespace App\Modules\Sections\Services;
 
 use App\Models\Answers;
-use App\Models\Questions;
+use App\Modules\Questions\Models\Questions;
 use App\Models\SectionsInfo;
 use App\Modules\Patients\Models\PatientStatus;
 use Illuminate\Support\Facades\Log;

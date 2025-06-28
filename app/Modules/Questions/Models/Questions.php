@@ -1,9 +1,11 @@
 <?php
 
-namespace App\Models;
+namespace App\Modules\Questions\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\PatientHistory;
+use App\Models\SectionsInfo;
 
 class Questions extends Model
 {

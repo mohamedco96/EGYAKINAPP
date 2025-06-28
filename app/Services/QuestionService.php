@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Questions;
+use App\Modules\Questions\Models\Questions;
 use Illuminate\Support\Facades\Log;
 
 class QuestionService

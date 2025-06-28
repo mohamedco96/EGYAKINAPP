@@ -5,7 +5,7 @@ namespace App\Modules\Patients\Services;
 use App\Modules\Patients\Models\Patients;
 use App\Models\Answers;
 use App\Modules\Patients\Models\PatientStatus;
-use App\Models\Questions;
+use App\Modules\Questions\Models\Questions;
 use App\Models\User;
 use App\Models\Score;
 use App\Models\ScoreHistory;

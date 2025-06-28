@@ -291,13 +291,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/patientFilters', [PatientsController::class, 'filteredPatients']);
     Route::post('/exportFilteredPatients', [PatientsController::class, 'exportFilteredPatients']);
 
-    // Questions
-    Route::get('/questions', 'QuestionsController@index');
-    Route::post('/questions', 'QuestionsController@store');
-    Route::get('/questions/{section_id}', 'QuestionsController@show');
-    Route::get('/questions/{section_id}/{patient_id}', 'QuestionsController@ShowQuestitionsAnswars');
-    Route::put('/questions/{id}', 'QuestionsController@update');
-    Route::delete('/questions/{id}', 'QuestionsController@destroy');
+    // Questions - Using modular structure
+    Route::get('/questions', [\App\Modules\Questions\Controllers\QuestionsController::class, 'index']);
+    Route::post('/questions', [\App\Modules\Questions\Controllers\QuestionsController::class, 'store']);
+    Route::get('/questions/{section_id}', [\App\Modules\Questions\Controllers\QuestionsController::class, 'show']);
+    Route::get('/questions/{section_id}/{patient_id}', [\App\Modules\Questions\Controllers\QuestionsController::class, 'ShowQuestitionsAnswars']);
+    Route::put('/questions/{id}', [\App\Modules\Questions\Controllers\QuestionsController::class, 'update']);
+    Route::delete('/questions/{id}', [\App\Modules\Questions\Controllers\QuestionsController::class, 'destroy']);
 
     // Comment
     Route::get('/comment', 'CommentController@index');

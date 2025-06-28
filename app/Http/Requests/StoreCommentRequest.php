@@ -2,27 +2,9 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-
-class StoreCommentRequest extends FormRequest
+// Backward compatibility layer - extends the modular StoreCommentRequest
+class StoreCommentRequest extends \App\Modules\Comments\Requests\StoreCommentRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
-    public function authorize(): bool
-    {
-        return true;
-    }
-
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>
-     */
-    public function rules(): array
-    {
-        return [
-            //
-        ];
-    }
+    // This class serves as a backward compatibility layer
+    // All functionality is inherited from the modular StoreCommentRequest
 }

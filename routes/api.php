@@ -299,12 +299,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/questions/{id}', [\App\Modules\Questions\Controllers\QuestionsController::class, 'update']);
     Route::delete('/questions/{id}', [\App\Modules\Questions\Controllers\QuestionsController::class, 'destroy']);
 
-    // Comment
-    Route::get('/comment', 'CommentController@index');
-    Route::post('/comment', 'CommentController@store');
-    Route::get('/comment/{patient_id}', 'CommentController@show');
-    Route::put('/comment/{patient_id}', 'CommentController@update');
-    Route::delete('/comment/{patient_id}', 'CommentController@destroy');
+    // Comment - Using modular structure
+    Route::get('/comment', [\App\Modules\Comments\Controllers\CommentController::class, 'index']);
+    Route::post('/comment', [\App\Modules\Comments\Controllers\CommentController::class, 'store']);
+    Route::get('/comment/{patient_id}', [\App\Modules\Comments\Controllers\CommentController::class, 'show']);
+    Route::put('/comment/{patient_id}', [\App\Modules\Comments\Controllers\CommentController::class, 'update']);
+    Route::delete('/comment/{patient_id}', [\App\Modules\Comments\Controllers\CommentController::class, 'destroy']);
 
     // Contact
     Route::get('/contact', 'ContactController@index');

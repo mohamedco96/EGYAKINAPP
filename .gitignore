@@ -22,6 +22,28 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+# EGYAKIN Project Organization
+# =========================
+# The following directories contain organized project documentation and scripts
+# and should be tracked in version control:
+
+# Documentation (organized)
+!docs/
+!docs/**/*.md
+!docs/README.md
+
+# Scripts (organized) 
+!scripts/
+!scripts/**/*.php
+!scripts/README.md
+
+# Ensure organized structure is tracked
+!*.md
+
+# Ensure documentation and scripts are tracked
+!/docs/
+!/scripts/
 *.zip
 composer.lock
 storage/framework

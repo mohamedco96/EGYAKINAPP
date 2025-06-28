@@ -21,6 +21,72 @@ Laravel is a web application framework with expressive, elegant syntax. We belie
 
 Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
+# EGYAKIN Project
+
+This is the EGYAKIN medical application built with Laravel, featuring a modular architecture and comprehensive patient management system.
+
+## 📁 Project Organization
+
+This project follows a clean, modular architecture with organized documentation and scripts:
+
+### 📚 Documentation (`docs/`)
+- **Refactoring Docs**: Complete documentation for 11 refactored modules
+- **Feature Docs**: Implementation guides for new features  
+- **Bug Fix Docs**: Resolution documentation for fixed issues
+- [📖 Full Documentation Index](docs/README.md)
+
+### 🧪 Testing & Verification (`scripts/`)
+- **Test Scripts**: Module functionality testing
+- **Verification Scripts**: Feature implementation verification
+- [⚡ Scripts Usage Guide](scripts/README.md)
+
+### 🏗️ Modular Architecture (`app/Modules/`)
+**Completed Modules**: Comments, Questions, Recommendations, Notifications, Settings, RolePermission, Doses, Chat, Achievement, Sections
+
+Each module follows Laravel best practices:
+- Dependency injection
+- Service layer pattern
+- Form request validation
+- Comprehensive error handling
+- Database transactions
+
+### 📊 Project Status
+- ✅ **11 Modules Refactored**
+- ✅ **16 Documentation Files** 
+- ✅ **8 Test/Verification Scripts**
+- ✅ **Clean File Organization**
+
+[📋 Comprehensive Status Report](docs/PROJECT_STATUS_COMPREHENSIVE.md)
+
+## 🚀 Quick Start
+
+### Installation
+```bash
+# Install dependencies
+composer install
+npm install
+
+# Environment setup
+cp .env.example .env
+php artisan key:generate
+
+# Database setup
+php artisan migrate
+php artisan db:seed
+```
+
+### Development
+```bash
+# Start development server
+php artisan serve
+
+# Start asset compilation
+npm run dev
+
+# Run tests
+php artisan test
+```
+
 ## Learning Laravel
 
 Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.

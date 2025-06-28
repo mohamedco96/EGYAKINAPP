@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\GroupController;
+use App\Http\Controllers\FeedPostController;
 use App\Modules\Recommendations\Controllers\RecommendationController;
 
 /*
@@ -328,7 +329,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::delete('/Postcomments/{id}', [\App\Modules\Posts\Controllers\PostCommentsController::class, 'destroy']);
 
     // AppNotification - Using modular structure
-    Route::post('/notification', [\App\Modules\Notifications\Controllers\NotificationController::class, 'store']);
+    Route::post('/`notification`', [\App\Modules\Notifications\Controllers\NotificationController::class, 'store']);
     Route::get('/notification', [\App\Modules\Notifications\Controllers\NotificationController::class, 'index']);
     Route::get('/shownotification', [\App\Modules\Notifications\Controllers\NotificationController::class, 'showNew']);
     Route::put('/notification/{id}', [\App\Modules\Notifications\Controllers\NotificationController::class, 'update']);

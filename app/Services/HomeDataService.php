@@ -6,7 +6,7 @@ use App\Modules\Patients\Models\Patients;
 use App\Modules\Patients\Services\PatientService;
 use App\Models\User;
 use App\Models\FeedPost;
-use App\Models\Posts;
+use App\Modules\Posts\Models\Posts;
 use App\Models\Hashtag;
 use App\Models\Group;
 use App\Modules\Notifications\Models\AppNotification;

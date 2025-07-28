@@ -12,7 +12,7 @@ use App\Services\QuestionService;
 use App\Services\FileUploadService;
 use App\Modules\Patients\Services\PatientFilterService;
 use App\Services\PdfGenerationService;
-use App\Models\Questions;
+use App\Modules\Questions\Models\Questions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;

@@ -135,11 +135,25 @@ class QuestionService
             case 'files':
                 $answer = $questionAnswers->first();
                 if (!$answer) {
+                    Log::info("PDF Debug - No answer found for file question $questionId");
                     return [];
                 }
 
-                $filePaths = json_decode($answer->answer);
+                Log::info("PDF Debug - Raw file answer for question $questionId: " . print_r($answer->answer, true));
+                Log::info("PDF Debug - Raw file answer type for question $questionId: " . gettype($answer->answer));
+                
+                // Check if the answer is already a comma-separated string
+                if (is_string($answer->answer) && strpos($answer->answer, ',') !== false) {
+                    Log::info("PDF Debug - Answer appears to be comma-separated string, splitting it");
+                    $filePaths = array_map('trim', explode(',', $answer->answer));
+                } else {
+                    $filePaths = json_decode($answer->answer);
+                }
+                
+                Log::info("PDF Debug - Decoded file paths for question $questionId: " . print_r($filePaths, true));
+                
                 if (!is_array($filePaths)) {
+                    Log::info("PDF Debug - File paths is not array for question $questionId, type: " . gettype($filePaths));
                     return [];
                 }
 
@@ -147,7 +161,8 @@ class QuestionService
                 foreach ($filePaths as $filePath) {
                     $fileUrls[] = \Illuminate\Support\Facades\Storage::disk('public')->url($filePath);
                 }
-
+                
+                Log::info("PDF Debug - Final file URLs for question $questionId: " . print_r($fileUrls, true));
                 return $fileUrls;
 
             default:

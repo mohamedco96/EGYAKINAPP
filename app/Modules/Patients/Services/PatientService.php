@@ -475,7 +475,7 @@ class PatientService
         if ($this->isFileTypeQuestion($questionId)) {
             Log::info('Processing file upload for question', ['questionId' => $questionId]);
             $fileUrls = $this->handleFileUploads($value);
-            $this->updateAnswer($questionId, json_encode($fileUrls), $patientId, false, $sectionId);
+            $this->updateAnswer($questionId, $fileUrls, $patientId, false, $sectionId);
         } else {
             if (isset($value['answers'])) {
                 $this->updateAnswer($questionId, json_encode($value['answers']), $patientId, false, $sectionId);
@@ -493,7 +493,7 @@ class PatientService
     {
         if ($this->isFileTypeQuestion($questionId)) {
             $fileUrls = $this->handleFileUploads($value);
-            $this->saveAnswer($doctorId, $questionId, json_encode($fileUrls), $patientId, false, $sectionId);
+            $this->saveAnswer($doctorId, $questionId, $fileUrls, $patientId, false, $sectionId);
         } else {
             if (isset($value['answers'])) {
                 $this->saveAnswer($doctorId, $questionId, $value['answers'], $patientId, false, $sectionId);

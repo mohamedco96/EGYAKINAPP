@@ -22,6 +22,15 @@ if (!empty($answers)) {
     error_log('PDF Template Debug - Sample answer structure: ' . print_r($sampleAnswer, true));
 }
 
+// Debug: Check file questions specifically
+foreach ([145, 146, 147, 148] as $fileQuestionId) {
+    if (isset($answers[$fileQuestionId])) {
+        error_log("PDF Template Debug - File question $fileQuestionId data: " . print_r($answers[$fileQuestionId], true));
+    } else {
+        error_log("PDF Template Debug - File question $fileQuestionId not found in answers");
+    }
+}
+
 // Generic function to process a question based on its type
 function processQuestion($answers, $questionId) {
     if (!isset($answers[$questionId])) {
@@ -46,7 +55,12 @@ function processQuestion($answers, $questionId) {
             $result = $question['answer'] ?? null;
     }
 
-    // Ensure we always return a string for display
+    // Don't convert file arrays to strings - let safeProcessQuestion handle them
+    if ($type === 'files') {
+        return $result; // Return array as-is for files
+    }
+
+    // Ensure we always return a string for display (except for files)
     if (is_array($result)) {
         error_log("PDF Template Debug - Converting array to string for question $questionId: " . print_r($result, true));
         $result = implode(', ', $result);
@@ -982,11 +996,18 @@ function safeProcessQuestion($answers, $questionId) {
             <h2>Attached Files</h2>
             @foreach ([145, 146, 147, 148] as $questionId)
                 @php
+                    // Debug: Log the raw question data
+                    error_log("PDF Template Debug - Raw question data for $questionId: " . print_r($answers[$questionId] ?? 'NOT_FOUND', true));
+                    
                     $files = safeProcessQuestion($answers, $questionId);
                     $questionName = $answers[$questionId]['question'] ?? 'File';
                     
                     // Debug logging
                     error_log("PDF Template Debug - Processing files for question $questionId: " . print_r($files, true));
+                    error_log("PDF Template Debug - Files type: " . gettype($files));
+                    if (is_array($files)) {
+                        error_log("PDF Template Debug - Files count: " . count($files));
+                    }
                 @endphp
                 
                 @if($files && is_array($files) && count($files) > 0)

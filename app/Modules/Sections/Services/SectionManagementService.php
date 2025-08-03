@@ -254,14 +254,19 @@ class SectionManagementService
 
                 foreach ($questionAnswers as $ans) {
                     if ($ans->type !== 'other') {
-                        // Check if the answer is already JSON encoded
-                        $decodedAnswer = json_decode($ans->answer, true);
-                        if (json_last_error() === JSON_ERROR_NONE && is_array($decodedAnswer)) {
-                            // Answer is JSON encoded, use the decoded array
-                            $result['answers'] = $decodedAnswer;
+                        // Check if the answer is already an array
+                        if (is_array($ans->answer)) {
+                            $result['answers'] = $ans->answer;
                         } else {
-                            // Answer is a plain string, add it to the array
-                            $result['answers'][] = $ans->answer;
+                            // Check if the answer is JSON encoded
+                            $decodedAnswer = json_decode($ans->answer, true);
+                            if (json_last_error() === JSON_ERROR_NONE && is_array($decodedAnswer)) {
+                                // Answer is JSON encoded, use the decoded array
+                                $result['answers'] = $decodedAnswer;
+                            } else {
+                                // Answer is a plain string, add it to the array
+                                $result['answers'][] = $ans->answer;
+                            }
                         }
                     }
                     if ($ans->type === 'other') {

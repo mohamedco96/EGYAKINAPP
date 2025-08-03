@@ -4,9 +4,12 @@ namespace App\Modules\Recommendations\Services;
 
 use App\Modules\Patients\Models\Patients;
 use App\Modules\Recommendations\Models\Recommendation;
+use App\Modules\Patients\Models\PatientStatus;
+use App\Models\SectionsInfo;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
@@ -76,7 +79,34 @@ class RecommendationService
                     ]);
                 });
 
-                return $patient->recommendations()->saveMany($recommendationModels);
+                $savedRecommendations = $patient->recommendations()->saveMany($recommendationModels);
+
+                // Get the section ID for "Discharge Recommendations"
+                $dischargeSection = SectionsInfo::where('section_name', 'Discharge Recommendations')->first();
+                
+                if ($dischargeSection) {
+                    $doctorId = Auth::id();
+                    
+                    // Check if section status already exists
+                    $patientSectionStatus = PatientStatus::where('patient_id', $patientId)
+                        ->where('key', 'section_' . $dischargeSection->id)
+                        ->first();
+
+                    if ($patientSectionStatus) {
+                        // Update existing section status
+                        $patientSectionStatus->touch();
+                    } else {
+                        // Create new section status
+                        PatientStatus::create([
+                            'doctor_id' => $doctorId,
+                            'patient_id' => $patientId,
+                            'key' => 'section_' . $dischargeSection->id,
+                            'status' => true
+                        ]);
+                    }
+                }
+
+                return $savedRecommendations;
             });
 
             Log::info('Successfully created recommendations', ['patient_id' => $patientId, 'count' => count($recommendations)]);

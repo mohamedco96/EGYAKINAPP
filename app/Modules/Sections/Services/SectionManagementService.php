@@ -203,11 +203,15 @@ class SectionManagementService
             'race' => '149',
         ];
 
+        // Get all answers in a single query
+        $answers = Answers::where('patient_id', $patientId)
+            ->whereIn('question_id', array_values($questionIds))
+            ->pluck('answer', 'question_id')
+            ->toArray();
+
         $data = [];
         foreach ($questionIds as $key => $questionId) {
-            $data[$key] = Answers::where('patient_id', $patientId)
-                ->where('question_id', $questionId)
-                ->value('answer');
+            $data[$key] = $answers[$questionId] ?? null;
         }
 
         return $data;

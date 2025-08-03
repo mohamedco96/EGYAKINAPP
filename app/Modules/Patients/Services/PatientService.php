@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Carbon;
+use App\Services\FileUploadService;
 
 class PatientService
 {
@@ -265,7 +266,7 @@ class PatientService
     }
 
     /**
-     * Send notifications about new patient creation
+     * Send notifications to all doctors when a new patient is created
      */
     private function sendNewPatientNotifications(User $user, int $patientId, ?string $patientName): void
     {
@@ -273,13 +274,21 @@ class PatientService
             ->where('isSyndicateCardRequired', 'Verified')
             ->pluck('id');
 
+        // Bulk insert notifications instead of individual creates
+        $notificationsToInsert = [];
         foreach ($doctors as $doctorId) {
-            AppNotification::create([
+            $notificationsToInsert[] = [
                 'doctor_id' => $doctorId,
                 'type' => 'New Patient',
                 'content' => 'New Patient was created',
-                'patient_id' => $patientId
-            ]);
+                'patient_id' => $patientId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        if (!empty($notificationsToInsert)) {
+            AppNotification::insert($notificationsToInsert);
         }
 
         $title = 'New Patient was created 📣';
@@ -294,12 +303,28 @@ class PatientService
      */
     private function updateExistingSection(array $requestData, int $patientId, int $doctorId, int $sectionId, array $questionSectionIds): void
     {
+        // Extract question IDs from request data
+        $questionIds = [];
+        foreach ($requestData as $key => $value) {
+            if (preg_match('/^\d+$/', $key)) {
+                $questionIds[] = (int)$key;
+            }
+        }
+
+        if (empty($questionIds)) {
+            return;
+        }
+
+        // Get all existing answers in a single query
+        $existingAnswers = Answers::where('patient_id', $patientId)
+            ->whereIn('question_id', $questionIds)
+            ->pluck('question_id')
+            ->toArray();
+
         foreach ($requestData as $key => $value) {
             if (preg_match('/^\d+$/', $key)) {
                 $questionId = (int)$key;
-                $questionExists = Answers::where('patient_id', $patientId)
-                    ->where('question_id', $questionId)
-                    ->exists();
+                $questionExists = in_array($questionId, $existingAnswers);
 
                 if ($questionExists) {
                     $this->updateAnswerLogic($questionId, $value, $patientId, $sectionId);
@@ -315,12 +340,28 @@ class PatientService
      */
     private function createNewSection(array $requestData, int $patientId, int $doctorId, int $sectionId, array $questionSectionIds): void
     {
+        // Extract question IDs from request data
+        $questionIds = [];
+        foreach ($requestData as $key => $value) {
+            if (preg_match('/^\d+$/', $key)) {
+                $questionIds[] = (int)$key;
+            }
+        }
+
+        if (empty($questionIds)) {
+            return;
+        }
+
+        // Get all existing answers in a single query
+        $existingAnswers = Answers::where('patient_id', $patientId)
+            ->whereIn('question_id', $questionIds)
+            ->pluck('question_id')
+            ->toArray();
+
         foreach ($requestData as $key => $value) {
             if (preg_match('/^\d+$/', $key)) {
                 $questionId = (int)$key;
-                $questionExists = Answers::where('patient_id', $patientId)
-                    ->where('question_id', $questionId)
-                    ->exists();
+                $questionExists = in_array($questionId, $existingAnswers);
 
                 if ($questionExists) {
                     $this->updateAnswerLogic($questionId, $value, $patientId, $sectionId);
@@ -423,7 +464,16 @@ class PatientService
      */
     private function updateAnswerLogic(int $questionId, $value, int $patientId, int $sectionId): void
     {
+        Log::info('updateAnswerLogic called', [
+            'questionId' => $questionId,
+            'value_type' => gettype($value),
+            'value' => $value,
+            'patientId' => $patientId,
+            'sectionId' => $sectionId
+        ]);
+
         if ($this->isFileTypeQuestion($questionId)) {
+            Log::info('Processing file upload for question', ['questionId' => $questionId]);
             $fileUrls = $this->handleFileUploads($value);
             $this->updateAnswer($questionId, json_encode($fileUrls), $patientId, false, $sectionId);
         } else {
@@ -468,9 +518,48 @@ class PatientService
      */
     private function handleFileUploads(array $files): array
     {
-        // This method would contain the file upload logic
-        // Implementation would be moved from the controller
-        return [];
+        try {
+            Log::info('File upload data received', [
+                'files' => $files,
+                'files_type' => gettype($files),
+                'files_count' => count($files)
+            ]);
+
+            // Check if files is empty or not in expected format
+            if (empty($files)) {
+                Log::warning('No files provided for upload');
+                return [];
+            }
+
+            // Validate file structure
+            foreach ($files as $index => $file) {
+                Log::info("File {$index} structure", [
+                    'file' => $file,
+                    'has_file_data' => isset($file['file_data']),
+                    'has_file_name' => isset($file['file_name']),
+                    'file_data_length' => isset($file['file_data']) ? strlen($file['file_data']) : 0
+                ]);
+            }
+
+            // Use the FileUploadService to handle the uploads
+            $fileUploadService = app(FileUploadService::class);
+            $result = $fileUploadService->handleQuestionFileUploads($files);
+            
+            Log::info('File upload completed', [
+                'result' => $result,
+                'result_count' => count($result),
+                'result_type' => gettype($result)
+            ]);
+            
+            return $result;
+        } catch (\Exception $e) {
+            Log::error('File upload failed in PatientService', [
+                'error' => $e->getMessage(),
+                'files' => $files,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return [];
+        }
     }
 
     /**
@@ -502,7 +591,15 @@ class PatientService
     {
         $question = Questions::find($questionId);
         if ($question && $question->type === 'files') {
+            Log::info('Updating file answer', [
+                'questionId' => $questionId,
+                'answerText_before_encode' => $answerText,
+                'answerText_type' => gettype($answerText)
+            ]);
             $answerText = json_encode($answerText);
+            Log::info('File answer after JSON encode', [
+                'answerText_after_encode' => $answerText
+            ]);
         }
 
         Patients::where('id', $patientId)->update(['updated_at' => now()]);

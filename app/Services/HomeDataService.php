@@ -224,7 +224,15 @@ class HomeDataService
      */
     private function getTopDoctors(): \Illuminate\Support\Collection
     {
-        return User::select('users.id', 'users.name', 'users.image', 'users.syndicate_card', 'users.isSyndicateCardRequired', 'users.version')
+        return User::select(
+                'users.id', 
+                'users.name', 
+                'users.image', 
+                'users.syndicate_card', 
+                'users.isSyndicateCardRequired', 
+                'users.version',
+                'scores.score as score_value'
+            )
             ->leftJoin('scores', 'users.id', '=', 'scores.doctor_id')
             ->withCount(['patients', 'posts', 'saves'])
             ->orderByDesc('patients_count')
@@ -240,7 +248,7 @@ class HomeDataService
                     'isSyndicateCardRequired' => $user->isSyndicateCardRequired,
                     'version' => $user->version,
                     'patients_count' => (string) $user->patients_count,
-                    'score' => (string) ($user->score->score ?? 0),
+                    'score' => (string) ($user->score_value ?? 0),
                     'posts_count' => (string) $user->posts_count,
                     'saved_posts_count' => (string) $user->saves_count,
                 ];

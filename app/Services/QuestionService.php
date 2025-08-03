@@ -110,7 +110,20 @@ class QuestionService
 
                 foreach ($questionAnswers as $ans) {
                     if ($ans->type !== 'other') {
-                        $answerData['answers'] = $ans->answer;
+                        // Check if the answer is already an array
+                        if (is_array($ans->answer)) {
+                            $answerData['answers'] = $ans->answer;
+                        } else {
+                            // Check if the answer is JSON encoded
+                            $decodedAnswer = json_decode($ans->answer, true);
+                            if (json_last_error() === JSON_ERROR_NONE && is_array($decodedAnswer)) {
+                                // Answer is JSON encoded, use the decoded array
+                                $answerData['answers'] = $decodedAnswer;
+                            } else {
+                                // Answer is a plain string, use it directly
+                                $answerData['answers'] = $ans->answer;
+                            }
+                        }
                     }
                     if ($ans->type === 'other') {
                         $answerData['other_field'] = $ans->answer;

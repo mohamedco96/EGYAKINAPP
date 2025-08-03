@@ -224,6 +224,11 @@ function processFileAnswers($answers, $questionId) {
             background-color: #f5cfee;
             font-weight: bold;
         }
+
+        .Discharge-Recommendations-background {
+            background-color: #d4edda;
+            font-weight: bold;
+        }
     </style>
 </head>
 
@@ -868,6 +873,38 @@ function processFileAnswers($answers, $questionId) {
     </div>
     <!--  -->
 
+    <!-- Discharge Recommendations Section -->
+    @if(isset($recommendations) && $recommendations->count() > 0)
+    <div class="row">
+        <div class="col-md-12">
+            <div class="section">
+                <h2>Discharge Recommendations</h2>
+                <table border="1" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th class="Discharge-Recommendations-background">Dose Name</th>
+                            <th class="Discharge-Recommendations-background">Dose</th>
+                            <th class="Discharge-Recommendations-background">Route</th>
+                            <th class="Discharge-Recommendations-background">Frequency</th>
+                            <th class="Discharge-Recommendations-background">Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($recommendations as $recommendation)
+                        <tr>
+                            <td>{{ $recommendation->dose_name }}</td>
+                            <td>{{ $recommendation->dose }}</td>
+                            <td>{{ $recommendation->route }}</td>
+                            <td>{{ $recommendation->frequency }}</td>
+                            <td>{{ $recommendation->duration }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    @endif
 
 <!-- Files Section -->
 <div class="row">

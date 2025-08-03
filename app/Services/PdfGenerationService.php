@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Services\QuestionService;
+use App\Modules\Recommendations\Models\Recommendation;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use PDF;
@@ -24,9 +25,13 @@ class PdfGenerationService
         try {
             $questionData = $this->questionService->getQuestionsWithAnswersForPatient($patientId);
 
+            // Get recommendations for the patient
+            $recommendations = Recommendation::where('patient_id', $patientId)->get();
+
             $pdfData = [
                 'patient_id' => $patientId,
                 'questionData' => $questionData,
+                'recommendations' => $recommendations,
             ];
 
             $pdf = PDF::loadView('patient_pdf2', $pdfData);

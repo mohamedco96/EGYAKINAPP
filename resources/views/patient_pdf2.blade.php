@@ -13,16 +13,27 @@ function processQuestion($answers, $questionId) {
     $question = $answers[$questionId];
     $type = $question['type'] ?? 'string';
 
+    $result = null;
     switch ($type) {
         case 'multiple':
-            return processMultipleAnswers($answers, $questionId);
+            $result = processMultipleAnswers($answers, $questionId);
+            break;
         case 'select':
-            return processSelectAnswer($answers, $questionId);
+            $result = processSelectAnswer($answers, $questionId);
+            break;
         case 'files': // New type to handle file paths
-            return processFileAnswers($answers, $questionId);
+            $result = processFileAnswers($answers, $questionId);
+            break;
         default: // string or other types
-            return $question['answer'] ?? null;
+            $result = $question['answer'] ?? null;
     }
+
+    // Ensure we always return a string for display
+    if (is_array($result)) {
+        $result = implode(', ', $result);
+    }
+
+    return $result;
 }
 
 // Helper function to process "multiple" type answers
@@ -33,9 +44,11 @@ function processMultipleAnswers($answers, $questionId) {
     $answerData = $question['answer'] ?? [];
     $answersArray = $answerData['answers'] ?? [];
     
-    // If answers is a string, convert it to an array
+    // Handle different data types for answersArray
     if (is_string($answersArray)) {
         $answersArray = [$answersArray];
+    } elseif (!is_array($answersArray)) {
+        $answersArray = [];
     }
     
     $filteredAnswers = array_filter($answersArray, function($answer) {

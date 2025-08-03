@@ -131,8 +131,8 @@ function processFileAnswers($answers, $questionId) {
         return url('storage/' . str_replace('\\/', '/', $filePath));
     }, $filePaths);
 
-    // Return as comma-separated string for display
-    return implode(', ', $fileUrls);
+    // Return array of URLs for individual display
+    return $fileUrls;
 }
 
 // Safe wrapper for processQuestion to prevent array to string conversion errors
@@ -140,7 +140,12 @@ function safeProcessQuestion($answers, $questionId) {
     try {
         $result = processQuestion($answers, $questionId);
         
-        // Ensure result is always a string
+        // Special handling for file arrays - return as-is for display in files section
+        if (is_array($result) && isset($answers[$questionId]['type']) && $answers[$questionId]['type'] === 'files') {
+            return $result; // Return array for files to display individually
+        }
+        
+        // Ensure we always return a string for display (except for files)
         if (is_array($result)) {
             error_log("PDF Template Warning - processQuestion returned array for question $questionId, converting to string");
             $result = implode(', ', $result);
@@ -979,20 +984,33 @@ function safeProcessQuestion($answers, $questionId) {
                 @php
                     $files = safeProcessQuestion($answers, $questionId);
                     $questionName = $answers[$questionId]['question'] ?? 'File';
+                    
+                    // Debug logging
+                    error_log("PDF Template Debug - Processing files for question $questionId: " . print_r($files, true));
                 @endphp
                 
-                @if($files)
+                @if($files && is_array($files) && count($files) > 0)
                     <div class="file-group">
-                        @foreach((array)$files as $fileUrl)
+                        <h4>{{ $questionName }}</h4>
+                        @foreach($files as $index => $fileUrl)
                             <div class="file-link">
                                 <a href="{{ $fileUrl }}" target="_blank" title="{{ basename($fileUrl) }}">
                                     {{ $questionName }}
-                                    @if(count((array)$files) > 1)
-                                        (File {{ $loop->iteration }})
+                                    @if(count($files) > 1)
+                                        (File {{ $index + 1 }})
                                     @endif
                                 </a>
                             </div>
                         @endforeach
+                    </div>
+                @elseif($files && is_string($files) && !empty($files))
+                    <div class="file-group">
+                        <h4>{{ $questionName }}</h4>
+                        <div class="file-link">
+                            <a href="{{ $files }}" target="_blank" title="{{ basename($files) }}">
+                                {{ $questionName }}
+                            </a>
+                        </div>
                     </div>
                 @endif
             @endforeach

@@ -3,11 +3,8 @@
 namespace App\Modules\Patients\Services;
 
 use App\Modules\Patients\Models\Patients;
-use App\Modules\Patients\Services\PatientService;
-use App\Models\Questions;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
+use Illuminate\Support\Facades\Auth;
 
 class PatientFilterService
 {
@@ -36,10 +33,10 @@ class PatientFilterService
             $patients = $patientsQuery->with([
                 'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired',
                 'status:id,patient_id,key,status',
-                'answers:id,patient_id,answer,question_id'
+                'answers:id,patient_id,answer,question_id',
             ])
-            ->latest('updated_at')
-            ->get();
+                ->latest('updated_at')
+                ->get();
 
             $transformedPatients = $patients->map(function ($patient) {
                 return $this->transformPatientData($patient);
@@ -54,7 +51,7 @@ class PatientFilterService
                     'last_page' => 1,
                     'from' => 1,
                     'to' => $patients->count(),
-                ]
+                ],
             ];
         }
 
@@ -62,10 +59,10 @@ class PatientFilterService
         $patients = $patientsQuery->with([
             'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired',
             'status:id,patient_id,key,status',
-            'answers:id,patient_id,answer,question_id'
+            'answers:id,patient_id,answer,question_id',
         ])
-        ->latest('updated_at')
-        ->paginate($perPage, ['*'], 'page', $page);
+            ->latest('updated_at')
+            ->paginate($perPage, ['*'], 'page', $page);
 
         $transformedPatients = $patients->map(function ($patient) {
             return $this->transformPatientData($patient);
@@ -80,7 +77,7 @@ class PatientFilterService
                 'last_page' => $patients->lastPage(),
                 'from' => $patients->firstItem(),
                 'to' => $patients->lastItem(),
-            ]
+            ],
         ];
     }
 
@@ -92,18 +89,18 @@ class PatientFilterService
         $user = Auth::user();
         $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
 
-        $query = $allPatients 
+        $query = $allPatients
             ? Patients::select('id', 'doctor_id', 'updated_at')
             : $user->patients()->select('id', 'doctor_id', 'updated_at');
 
-        $patients = $query->when(!$isAdminOrTester, function ($query) {
-                return $query->where('hidden', false);
-            })
+        $patients = $query->when(! $isAdminOrTester, function ($query) {
+            return $query->where('hidden', false);
+        })
             ->with([
-                'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version',
-                'status:id,patient_id,key,status',
-                'answers:id,patient_id,answer,question_id'
-            ])
+            'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version',
+            'status:id,patient_id,key,status',
+            'answers:id,patient_id,answer,question_id',
+        ])
             ->latest('updated_at')
             ->get();
 
@@ -124,7 +121,7 @@ class PatientFilterService
     private function applyFilters($query, $filters): void
     {
         $filters->each(function ($value, $questionID) use ($query) {
-            if (str_starts_with((string)$questionID, '00') || is_null($value)) {
+            if (str_starts_with((string) $questionID, '00') || is_null($value)) {
                 return;
             }
 
@@ -145,7 +142,7 @@ class PatientFilterService
             } else {
                 // Handle answer filters
                 $query->whereHas('answers', function ($answerQuery) use ($questionID, $value) {
-                    $quotedValue = '"' . $value . '"';
+                    $quotedValue = '"'.$value.'"';
                     $answerQuery->where('question_id', $questionID)
                         ->where('answer', $quotedValue);
                 });
@@ -166,7 +163,7 @@ class PatientFilterService
 
         return [
             'id' => $patient->id,
-            'doctor_id' => (int)$patient->doctor_id,
+            'doctor_id' => (int) $patient->doctor_id,
             'name' => $nameAnswer,
             'hospital' => $hospitalAnswer,
             'updated_at' => $patient->updated_at,
@@ -176,7 +173,7 @@ class PatientFilterService
                 'patient_id' => $patient->id,
                 'submit_status' => $submitStatus ?? false,
                 'outcome_status' => $outcomeStatus ?? false,
-            ]
+            ],
         ];
     }
 }

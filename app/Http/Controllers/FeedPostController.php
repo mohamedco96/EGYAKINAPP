@@ -7,25 +7,23 @@ use App\Models\FeedPostComment;
 use App\Models\FeedPostCommentLike;
 use App\Models\FeedPostLike;
 use App\Models\FeedSaveLike;
+use App\Models\Group;
+use App\Models\Hashtag;
+use App\Models\Poll;
+use App\Models\PollOption;
+use App\Models\User;
+use App\Modules\Notifications\Models\AppNotification;
+use App\Modules\Notifications\Models\FcmToken;
+use App\Modules\Notifications\Services\NotificationService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Auth; // If you have a separate PollOption model
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\MainController;
-use App\Models\Hashtag;
-use App\Models\Group;
-use App\Modules\Notifications\Models\AppNotification;
-use App\Models\User;
-use App\Models\Poll;
-use App\Models\PollOption; // If you have a separate PollOption model
-use App\Models\PollVote;
-use App\Modules\Notifications\Services\NotificationService;
-use App\Modules\Notifications\Models\FcmToken;
-
 
 class FeedPostController extends Controller
 {
     protected $mainController;
+
     protected $notificationService;
 
     public function __construct(MainController $mainController, NotificationService $notificationService)
@@ -38,6 +36,7 @@ class FeedPostController extends Controller
     public function extractHashtags($content)
     {
         preg_match_all('/#(\w+)/', $content, $matches);
+
         return $matches[1]; // Return an array of hashtags
     }
 
@@ -48,24 +47,27 @@ class FeedPostController extends Controller
             $posts = FeedPost::with(['doctor', 'comments', 'likes', 'saves'])->paginate(10);
             if ($posts->isEmpty()) {
                 Log::info('No feed posts found');
+
                 return response()->json([
                     'value' => true,
                     'data' => [],
-                    'message' => 'No feed posts found'
+                    'message' => 'No feed posts found',
                 ]);
             }
             Log::info('Fetched all feed posts');
+
             return response()->json([
                 'value' => true,
                 'data' => $posts,
-                'message' => 'Feed posts retrieved successfully'
+                'message' => 'Feed posts retrieved successfully',
             ]);
         } catch (\Exception $e) {
-            Log::error('Error fetching feed posts: ' . $e->getMessage());
+            Log::error('Error fetching feed posts: '.$e->getMessage());
+
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while retrieving feed posts'
+                'message' => 'An error occurred while retrieving feed posts',
             ], 500);
         }
     }
@@ -79,50 +81,61 @@ class FeedPostController extends Controller
             // Use eager loading with specific columns to reduce data transfer
             $feedPosts = FeedPost::select([
                 'id', 'doctor_id', 'content', 'media_type', 'media_path',
-                'visibility', 'group_id', 'created_at', 'updated_at'
+                'visibility', 'group_id', 'created_at', 'updated_at',
             ])
-            ->with([
-                'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
-                'poll' => function ($query) {
-                    $query->select('id', 'feed_post_id', 'question', 'allow_add_options', 'allow_multiple_choice');
-                },
-                'poll.options' => function ($query) use ($doctorId) {
-                    $query->select('id', 'poll_id', 'option_text')
-                        ->withCount('votes')
-                        ->with(['votes' => function ($voteQuery) use ($doctorId) {
-                            $voteQuery->select('id', 'poll_option_id', 'doctor_id')
-                                ->where('doctor_id', $doctorId);
-                        }]);
-                }
-            ])
-            ->withCount(['likes', 'comments'])
-            ->with([
-                'saves' => function ($query) use ($doctorId) {
-                    $query->select('id', 'feed_post_id', 'doctor_id')
-                        ->where('doctor_id', $doctorId);
-                },
-                'likes' => function ($query) use ($doctorId) {
-                    $query->select('id', 'feed_post_id', 'doctor_id')
-                        ->where('doctor_id', $doctorId);
-                }
-            ])
-            ->where('group_id', null)
-            ->latest('created_at')
-            ->paginate(10);
+                ->with([
+                    'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                    'poll' => function ($query) {
+                        $query->select('id', 'feed_post_id', 'question', 'allow_add_options', 'allow_multiple_choice');
+                    },
+                    'poll.options' => function ($query) use ($doctorId) {
+                        $query->select('id', 'poll_id', 'option_text')
+                            ->withCount('votes')
+                            ->with(['votes' => function ($voteQuery) use ($doctorId) {
+                                $voteQuery->select('id', 'poll_option_id', 'doctor_id')
+                                    ->where('doctor_id', $doctorId);
+                            }]);
+                    },
+                ])
+                ->withCount(['likes', 'comments'])
+                ->with([
+                    'saves' => function ($query) use ($doctorId) {
+                        $query->select('id', 'feed_post_id', 'doctor_id')
+                            ->where('doctor_id', $doctorId);
+                    },
+                    'likes' => function ($query) use ($doctorId) {
+                        $query->select('id', 'feed_post_id', 'doctor_id')
+                            ->where('doctor_id', $doctorId);
+                    },
+                ])
+                ->where('group_id', null)
+                ->latest('created_at')
+                ->paginate(10);
 
             // Transform posts using collection methods for better performance
-            $feedPosts->getCollection()->transform(function ($post) use ($doctorId) {
+            $feedPosts->getCollection()->transform(function ($post) {
                 $post->isSaved = $post->saves->isNotEmpty();
                 $post->isLiked = $post->likes->isNotEmpty();
-                $post->doctor_id = (int)$post->doctor_id;
-                $post->comments_count = (int)$post->comments_count;
-                $post->likes_count = (int)$post->likes_count;
+                $post->doctor_id = (int) $post->doctor_id;
+                $post->comments_count = (int) $post->comments_count;
+                $post->likes_count = (int) $post->likes_count;
 
                 if ($post->poll) {
+                    // Ensure integer types for specific poll attributes
+                    $post->poll->feed_post_id = (int) $post->poll->feed_post_id;
+
                     $post->poll->options = $post->poll->options
-                        ->map(function ($option) use ($doctorId) {
+                        ->map(function ($option) {
                             $option->is_voted = $option->votes->isNotEmpty();
+                            // Explicitly cast required fields to integers
+                            if (isset($option->poll_id)) {
+                                $option->poll_id = (int) $option->poll_id;
+                            }
+                            if (isset($option->votes_count)) {
+                                $option->votes_count = (int) $option->votes_count;
+                            }
                             unset($option->votes);
+
                             return $option;
                         })
                         ->sortByDesc('votes_count')
@@ -130,6 +143,7 @@ class FeedPostController extends Controller
                 }
 
                 unset($post->saves, $post->likes);
+
                 return $post;
             });
 
@@ -138,19 +152,18 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $feedPosts,
-                'message' => 'Feed posts retrieved successfully'
+                'message' => 'Feed posts retrieved successfully',
             ]);
         } catch (\Exception $e) {
-            Log::error("Error fetching feed posts for doctor ID $doctorId: " . $e->getMessage());
+            Log::error("Error fetching feed posts for doctor ID $doctorId: ".$e->getMessage());
+
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while retrieving feed posts'
+                'message' => 'An error occurred while retrieving feed posts',
             ], 500);
         }
     }
-
-
 
     public function getDoctorPosts($doctorId)
     {
@@ -165,7 +178,7 @@ class FeedPostController extends Controller
                         ->with(['votes' => function ($voteQuery) use ($doctorId) {
                             $voteQuery->where('doctor_id', $doctorId); // Check if user voted
                         }]);
-                }
+                },
             ])
                 ->withCount(['likes', 'comments'])  // Count likes and comments
                 ->with([
@@ -174,7 +187,7 @@ class FeedPostController extends Controller
                     },
                     'likes' => function ($query) use ($doctorId) {
                         $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
-                    }
+                    },
                 ])
                 ->where('doctor_id', $doctorId)
                 ->where('group_id', null) // Fetch posts that are not in a group
@@ -182,7 +195,7 @@ class FeedPostController extends Controller
                 ->paginate(10); // Paginate 10 posts per page
 
             // Add 'is_saved' and 'is_liked' fields to each post
-            $feedPosts->getCollection()->transform(function ($post) use ($doctorId) {
+            $feedPosts->getCollection()->transform(function ($post) {
                 // Add 'is_saved' field (true if the doctor saved the post)
                 $post->isSaved = $post->saves->isNotEmpty();
 
@@ -191,13 +204,13 @@ class FeedPostController extends Controller
 
                 // Sort poll options by vote count (highest first) and check if the user has voted
                 if ($post->poll) {
-                    $post->poll->options = $post->poll->options->map(function ($option) use ($doctorId) {
+                    $post->poll->options = $post->poll->options->map(function ($option) {
                         $option->is_voted = $option->votes->isNotEmpty(); // If user has voted for this option
                         unset($option->votes); // Remove unnecessary vote data
+
                         return $option;
                     })->sortByDesc('votes_count')->values();
                 }
-
 
                 // Remove unnecessary data to clean up the response
                 unset($post->saves, $post->likes);
@@ -210,14 +223,15 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $feedPosts,
-                'message' => 'Doctor Posts retrieved successfully'
+                'message' => 'Doctor Posts retrieved successfully',
             ]);
         } catch (\Exception $e) {
-            Log::error("Error fetching Doctor posts for doctor ID $doctorId: " . $e->getMessage());
+            Log::error("Error fetching Doctor posts for doctor ID $doctorId: ".$e->getMessage());
+
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while retrieving feed posts'
+                'message' => 'An error occurred while retrieving feed posts',
             ], 500);
         }
     }
@@ -225,16 +239,17 @@ class FeedPostController extends Controller
     public function getDoctorSavedPosts($doctorId = null)
     {
         // Ensure doctorId is not null or undefined
-        if (!$doctorId) {
-            Log::error("Doctor ID is missing or undefined.");
+        if (! $doctorId) {
+            Log::error('Doctor ID is missing or undefined.');
+
             return response()->json([
                 'value' => false,
-                'message' => 'Doctor ID is required'
+                'message' => 'Doctor ID is required',
             ], 400);
         }
 
         try {
-            Log::info("Fetching saved posts for doctor ID: " . $doctorId);
+            Log::info('Fetching saved posts for doctor ID: '.$doctorId);
 
             // Fetch only saved posts for the given doctor ID
             $feedPosts = FeedPost::whereHas('saves', function ($query) use ($doctorId) {
@@ -243,23 +258,23 @@ class FeedPostController extends Controller
                 ->with([
                     'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
                     'poll.options' => function ($query) use ($doctorId) {
-                        Log::info("Inside poll.options closure - Doctor ID: " . $doctorId);
+                        Log::info('Inside poll.options closure - Doctor ID: '.$doctorId);
                         $query->withCount('votes') // Count votes per option
                             ->with(['votes' => function ($voteQuery) use ($doctorId) {
                                 $voteQuery->where('doctor_id', $doctorId); // Check if user voted
                             }]);
-                    }
+                    },
                 ])
                 ->withCount(['likes', 'comments']) // Count likes and comments
                 ->with([
                     'saves' => function ($query) use ($doctorId) {
-                        Log::info("Inside saves closure - Doctor ID: " . $doctorId);
+                        Log::info('Inside saves closure - Doctor ID: '.$doctorId);
                         $query->where('doctor_id', $doctorId);
                     },
                     'likes' => function ($query) use ($doctorId) {
-                        Log::info("Inside likes closure - Doctor ID: " . $doctorId);
+                        Log::info('Inside likes closure - Doctor ID: '.$doctorId);
                         $query->where('doctor_id', $doctorId);
-                    }
+                    },
                 ])
                 ->where('group_id', null) // Fetch posts that are not in a group
                 ->orderByDesc(
@@ -273,19 +288,20 @@ class FeedPostController extends Controller
 
             // Debug: Check if results exist
             if ($feedPosts->isEmpty()) {
-                Log::warning("No saved posts found for doctor ID: " . $doctorId);
+                Log::warning('No saved posts found for doctor ID: '.$doctorId);
             }
 
             // Transform posts to add `isSaved` and `isLiked` flags
-            $feedPosts->getCollection()->transform(function ($post) use ($doctorId) {
+            $feedPosts->getCollection()->transform(function ($post) {
                 $post->isSaved = true; // Since we're only fetching saved posts, this is always true
                 $post->isLiked = $post->likes->isNotEmpty();
 
                 // Sort poll options by vote count (highest first) and check if the user has voted
                 if ($post->poll) {
-                    $post->poll->options = $post->poll->options->map(function ($option) use ($doctorId) {
+                    $post->poll->options = $post->poll->options->map(function ($option) {
                         $option->is_voted = $option->votes->isNotEmpty(); // If user has voted for this option
                         unset($option->votes); // Remove unnecessary vote data
+
                         return $option;
                     })->sortByDesc('votes_count')->values();
                 }
@@ -295,24 +311,23 @@ class FeedPostController extends Controller
                 return $post;
             });
 
-            Log::info("Saved posts successfully fetched for doctor ID: " . $doctorId);
+            Log::info('Saved posts successfully fetched for doctor ID: '.$doctorId);
 
             return response()->json([
                 'value' => true,
                 'data' => $feedPosts,
-                'message' => 'Doctor saved posts retrieved successfully'
+                'message' => 'Doctor saved posts retrieved successfully',
             ]);
         } catch (\Exception $e) {
-            Log::error("Error fetching saved posts for doctor ID $doctorId: " . $e->getMessage());
+            Log::error("Error fetching saved posts for doctor ID $doctorId: ".$e->getMessage());
+
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while retrieving saved posts'
+                'message' => 'An error occurred while retrieving saved posts',
             ], 500);
         }
     }
-
-
 
     // Get post by ID with sorted comments, likes, and saved status
     public function getPostById($id)
@@ -331,7 +346,7 @@ class FeedPostController extends Controller
                         ->with(['votes' => function ($voteQuery) use ($doctorId) {
                             $voteQuery->where('doctor_id', $doctorId); // Check if the user voted
                         }]);
-                }
+                },
             ])->withCount(['likes', 'comments'])
                 ->with([
                     'saves' => function ($query) use ($doctorId) {
@@ -339,7 +354,7 @@ class FeedPostController extends Controller
                     },
                     'likes' => function ($query) use ($doctorId) {
                         $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
-                    }
+                    },
                 ])
                 ->findOrFail($id);
 
@@ -351,6 +366,7 @@ class FeedPostController extends Controller
                 $post->poll->options = $post->poll->options->map(function ($option) {
                     $option->is_voted = $option->votes->isNotEmpty(); // Check if the user voted
                     unset($option->votes); // Remove unnecessary votes data
+
                     return $option;
                 })->sortByDesc('votes_count')->values();
             }
@@ -362,25 +378,26 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $post,
-                'message' => 'Post retrieved successfully'
+                'message' => 'Post retrieved successfully',
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::warning("Post ID $id not found");
+
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'Post not found'
+                'message' => 'Post not found',
             ], 404);
         } catch (\Exception $e) {
-            Log::error("Error fetching post ID $id: " . $e->getMessage());
+            Log::error("Error fetching post ID $id: ".$e->getMessage());
+
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while retrieving the post'
+                'message' => 'An error occurred while retrieving the post',
             ], 500);
         }
     }
-
 
     // Get likes for a post
     public function getPostLikes($postId)
@@ -392,10 +409,11 @@ class FeedPostController extends Controller
 
             if ($likes->isEmpty()) {
                 Log::info("No likes found for post ID $postId");
+
                 return response()->json([
                     'value' => false,
                     'data' => [],
-                    'message' => 'No likes found for this post'
+                    'message' => 'No likes found for this post',
                 ]);
             }
 
@@ -414,17 +432,19 @@ class FeedPostController extends Controller
             );
 
             Log::info("Likes retrieved for post ID $postId");
+
             return response()->json([
                 'value' => true,
                 'data' => $paginatedDoctorData,
-                'message' => 'Post likes retrieved successfully'
+                'message' => 'Post likes retrieved successfully',
             ]);
         } catch (\Exception $e) {
-            Log::error("Error fetching likes for post ID $postId: " . $e->getMessage());
+            Log::error("Error fetching likes for post ID $postId: ".$e->getMessage());
+
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while retrieving post likes'
+                'message' => 'An error occurred while retrieving post likes',
             ], 500);
         }
     }
@@ -454,14 +474,14 @@ class FeedPostController extends Controller
                                     ->with([
                                         'likes' => function ($query) use ($doctorId) {
                                             $query->where('doctor_id', $doctorId);
-                                        }
+                                        },
                                     ]);
-                            }
+                            },
                         ])->withCount(['likes as likes_count', 'replies as replies_count']);
                     },
                     'likes' => function ($query) use ($doctorId) {
                         $query->where('doctor_id', $doctorId);
-                    }
+                    },
                 ])
                 ->withCount(['likes as likes_count', 'replies as replies_count'])
                 ->get(); // Fetch all comments to apply custom sorting
@@ -470,7 +490,7 @@ class FeedPostController extends Controller
             $comments = $comments->sortByDesc(function ($comment) use ($doctorId, $postOwnerId) {
                 return [
                     $comment->doctor_id === $postOwnerId ? 2 : 0, // Post owner's comments first
-                    $comment->doctor_id === $doctorId ? 1 : 0     // Auth user's comments second
+                    $comment->doctor_id === $doctorId ? 1 : 0,     // Auth user's comments second
                 ];
             })->values(); // Reset the keys after sorting
 
@@ -509,21 +529,22 @@ class FeedPostController extends Controller
             );
 
             Log::info("Comments retrieved for post ID $postId");
+
             return response()->json([
                 'value' => true,
                 'data' => $paginatedResponse,
-                'message' => 'Post comments retrieved successfully'
+                'message' => 'Post comments retrieved successfully',
             ]);
         } catch (\Exception $e) {
-            Log::error("Error fetching comments for post ID $postId: " . $e->getMessage());
+            Log::error("Error fetching comments for post ID $postId: ".$e->getMessage());
+
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while retrieving post comments'
+                'message' => 'An error occurred while retrieving post comments',
             ], 500);
         }
     }
-
 
     // Create a new post
     public function store(Request $request)
@@ -544,7 +565,7 @@ class FeedPostController extends Controller
                 'poll.allow_add_options' => 'nullable|boolean',
                 'poll.allow_multiple_choice' => 'nullable|boolean',
                 'poll.options' => 'nullable|array|min:2|max:10',
-                'poll.options.*' => 'nullable|string|max:255|distinct'
+                'poll.options.*' => 'nullable|string|max:255|distinct',
             ]);
 
             // Handle group validation with proper error handling
@@ -563,7 +584,7 @@ class FeedPostController extends Controller
                     $mediaPaths = $this->uploadMultipleImages($request);
                 } catch (\Exception $e) {
                     throw new \Illuminate\Validation\ValidationException(
-                        validator(['media_path' => ['Failed to upload media: ' . $e->getMessage()]], ['media_path' => 'required'])
+                        validator(['media_path' => ['Failed to upload media: '.$e->getMessage()]], ['media_path' => 'required'])
                     );
                 }
             }
@@ -572,14 +593,14 @@ class FeedPostController extends Controller
             try {
                 $post = $this->createFeedPost($validatedData, $mediaPaths);
             } catch (\Exception $e) {
-                throw new \Exception('Failed to create post: ' . $e->getMessage());
+                throw new \Exception('Failed to create post: '.$e->getMessage());
             }
 
             // Attach hashtags with error handling
             try {
                 $this->attachHashtags($post, $request->input('content'));
             } catch (\Exception $e) {
-                Log::error('Hashtag attachment failed: ' . $e->getMessage());
+                Log::error('Hashtag attachment failed: '.$e->getMessage());
                 // Continue execution as hashtag failure shouldn't prevent post creation
             }
 
@@ -589,18 +610,18 @@ class FeedPostController extends Controller
                     $poll = new Poll([
                         'question' => $validatedData['poll']['question'] ?? null,
                         'allow_add_options' => $validatedData['poll']['allow_add_options'] ?? false,
-                        'allow_multiple_choice' => $validatedData['poll']['allow_multiple_choice'] ?? false
+                        'allow_multiple_choice' => $validatedData['poll']['allow_multiple_choice'] ?? false,
                     ]);
 
                     $post->poll()->save($poll);
 
                     foreach ($validatedData['poll']['options'] as $optionText) {
-                        if (!empty($optionText)) {
+                        if (! empty($optionText)) {
                             $poll->options()->create(['option_text' => $optionText]);
                         }
                     }
                 } catch (\Exception $e) {
-                    throw new \Exception('Failed to create poll: ' . $e->getMessage());
+                    throw new \Exception('Failed to create poll: '.$e->getMessage());
                 }
             }
 
@@ -610,27 +631,29 @@ class FeedPostController extends Controller
             try {
                 $notifications = $this->notifyDoctors($post);
             } catch (\Exception $e) {
-                Log::error('Notification creation failed: ' . $e->getMessage());
+                Log::error('Notification creation failed: '.$e->getMessage());
                 // Continue execution as notification failure shouldn't prevent post creation
             }
 
             return response()->json([
                 'value' => true,
                 'data' => $post->load('poll.options'),
-                'message' => 'Post created successfully'
+                'message' => 'Post created successfully',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
+
             return response()->json([
                 'value' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 422);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Error creating post: " . $e->getMessage());
+            Log::error('Error creating post: '.$e->getMessage());
+
             return response()->json([
                 'value' => false,
-                'message' => "Error creating post: " . $e->getMessage()
+                'message' => 'Error creating post: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -639,55 +662,55 @@ class FeedPostController extends Controller
     public function update(Request $request, $id)
     {
         DB::beginTransaction(); // Start a transaction
-    
+
         try {
             // Retrieve the post by ID
             $post = FeedPost::findOrFail($id);
-    
+
             // Get the authenticated user
             $user = Auth::user();
-    
+
             // Validate the incoming request data
             $validatedData = $request->validate($this->validationRules());
-    
+
             // Handle group validation and permissions
             $this->handleGroupValidation($validatedData);
-    
+
             // Initialize media variables with existing values
             $mediaType = $post->media_type;
             $existingMediaPaths = $post->media_path ?? [];
-    
+
             // If media_type is sent in the request
             if ($request->has('media_type')) {
                 $mediaType = $request->media_type;
-    
+
                 // If media_type is 'text', remove media
-                if ($mediaType === "text") {
+                if ($mediaType === 'text') {
                     $mediaType = null;
                     $existingMediaPaths = [];
                 }
             }
-    
+
             // Get existing media paths from request
-            $existingMediaFromRequest = is_array($request->input('existing_media_path')) 
-                ? $request->input('existing_media_path') 
+            $existingMediaFromRequest = is_array($request->input('existing_media_path'))
+                ? $request->input('existing_media_path')
                 : [];
-    
+
             // Get current media paths from database
             $currentMediaPaths = $post->media_path ?? [];
-    
+
             // Remove any media paths from current that are not in the request
             $finalMediaPaths = array_intersect($currentMediaPaths, $existingMediaFromRequest);
-    
+
             // Upload new images (if any)
             $newMediaPaths = [];
             if ($request->hasFile('media_path')) {
                 $newMediaPaths = $this->uploadMultipleImages($request->file('media_path'));
             }
-    
+
             // Merge existing and new media paths
             $finalMediaPaths = array_merge($finalMediaPaths, $newMediaPaths);
-    
+
             // Update the post with validated data
             $post->update([
                 'content' => $validatedData['content'],
@@ -703,14 +726,14 @@ class FeedPostController extends Controller
                 try {
                     // Get old hashtags before detaching
                     $oldHashtags = $post->hashtags;
-                    
+
                     // Detach old hashtags
                     $post->hashtags()->detach();
-                    
+
                     // Decrement usage count for old hashtags
                     foreach ($oldHashtags as $hashtag) {
                         $hashtag->decrement('usage_count', 1);
-                        
+
                         // If usage count reaches 0, delete the hashtag
                         if ($hashtag->usage_count <= 0) {
                             $hashtag->delete();
@@ -726,7 +749,7 @@ class FeedPostController extends Controller
                     throw $e;
                 }
             }
-    
+
             // Handle poll update or creation
             if (isset($validatedData['poll']) && isset($validatedData['poll']['options'])) {
                 // Check if post already has a poll
@@ -735,17 +758,17 @@ class FeedPostController extends Controller
                     $post->poll->update([
                         'question' => $validatedData['poll']['question'] ?? $post->poll->question,
                         'allow_add_options' => $validatedData['poll']['allow_add_options'] ?? $post->poll->allow_add_options,
-                        'allow_multiple_choice' => $validatedData['poll']['allow_multiple_choice'] ?? $post->poll->allow_multiple_choice
+                        'allow_multiple_choice' => $validatedData['poll']['allow_multiple_choice'] ?? $post->poll->allow_multiple_choice,
                     ]);
 
                     // Handle options update
                     if (isset($validatedData['poll']['options']) && is_array($validatedData['poll']['options'])) {
                         // Delete existing options
                         $post->poll->options()->delete();
-                        
+
                         // Create new options
                         foreach ($validatedData['poll']['options'] as $optionText) {
-                            if (!empty($optionText)) {
+                            if (! empty($optionText)) {
                                 $post->poll->options()->create(['option_text' => $optionText]);
                             }
                         }
@@ -755,7 +778,7 @@ class FeedPostController extends Controller
                     $poll = new Poll([
                         'question' => $validatedData['poll']['question'] ?? null,
                         'allow_add_options' => $validatedData['poll']['allow_add_options'] ?? false,
-                        'allow_multiple_choice' => $validatedData['poll']['allow_multiple_choice'] ?? false
+                        'allow_multiple_choice' => $validatedData['poll']['allow_multiple_choice'] ?? false,
                     ]);
 
                     // Associate poll with the post
@@ -764,47 +787,44 @@ class FeedPostController extends Controller
                     // Create options if they exist
                     if (isset($validatedData['poll']['options']) && is_array($validatedData['poll']['options'])) {
                         foreach ($validatedData['poll']['options'] as $optionText) {
-                            if (!empty($optionText)) {
+                            if (! empty($optionText)) {
                                 $poll->options()->create(['option_text' => $optionText]);
                             }
                         }
                     }
                 }
             }
-    
+
             // Commit the transaction
             DB::commit();
-    
+
             // Log the successful update
-            Log::info("Post ID $id updated by doctor " . $user->id);
-    
+            Log::info("Post ID $id updated by doctor ".$user->id);
+
             // Return a success response with updated post and poll data
             return response()->json([
                 'value' => true,
                 'data' => $post->load('poll.options'),
-                'message' => 'Post updated successfully'
+                'message' => 'Post updated successfully',
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             DB::rollBack();
             Log::warning("Post ID $id not found for update");
-    
+
             return response()->json([
                 'value' => false,
-                'message' => 'Post not found'
+                'message' => 'Post not found',
             ], 404);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Error updating post ID $id: " . $e->getMessage());
-    
+            Log::error("Error updating post ID $id: ".$e->getMessage());
+
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while updating the post: ' . $e->getMessage()
+                'message' => 'An error occurred while updating the post: '.$e->getMessage(),
             ], 500);
         }
     }
-    
-
-
 
     private function validationRules()
     {
@@ -820,17 +840,16 @@ class FeedPostController extends Controller
             'poll.allow_add_options' => 'nullable|boolean',
             'poll.allow_multiple_choice' => 'nullable|boolean',
             'poll.options' => 'nullable|array',
-            'poll.options.*' => 'nullable|string|max:255'
+            'poll.options.*' => 'nullable|string|max:255',
         ];
     }
-
 
     private function createPollForPost(FeedPost $post, array $data)
     {
         $poll = $post->poll()->create([
             'question' => $data['poll']['question'],
             'allow_add_options' => $data['poll']['allow_add_options'] ?? false,
-            'allow_multiple_choice' => $data['poll']['allow_multiple_choice'] ?? false
+            'allow_multiple_choice' => $data['poll']['allow_multiple_choice'] ?? false,
         ]);
 
         foreach ($validatedData['poll']['options'] as $optionText) {
@@ -838,18 +857,16 @@ class FeedPostController extends Controller
         }
     }
 
-
-
     private function handleGroupValidation(array &$validatedData)
     {
-        if (!empty($validatedData['group_id'])) {
+        if (! empty($validatedData['group_id'])) {
             $group = Group::with('doctors')->find($validatedData['group_id']);
 
-            if (!$group) {
+            if (! $group) {
                 throw new \Exception('Group not found', 404);
             }
 
-            if ($group->privacy === 'private' && !$group->doctors->contains(Auth::id())) {
+            if ($group->privacy === 'private' && ! $group->doctors->contains(Auth::id())) {
                 throw new \Exception('You cannot post in this private group', 403);
             }
 
@@ -866,14 +883,15 @@ class FeedPostController extends Controller
                 $uploadResponse = $this->mainController->uploadImageAndVideo($media, $path);
 
                 if ($uploadResponse->getData()->value) {
-                    if (!in_array($uploadResponse->getData()->image, $mediaPaths)) {
+                    if (! in_array($uploadResponse->getData()->image, $mediaPaths)) {
                         $mediaPaths[] = $uploadResponse->getData()->image;
-                        Log::info("Media Paths: ", $mediaPaths);
-                    }                   
+                        Log::info('Media Paths: ', $mediaPaths);
+                    }
                 } else {
                     throw new \Exception('Media upload failed.', 500);
                 }
             }
+
             return $mediaPaths; // Return array of URLs
         }
 
@@ -887,7 +905,7 @@ class FeedPostController extends Controller
 
         // Handle both Request object and array of files
         if ($requestOrFiles instanceof \Illuminate\Http\Request) {
-            if (!$requestOrFiles->hasFile('media_path')) {
+            if (! $requestOrFiles->hasFile('media_path')) {
                 return [];
             }
             $files = $requestOrFiles->file('media_path');
@@ -895,31 +913,30 @@ class FeedPostController extends Controller
             $files = $requestOrFiles;
         }
 
-        if (!empty($files)) {
+        if (! empty($files)) {
             foreach ($files as $media) {
                 // Get the authenticated user's name
                 $name = auth()->user()->name;
-    
+
                 // Generate a unique timestamp with microtime
-                $timestamp = time() . '_' . uniqid();
-    
+                $timestamp = time().'_'.uniqid();
+
                 // Create a unique file name using the user's name and timestamp
-                $fileName = "{$name}_media_{$timestamp}." . $media->getClientOriginalExtension();
-    
+                $fileName = "{$name}_media_{$timestamp}.".$media->getClientOriginalExtension();
+
                 // Store the media in the specified path (image or video directory)
                 $storedPath = $media->storeAs('media_images', $fileName, 'public');
-    
+
                 // Construct the full URL for the uploaded media
-                $mediaUrl = config('app.url') . '/storage/' . $storedPath;
-                
+                $mediaUrl = config('app.url').'/storage/'.$storedPath;
+
                 // Get the public URL of the uploaded file
                 $uploadedImages[] = $mediaUrl;
             }
         }
-    
+
         return $uploadedImages;
     }
-    
 
     private function createFeedPost(array $validatedData, $mediaPaths)
     {
@@ -932,13 +949,12 @@ class FeedPostController extends Controller
             'group_id' => $validatedData['group_id'] ?? null,
         ]);
 
-        if (!$post) {
+        if (! $post) {
             throw new \Exception('Post creation failed');
         }
 
         return $post;
     }
-
 
     private function attachHashtags(FeedPost $post, $content)
     {
@@ -949,17 +965,17 @@ class FeedPostController extends Controller
 
             // Get existing hashtags to avoid duplicates
             $existingHashtags = Hashtag::whereIn('tag', $hashtags)->get()->keyBy('tag');
-            
+
             // Get currently attached hashtags for this post
             $attachedHashtagIds = $post->hashtags()->pluck('hashtags.id')->toArray();
-            
+
             foreach ($hashtags as $hashtagName) {
                 // Check if hashtag exists
                 if (isset($existingHashtags[$hashtagName])) {
                     $hashtag = $existingHashtags[$hashtagName];
-                    
+
                     // Only increment usage count and attach if not already attached to this post
-                    if (!in_array($hashtag->id, $attachedHashtagIds)) {
+                    if (! in_array($hashtag->id, $attachedHashtagIds)) {
                         $hashtag->increment('usage_count');
                         $post->hashtags()->attach($hashtag->id);
                     }
@@ -967,9 +983,9 @@ class FeedPostController extends Controller
                     // Create new hashtag
                     $hashtag = Hashtag::create([
                         'tag' => $hashtagName,
-                        'usage_count' => 1
+                        'usage_count' => 1,
                     ]);
-                    
+
                     // Attach to post
                     $post->hashtags()->attach($hashtag->id);
                 }
@@ -977,12 +993,12 @@ class FeedPostController extends Controller
 
             Log::info('Hashtags attached successfully', [
                 'post_id' => $post->id,
-                'hashtags' => $hashtags
+                'hashtags' => $hashtags,
             ]);
         } catch (\Exception $e) {
             Log::error('Error attaching hashtags', [
                 'post_id' => $post->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             throw $e;
         }
@@ -991,12 +1007,12 @@ class FeedPostController extends Controller
     private function notifyDoctors(FeedPost $post)
     {
         $doctors = User::where('id', '!=', Auth::id())
-        ->where('isSyndicateCardRequired', 'Verified')
-        ->pluck('id'); 
-    
+            ->where('isSyndicateCardRequired', 'Verified')
+            ->pluck('id');
+
         $user = Auth::user();
-        $doctorName = $user->name . ' ' . $user->lname;
-    
+        $doctorName = $user->name.' '.$user->lname;
+
         $notifications = $doctors->map(function ($doctorId) use ($post, $doctorName, $user) {
             return [
                 'doctor_id' => $doctorId,
@@ -1005,22 +1021,22 @@ class FeedPostController extends Controller
                 'content' => sprintf('Dr. %s added a new post', $doctorName),
                 'type_doctor_id' => $user->id,
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ];
         })->toArray();
-    
+
         $createdNotifications = AppNotification::insert($notifications);
-    
+
         $title = 'New Post was created 📣';
-        $body = 'Dr. ' . ucfirst($user->name) . ' added a new post ';
+        $body = 'Dr. '.ucfirst($user->name).' added a new post ';
         $tokens = FcmToken::whereIn('doctor_id', $doctors)
             ->pluck('token')
             ->toArray();
-    
+
         $this->notificationService->sendPushNotification($title, $body, $tokens);
-    
-        Log::info("Notifications inserted successfully for post ID: " . $post->id);
-        
+
+        Log::info('Notifications inserted successfully for post ID: '.$post->id);
+
         return $notifications;
     }
 
@@ -1034,11 +1050,12 @@ class FeedPostController extends Controller
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
 
             // Allow only the post owner or Admin/Tester
-            if ($post->doctor_id !== $user->id && !$isAdminOrTester) {
-                Log::warning("Unauthorized deletion attempt by doctor " . Auth::id());
+            if ($post->doctor_id !== $user->id && ! $isAdminOrTester) {
+                Log::warning('Unauthorized deletion attempt by doctor '.Auth::id());
+
                 return response()->json([
                     'value' => false,
-                    'message' => 'Unauthorized action'
+                    'message' => 'Unauthorized action',
                 ], 403);
             }
 
@@ -1047,14 +1064,14 @@ class FeedPostController extends Controller
             try {
                 // Get hashtags before detaching
                 $hashtags = $post->hashtags;
-                
+
                 // Detach hashtags from the post
                 $post->hashtags()->detach();
-                
+
                 // Decrement usage count for each hashtag
                 foreach ($hashtags as $hashtag) {
                     $hashtag->decrement('usage_count', 1);
-                    
+
                     // If usage count reaches 0, delete the hashtag
                     if ($hashtag->usage_count <= 0) {
                         $hashtag->delete();
@@ -1067,22 +1084,21 @@ class FeedPostController extends Controller
                 // Remove the associated AppNotification
                 $deletedCount = AppNotification::where(function ($query) {
                     $query->where('type', 'PostLike')
-                          ->orWhere('type', 'PostComment')
-                          ->orWhere('type', 'CommentLike')
-                          ->orWhere('type', 'Post');
+                        ->orWhere('type', 'PostComment')
+                        ->orWhere('type', 'CommentLike')
+                        ->orWhere('type', 'Post');
                 })
-                ->where('type_id', $id)
-                ->delete();
-            
-        
+                    ->where('type_id', $id)
+                    ->delete();
+
                 Log::info("Deleted $deletedCount notifications for post ID $id.");
-                    
+
                 DB::commit();
-                Log::info("Post ID $id and its hashtags deleted by doctor " . Auth::id());
-                
+                Log::info("Post ID $id and its hashtags deleted by doctor ".Auth::id());
+
                 return response()->json([
                     'value' => true,
-                    'message' => 'Post deleted successfully'
+                    'message' => 'Post deleted successfully',
                 ]);
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -1090,26 +1106,27 @@ class FeedPostController extends Controller
             }
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::warning("Post ID $id not found for deletion");
+
             return response()->json([
                 'value' => false,
-                'message' => 'Post not found'
+                'message' => 'Post not found',
             ], 404);
         } catch (\Exception $e) {
-            Log::error("Error deleting post ID $id: " . $e->getMessage());
+            Log::error("Error deleting post ID $id: ".$e->getMessage());
+
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while deleting the post'
+                'message' => 'An error occurred while deleting the post',
             ], 500);
         }
     }
-
 
     public function likeOrUnlikePost(Request $request, $postId)
     {
         try {
             // Validate input
             $validatedData = $request->validate([
-                'status' => 'required|string|in:like,unlike'
+                'status' => 'required|string|in:like,unlike',
             ]);
 
             $doctor_id = Auth::id();
@@ -1133,9 +1150,10 @@ class FeedPostController extends Controller
             if ($status === 'like') {
                 if ($like) {
                     Log::warning("Post already liked PostID: $postId UserID: $doctor_id");
+
                     return response()->json([
                         'value' => false,
-                        'message' => 'Post already liked'
+                        'message' => 'Post already liked',
                     ], 400);
                 }
 
@@ -1156,10 +1174,10 @@ class FeedPostController extends Controller
                             'doctor_id' => $postOwner->id,
                             'type' => 'PostLike',
                             'type_id' => $post->id,
-                            'content' => sprintf('Dr. %s liked your post', Auth::user()->name . ' ' . Auth::user()->lname),
+                            'content' => sprintf('Dr. %s liked your post', Auth::user()->name.' '.Auth::user()->lname),
                             'type_doctor_id' => Auth::id(),
                             'created_at' => now(),
-                            'updated_at' => now()
+                            'updated_at' => now(),
                         ]);
 
                         // Get FCM tokens for push notification
@@ -1167,62 +1185,68 @@ class FeedPostController extends Controller
                             ->pluck('token')
                             ->toArray();
 
-                        if (!empty($tokens)) {
+                        if (! empty($tokens)) {
                             $this->notificationService->sendPushNotification(
                                 'Post was liked 📣',
-                                'Dr. ' . ucfirst(Auth::user()->name) . ' liked your post',
+                                'Dr. '.ucfirst(Auth::user()->name).' liked your post',
                                 $tokens
                             );
                         }
                     }
 
                     DB::commit();
-                    Log::info("Post ID $postId liked by doctor " . $doctor_id);
+                    Log::info("Post ID $postId liked by doctor ".$doctor_id);
+
                     return response()->json([
                         'value' => true,
                         'data' => $newLike,
-                        'message' => 'Post liked successfully'
+                        'message' => 'Post liked successfully',
                     ]);
                 } catch (\Exception $e) {
                     DB::rollBack();
                     throw $e;
                 }
 
-            // Handle Unlike
+                // Handle Unlike
             } elseif ($status === 'unlike') {
                 if ($like) {
                     $like->delete();
-                    Log::info("Post ID $postId unliked by doctor " . $doctor_id);
+                    Log::info("Post ID $postId unliked by doctor ".$doctor_id);
+
                     return response()->json([
                         'value' => true,
-                        'message' => 'Post unliked successfully'
+                        'message' => 'Post unliked successfully',
                     ]);
                 }
 
                 Log::warning("Like not found for post ID $postId");
+
                 return response()->json([
                     'value' => false,
-                    'message' => 'Like not found'
+                    'message' => 'Like not found',
                 ], 404);
             }
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::warning("Post ID $postId not found for like/unlike");
+
             return response()->json([
                 'value' => false,
-                'message' => 'Post not found or not accessible'
+                'message' => 'Post not found or not accessible',
             ], 404);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::warning("Invalid input for like/unlike: " . json_encode($e->errors()));
+            Log::warning('Invalid input for like/unlike: '.json_encode($e->errors()));
+
             return response()->json([
                 'value' => false,
-                'message' => 'Invalid input. Status must be "like" or "unlike".'
+                'message' => 'Invalid input. Status must be "like" or "unlike".',
             ], 422);
         } catch (\Exception $e) {
-            Log::error("Error processing like/unlike for post ID $postId: " . $e->getMessage());
+            Log::error("Error processing like/unlike for post ID $postId: ".$e->getMessage());
+
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while processing the request'
+                'message' => 'An error occurred while processing the request',
             ], 500);
         }
     }
@@ -1245,9 +1269,10 @@ class FeedPostController extends Controller
             if ($status === 'save') {
                 if ($save) {
                     Log::warning("Post already saved PostID: $postId UserID: $doctor_id");
+
                     return response()->json([
                         'value' => false,
-                        'message' => 'Post already saved'
+                        'message' => 'Post already saved',
                     ], 400);
                 }
 
@@ -1257,47 +1282,53 @@ class FeedPostController extends Controller
                     'doctor_id' => $doctor_id,
                 ]);
 
-                Log::info("Post ID $postId saved by doctor " . $doctor_id);
+                Log::info("Post ID $postId saved by doctor ".$doctor_id);
+
                 return response()->json([
                     'value' => true,
                     'data' => $newSave,
-                    'message' => 'Post saved successfully'
+                    'message' => 'Post saved successfully',
                 ]);
 
                 // Handle Unsave
             } elseif ($status === 'unsave') {
                 if ($save) {
                     $save->delete();
-                    Log::info("Post ID $postId unsaved by doctor " . $doctor_id);
+                    Log::info("Post ID $postId unsaved by doctor ".$doctor_id);
+
                     return response()->json([
                         'value' => true,
-                        'message' => 'Post unsaved successfully'
+                        'message' => 'Post unsaved successfully',
                     ]);
                 }
 
                 Log::warning("Save not found for post ID $postId");
+
                 return response()->json([
                     'value' => false,
-                    'message' => 'Save not found'
+                    'message' => 'Save not found',
                 ], 404);
             } else {
                 Log::warning("Invalid status for post save/unsave: $status");
+
                 return response()->json([
                     'value' => false,
-                    'message' => 'Invalid status. Use "save" or "unsave".'
+                    'message' => 'Invalid status. Use "save" or "unsave".',
                 ], 400);
             }
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::warning("Post ID $postId not found for save/unsave");
+
             return response()->json([
                 'value' => false,
-                'message' => 'Post not found'
+                'message' => 'Post not found',
             ], 404);
         } catch (\Exception $e) {
-            Log::error("Error processing save/unsave for post ID $postId: " . $e->getMessage());
+            Log::error("Error processing save/unsave for post ID $postId: ".$e->getMessage());
+
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while processing the request'
+                'message' => 'An error occurred while processing the request',
             ], 500);
         }
     }
@@ -1310,57 +1341,57 @@ class FeedPostController extends Controller
                 'comment' => 'required|string|max:500',
                 'parent_id' => 'nullable|exists:feed_post_comments,id',
             ]);
-    
+
             $comment = FeedPostComment::create([
                 'feed_post_id' => $postId,
                 'doctor_id' => Auth::id(),
                 'comment' => $validatedData['comment'],
                 'parent_id' => $validatedData['parent_id'] ?? null,
             ]);
-    
-            Log::info("Comment added to post ID $postId by doctor " . Auth::id());
-    
+
+            Log::info("Comment added to post ID $postId by doctor ".Auth::id());
+
             $post = FeedPost::findOrFail($postId);
             $postOwner = $post->doctor;
-    
 
             if ($postOwner->id !== Auth::id()) {
                 AppNotification::create([
                     'doctor_id' => $postOwner->id,
                     'type' => 'PostComment',
                     'type_id' => $post->id,
-                    'content' => sprintf('Dr. %s commented on your post', Auth::user()->name . ' ' . Auth::user()->lname),
+                    'content' => sprintf('Dr. %s commented on your post', Auth::user()->name.' '.Auth::user()->lname),
                     'type_doctor_id' => Auth::id(),
                     'created_at' => now(),
-                    'updated_at' => now()
+                    'updated_at' => now(),
                 ]);
 
-                Log::info("Notification sent to post owner ID: " . $postOwner->id . " for post ID: " . $post->id);
+                Log::info('Notification sent to post owner ID: '.$postOwner->id.' for post ID: '.$post->id);
 
                 // Get FCM tokens for push notification
                 $tokens = FcmToken::where('doctor_id', $postOwner->id)
                     ->pluck('token')
                     ->toArray();
 
-                if (!empty($tokens)) {
+                if (! empty($tokens)) {
                     $this->notificationService->sendPushNotification(
                         'New Comment was added 📣',
-                        'Dr. ' . ucfirst(Auth::user()->name) . ' commented on your post ',
+                        'Dr. '.ucfirst(Auth::user()->name).' commented on your post ',
                         $tokens
                     );
                 }
             }
-    
+
             return response()->json([
                 'value' => true,
                 'data' => $comment,
-                'message' => 'Comment added successfully'
+                'message' => 'Comment added successfully',
             ]);
         } catch (\Exception $e) {
-            Log::error("Error adding comment to post ID $postId: " . $e->getMessage());
+            Log::error("Error adding comment to post ID $postId: ".$e->getMessage());
+
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while adding the comment'
+                'message' => 'An error occurred while adding the comment',
             ], 500);
         }
     }
@@ -1375,32 +1406,35 @@ class FeedPostController extends Controller
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
 
             // Allow only the post owner or Admin/Tester
-            if ($comment->doctor_id !== $user->id && !$isAdminOrTester) {
-                Log::warning("Unauthorized deletion attempt by doctor " . Auth::id());
+            if ($comment->doctor_id !== $user->id && ! $isAdminOrTester) {
+                Log::warning('Unauthorized deletion attempt by doctor '.Auth::id());
+
                 return response()->json([
                     'value' => false,
-                    'message' => 'Unauthorized action'
+                    'message' => 'Unauthorized action',
                 ], 403);
             }
 
             $comment->delete();
-            Log::info("Comment ID $commentId deleted by doctor " . Auth::id());
+            Log::info("Comment ID $commentId deleted by doctor ".Auth::id());
 
             return response()->json([
                 'value' => true,
-                'message' => 'Comment deleted successfully'
+                'message' => 'Comment deleted successfully',
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::warning("Comment ID $commentId not found for deletion");
+
             return response()->json([
                 'value' => false,
-                'message' => 'Comment not found'
+                'message' => 'Comment not found',
             ], 404);
         } catch (\Exception $e) {
-            Log::error("Error deleting comment ID $commentId: " . $e->getMessage());
+            Log::error("Error deleting comment ID $commentId: ".$e->getMessage());
+
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while deleting the comment'
+                'message' => 'An error occurred while deleting the comment',
             ], 500);
         }
     }
@@ -1410,116 +1444,119 @@ class FeedPostController extends Controller
         try {
             $doctor_id = Auth::id();
             $status = $request->input('status'); // 'like' or 'unlike'
-    
+
             // Find if the comment exists
             $comment = FeedPostComment::find($commentId);
-    
-            if (!$comment) {
+
+            if (! $comment) {
                 Log::error("No comment was found with ID: $commentId");
+
                 return response()->json([
                     'value' => false,
-                    'message' => 'No comment was found with ID: ' . $commentId
+                    'message' => 'No comment was found with ID: '.$commentId,
                 ], 404);
             }
-    
+
             // Find if the comment is already liked
             $like = FeedPostCommentLike::where('post_comment_id', $commentId)
                 ->where('doctor_id', $doctor_id)
                 ->first();
-    
+
             // Handle Like
             if ($status === 'like') {
                 if ($like) {
                     Log::warning("Comment already liked CommentID: $commentId UserID: $doctor_id");
+
                     return response()->json([
                         'value' => false,
-                        'message' => 'Comment already liked'
+                        'message' => 'Comment already liked',
                     ], 400);
                 }
-    
+
                 // Create a new like entry
                 $newLike = FeedPostCommentLike::create([
                     'post_comment_id' => $commentId,
                     'doctor_id' => $doctor_id,
                 ]);
-    
+
                 Log::info("Comment ID $commentId liked by doctor $doctor_id");
-    
+
                 $comment = FeedPostComment::findOrFail($commentId);
                 $commentOwner = $comment->doctor;
-
 
                 if ($commentOwner->id !== Auth::id()) {
                     AppNotification::create([
                         'doctor_id' => $commentOwner->id,
                         'type' => 'CommentLike',
-                        'type_id' => $comment->feed_post_id ,
-                        'content' => sprintf('Dr. %s liked your comment', Auth::user()->name . ' ' . Auth::user()->lname),
+                        'type_id' => $comment->feed_post_id,
+                        'content' => sprintf('Dr. %s liked your comment', Auth::user()->name.' '.Auth::user()->lname),
                         'type_doctor_id' => Auth::id(),
                         'created_at' => now(),
-                        'updated_at' => now()
+                        'updated_at' => now(),
                     ]);
-    
-                    Log::info("Notification sent to comment owner ID: " . $commentOwner->id . " for comment ID: " . $comment->id);
-    
+
+                    Log::info('Notification sent to comment owner ID: '.$commentOwner->id.' for comment ID: '.$comment->id);
+
                     // Get FCM tokens for push notification
                     $tokens = FcmToken::where('doctor_id', $commentOwner->id)
                         ->pluck('token')
                         ->toArray();
-    
-                    if (!empty($tokens)) {
+
+                    if (! empty($tokens)) {
                         $this->notificationService->sendPushNotification(
                             'New Comment was liked 📣',
-                            'Dr. ' . ucfirst(Auth::user()->name) . ' liked your comment ',
+                            'Dr. '.ucfirst(Auth::user()->name).' liked your comment ',
                             $tokens
                         );
                     }
                 }
-    
+
                 return response()->json([
                     'value' => true,
                     'data' => $newLike,
-                    'message' => 'Comment liked successfully'
+                    'message' => 'Comment liked successfully',
                 ]);
-    
-            // Handle Unlike
+
+                // Handle Unlike
             } elseif ($status === 'unlike') {
                 if ($like) {
                     $like->delete();
                     Log::info("Comment ID $commentId unliked by doctor $doctor_id");
+
                     return response()->json([
                         'value' => true,
-                        'message' => 'Comment unliked successfully'
+                        'message' => 'Comment unliked successfully',
                     ]);
                 }
-    
+
                 Log::warning("Like not found for comment ID $commentId");
+
                 return response()->json([
                     'value' => false,
-                    'message' => 'Like not found'
+                    'message' => 'Like not found',
                 ], 404);
             } else {
                 Log::warning("Invalid status for comment like/unlike: $status");
+
                 return response()->json([
                     'value' => false,
-                    'message' => 'Invalid status. Use "like" or "unlike".'
+                    'message' => 'Invalid status. Use "like" or "unlike".',
                 ], 400);
             }
         } catch (\Exception $e) {
-            Log::error("Error processing like/unlike for comment ID $commentId: " . $e->getMessage());
+            Log::error("Error processing like/unlike for comment ID $commentId: ".$e->getMessage());
+
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while processing the request'
+                'message' => 'An error occurred while processing the request',
             ], 500);
         }
     }
-
 
     public function trending()
     {
         // Query the hashtags sorted by usage count, limit to top 10
         $trendingHashtags = Hashtag::orderBy('usage_count', 'desc')->paginate(10);
-
 
         return response()->json($trendingHashtags);
     }
@@ -1529,38 +1566,41 @@ class FeedPostController extends Controller
     {
         $query = $request->input('query');
 
-        if (!$query) {
+        if (! $query) {
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'Query parameter is required'
+                'message' => 'Query parameter is required',
             ], 400);
         }
 
         try {
-            $hashtags = Hashtag::where('tag', 'LIKE', '%' . $query . '%')->paginate(10);
+            $hashtags = Hashtag::where('tag', 'LIKE', '%'.$query.'%')->paginate(10);
 
             if ($hashtags->isEmpty()) {
                 Log::info("No hashtags found for query: $query");
+
                 return response()->json([
                     'value' => true,
                     'data' => [],
-                    'message' => 'No hashtags found'
+                    'message' => 'No hashtags found',
                 ]);
             }
 
             Log::info("Hashtags retrieved for query: $query");
+
             return response()->json([
                 'value' => true,
                 'data' => $hashtags,
-                'message' => 'Hashtags retrieved successfully'
+                'message' => 'Hashtags retrieved successfully',
             ]);
         } catch (\Exception $e) {
-            Log::error("Error searching hashtags for query $query: " . $e->getMessage());
+            Log::error("Error searching hashtags for query $query: ".$e->getMessage());
+
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while searching for hashtags'
+                'message' => 'An error occurred while searching for hashtags',
             ], 500);
         }
     }
@@ -1572,12 +1612,13 @@ class FeedPostController extends Controller
             // Find the hashtag by ID
             $hashtag = Hashtag::find($hashtagId);
 
-            if (!$hashtag) {
+            if (! $hashtag) {
                 Log::info("No posts found for hashtag ID: $hashtagId");
+
                 return response()->json([
                     'value' => true,
                     'data' => [],
-                    'message' => 'No posts found for this hashtag'
+                    'message' => 'No posts found for this hashtag',
                 ]);
             }
 
@@ -1592,7 +1633,7 @@ class FeedPostController extends Controller
                             ->with(['votes' => function ($voteQuery) use ($doctorId) {
                                 $voteQuery->where('doctor_id', $doctorId); // Check if user voted
                             }]);
-                    }
+                    },
                 ])
                 ->withCount(['likes', 'comments'])  // Count likes and comments
                 ->with([
@@ -1601,12 +1642,12 @@ class FeedPostController extends Controller
                     },
                     'likes' => function ($query) use ($doctorId) {
                         $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
-                    }
+                    },
                 ])
                 ->paginate(10); // Paginate 10 posts per page
 
             // Add 'is_saved' and 'is_liked' fields to each post
-            $posts->getCollection()->transform(function ($post) use ($doctorId) {
+            $posts->getCollection()->transform(function ($post) {
                 // Add 'is_saved' field (true if the doctor saved the post)
                 $post->isSaved = $post->saves->isNotEmpty();
 
@@ -1615,9 +1656,10 @@ class FeedPostController extends Controller
 
                 // Sort poll options by vote count (highest first) and check if the user has voted
                 if ($post->poll) {
-                    $post->poll->options = $post->poll->options->map(function ($option) use ($doctorId) {
+                    $post->poll->options = $post->poll->options->map(function ($option) {
                         $option->is_voted = $option->votes->isNotEmpty(); // If user has voted for this option
                         unset($option->votes); // Remove unnecessary vote data
+
                         return $option;
                     })->sortByDesc('votes_count')->values();
                 }
@@ -1629,17 +1671,19 @@ class FeedPostController extends Controller
             });
 
             Log::info("Posts retrieved for hashtag ID: $hashtagId by doctor ID: $doctorId");
+
             return response()->json([
                 'value' => true,
                 'data' => $posts,
-                'message' => 'Posts retrieved successfully'
+                'message' => 'Posts retrieved successfully',
             ]);
         } catch (\Exception $e) {
-            Log::error("Error fetching posts for hashtag ID $hashtagId: " . $e->getMessage());
+            Log::error("Error fetching posts for hashtag ID $hashtagId: ".$e->getMessage());
+
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while retrieving posts'
+                'message' => 'An error occurred while retrieving posts',
             ], 500);
         }
     }
@@ -1649,7 +1693,7 @@ class FeedPostController extends Controller
     {
         $query = $request->input('query');
 
-        if (!$query) {
+        if (! $query) {
             // Create an empty paginated response with the same structure
             $emptyPaginator = new \Illuminate\Pagination\LengthAwarePaginator(
                 [], // Empty data array
@@ -1658,14 +1702,14 @@ class FeedPostController extends Controller
                 1,  // Current page
                 [
                     'path' => request()->url(),
-                    'query' => request()->query()
+                    'query' => request()->query(),
                 ]
             );
 
             return response()->json([
                 'value' => true,
                 'data' => $emptyPaginator,
-                'message' => 'No query provided'
+                'message' => 'No query provided',
             ]);
         }
 
@@ -1673,7 +1717,7 @@ class FeedPostController extends Controller
             $doctorId = auth()->id(); // Get the authenticated doctor's ID
 
             // Search posts by content
-            $posts = FeedPost::where('content', 'LIKE', '%' . $query . '%')
+            $posts = FeedPost::where('content', 'LIKE', '%'.$query.'%')
                 ->with([
                     'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
                     'poll.options' => function ($query) use ($doctorId) {
@@ -1681,7 +1725,7 @@ class FeedPostController extends Controller
                             ->with(['votes' => function ($voteQuery) use ($doctorId) {
                                 $voteQuery->where('doctor_id', $doctorId); // Check if user voted
                             }]);
-                    }
+                    },
                 ])
                 ->withCount(['likes', 'comments'])  // Count likes and comments
                 ->with([
@@ -1690,13 +1734,13 @@ class FeedPostController extends Controller
                     },
                     'likes' => function ($query) use ($doctorId) {
                         $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
-                    }
+                    },
                 ])
                 ->latest('updated_at')
                 ->paginate(10); // Paginate 10 posts per page
 
             // Add 'is_saved' and 'is_liked' fields to each post
-            $posts->getCollection()->transform(function ($post) use ($doctorId) {
+            $posts->getCollection()->transform(function ($post) {
                 // Add 'is_saved' field (true if the doctor saved the post)
                 $post->isSaved = $post->saves->isNotEmpty();
 
@@ -1705,9 +1749,10 @@ class FeedPostController extends Controller
 
                 // Sort poll options by vote count (highest first) and check if the user has voted
                 if ($post->poll) {
-                    $post->poll->options = $post->poll->options->map(function ($option) use ($doctorId) {
+                    $post->poll->options = $post->poll->options->map(function ($option) {
                         $option->is_voted = $option->votes->isNotEmpty(); // If user has voted for this option
                         unset($option->votes); // Remove unnecessary vote data
+
                         return $option;
                     })->sortByDesc('votes_count')->values();
                 }
@@ -1719,25 +1764,28 @@ class FeedPostController extends Controller
 
             if ($posts->isEmpty()) {
                 Log::info("No posts found for query: $query");
+
                 return response()->json([
                     'value' => true,
                     'data' => $posts,
-                    'message' => 'No posts found'
+                    'message' => 'No posts found',
                 ]);
             }
 
             Log::info("Posts retrieved for query: $query");
+
             return response()->json([
                 'value' => true,
                 'data' => $posts,
-                'message' => 'Posts retrieved successfully'
+                'message' => 'Posts retrieved successfully',
             ]);
         } catch (\Exception $e) {
-            Log::error("Error searching posts for query $query: " . $e->getMessage());
+            Log::error("Error searching posts for query $query: ".$e->getMessage());
+
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while searching for posts'
+                'message' => 'An error occurred while searching for posts',
             ], 500);
         }
     }

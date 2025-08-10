@@ -11,7 +11,11 @@ class PollOption extends Model
 
     protected $fillable = ['poll_id', 'option_text'];
 
-
+    protected $casts = [
+        'id' => 'integer',
+        'poll_id' => 'integer',
+        'votes_count' => 'integer',
+    ];
 
     public function poll()
     {

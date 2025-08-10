@@ -2,7 +2,6 @@
 
 namespace App\Modules\Questions\Services;
 
-use App\Modules\Questions\Models\Questions;
 use App\Models\Assessment;
 use App\Models\Cause;
 use App\Models\Complaint;
@@ -12,44 +11,41 @@ use App\Models\Outcome;
 use App\Models\PatientHistory;
 use App\Models\Risk;
 use App\Models\SectionFieldMapping;
+use App\Modules\Questions\Models\Questions;
 use Illuminate\Support\Facades\Log;
 
 class QuestionService
 {
     /**
      * Get all questions.
-     *
-     * @return array
      */
     public function getAllQuestions(): array
     {
         $questions = Questions::all();
 
         if ($questions->isEmpty()) {
-            Log::warning("No questions found.");
+            Log::warning('No questions found.');
+
             return [
                 'data' => [
                     'value' => false,
-                    'message' => 'No questions found.'
+                    'message' => 'No questions found.',
                 ],
-                'status_code' => 404
+                'status_code' => 404,
             ];
         }
 
         return [
             'data' => [
                 'value' => true,
-                'data' => $questions
+                'data' => $questions,
             ],
-            'status_code' => 200
+            'status_code' => 200,
         ];
     }
 
     /**
      * Store a new question.
-     *
-     * @param array $data
-     * @return array
      */
     public function storeQuestion(array $data): array
     {
@@ -74,31 +70,28 @@ class QuestionService
             return [
                 'data' => [
                     'value' => true,
-                    'data' => $question
+                    'data' => $question,
                 ],
-                'status_code' => 201
+                'status_code' => 201,
             ];
         } catch (\Exception $e) {
-            Log::error("Failed to store question: " . $e->getMessage(), [
+            Log::error('Failed to store question: '.$e->getMessage(), [
                 'data' => $data,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'data' => [
                     'value' => false,
-                    'message' => 'Failed to create question: ' . $e->getMessage()
+                    'message' => 'Failed to create question: '.$e->getMessage(),
                 ],
-                'status_code' => 500
+                'status_code' => 500,
             ];
         }
     }
 
     /**
      * Get questions by section ID.
-     *
-     * @param int $sectionId
-     * @return array
      */
     public function getQuestionsBySection(int $sectionId): array
     {
@@ -111,12 +104,13 @@ class QuestionService
         // Check if questions are found
         if ($questions->isEmpty()) {
             Log::warning("No questions found for section ID: {$sectionId}");
+
             return [
                 'data' => [
                     'value' => false,
-                    'message' => 'No questions found for the given section ID.'
+                    'message' => 'No questions found for the given section ID.',
                 ],
-                'status_code' => 404
+                'status_code' => 404,
             ];
         }
 
@@ -124,9 +118,10 @@ class QuestionService
         foreach ($questions as $question) {
             if ($question->skip) {
                 Log::info("Question with ID {$question->id} skipped as per skip flag.");
+
                 continue;
             }
-            
+
             // Construct question data
             $questionData = [
                 'id' => $question->id,
@@ -147,18 +142,14 @@ class QuestionService
         return [
             'data' => [
                 'value' => true,
-                'data' => $data
+                'data' => $data,
             ],
-            'status_code' => 200
+            'status_code' => 200,
         ];
     }
 
     /**
      * Get questions and answers for a specific section and patient.
-     *
-     * @param int $sectionId
-     * @param int $patientId
-     * @return array
      */
     public function getQuestionsWithAnswers(int $sectionId, int $patientId): array
     {
@@ -173,13 +164,15 @@ class QuestionService
             // Skip questions based on the skip flag
             if ($question->skip) {
                 Log::info("Question with ID {$question->id} skipped as per skip flag.");
+
                 continue;
             }
 
             // Get the answers model for the section
             $answersModel = $this->getAnswersModel($sectionId);
-            if (!$answersModel) {
+            if (! $answersModel) {
                 Log::warning("No answer model found for section ID {$sectionId}.");
+
                 continue;
             }
 
@@ -191,15 +184,16 @@ class QuestionService
             $mainAnswerColumnName = $this->getAnswerColumnName($question->id);
 
             // Construct the other field column name by appending '_other_field' to the main answer column name
-            $otherFieldColumnName = $mainAnswerColumnName . '_other_field';
+            $otherFieldColumnName = $mainAnswerColumnName.'_other_field';
 
             // Check if the question is hidden and handle accordingly
-            $hasAnswer = !empty($answers->$mainAnswerColumnName) ||
-                !empty($answers->$otherFieldColumnName);
+            $hasAnswer = ! empty($answers->$mainAnswerColumnName) ||
+                ! empty($answers->$otherFieldColumnName);
 
-            if ($question->hidden && !$hasAnswer) {
+            if ($question->hidden && ! $hasAnswer) {
                 // Skip the question if it's hidden and has no answer
                 Log::info("Hidden question with ID {$question->id} skipped due to no answer.");
+
                 continue;
             }
 
@@ -234,32 +228,29 @@ class QuestionService
         return [
             'data' => [
                 'value' => true,
-                'data' => $data
+                'data' => $data,
             ],
-            'status_code' => 200
+            'status_code' => 200,
         ];
     }
 
     /**
      * Update a question.
-     *
-     * @param int $id
-     * @param array $data
-     * @return array
      */
     public function updateQuestion(int $id, array $data): array
     {
         try {
             $question = Questions::find($id);
 
-            if (!$question) {
+            if (! $question) {
                 Log::warning("No questions found for update. ID: {$id}");
+
                 return [
                     'data' => [
                         'value' => false,
-                        'message' => 'No questions found.'
+                        'message' => 'No questions found.',
                     ],
-                    'status_code' => 404
+                    'status_code' => 404,
                 ];
             }
 
@@ -276,45 +267,43 @@ class QuestionService
                 'data' => [
                     'value' => true,
                     'data' => $question,
-                    'message' => 'Questions updated successfully.'
+                    'message' => 'Questions updated successfully.',
                 ],
-                'status_code' => 200
+                'status_code' => 200,
             ];
         } catch (\Exception $e) {
-            Log::error("Failed to update question: " . $e->getMessage(), [
+            Log::error('Failed to update question: '.$e->getMessage(), [
                 'id' => $id,
                 'data' => $data,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'data' => [
                     'value' => false,
-                    'message' => 'Failed to update question: ' . $e->getMessage()
+                    'message' => 'Failed to update question: '.$e->getMessage(),
                 ],
-                'status_code' => 500
+                'status_code' => 500,
             ];
         }
     }
 
     /**
      * Delete a question.
-     *
-     * @param int $id
-     * @return array
      */
     public function deleteQuestion(int $id): array
     {
         $question = Questions::find($id);
 
-        if (!$question) {
+        if (! $question) {
             Log::warning("No questions found for deletion. ID: {$id}");
+
             return [
                 'data' => [
                     'value' => false,
-                    'message' => 'No questions found.'
+                    'message' => 'No questions found.',
                 ],
-                'status_code' => 404
+                'status_code' => 404,
             ];
         }
 
@@ -325,17 +314,14 @@ class QuestionService
         return [
             'data' => [
                 'value' => true,
-                'message' => 'Questions deleted successfully.'
+                'message' => 'Questions deleted successfully.',
             ],
-            'status_code' => 200
+            'status_code' => 200,
         ];
     }
 
     /**
      * Get the model class for answers based on section ID.
-     *
-     * @param int $sectionId
-     * @return string|null
      */
     private function getAnswersModel(int $sectionId): ?string
     {
@@ -363,9 +349,6 @@ class QuestionService
 
     /**
      * Get answer column name for a question ID.
-     *
-     * @param int $questionId
-     * @return string
      */
     private function getAnswerColumnName(int $questionId): string
     {
@@ -373,6 +356,6 @@ class QuestionService
         $columnName = SectionFieldMapping::where('field_name', $questionId)
             ->value('column_name');
 
-        return $columnName ? $columnName : 'column_' . $questionId;
+        return $columnName ? $columnName : 'column_'.$questionId;
     }
 }

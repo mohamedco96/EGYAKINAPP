@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Modules\Notifications\Models\AppNotification;
-use App\Models\User;
+use App\Modules\Notifications\Models\FcmToken;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
@@ -12,8 +13,6 @@ use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Contract\Messaging as FirebaseMessaging;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
-use App\Modules\Notifications\Models\FcmToken;
-use Illuminate\Database\QueryException;
 
 class NotificationController extends Controller
 {
@@ -42,7 +41,6 @@ class NotificationController extends Controller
     /**
      * Send a message to all FCM tokens.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function send(Request $request)
@@ -58,6 +56,7 @@ class NotificationController extends Controller
 
             if (empty($tokens)) {
                 Log::info('No FCM tokens found.');
+
                 return response()->json(['status' => 'No tokens found'], 404);
             }
 
@@ -100,6 +99,7 @@ class NotificationController extends Controller
 
             if (empty($tokens)) {
                 Log::info('No FCM tokens found.');
+
                 return response()->json(['status' => 'No tokens found'], 404);
             }
 
@@ -141,13 +141,14 @@ class NotificationController extends Controller
             //            $title = $request->input('title');
             //            $body = $request->input('body');
 
-            $title = "EgyAkin v1.0.9 is Here! ✨";
-            $body  = "Kidney community is here! Post, explore #DialysisSupport, join groups, and enjoy a smoother experience.🔄 Update now for the latest features! 🚀";
+            $title = 'EgyAkin v1.0.9 is Here! ✨';
+            $body = 'Kidney community is here! Post, explore #DialysisSupport, join groups, and enjoy a smoother experience.🔄 Update now for the latest features! 🚀';
             // Retrieve all tokens from the fcm_tokens table
             $tokens = FcmToken::pluck('token')->toArray();
 
             if (empty($tokens)) {
                 Log::info('No FCM tokens found.');
+
                 return response()->json(['status' => 'No tokens found'], 404);
             }
 
@@ -182,7 +183,6 @@ class NotificationController extends Controller
     /**
      * Store a newly created FCM token.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function storeFCM(Request $request)
@@ -274,7 +274,8 @@ class NotificationController extends Controller
 
             return response($response, 200);
         } catch (\Exception $e) {
-            Log::error('Error occurred while fetching notifications: ' . $e->getMessage());
+            Log::error('Error occurred while fetching notifications: '.$e->getMessage());
+
             return response()->json(['value' => false, 'message' => 'Failed to fetch notifications'], 500);
         }
     }
@@ -287,6 +288,7 @@ class NotificationController extends Controller
 
             // Fetch today's and recent records in one go
             $notifications = AppNotification::where('doctor_id', $doctorId)
+                ->select('id', 'read', 'content', 'type', 'type_id', 'patient_id', 'doctor_id', 'type_doctor_id', 'created_at')
                 ->with([
                     'patient' => function ($query) {
                         $query->select('id', 'doctor_id', 'updated_at');
@@ -295,16 +297,18 @@ class NotificationController extends Controller
                         $query->select('id', 'name', 'lname', 'workingplace', 'image', 'isSyndicateCardRequired');
                     },
                     'patient.answers' => function ($query) {
-                        $query->select('id', 'patient_id', 'answer', 'question_id');
+                        $query->select('id', 'patient_id', 'answer', 'question_id')
+                            ->whereIn('question_id', [1, 2, 11]);
                     },
                     'patient.status' => function ($query) {
-                        $query->select('id', 'patient_id', 'key', 'status');
+                        $query->select('id', 'patient_id', 'key', 'status')
+                            ->whereIn('key', ['submit_status', 'outcome_status']);
                     },
-                    'typeDoctor:id,name,lname,workingplace,image,isSyndicateCardRequired' // Eager load typeDoctor
+                    'typeDoctor:id,name,lname,workingplace,image,isSyndicateCardRequired', // Eager load typeDoctor
                 ])
                 ->latest()
                 ->get()
-                ->groupBy(function ($notification) use ($today) {
+                ->groupBy(function ($notification) {
                     return Carbon::parse($notification->created_at)->isToday() ? 'today' : 'recent';
                 });
 
@@ -326,19 +330,22 @@ class NotificationController extends Controller
                 'value' => true,
                 'unreadCount' => strval($unreadCount),
                 'todayRecords' => $transformedTodayRecords,
-                'recentRecords' => $transformedPatientsPaginated
+                'recentRecords' => $transformedPatientsPaginated,
             ];
 
             // Log successful response
             Log::info('Successfully fetched new notifications.', ['doctor_id' => $doctorId]);
 
-            // Mark notifications as read in bulk
-            AppNotification::where('doctor_id', $doctorId)->update(['read' => true]);
+            // Mark only unread notifications as read in bulk
+            AppNotification::where('doctor_id', $doctorId)
+                ->where('read', false)
+                ->update(['read' => true]);
 
             return response()->json($response, 200);
         } catch (\Exception $e) {
             // Log error
-            Log::error('Error occurred while fetching new notifications: ' . $e->getMessage());
+            Log::error('Error occurred while fetching new notifications: '.$e->getMessage());
+
             return response()->json(['value' => false, 'message' => 'Failed to fetch new notifications'], 500);
         }
     }
@@ -360,7 +367,7 @@ class NotificationController extends Controller
                     'name' => optional($doctor)->name,
                     'lname' => optional($doctor)->lname,
                     'workingplace' => optional($doctor)->workingplace,
-                    'image' => optional($doctor)->image
+                    'image' => optional($doctor)->image,
                 ];
             } else {
                 $name = $hospital = $governorate = null;
@@ -378,25 +385,25 @@ class NotificationController extends Controller
                 'sections' => [
                     'submit_status' => $submitStatus ?? false,
                     'outcome_status' => $outcomeStatus ?? false,
-                ]
-            ] : (object)[
+                ],
+            ] : (object) [
                 'id' => null,
                 'name' => null,
                 'hospital' => null,
                 'governorate' => null,
                 'doctor_id' => null,
-                'doctor' => (object)[
+                'doctor' => (object) [
                     'id' => null,
                     'name' => null,
                     'lname' => null,
                     'workingplace' => null,
                     'image' => null,
-                    'isSyndicateCardRequired' => null
+                    'isSyndicateCardRequired' => null,
                 ],
                 'sections' => [
                     'submit_status' => false,
-                    'outcome_status' => false
-                ]
+                    'outcome_status' => false,
+                ],
             ];
 
             // Use eager loaded typeDoctor data directly
@@ -406,7 +413,7 @@ class NotificationController extends Controller
                 'lname' => null,
                 'workingplace' => null,
                 'image' => null,
-                'isSyndicateCardRequired' => null
+                'isSyndicateCardRequired' => null,
             ];
 
             return [
@@ -419,7 +426,7 @@ class NotificationController extends Controller
                 'doctor_id' => strval($notification->doctor_id),
                 'created_at' => $notification->created_at,
                 'patient' => $patientDetails,
-                'type_doctor' => $typeDoctor
+                'type_doctor' => $typeDoctor,
             ];
         });
     }

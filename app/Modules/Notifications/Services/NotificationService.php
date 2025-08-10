@@ -2,12 +2,10 @@
 
 namespace App\Modules\Notifications\Services;
 
+use App\Models\User;
 use App\Modules\Notifications\Models\AppNotification;
 use App\Modules\Notifications\Models\FcmToken;
-use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Contract\Messaging as FirebaseMessaging;
 use Kreait\Firebase\Messaging\CloudMessage;
@@ -36,14 +34,14 @@ class NotificationService
 
             Log::info('Single notification sent successfully', [
                 'title' => $title,
-                'token' => substr($deviceToken, 0, 10) . '...'
+                'token' => substr($deviceToken, 0, 10).'...',
             ]);
 
             return ['success' => true, 'message' => 'Message sent successfully'];
         } catch (\Exception $e) {
             Log::error('Failed to send single notification', [
                 'title' => $title,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             throw $e;
@@ -60,6 +58,7 @@ class NotificationService
 
             if (empty($tokens)) {
                 Log::info('No FCM tokens found for broadcast');
+
                 return ['success' => false, 'status' => 'No tokens found'];
             }
 
@@ -82,12 +81,12 @@ class NotificationService
             return [
                 'success' => true,
                 'status' => 'Message sent successfully to all tokens',
-                'tokens_count' => count($tokens)
+                'tokens_count' => count($tokens),
             ];
         } catch (\Exception $e) {
             Log::error('Failed to send broadcast notification', [
                 'title' => $title,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             throw $e;
@@ -102,6 +101,7 @@ class NotificationService
         try {
             if (empty($tokens)) {
                 Log::info('No FCM tokens provided for push notification');
+
                 return ['success' => false, 'status' => 'No tokens found'];
             }
 
@@ -124,13 +124,13 @@ class NotificationService
             return [
                 'success' => true,
                 'status' => 'Message sent successfully to all tokens',
-                'tokens_count' => count($tokens)
+                'tokens_count' => count($tokens),
             ];
         } catch (\Exception $e) {
             Log::error('Failed to send push notification', [
                 'title' => $title,
                 'tokens_count' => count($tokens),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             throw $e;
@@ -143,13 +143,13 @@ class NotificationService
     public function sendAllPushNotification(): array
     {
         try {
-            $title = "EgyAkin v1.0.9 is Here! ✨";
-            $body = "Kidney community is here! Post, explore #DialysisSupport, join groups, and enjoy a smoother experience.🔄 Update now for the latest features! 🚀";
+            $title = 'EgyAkin v1.0.9 is Here! ✨';
+            $body = 'Kidney community is here! Post, explore #DialysisSupport, join groups, and enjoy a smoother experience.🔄 Update now for the latest features! 🚀';
 
             return $this->sendToAllTokens($title, $body);
         } catch (\Exception $e) {
             Log::error('Failed to send pre-defined notification to all users', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             throw $e;
@@ -167,7 +167,7 @@ class NotificationService
 
             Log::info('Successfully fetched all notifications', [
                 'total_count' => $notifications->count(),
-                'unread_count' => $unreadCount
+                'unread_count' => $unreadCount,
             ]);
 
             return [
@@ -177,7 +177,7 @@ class NotificationService
             ];
         } catch (\Exception $e) {
             Log::error('Failed to fetch all notifications', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             throw $e;
@@ -194,18 +194,18 @@ class NotificationService
 
             Log::info('Notification created successfully', [
                 'notification_id' => $notification->id,
-                'type' => $notification->type
+                'type' => $notification->type,
             ]);
 
             return [
                 'value' => true,
                 'data' => $notification,
-                'message' => 'Notification created successfully'
+                'message' => 'Notification created successfully',
             ];
         } catch (\Exception $e) {
             Log::error('Failed to create notification', [
                 'data' => $data,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             throw $e;
@@ -220,25 +220,25 @@ class NotificationService
         try {
             $notification = AppNotification::find($id);
 
-            if (!$notification) {
+            if (! $notification) {
                 return [
                     'value' => false,
-                    'message' => 'Notification not found'
+                    'message' => 'Notification not found',
                 ];
             }
 
             Log::info('Notification fetched successfully', [
-                'notification_id' => $id
+                'notification_id' => $id,
             ]);
 
             return [
                 'value' => true,
-                'data' => $notification
+                'data' => $notification,
             ];
         } catch (\Exception $e) {
             Log::error('Failed to fetch notification', [
                 'notification_id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             throw $e;
@@ -261,7 +261,7 @@ class NotificationService
             Log::info('User notifications fetched successfully', [
                 'doctor_id' => $doctorId,
                 'total_count' => $notifications->count(),
-                'unread_count' => $unreadCount
+                'unread_count' => $unreadCount,
             ]);
 
             return [
@@ -272,7 +272,7 @@ class NotificationService
         } catch (\Exception $e) {
             Log::error('Failed to fetch user notifications', [
                 'doctor_id' => auth()->id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             throw $e;
@@ -288,62 +288,73 @@ class NotificationService
             $doctorId = auth()->id();
             $today = Carbon::today();
 
-            // Fetch notifications with relationships
-            $notifications = AppNotification::where('doctor_id', $doctorId)
-                ->with([
-                    'patient' => function ($query) {
-                        $query->select('id', 'doctor_id', 'updated_at');
-                    },
-                    'patient.doctor' => function ($query) {
-                        $query->select('id', 'name', 'lname', 'workingplace', 'image', 'isSyndicateCardRequired');
-                    },
-                    'patient.answers' => function ($query) {
-                        $query->select('id', 'patient_id', 'answer', 'question_id');
-                    },
-                    'patient.status' => function ($query) {
-                        $query->select('id', 'patient_id', 'key', 'status');
-                    },
-                    'typeDoctor:id,name,lname,workingplace,image,isSyndicateCardRequired'
-                ])
+            // Common eager-load with tight filters to drastically reduce payload size
+            $withRelations = [
+                'patient' => function ($query) {
+                    $query->select('id', 'doctor_id', 'updated_at');
+                },
+                'patient.doctor' => function ($query) {
+                    $query->select('id', 'name', 'lname', 'workingplace', 'image', 'isSyndicateCardRequired');
+                },
+                'patient.answers' => function ($query) {
+                    $query->select('id', 'patient_id', 'answer', 'question_id')
+                        ->whereIn('question_id', [1, 2, 11]);
+                },
+                'patient.status' => function ($query) {
+                    $query->select('id', 'patient_id', 'key', 'status')
+                        ->whereIn('key', ['submit_status', 'outcome_status']);
+                },
+                'typeDoctor:id,name,lname,workingplace,image,isSyndicateCardRequired',
+            ];
+
+            // Fetch today's notifications (no pagination)
+            $todayNotifications = AppNotification::where('doctor_id', $doctorId)
+                ->whereDate('created_at', $today)
+                ->select('id', 'read', 'content', 'type', 'type_id', 'patient_id', 'doctor_id', 'type_doctor_id', 'created_at')
+                ->with($withRelations)
                 ->latest()
-                ->get()
-                ->groupBy(function ($notification) use ($today) {
-                    return Carbon::parse($notification->created_at)->isToday() ? 'today' : 'recent';
-                });
+                ->get();
 
-            // Transform data
-            $transformedTodayRecords = $this->transformNotifications($notifications['today'] ?? collect());
-            $transformedRecentRecords = $this->transformNotifications($notifications['recent'] ?? collect());
+            $transformedTodayRecords = $this->transformNotifications($todayNotifications);
 
-            // Paginate recent records
-            $currentPage = LengthAwarePaginator::resolveCurrentPage();
+            // Fetch recent (before today) notifications with DB-side pagination
             $perPage = 10;
-            $slicedData = $transformedRecentRecords->slice(($currentPage - 1) * $perPage, $perPage);
-            $transformedPatientsPaginated = new LengthAwarePaginator($slicedData->values(), count($transformedRecentRecords), $perPage);
+            $recentPaginated = AppNotification::where('doctor_id', $doctorId)
+                ->whereDate('created_at', '<', $today)
+                ->select('id', 'read', 'content', 'type', 'type_id', 'patient_id', 'doctor_id', 'type_doctor_id', 'created_at')
+                ->with($withRelations)
+                ->latest()
+                ->paginate($perPage);
+
+            // Transform the paginated collection while keeping paginator metadata
+            $transformedRecentCollection = $this->transformNotifications($recentPaginated->getCollection());
+            $transformedPatientsPaginated = $recentPaginated->setCollection($transformedRecentCollection->values());
 
             // Count unread notifications
             $unreadCount = AppNotification::where('doctor_id', $doctorId)->where('read', false)->count();
 
-            // Mark notifications as read
-            AppNotification::where('doctor_id', $doctorId)->update(['read' => true]);
+            // Mark unread notifications as read only
+            AppNotification::where('doctor_id', $doctorId)
+                ->where('read', false)
+                ->update(['read' => true]);
 
             Log::info('New notifications fetched successfully', [
                 'doctor_id' => $doctorId,
                 'today_count' => $transformedTodayRecords->count(),
                 'recent_count' => $transformedRecentRecords->count(),
-                'unread_count' => $unreadCount
+                'unread_count' => $unreadCount,
             ]);
 
             return [
                 'value' => true,
                 'unreadCount' => strval($unreadCount),
                 'todayRecords' => $transformedTodayRecords,
-                'recentRecords' => $transformedPatientsPaginated
+                'recentRecords' => $transformedPatientsPaginated,
             ];
         } catch (\Exception $e) {
             Log::error('Failed to fetch new notifications', [
                 'doctor_id' => auth()->id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             throw $e;
@@ -358,10 +369,10 @@ class NotificationService
         try {
             $notification = AppNotification::find($id);
 
-            if (!$notification) {
+            if (! $notification) {
                 return [
                     'value' => false,
-                    'message' => 'Notification not found'
+                    'message' => 'Notification not found',
                 ];
             }
 
@@ -369,19 +380,19 @@ class NotificationService
 
             Log::info('Notification updated successfully', [
                 'notification_id' => $id,
-                'updated_fields' => array_keys($data)
+                'updated_fields' => array_keys($data),
             ]);
 
             return [
                 'value' => true,
                 'data' => $notification,
-                'message' => 'Notification updated successfully'
+                'message' => 'Notification updated successfully',
             ];
         } catch (\Exception $e) {
             Log::error('Failed to update notification', [
                 'notification_id' => $id,
                 'data' => $data,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             throw $e;
@@ -401,18 +412,18 @@ class NotificationService
 
             Log::info('All notifications marked as read', [
                 'doctor_id' => $doctorId,
-                'updated_count' => $updatedCount
+                'updated_count' => $updatedCount,
             ]);
 
             return [
                 'value' => true,
                 'message' => 'All notifications marked as read',
-                'updated_count' => $updatedCount
+                'updated_count' => $updatedCount,
             ];
         } catch (\Exception $e) {
             Log::error('Failed to mark all notifications as read', [
                 'doctor_id' => auth()->id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             throw $e;
@@ -427,27 +438,27 @@ class NotificationService
         try {
             $notification = AppNotification::find($id);
 
-            if (!$notification) {
+            if (! $notification) {
                 return [
                     'value' => false,
-                    'message' => 'Notification not found'
+                    'message' => 'Notification not found',
                 ];
             }
 
             $notification->delete();
 
             Log::info('Notification deleted successfully', [
-                'notification_id' => $id
+                'notification_id' => $id,
             ]);
 
             return [
                 'value' => true,
-                'message' => 'Notification deleted successfully'
+                'message' => 'Notification deleted successfully',
             ];
         } catch (\Exception $e) {
             Log::error('Failed to delete notification', [
                 'notification_id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             throw $e;
@@ -474,7 +485,7 @@ class NotificationService
                     'name' => optional($doctor)->name,
                     'lname' => optional($doctor)->lname,
                     'workingplace' => optional($doctor)->workingplace,
-                    'image' => optional($doctor)->image
+                    'image' => optional($doctor)->image,
                 ];
             } else {
                 $name = $hospital = $governorate = null;
@@ -492,25 +503,25 @@ class NotificationService
                 'sections' => [
                     'submit_status' => $submitStatus ?? false,
                     'outcome_status' => $outcomeStatus ?? false,
-                ]
-            ] : (object)[
+                ],
+            ] : (object) [
                 'id' => null,
                 'name' => null,
                 'hospital' => null,
                 'governorate' => null,
                 'doctor_id' => null,
-                'doctor' => (object)[
+                'doctor' => (object) [
                     'id' => null,
                     'name' => null,
                     'lname' => null,
                     'workingplace' => null,
                     'image' => null,
-                    'isSyndicateCardRequired' => null
+                    'isSyndicateCardRequired' => null,
                 ],
                 'sections' => [
                     'submit_status' => false,
-                    'outcome_status' => false
-                ]
+                    'outcome_status' => false,
+                ],
             ];
 
             // Use eager loaded typeDoctor data
@@ -520,7 +531,7 @@ class NotificationService
                 'lname' => null,
                 'workingplace' => null,
                 'image' => null,
-                'isSyndicateCardRequired' => null
+                'isSyndicateCardRequired' => null,
             ];
 
             return [
@@ -533,7 +544,7 @@ class NotificationService
                 'doctor_id' => strval($notification->doctor_id),
                 'created_at' => $notification->created_at,
                 'patient' => $patientDetails,
-                'type_doctor' => $typeDoctor
+                'type_doctor' => $typeDoctor,
             ];
         });
     }

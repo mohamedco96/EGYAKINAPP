@@ -341,7 +341,7 @@ class NotificationService
             Log::info('New notifications fetched successfully', [
                 'doctor_id' => $doctorId,
                 'today_count' => $transformedTodayRecords->count(),
-                'recent_count' => $transformedRecentRecords->count(),
+                'recent_count' => $recentPaginated->total(),
                 'unread_count' => $unreadCount,
             ]);
 

@@ -2,22 +2,22 @@
 
 namespace App\Services;
 
-use App\Modules\Patients\Models\Patients;
 use App\Models\Answers;
-use App\Modules\Patients\Models\PatientStatus;
-use App\Models\Questions;
-use App\Models\User;
 use App\Models\Score;
 use App\Models\ScoreHistory;
-use App\Modules\Notifications\Models\AppNotification;
-use App\Modules\Notifications\Models\FcmToken;
+use App\Models\User;
 use App\Modules\Consultations\Models\Consultation;
 use App\Modules\Consultations\Models\ConsultationDoctor;
+use App\Modules\Notifications\Models\AppNotification;
+use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Notifications\Services\NotificationService;
+use App\Modules\Patients\Models\Patients;
+use App\Modules\Patients\Models\PatientStatus;
+use App\Modules\Questions\Models\Questions;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Carbon;
 
 class PatientService
 {
@@ -45,9 +45,9 @@ class PatientService
             $doctorId = Auth::id();
             $user = Auth::user();
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
-            
+
             $questionSectionIds = Questions::pluck('section_id', 'id')->toArray();
-            
+
             $patient = Patients::create([
                 'doctor_id' => $doctorId,
                 'hidden' => $isAdminOrTester,
@@ -55,17 +55,17 @@ class PatientService
 
             $answersToSave = [];
             $this->processAnswers($requestData, $answersToSave, $doctorId, $patient->id, $questionSectionIds);
-            
+
             Answers::insert($answersToSave);
-            
+
             $this->createPatientStatuses($doctorId, $patient->id, $questionSectionIds);
-            
+
             $patientName = $this->extractPatientName($answersToSave, $patient->id);
-            
+
             $this->sendNewPatientNotifications($user, $patient->id, $patientName);
-            
+
             Log::info('New patient created', ['doctor_id' => $doctorId, 'patient_id' => $patient->id]);
-            
+
             return [
                 'value' => true,
                 'doctor_id' => $doctorId,
@@ -85,9 +85,9 @@ class PatientService
         return DB::transaction(function () use ($requestData, $sectionId, $patientId) {
             $doctorId = Auth::id();
             $questionSectionIds = Questions::pluck('section_id', 'id')->toArray();
-            
+
             $patientSectionStatus = PatientStatus::where('patient_id', $patientId)
-                ->where('key', 'section_' . $sectionId)
+                ->where('key', 'section_'.$sectionId)
                 ->first();
 
             if ($patientSectionStatus) {
@@ -98,12 +98,12 @@ class PatientService
             }
 
             $this->handleOutcomeStatusUpdate($patientId, $sectionId, $doctorId);
-            
-            Log::info('Section_' . $sectionId . ' updated successfully', [
-                'doctor_id' => $doctorId, 
-                'patient_id' => $patientId
+
+            Log::info('Section_'.$sectionId.' updated successfully', [
+                'doctor_id' => $doctorId,
+                'patient_id' => $patientId,
             ]);
-            
+
             return [
                 'value' => true,
                 'message' => 'Section updated successfully.',
@@ -118,23 +118,23 @@ class PatientService
     {
         return DB::transaction(function () use ($patientId) {
             $patient = Patients::findOrFail($patientId);
-            
+
             // Delete related consultation data
             ConsultationDoctor::whereIn('consultation_id', function ($query) use ($patientId) {
                 $query->select('id')
                     ->from('consultations')
                     ->where('patient_id', $patientId);
             })->delete();
-            
+
             Consultation::where('patient_id', $patientId)->delete();
-            
+
             // Handle score adjustments
             $this->adjustDoctorScores($patientId);
-            
+
             $patient->delete();
-            
+
             Log::info('Patient deleted successfully', ['patient_id' => $patientId]);
-            
+
             return [
                 'value' => true,
                 'message' => 'Patient and related data deleted successfully',
@@ -153,7 +153,7 @@ class PatientService
 
         return [
             'id' => $patient->id,
-            'doctor_id' => (int)$patient->doctor_id,
+            'doctor_id' => (int) $patient->doctor_id,
             'name' => optional($patient->answers->where('question_id', 1)->first())->answer,
             'hospital' => optional($patient->answers->where('question_id', 2)->first())->answer,
             'updated_at' => $patient->updated_at,
@@ -164,11 +164,11 @@ class PatientService
                 'outcome_status' => $outcomeStatus ?? false,
             ],
             'submitter' => [
-                'submitter_id' => $outcomeSubmitterDoctorId ? (int)$outcomeSubmitterDoctorId : null,
+                'submitter_id' => $outcomeSubmitterDoctorId ? (int) $outcomeSubmitterDoctorId : null,
                 'submitter_fname' => optional($patient->doctor)->name,
                 'submitter_lname' => optional($patient->doctor)->lname,
-                'submitter_SyndicateCard' => optional($patient->doctor)->isSyndicateCardRequired
-            ]
+                'submitter_SyndicateCard' => optional($patient->doctor)->isSyndicateCardRequired,
+            ],
         ];
     }
 
@@ -179,7 +179,7 @@ class PatientService
     {
         foreach ($requestData as $key => $value) {
             if (preg_match('/^\d+$/', $key)) {
-                $questionId = (int)$key;
+                $questionId = (int) $key;
                 $sectionId = $questionSectionIds[$questionId] ?? null;
 
                 if (isset($value['answers'])) {
@@ -201,7 +201,7 @@ class PatientService
             return;
         }
 
-        $answerText = is_array($answer) ? json_encode($answer) : '"' . addslashes($answer) . '"';
+        $answerText = is_array($answer) ? json_encode($answer) : '"'.addslashes($answer).'"';
 
         $answersToSave[] = [
             'doctor_id' => $doctorId,
@@ -225,10 +225,10 @@ class PatientService
             [
                 'doctor_id' => $doctorId,
                 'patient_id' => $patientId,
-                'key' => 'section_' . ($questionSectionIds[1] ?? null),
+                'key' => 'section_'.($questionSectionIds[1] ?? null),
                 'status' => true,
                 'created_at' => $now,
-                'updated_at' => $now
+                'updated_at' => $now,
             ],
             [
                 'doctor_id' => $doctorId,
@@ -236,7 +236,7 @@ class PatientService
                 'key' => 'submit_status',
                 'status' => false,
                 'created_at' => $now,
-                'updated_at' => $now
+                'updated_at' => $now,
             ],
             [
                 'doctor_id' => $doctorId,
@@ -244,8 +244,8 @@ class PatientService
                 'key' => 'outcome_status',
                 'status' => false,
                 'created_at' => $now,
-                'updated_at' => $now
-            ]
+                'updated_at' => $now,
+            ],
         ];
 
         PatientStatus::insert($patientStatusesToCreate);
@@ -261,6 +261,7 @@ class PatientService
                 return stripslashes(trim($answer['answer'], '"'));
             }
         }
+
         return null;
     }
 
@@ -278,12 +279,12 @@ class PatientService
                 'doctor_id' => $doctorId,
                 'type' => 'New Patient',
                 'content' => 'New Patient was created',
-                'patient_id' => $patientId
+                'patient_id' => $patientId,
             ]);
         }
 
         $title = 'New Patient was created 📣';
-        $body = 'Dr. ' . ucfirst($user->name) . ' added a new patient named ' . $patientName;
+        $body = 'Dr. '.ucfirst($user->name).' added a new patient named '.$patientName;
         $tokens = FcmToken::whereIn('doctor_id', $doctors)->pluck('token')->toArray();
 
         $this->notificationService->sendPushNotification($title, $body, $tokens);
@@ -296,7 +297,7 @@ class PatientService
     {
         foreach ($requestData as $key => $value) {
             if (preg_match('/^\d+$/', $key)) {
-                $questionId = (int)$key;
+                $questionId = (int) $key;
                 $questionExists = Answers::where('patient_id', $patientId)
                     ->where('question_id', $questionId)
                     ->exists();
@@ -317,7 +318,7 @@ class PatientService
     {
         foreach ($requestData as $key => $value) {
             if (preg_match('/^\d+$/', $key)) {
-                $questionId = (int)$key;
+                $questionId = (int) $key;
                 $questionExists = Answers::where('patient_id', $patientId)
                     ->where('question_id', $questionId)
                     ->exists();
@@ -333,8 +334,8 @@ class PatientService
         PatientStatus::create([
             'doctor_id' => $doctorId,
             'patient_id' => $patientId,
-            'key' => 'section_' . $sectionId,
-            'status' => true
+            'key' => 'section_'.$sectionId,
+            'status' => true,
         ]);
     }
 
@@ -354,14 +355,14 @@ class PatientService
         if ($patientOutcomeStatus && $patientOutcomeStatus->status === false) {
             $patientOutcomeStatus->update([
                 'status' => true,
-                'doctor_id' => $doctorId
+                'doctor_id' => $doctorId,
             ]);
-        } elseif (!$patientOutcomeStatus) {
+        } elseif (! $patientOutcomeStatus) {
             PatientStatus::create([
                 'doctor_id' => $doctorId,
                 'patient_id' => $patientId,
                 'key' => 'outcome_status',
-                'status' => true
+                'status' => true,
             ]);
 
             $this->updateDoctorScore($doctorId, $patientId);
@@ -460,6 +461,7 @@ class PatientService
     private function isFileTypeQuestion(int $questionId): bool
     {
         $question = Questions::find($questionId);
+
         return $question && $question->type === 'files';
     }
 

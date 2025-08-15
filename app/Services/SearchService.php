@@ -2,13 +2,9 @@
 
 namespace App\Services;
 
-use App\Modules\Patients\Models\Patients;
 use App\Models\User;
-use App\Models\Questions;
 use App\Modules\Doses\Models\Dose;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use App\Modules\Patients\Models\Patients;
 
 class SearchService
 {
@@ -36,7 +32,7 @@ class SearchService
         }
 
         return Dose::select('id', 'title', 'description', 'dose', 'created_at')
-            ->where('title', 'like', '%' . $query . '%')
+            ->where('title', 'like', '%'.$query.'%')
             ->latest('updated_at')
             ->get();
     }
@@ -54,16 +50,16 @@ class SearchService
             ->where('hidden', false)
             ->where(function ($queryBuilder) use ($query) {
                 $queryBuilder->whereHas('doctor', function ($doctorQuery) use ($query) {
-                    $doctorQuery->where('name', 'like', '%' . $query . '%');
+                    $doctorQuery->where('name', 'like', '%'.$query.'%');
                 })
-                ->orWhereHas('answers', function ($answerQuery) use ($query) {
-                    $answerQuery->where('answer', 'like', '%' . $query . '%');
-                });
+                    ->orWhereHas('answers', function ($answerQuery) use ($query) {
+                        $answerQuery->where('answer', 'like', '%'.$query.'%');
+                    });
             })
             ->with([
                 'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired',
                 'status:id,patient_id,key,status,doctor_id',
-                'answers:id,patient_id,answer,question_id'
+                'answers:id,patient_id,answer,question_id',
             ])
             ->latest('updated_at')
             ->get();
@@ -93,7 +89,7 @@ class SearchService
 
         return [
             'id' => $patient->id,
-            'doctor_id' => (int)$patient->doctor_id,
+            'doctor_id' => (int) $patient->doctor_id,
             'name' => $nameAnswer,
             'hospital' => $hospitalAnswer,
             'updated_at' => $patient->updated_at,
@@ -104,10 +100,10 @@ class SearchService
                 'outcome_status' => $outcomeStatus ?? false,
                 'submitter_id' => optional($submitter)->id,
                 'submitter_name' => ($submitter && $submitter->name && $submitter->lname)
-                    ? $submitter->name . ' ' . $submitter->lname
+                    ? $submitter->name.' '.$submitter->lname
                     : null,
-                'submitter_SyndicateCard' => optional($submitter)->isSyndicateCardRequired
-            ]
+                'submitter_SyndicateCard' => optional($submitter)->isSyndicateCardRequired,
+            ],
         ];
     }
 }

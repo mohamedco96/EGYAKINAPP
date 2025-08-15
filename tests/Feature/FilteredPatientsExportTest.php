@@ -2,14 +2,13 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
 use App\Models\User;
 use App\Modules\Patients\Models\Patients;
-use App\Models\Questions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class FilteredPatientsExportTest extends TestCase
 {
@@ -20,11 +19,11 @@ class FilteredPatientsExportTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create a test user with necessary permissions
         $this->user = User::factory()->create([
             'email_verified_at' => now(),
-            'isSyndicateCardRequired' => 'Verified'
+            'isSyndicateCardRequired' => 'Verified',
         ]);
     }
 
@@ -48,10 +47,10 @@ class FilteredPatientsExportTest extends TestCase
         $response = $this->postJson('/api/exportFilteredPatients');
 
         $response->assertStatus(400)
-                 ->assertJson([
-                     'value' => false,
-                     'message' => 'No recent filter criteria found. Please apply filters first using the filteredPatients endpoint.'
-                 ]);
+            ->assertJson([
+                'value' => false,
+                'message' => 'No recent filter criteria found. Please apply filters first using the filteredPatients endpoint.',
+            ]);
     }
 
     /**
@@ -102,7 +101,7 @@ class FilteredPatientsExportTest extends TestCase
                 'file_url',
                 'patient_count',
                 'filter_count',
-                'cache_key'
+                'cache_key',
             ]);
         }
     }
@@ -115,10 +114,10 @@ class FilteredPatientsExportTest extends TestCase
         Sanctum::actingAs($this->user);
 
         $filterParams = ['1' => 'TestPatient'];
-        
+
         // Cache filters first
         $this->postJson('/api/patientFilters', $filterParams);
-        
+
         // Then test export with cached filters
         $response = $this->postJson('/api/exportFilteredPatients');
 
@@ -140,7 +139,7 @@ class FilteredPatientsExportTest extends TestCase
             'sort' => 'name',
             'direction' => 'desc',
             'offset' => 10,
-            'limit' => 5
+            'limit' => 5,
         ]);
 
         // Should process successfully regardless of pagination params
@@ -171,7 +170,7 @@ class FilteredPatientsExportTest extends TestCase
 
         // Test with malformed JSON (this will be handled by Laravel's validation)
         $response = $this->post('/api/exportFilteredPatients', [], [
-            'Content-Type' => 'application/json'
+            'Content-Type' => 'application/json',
         ]);
 
         // Should handle gracefully
@@ -186,15 +185,15 @@ class FilteredPatientsExportTest extends TestCase
         Sanctum::actingAs($this->user);
 
         $response = $this->postJson('/api/exportFilteredPatients', [
-            '9901' => 'Yes' // Submit status filter
+            '9901' => 'Yes', // Submit status filter
         ]);
 
         $response->assertHeader('Content-Type', 'application/json');
-        
+
         if ($response->status() === 200) {
             $response->assertJsonStructure([
                 'value',
-                'message'
+                'message',
             ]);
         }
     }
@@ -208,18 +207,18 @@ class FilteredPatientsExportTest extends TestCase
 
         // Step 1: Apply filters using filteredPatients endpoint
         $filterParams = ['1' => 'TestPatient', '9901' => 'Yes'];
-        
+
         $filterResponse = $this->postJson('/api/filteredPatients', $filterParams);
-        
+
         // Should succeed or return 404 if no matching patients
         $this->assertContains($filterResponse->status(), [200, 404]);
-        
+
         // Step 2: Export using cached filters
         $exportResponse = $this->postJson('/api/exportFilteredPatients');
-        
+
         // Should succeed (200) or return 404 if no patients match the cached filters
         $this->assertContains($exportResponse->status(), [200, 404]);
-        
+
         // If export succeeds, verify response structure
         if ($exportResponse->status() === 200) {
             $exportResponse->assertJsonStructure([
@@ -228,12 +227,12 @@ class FilteredPatientsExportTest extends TestCase
                 'file_url',
                 'patient_count',
                 'filter_count',
-                'cache_key'
+                'cache_key',
             ]);
-            
+
             $exportResponse->assertJson([
                 'value' => true,
-                'message' => 'Export completed successfully'
+                'message' => 'Export completed successfully',
             ]);
         }
     }

@@ -2,30 +2,23 @@
 
 namespace App\Modules\Patients\Resources;
 
-use App\Modules\Patients\Resources\PatientsResource\Pages;
-use App\Modules\Patients\Resources\PatientsResource\RelationManagers;
 use App\Modules\Patients\Models\Patients;
-use App\Models\Questions;
-use Filament\Forms;
+use App\Modules\Patients\Resources\PatientsResource\Pages;
+use App\Modules\Questions\Models\Questions;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\WithChunkReading;
-use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Facades\Excel;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
-use Filament\Notifications\Notification;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class PatientsResource extends Resource
 {
@@ -74,7 +67,7 @@ class PatientsResource extends Resource
                     ->icon('heroicon-o-document-arrow-down')
                     ->action(function () {
                         $result = static::exportAllPatients();
-                        
+
                         if ($result['success']) {
                             // Show success notification
                             Notification::make()
@@ -86,14 +79,14 @@ class PatientsResource extends Resource
                             // Redirect to the file URL
                             return redirect($result['file_url']);
                         }
-                        
+
                         // Show error notification
                         Notification::make()
                             ->title('Export Failed')
                             ->body($result['message'])
                             ->danger()
                             ->send();
-                    })
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -108,7 +101,7 @@ class PatientsResource extends Resource
     protected static function getTableQuery(): Builder
     {
         return parent::getTableQuery()
-            ->with(['answers' => function($query) {
+            ->with(['answers' => function ($query) {
                 $query->select(['id', 'patient_id', 'question_id', 'answer']);
             }]);
     }
@@ -116,7 +109,7 @@ class PatientsResource extends Resource
     protected static function questionColumns(): array
     {
         // Cache questions for 1 hour to prevent repeated queries
-        $questions = Cache::remember('all_questions', now()->addHour(), function() {
+        $questions = Cache::remember('all_questions', now()->addHour(), function () {
             return Questions::query()
                 ->select(['id', 'question'])
                 ->get();
@@ -128,9 +121,9 @@ class PatientsResource extends Resource
             $columns[] = TextColumn::make("question_{$question->id}")
                 ->label($question->question)
                 ->searchable(
-                    query: fn (Builder $query, string $search) => $query->whereHas('answers', 
+                    query: fn (Builder $query, string $search) => $query->whereHas('answers',
                         fn ($q) => $q->where('question_id', $question->id)
-                                    ->where('answer', 'like', "%{$search}%")
+                            ->where('answer', 'like', "%{$search}%")
                     )
                 )
                 ->getStateUsing(function ($record) use ($question) {
@@ -161,14 +154,15 @@ class PatientsResource extends Resource
     {
         try {
             // Get all questions from cache
-            $questions = Cache::remember('all_questions', now()->addHour(), function() {
+            $questions = Cache::remember('all_questions', now()->addHour(), function () {
                 return Questions::query()
                     ->select(['id', 'question'])
                     ->get();
             });
 
             // Create the export class
-            $export = new class($questions) implements FromCollection, WithHeadings, WithMapping {
+            $export = new class($questions) implements FromCollection, WithHeadings, WithMapping
+            {
                 private $questions;
 
                 public function __construct($questions)
@@ -178,7 +172,7 @@ class PatientsResource extends Resource
 
                 public function collection()
                 {
-                    return Patients::with(['answers' => function($query) {
+                    return Patients::with(['answers' => function ($query) {
                         $query->select(['id', 'patient_id', 'question_id', 'answer']);
                     }])->get();
                 }
@@ -213,14 +207,14 @@ class PatientsResource extends Resource
             };
 
             // Generate a unique filename with timestamp
-            $timestamp = time() . '_' . uniqid();
+            $timestamp = time().'_'.uniqid();
             $filename = "patients_export_{$timestamp}.xlsx";
 
             // Store the Excel file in the public disk
-            Excel::store($export, 'exports/' . $filename, 'public');
+            Excel::store($export, 'exports/'.$filename, 'public');
 
             // Construct the full URL for the exported file
-            $fileUrl = config('app.url') . '/storage/exports/' . $filename;
+            $fileUrl = config('app.url').'/storage/exports/'.$filename;
 
             // Log successful export
             Log::info('Successfully exported all patients to Excel.', ['file_url' => $fileUrl]);
@@ -228,14 +222,15 @@ class PatientsResource extends Resource
             return [
                 'success' => true,
                 'file_url' => $fileUrl,
-                'message' => 'Export completed successfully'
+                'message' => 'Export completed successfully',
             ];
 
         } catch (\Exception $e) {
-            Log::error('Error exporting patients to Excel: ' . $e->getMessage());
+            Log::error('Error exporting patients to Excel: '.$e->getMessage());
+
             return [
                 'success' => false,
-                'message' => 'Failed to export data: ' . $e->getMessage()
+                'message' => 'Failed to export data: '.$e->getMessage(),
             ];
         }
     }

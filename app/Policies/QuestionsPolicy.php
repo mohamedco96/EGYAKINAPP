@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\Questions;
 use App\Models\User;
+use App\Modules\Questions\Models\Questions;
 
 class QuestionsPolicy
 {

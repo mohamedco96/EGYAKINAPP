@@ -11,10 +11,10 @@ class SearchService
     /**
      * Search for patients and doses based on query parameters
      */
-    public function search(string $patientQuery = '', string $doseQuery = ''): array
+    public function search(?string $patientQuery = '', ?string $doseQuery = ''): array
     {
-        $doses = $this->searchDoses($doseQuery);
-        $patients = $this->searchPatients($patientQuery);
+        $doses = $this->searchDoses($doseQuery ?? '');
+        $patients = $this->searchPatients($patientQuery ?? '');
 
         return [
             'patients' => $patients,

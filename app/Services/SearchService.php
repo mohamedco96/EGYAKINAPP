@@ -64,24 +64,39 @@ class SearchService
             ->latest('updated_at')
             ->get();
 
-        return $patients->map(function ($patient) {
-            return $this->transformPatientForSearch($patient);
+        // Collect all unique submitter IDs to fetch in a single query
+        $submitterIds = $patients->flatMap(function ($patient) {
+            return $patient->status->where('key', 'outcome_status')
+                ->pluck('doctor_id')
+                ->filter();
+        })->unique()->values();
+
+        // Fetch all submitters in a single query
+        $submitters = collect();
+        if ($submitterIds->isNotEmpty()) {
+            $submitters = User::select('id', 'name', 'lname', 'isSyndicateCardRequired')
+                ->whereIn('id', $submitterIds)
+                ->get()
+                ->keyBy('id');
+        }
+
+        return $patients->map(function ($patient) use ($submitters) {
+            return $this->transformPatientForSearch($patient, $submitters);
         });
     }
 
     /**
      * Transform patient data for search results
      */
-    private function transformPatientForSearch($patient): array
+    private function transformPatientForSearch($patient, $submitters = null): array
     {
         $submitStatus = optional($patient->status->where('key', 'submit_status')->first())->status;
         $outcomeStatus = optional($patient->status->where('key', 'outcome_status')->first())->status;
         $outcomeSubmitterDoctorId = optional($patient->status->where('key', 'outcome_status')->first())->doctor_id;
 
         $submitter = null;
-        if ($outcomeSubmitterDoctorId) {
-            $submitter = User::select('id', 'name', 'lname', 'isSyndicateCardRequired')
-                ->find($outcomeSubmitterDoctorId);
+        if ($outcomeSubmitterDoctorId && $submitters) {
+            $submitter = $submitters->get($outcomeSubmitterDoctorId);
         }
 
         $nameAnswer = optional($patient->answers->where('question_id', 1)->first())->answer;

@@ -2,23 +2,23 @@
 
 namespace App\Modules\Patients\Services;
 
-use App\Modules\Patients\Models\Patients;
 use App\Models\Answers;
-use App\Modules\Patients\Models\PatientStatus;
-use App\Modules\Questions\Models\Questions;
-use App\Models\User;
 use App\Models\Score;
 use App\Models\ScoreHistory;
-use App\Modules\Notifications\Models\AppNotification;
-use App\Modules\Notifications\Models\FcmToken;
+use App\Models\User;
 use App\Modules\Consultations\Models\Consultation;
 use App\Modules\Consultations\Models\ConsultationDoctor;
+use App\Modules\Notifications\Models\AppNotification;
+use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Notifications\Services\NotificationService;
+use App\Modules\Patients\Models\Patients;
+use App\Modules\Patients\Models\PatientStatus;
+use App\Modules\Questions\Models\Questions;
+use App\Services\FileUploadService;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Carbon;
-use App\Services\FileUploadService;
 
 class PatientService
 {
@@ -46,9 +46,9 @@ class PatientService
             $doctorId = Auth::id();
             $user = Auth::user();
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
-            
+
             $questionSectionIds = Questions::pluck('section_id', 'id')->toArray();
-            
+
             $patient = Patients::create([
                 'doctor_id' => $doctorId,
                 'hidden' => $isAdminOrTester,
@@ -56,17 +56,17 @@ class PatientService
 
             $answersToSave = [];
             $this->processAnswers($requestData, $answersToSave, $doctorId, $patient->id, $questionSectionIds);
-            
+
             Answers::insert($answersToSave);
-            
+
             $this->createPatientStatuses($doctorId, $patient->id, $questionSectionIds);
-            
+
             $patientName = $this->extractPatientName($answersToSave, $patient->id);
-            
+
             $this->sendNewPatientNotifications($user, $patient->id, $patientName);
-            
+
             Log::info('New patient created', ['doctor_id' => $doctorId, 'patient_id' => $patient->id]);
-            
+
             return [
                 'value' => true,
                 'doctor_id' => $doctorId,
@@ -86,9 +86,9 @@ class PatientService
         return DB::transaction(function () use ($requestData, $sectionId, $patientId) {
             $doctorId = Auth::id();
             $questionSectionIds = Questions::pluck('section_id', 'id')->toArray();
-            
+
             $patientSectionStatus = PatientStatus::where('patient_id', $patientId)
-                ->where('key', 'section_' . $sectionId)
+                ->where('key', 'section_'.$sectionId)
                 ->first();
 
             if ($patientSectionStatus) {
@@ -99,12 +99,12 @@ class PatientService
             }
 
             $this->handleOutcomeStatusUpdate($patientId, $sectionId, $doctorId);
-            
-            Log::info('Section_' . $sectionId . ' updated successfully', [
-                'doctor_id' => $doctorId, 
-                'patient_id' => $patientId
+
+            Log::info('Section_'.$sectionId.' updated successfully', [
+                'doctor_id' => $doctorId,
+                'patient_id' => $patientId,
             ]);
-            
+
             return [
                 'value' => true,
                 'message' => 'Section updated successfully.',
@@ -119,23 +119,23 @@ class PatientService
     {
         return DB::transaction(function () use ($patientId) {
             $patient = Patients::findOrFail($patientId);
-            
+
             // Delete related consultation data
             ConsultationDoctor::whereIn('consultation_id', function ($query) use ($patientId) {
                 $query->select('id')
                     ->from('consultations')
                     ->where('patient_id', $patientId);
             })->delete();
-            
+
             Consultation::where('patient_id', $patientId)->delete();
-            
+
             // Handle score adjustments
             $this->adjustDoctorScores($patientId);
-            
+
             $patient->delete();
-            
+
             Log::info('Patient deleted successfully', ['patient_id' => $patientId]);
-            
+
             return [
                 'value' => true,
                 'message' => 'Patient and related data deleted successfully',
@@ -148,15 +148,20 @@ class PatientService
      */
     public function transformPatientData($patient): array
     {
-        $submitStatus = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
-        $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
-        $outcomeSubmitterDoctorId = optional($patient->status->where('key', 'outcome_status')->first())->doctor_id;
+        // Create indexed collections for O(1) lookups instead of O(n) where() calls
+        $statusByKey = $patient->status->keyBy('key');
+        $answersByQuestionId = $patient->answers->keyBy('question_id');
+
+        // Use indexed collections for efficient lookups
+        $submitStatus = optional($statusByKey->get('submit_status'))->status;
+        $outcomeStatus = optional($statusByKey->get('outcome_status'))->status;
+        $outcomeSubmitterDoctorId = optional($statusByKey->get('outcome_status'))->doctor_id;
 
         return [
             'id' => $patient->id,
-            'doctor_id' => (int)$patient->doctor_id,
-            'name' => optional($patient->answers->where('question_id', 1)->first())->answer,
-            'hospital' => optional($patient->answers->where('question_id', 2)->first())->answer,
+            'doctor_id' => (int) $patient->doctor_id,
+            'name' => optional($answersByQuestionId->get(1))->answer,
+            'hospital' => optional($answersByQuestionId->get(2))->answer,
             'updated_at' => $patient->updated_at,
             'doctor' => $patient->doctor,
             'sections' => [
@@ -165,11 +170,11 @@ class PatientService
                 'outcome_status' => $outcomeStatus ?? false,
             ],
             'submitter' => [
-                'submitter_id' => $outcomeSubmitterDoctorId ? (int)$outcomeSubmitterDoctorId : null,
+                'submitter_id' => $outcomeSubmitterDoctorId ? (int) $outcomeSubmitterDoctorId : null,
                 'submitter_fname' => optional($patient->doctor)->name,
                 'submitter_lname' => optional($patient->doctor)->lname,
-                'submitter_SyndicateCard' => optional($patient->doctor)->isSyndicateCardRequired
-            ]
+                'submitter_SyndicateCard' => optional($patient->doctor)->isSyndicateCardRequired,
+            ],
         ];
     }
 
@@ -180,7 +185,7 @@ class PatientService
     {
         foreach ($requestData as $key => $value) {
             if (preg_match('/^\d+$/', $key)) {
-                $questionId = (int)$key;
+                $questionId = (int) $key;
                 $sectionId = $questionSectionIds[$questionId] ?? null;
 
                 if (isset($value['answers'])) {
@@ -202,7 +207,7 @@ class PatientService
             return;
         }
 
-        $answerText = is_array($answer) ? json_encode($answer) : '"' . addslashes($answer) . '"';
+        $answerText = is_array($answer) ? json_encode($answer) : '"'.addslashes($answer).'"';
 
         $answersToSave[] = [
             'doctor_id' => $doctorId,
@@ -226,10 +231,10 @@ class PatientService
             [
                 'doctor_id' => $doctorId,
                 'patient_id' => $patientId,
-                'key' => 'section_' . ($questionSectionIds[1] ?? null),
+                'key' => 'section_'.($questionSectionIds[1] ?? null),
                 'status' => true,
                 'created_at' => $now,
-                'updated_at' => $now
+                'updated_at' => $now,
             ],
             [
                 'doctor_id' => $doctorId,
@@ -237,7 +242,7 @@ class PatientService
                 'key' => 'submit_status',
                 'status' => false,
                 'created_at' => $now,
-                'updated_at' => $now
+                'updated_at' => $now,
             ],
             [
                 'doctor_id' => $doctorId,
@@ -245,8 +250,8 @@ class PatientService
                 'key' => 'outcome_status',
                 'status' => false,
                 'created_at' => $now,
-                'updated_at' => $now
-            ]
+                'updated_at' => $now,
+            ],
         ];
 
         PatientStatus::insert($patientStatusesToCreate);
@@ -262,6 +267,7 @@ class PatientService
                 return stripslashes(trim($answer['answer'], '"'));
             }
         }
+
         return null;
     }
 
@@ -287,12 +293,12 @@ class PatientService
             ];
         }
 
-        if (!empty($notificationsToInsert)) {
+        if (! empty($notificationsToInsert)) {
             AppNotification::insert($notificationsToInsert);
         }
 
         $title = 'New Patient was created 📣';
-        $body = 'Dr. ' . ucfirst($user->name) . ' added a new patient named ' . $patientName;
+        $body = 'Dr. '.ucfirst($user->name).' added a new patient named '.$patientName;
         $tokens = FcmToken::whereIn('doctor_id', $doctors)->pluck('token')->toArray();
 
         $this->notificationService->sendPushNotification($title, $body, $tokens);
@@ -307,7 +313,7 @@ class PatientService
         $questionIds = [];
         foreach ($requestData as $key => $value) {
             if (preg_match('/^\d+$/', $key)) {
-                $questionIds[] = (int)$key;
+                $questionIds[] = (int) $key;
             }
         }
 
@@ -323,7 +329,7 @@ class PatientService
 
         foreach ($requestData as $key => $value) {
             if (preg_match('/^\d+$/', $key)) {
-                $questionId = (int)$key;
+                $questionId = (int) $key;
                 $questionExists = in_array($questionId, $existingAnswers);
 
                 if ($questionExists) {
@@ -344,7 +350,7 @@ class PatientService
         $questionIds = [];
         foreach ($requestData as $key => $value) {
             if (preg_match('/^\d+$/', $key)) {
-                $questionIds[] = (int)$key;
+                $questionIds[] = (int) $key;
             }
         }
 
@@ -360,7 +366,7 @@ class PatientService
 
         foreach ($requestData as $key => $value) {
             if (preg_match('/^\d+$/', $key)) {
-                $questionId = (int)$key;
+                $questionId = (int) $key;
                 $questionExists = in_array($questionId, $existingAnswers);
 
                 if ($questionExists) {
@@ -374,8 +380,8 @@ class PatientService
         PatientStatus::create([
             'doctor_id' => $doctorId,
             'patient_id' => $patientId,
-            'key' => 'section_' . $sectionId,
-            'status' => true
+            'key' => 'section_'.$sectionId,
+            'status' => true,
         ]);
     }
 
@@ -395,14 +401,14 @@ class PatientService
         if ($patientOutcomeStatus && $patientOutcomeStatus->status === false) {
             $patientOutcomeStatus->update([
                 'status' => true,
-                'doctor_id' => $doctorId
+                'doctor_id' => $doctorId,
             ]);
-        } elseif (!$patientOutcomeStatus) {
+        } elseif (! $patientOutcomeStatus) {
             PatientStatus::create([
                 'doctor_id' => $doctorId,
                 'patient_id' => $patientId,
                 'key' => 'outcome_status',
-                'status' => true
+                'status' => true,
             ]);
 
             $this->updateDoctorScore($doctorId, $patientId);
@@ -469,7 +475,7 @@ class PatientService
             'value_type' => gettype($value),
             'value' => $value,
             'patientId' => $patientId,
-            'sectionId' => $sectionId
+            'sectionId' => $sectionId,
         ]);
 
         if ($this->isFileTypeQuestion($questionId)) {
@@ -510,6 +516,7 @@ class PatientService
     private function isFileTypeQuestion(int $questionId): bool
     {
         $question = Questions::find($questionId);
+
         return $question && $question->type === 'files';
     }
 
@@ -522,12 +529,13 @@ class PatientService
             Log::info('File upload data received', [
                 'files' => $files,
                 'files_type' => gettype($files),
-                'files_count' => count($files)
+                'files_count' => count($files),
             ]);
 
             // Check if files is empty or not in expected format
             if (empty($files)) {
                 Log::warning('No files provided for upload');
+
                 return [];
             }
 
@@ -537,27 +545,28 @@ class PatientService
                     'file' => $file,
                     'has_file_data' => isset($file['file_data']),
                     'has_file_name' => isset($file['file_name']),
-                    'file_data_length' => isset($file['file_data']) ? strlen($file['file_data']) : 0
+                    'file_data_length' => isset($file['file_data']) ? strlen($file['file_data']) : 0,
                 ]);
             }
 
             // Use the FileUploadService to handle the uploads
             $fileUploadService = app(FileUploadService::class);
             $result = $fileUploadService->handleQuestionFileUploads($files);
-            
+
             Log::info('File upload completed', [
                 'result' => $result,
                 'result_count' => count($result),
-                'result_type' => gettype($result)
+                'result_type' => gettype($result),
             ]);
-            
+
             return $result;
         } catch (\Exception $e) {
             Log::error('File upload failed in PatientService', [
                 'error' => $e->getMessage(),
                 'files' => $files,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return [];
         }
     }
@@ -594,11 +603,11 @@ class PatientService
             Log::info('Updating file answer', [
                 'questionId' => $questionId,
                 'answerText_before_encode' => $answerText,
-                'answerText_type' => gettype($answerText)
+                'answerText_type' => gettype($answerText),
             ]);
             $answerText = json_encode($answerText);
             Log::info('File answer after JSON encode', [
-                'answerText_after_encode' => $answerText
+                'answerText_after_encode' => $answerText,
             ]);
         }
 

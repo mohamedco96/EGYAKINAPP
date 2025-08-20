@@ -3,17 +3,17 @@
 namespace App\Modules\Auth\Services;
 
 use App\Models\User;
-use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Notifications\Models\AppNotification;
+use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Notifications\Services\NotificationService;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class AuthService
 {
@@ -46,14 +46,14 @@ class AuthService
 
             Log::info('User registered successfully', [
                 'user_id' => $user->id,
-                'email' => $user->email
+                'email' => $user->email,
             ]);
 
             return [
                 'value' => true,
                 'message' => 'User Created Successfully',
                 'token' => $token,
-                'data' => $user
+                'data' => $user,
             ];
         });
     }
@@ -67,27 +67,29 @@ class AuthService
         $email = strtolower($validatedData['email']);
 
         // Rate limiting for failed attempts
-        $key = 'login_attempts_' . $email;
+        $key = 'login_attempts_'.$email;
         $attempts = Cache::get($key, 0);
 
         if ($attempts > 5) {
             Log::warning('Login attempts exceeded for email', ['email' => $email]);
+
             return [
                 'value' => false,
                 'message' => 'Too many login attempts. Please try again later.',
-                'status_code' => 429
+                'status_code' => 429,
             ];
         }
 
         // Attempt authentication
-        if (!Auth::attempt(['email' => $email, 'password' => $validatedData['password']])) {
+        if (! Auth::attempt(['email' => $email, 'password' => $validatedData['password']])) {
             Cache::put($key, $attempts + 1, now()->addMinutes(15));
-            
+
             Log::warning('Failed login attempt', ['email' => $email]);
+
             return [
                 'value' => false,
                 'message' => 'Invalid credentials',
-                'status_code' => 401
+                'status_code' => 401,
             ];
         }
 
@@ -106,7 +108,7 @@ class AuthService
 
         Log::info('User logged in successfully', [
             'user_id' => $user->id,
-            'email' => $email
+            'email' => $email,
         ]);
 
         return [
@@ -114,7 +116,7 @@ class AuthService
             'message' => 'User Logged In Successfully',
             'token' => $token,
             'data' => $user,
-            'status_code' => 200
+            'status_code' => 200,
         ];
     }
 
@@ -124,18 +126,18 @@ class AuthService
     public function logout(): array
     {
         $user = Auth::user();
-        
+
         // Revoke only the current token
         request()->user()->currentAccessToken()->delete();
 
         Log::info('User logged out successfully', [
-            'user_id' => $user->id
+            'user_id' => $user->id,
         ]);
 
         return [
             'value' => true,
             'message' => 'User Logged Out Successfully',
-            'status_code' => 200
+            'status_code' => 200,
         ];
     }
 
@@ -146,15 +148,15 @@ class AuthService
     {
         $user = Auth::user();
 
-        if (!Hash::check($validatedData['current_password'], $user->password)) {
+        if (! Hash::check($validatedData['current_password'], $user->password)) {
             Log::warning('Invalid current password in change attempt', [
-                'user_id' => $user->id
+                'user_id' => $user->id,
             ]);
 
             return [
                 'value' => false,
                 'message' => 'Current password is incorrect',
-                'status_code' => 400
+                'status_code' => 400,
             ];
         }
 
@@ -163,13 +165,13 @@ class AuthService
             $user->save();
 
             Log::info('Password changed successfully', [
-                'user_id' => $user->id
+                'user_id' => $user->id,
             ]);
 
             return [
                 'value' => true,
                 'message' => 'Password changed successfully',
-                'status_code' => 200
+                'status_code' => 200,
             ];
         });
     }
@@ -182,7 +184,7 @@ class AuthService
         $this->validateFileUpload($image);
 
         $user = auth()->user();
-        $fileName = sprintf('%s_profileImage_%s.%s', 
+        $fileName = sprintf('%s_profileImage_%s.%s',
             $user->name,
             time(),
             $image->getClientOriginalExtension()
@@ -190,26 +192,26 @@ class AuthService
 
         return DB::transaction(function () use ($image, $fileName, $user) {
             $path = $image->storeAs('profile_images', $fileName, 'public');
-            
+
             // Delete old image if exists
             if ($user->image) {
                 Storage::disk('public')->delete($user->image);
             }
-            
+
             $user->update(['image' => $path]);
-            
-            $imageUrl = config('app.url') . '/storage/' . $path;
+
+            $imageUrl = config('app.url').'/storage/'.$path;
 
             Log::info('Profile image updated', [
                 'user_id' => $user->id,
-                'path' => $path
+                'path' => $path,
             ]);
 
             return [
                 'value' => true,
                 'message' => 'Profile image uploaded successfully.',
                 'image' => $imageUrl,
-                'status_code' => 200
+                'status_code' => 200,
             ];
         });
     }
@@ -220,11 +222,11 @@ class AuthService
     public function uploadSyndicateCard(UploadedFile $syndicateCard): array
     {
         $user = Auth::user();
-        $fileName = time() . '_' . $syndicateCard->getClientOriginalName();
+        $fileName = time().'_'.$syndicateCard->getClientOriginalName();
 
         return DB::transaction(function () use ($syndicateCard, $fileName, $user) {
             $path = $syndicateCard->storeAs('syndicate_card', $fileName, 'public');
-            $imageUrl = config('app.url') . '/storage/' . $path;
+            $imageUrl = config('app.url').'/storage/'.$path;
 
             // Update user's syndicate card
             $user->update(['syndicate_card' => $path, 'isSyndicateCardRequired' => 'Pending']);
@@ -236,7 +238,7 @@ class AuthService
                 'value' => true,
                 'message' => 'User syndicate card uploaded successfully.',
                 'image' => $imageUrl,
-                'status_code' => 200
+                'status_code' => 200,
             ];
         });
     }
@@ -257,20 +259,20 @@ class AuthService
 
             // Sanitize inputs
             $sanitized = array_map('trim', $validatedData);
-            
+
             // Update user
             $user->fill($sanitized);
             $user->save();
 
             Log::info('User updated', [
                 'user_id' => $user->id,
-                'fields' => array_keys($validatedData)
+                'fields' => array_keys($validatedData),
             ]);
 
             return [
                 'value' => true,
                 'message' => 'User Updated Successfully',
-                'status_code' => 200
+                'status_code' => 200,
             ];
         });
     }
@@ -282,12 +284,13 @@ class AuthService
     {
         $user = User::find($id);
 
-        if (!$user) {
+        if (! $user) {
             Log::warning("No user found with ID {$id}");
+
             return [
                 'value' => false,
                 'message' => 'No User was found',
-                'status_code' => 404
+                'status_code' => 404,
             ];
         }
 
@@ -306,7 +309,7 @@ class AuthService
             'value' => true,
             'message' => 'User Updated Successfully',
             'data' => $user,
-            'status_code' => 200
+            'status_code' => 200,
         ];
     }
 
@@ -321,14 +324,14 @@ class AuthService
             return [
                 'value' => false,
                 'message' => 'No user was found',
-                'status_code' => 404
+                'status_code' => 404,
             ];
         }
 
         return [
             'value' => true,
             'data' => $users,
-            'status_code' => 200
+            'status_code' => 200,
         ];
     }
 
@@ -340,24 +343,24 @@ class AuthService
         try {
             // Eager load relationships and select specific fields
             $user = User::with([
-                'patients' => function($q) {
+                'patients' => function ($q) {
                     $q->select('id', 'doctor_id');
                 },
                 'score:id,doctor_id,score',
                 'posts:id,doctor_id',
-                'saves:id,doctor_id'
+                'saves:id,doctor_id',
             ])
-            ->select('id', 'name', 'lname', 'image', 'email', 'specialty', 'workingplace')
-            ->findOrFail($id);
+                ->select('id', 'name', 'lname', 'image', 'email', 'specialty', 'workingplace')
+                ->findOrFail($id);
 
-            // Get counts using relationship counts
-            $patientCount = $user->patients()->count();
-            $postsCount = $user->posts()->count();
-            $savedPostsCount = $user->saves()->count();
+            // Get counts from already loaded collections to avoid additional queries
+            $patientCount = $user->patients->count();
+            $postsCount = $user->posts->count();
+            $savedPostsCount = $user->saves->count();
             $scoreValue = optional($user->score)->score ?? 0;
 
             // Get image URL
-            $imageUrl = $user->image ? config('app.url') . '/storage/' . $user->image : null;
+            $imageUrl = $user->image ? config('app.url').'/storage/'.$user->image : null;
 
             return [
                 'value' => true,
@@ -367,19 +370,19 @@ class AuthService
                 'saved_posts_count' => strval($savedPostsCount),
                 'image' => $imageUrl,
                 'data' => $user,
-                'status_code' => 200
+                'status_code' => 200,
             ];
 
         } catch (\Exception $e) {
             Log::error('Error fetching user profile', [
                 'user_id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'value' => false,
                 'message' => 'No user was found',
-                'status_code' => 404
+                'status_code' => 404,
             ];
         }
     }
@@ -391,15 +394,15 @@ class AuthService
     {
         $user = User::with('patients')->find($id);
 
-        if (!$user) {
+        if (! $user) {
             return [
                 'value' => false,
                 'message' => 'No user was found',
-                'status_code' => 404
+                'status_code' => 404,
             ];
         }
 
-        $imageUrl = config('app.url') . '/storage/' . $user->image;
+        $imageUrl = config('app.url').'/storage/'.$user->image;
         $patientCount = $user->patients()->count();
         $postsCount = $user->feedPosts()->count();
         $savedPostsCount = $user->saves()->count();
@@ -413,7 +416,7 @@ class AuthService
             'saved_posts_count' => strval($savedPostsCount) ?? 0,
             'image' => $imageUrl,
             'data' => $user,
-            'status_code' => 200
+            'status_code' => 200,
         ];
     }
 
@@ -426,13 +429,13 @@ class AuthService
             $user = User::select('id')
                 ->with(['roles:id,name'])
                 ->findOrFail($id);
-    
+
             $isAdminOrTester = $user->hasRole(['Admin', 'Tester']);
-    
+
             // Optimize query with eager loading and specific selections
             $currentPatients = $user->patients()
                 ->select('id', 'doctor_id', 'updated_at')
-                ->when(!$isAdminOrTester, function ($query) {
+                ->when(! $isAdminOrTester, function ($query) {
                     return $query->where('hidden', false);
                 })
                 ->with([
@@ -444,14 +447,14 @@ class AuthService
                     'answers' => function ($query) {
                         $query->select('id', 'patient_id', 'answer', 'question_id')
                             ->whereIn('question_id', [1, 2]);
-                    }
+                    },
                 ])
                 ->latest('updated_at');
-    
+
             // Get paginated results
             $perPage = 10;
             $paginatedPatients = $currentPatients->paginate($perPage);
-                
+
             // Transform the paginated results
             $transformedData = collect($paginatedPatients->items())->map(function ($patient) {
                 return [
@@ -465,10 +468,10 @@ class AuthService
                         'patient_id' => $patient->id,
                         'submit_status' => optional($patient->status->where('key', 'submit_status')->first())->status ?? false,
                         'outcome_status' => optional($patient->status->where('key', 'outcome_status')->first())->status ?? false,
-                    ]
+                    ],
                 ];
             })->values()->all();
-    
+
             // Create a new paginator with the transformed data
             $result = new LengthAwarePaginator(
                 $transformedData,
@@ -477,31 +480,31 @@ class AuthService
                 $paginatedPatients->currentPage(),
                 [
                     'path' => LengthAwarePaginator::resolveCurrentPath(),
-                    'pageName' => 'page'
+                    'pageName' => 'page',
                 ]
             );
-    
+
             Log::info('Retrieved patients for doctor profile', [
                 'doctor_id' => $id,
-                'count' => $paginatedPatients->total()
+                'count' => $paginatedPatients->total(),
             ]);
-    
+
             return [
                 'value' => true,
                 'data' => $result,
-                'status_code' => 200
+                'status_code' => 200,
             ];
-    
+
         } catch (\Exception $e) {
             Log::error('Error retrieving patients', [
                 'doctor_id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-    
+
             return [
                 'value' => false,
                 'message' => 'Failed to retrieve patients',
-                'status_code' => 500
+                'status_code' => 500,
             ];
         }
     }
@@ -514,11 +517,11 @@ class AuthService
         try {
             $user = User::find($id);
 
-            if (!$user) {
+            if (! $user) {
                 return [
                     'value' => false,
                     'message' => 'User not found',
-                    'status_code' => 404
+                    'status_code' => 404,
                 ];
             }
 
@@ -552,19 +555,19 @@ class AuthService
             return [
                 'value' => true,
                 'data' => $transformedPatientsPaginated,
-                'status_code' => 200
+                'status_code' => 200,
             ];
 
         } catch (\Exception $e) {
             Log::error('Error retrieving score history for doctor.', [
-                'doctor_id' => $id, 
-                'exception' => $e->getMessage()
+                'doctor_id' => $id,
+                'exception' => $e->getMessage(),
             ]);
 
             return [
                 'value' => false,
                 'message' => 'Failed to retrieve score history.',
-                'status_code' => 500
+                'status_code' => 500,
             ];
         }
     }
@@ -576,11 +579,11 @@ class AuthService
     {
         $user = User::find($id);
 
-        if (!$user) {
+        if (! $user) {
             return [
                 'value' => false,
                 'message' => 'No User was found',
-                'status_code' => 404
+                'status_code' => 404,
             ];
         }
 
@@ -594,7 +597,7 @@ class AuthService
             return [
                 'value' => true,
                 'message' => 'User Deleted Successfully',
-                'status_code' => 200
+                'status_code' => 200,
             ];
         });
     }
@@ -606,7 +609,7 @@ class AuthService
     {
         // Sanitize inputs
         $sanitized = array_map('trim', $data);
-        
+
         return User::create([
             'name' => $sanitized['name'],
             'lname' => $sanitized['lname'],
@@ -629,11 +632,12 @@ class AuthService
     protected function storeFcmToken(int $userId, string $token): void
     {
         // Validate token format
-        if (!preg_match('/^[a-zA-Z0-9:_-]{1,255}$/', $token)) {
+        if (! preg_match('/^[a-zA-Z0-9:_-]{1,255}$/', $token)) {
             Log::warning('Invalid FCM token format', [
                 'user_id' => $userId,
-                'token' => substr($token, 0, 32) . '...'
+                'token' => substr($token, 0, 32).'...',
             ]);
+
             return;
         }
 
@@ -647,7 +651,7 @@ class AuthService
         } catch (\Exception $e) {
             Log::error('FCM token storage failed', [
                 'user_id' => $userId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -657,12 +661,12 @@ class AuthService
      */
     protected function validateFileUpload(UploadedFile $file, int $maxSize = 2048): void
     {
-        if (!$file->isValid()) {
+        if (! $file->isValid()) {
             throw new \Exception('Invalid file upload');
         }
 
         $allowedMimes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
-        if (!in_array($file->getMimeType(), $allowedMimes)) {
+        if (! in_array($file->getMimeType(), $allowedMimes)) {
             throw new \Exception('Invalid file type');
         }
 
@@ -683,22 +687,22 @@ class AuthService
             ->get();
 
         // Create notifications for all doctors at once
-        $notifications = $doctors->map(function($doctor) use ($user) {
+        $notifications = $doctors->map(function ($doctor) use ($user) {
             return [
                 'doctor_id' => $doctor->id,
                 'type' => 'Syndicate Card',
-                'content' => 'Dr. ' . $user->name . ' has uploaded a new Syndicate Card for approval.',
+                'content' => 'Dr. '.$user->name.' has uploaded a new Syndicate Card for approval.',
                 'type_doctor_id' => $user->id,
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ];
         })->toArray();
 
         AppNotification::insert($notifications);
 
         $title = 'New Syndicate Card Pending Approval 📋';
-        $body = 'Dr. ' . $user->name . ' has uploaded a new Syndicate Card for approval.';
-        
+        $body = 'Dr. '.$user->name.' has uploaded a new Syndicate Card for approval.';
+
         // Get tokens from eager loaded relationship
         $tokens = $doctors->pluck('fcmTokens.*.token')
             ->flatten()

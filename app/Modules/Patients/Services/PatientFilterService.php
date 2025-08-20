@@ -97,10 +97,10 @@ class PatientFilterService
             return $query->where('hidden', false);
         })
             ->with([
-            'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version',
-            'status:id,patient_id,key,status',
-            'answers:id,patient_id,answer,question_id',
-        ])
+                'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version',
+                'status:id,patient_id,key,status',
+                'answers:id,patient_id,answer,question_id',
+            ])
             ->latest('updated_at')
             ->get();
 
@@ -155,11 +155,16 @@ class PatientFilterService
      */
     private function transformPatientData($patient): array
     {
-        $submitStatus = optional($patient->status->where('key', 'submit_status')->first())->status;
-        $outcomeStatus = optional($patient->status->where('key', 'outcome_status')->first())->status;
+        // Create indexed collections for O(1) lookups instead of O(n) where() calls
+        $statusByKey = $patient->status->keyBy('key');
+        $answersByQuestionId = $patient->answers->keyBy('question_id');
 
-        $nameAnswer = optional($patient->answers->where('question_id', 1)->first())->answer;
-        $hospitalAnswer = optional($patient->answers->where('question_id', 2)->first())->answer;
+        // Use indexed collections for efficient lookups
+        $submitStatus = optional($statusByKey->get('submit_status'))->status;
+        $outcomeStatus = optional($statusByKey->get('outcome_status'))->status;
+
+        $nameAnswer = optional($answersByQuestionId->get(1))->answer;
+        $hospitalAnswer = optional($answersByQuestionId->get(2))->answer;
 
         return [
             'id' => $patient->id,

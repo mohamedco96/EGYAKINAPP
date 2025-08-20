@@ -3,15 +3,14 @@
 namespace App\Modules\Consultations\Services;
 
 use App\Models\Answers;
-use App\Modules\Patients\Models\Patients;
 use App\Models\User;
 use App\Modules\Consultations\Models\Consultation;
 use App\Modules\Consultations\Models\ConsultationDoctor;
-use App\Modules\Consultations\Services\ConsultationNotificationService;
+use App\Modules\Patients\Models\Patients;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class ConsultationService
 {
@@ -145,24 +144,39 @@ class ConsultationService
     public function getConsultationDetails(int $id): array
     {
         $consultations = Consultation::where('id', $id)
-            ->with(['consultationDoctors' => function ($query) {
-                // Retrieve all consultationDoctors for each Consultation
-            }])
+            ->with([
+                'consultationDoctors' => function ($query) {
+                    $query->with('consultDoctor:id,name,lname,image,workingplace,isSyndicateCardRequired');
+                },
+                'doctor:id,name,lname,workingplace,image,isSyndicateCardRequired',
+                'patient' => function ($query) {
+                    $query->select('id', 'doctor_id', 'updated_at')
+                        ->with([
+                            'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired',
+                            'status:id,patient_id,key,status',
+                            'answers:id,patient_id,answer,question_id',
+                        ]);
+                },
+            ])
             ->whereHas('consultationDoctors', function ($query) {
                 // Only include Consultations where the authenticated user has a record
             })
-            ->with('doctor')
-            ->with('patient')
             ->get();
+
+        // Pre-fetch patient names to avoid N+1 queries
+        $patientIds = $consultations->pluck('patient_id')->unique()->toArray();
+        $patientNames = Answers::whereIn('patient_id', $patientIds)
+            ->where('question_id', '1')
+            ->pluck('answer', 'patient_id');
 
         $response = [];
 
         foreach ($consultations as $consultation) {
-            $patientId = $consultation->patient_id;
-            $patientName = $this->getPatientName($patientId);
+            // Get patient name from pre-fetched data
+            $patientName = $patientNames->get($consultation->patient_id);
 
-            $patient = $this->getPatientDetails($consultation->patient_id);
-            $transformedPatient = $this->transformPatientData($patient);
+            // Use already loaded patient relationship
+            $transformedPatient = $this->transformPatientData($consultation->patient);
 
             $consultationData = [
                 'id' => strval($consultation->id),
@@ -192,7 +206,7 @@ class ConsultationService
                         'created_at' => $consultationDoctor->created_at,
                         'updated_at' => $consultationDoctor->updated_at,
                     ];
-                })
+                }),
             ];
 
             $response = $consultationData;
@@ -231,7 +245,7 @@ class ConsultationService
 
             // Send notification to the consultation creator
             $doctorId = Consultation::where('id', $id)->value('doctor_id');
-            
+
             $this->notificationService->sendConsultationReplyNotification(
                 $user,
                 $doctorId,
@@ -252,8 +266,8 @@ class ConsultationService
                     'consultation_id' => $id,
                     'doctor_id' => $user->id,
                     'reply' => $data['reply'],
-                    'all_replied' => $allReplied
-                ]
+                    'all_replied' => $allReplied,
+                ],
             ];
         } catch (ModelNotFoundException $e) {
             Log::warning('Consultation doctor not found.', [
@@ -279,16 +293,16 @@ class ConsultationService
             $keywords = explode(' ', $data);
 
             $users = User::select('id', 'name', 'lname', 'email', 'phone', 'specialty', 'workingplace', 'image', 'syndicate_card', 'isSyndicateCardRequired')
-                ->when(!$isAdminOrTester, function ($query) {
+                ->when(! $isAdminOrTester, function ($query) {
                     return $query->where('id', '!=', Auth::id());
                 })
                 ->where(function ($query) use ($keywords) {
                     foreach ($keywords as $word) {
                         $query->where(function ($subQuery) use ($word) {
-                            $subQuery->where('name', 'like', '%' . $word . '%')
-                                     ->orWhere('lname', 'like', '%' . $word . '%')
-                                     ->orWhere('email', 'like', '%' . $word . '%')
-                                     ->orWhere('phone', 'like', '%' . $word . '%');
+                            $subQuery->where('name', 'like', '%'.$word.'%')
+                                ->orWhere('lname', 'like', '%'.$word.'%')
+                                ->orWhere('email', 'like', '%'.$word.'%')
+                                ->orWhere('phone', 'like', '%'.$word.'%');
                         });
                     }
                 })
@@ -303,16 +317,17 @@ class ConsultationService
                 ->get()
                 ->map(function ($user) {
                     $user->patients_count = strval($user->patients_count);
+
                     return $user;
                 });
 
             return [
                 'value' => true,
-                'data' => $users
+                'data' => $users,
             ];
         } catch (\Exception $e) {
             Log::error('Error searching for data.', ['exception' => $e]);
-            
+
             throw $e;
         }
     }
@@ -353,15 +368,20 @@ class ConsultationService
      */
     private function transformPatientData(?Patients $patient): ?array
     {
-        if (!$patient) {
+        if (! $patient) {
             return null;
         }
 
-        $submitStatus = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
-        $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
+        // Create indexed collections for O(1) lookups instead of O(n) where() calls
+        $statusByKey = $patient->status->keyBy('key');
+        $answersByQuestionId = $patient->answers->keyBy('question_id');
 
-        $nameAnswer = optional($patient->answers->where('question_id', 1)->first())->answer;
-        $hospitalAnswer = optional($patient->answers->where('question_id', 2)->first())->answer;
+        // Use indexed collections for efficient lookups
+        $submitStatus = optional($statusByKey->get('submit_status'))->status;
+        $outcomeStatus = optional($statusByKey->get('outcome_status'))->status;
+
+        $nameAnswer = optional($answersByQuestionId->get(1))->answer;
+        $hospitalAnswer = optional($answersByQuestionId->get(2))->answer;
 
         return [
             'id' => $patient->id,
@@ -374,7 +394,7 @@ class ConsultationService
                 'patient_id' => $patient->id,
                 'submit_status' => $submitStatus ?? false,
                 'outcome_status' => $outcomeStatus ?? false,
-            ]
+            ],
         ];
     }
 }

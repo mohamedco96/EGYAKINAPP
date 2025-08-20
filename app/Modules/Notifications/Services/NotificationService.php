@@ -472,12 +472,17 @@ class NotificationService
     {
         return $notifications->map(function ($notification) {
             if ($notification->patient) {
-                $name = optional($notification->patient->answers->where('question_id', 1)->first())->answer;
-                $hospital = optional($notification->patient->answers->where('question_id', 2)->first())->answer;
-                $governorate = optional($notification->patient->answers->where('question_id', 11)->first())->answer;
+                // Create indexed collections for O(1) lookups instead of O(n) where() calls
+                $answersByQuestionId = $notification->patient->answers->keyBy('question_id');
+                $statusByKey = $notification->patient->status->keyBy('key');
 
-                $submitStatus = optional($notification->patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
-                $outcomeStatus = optional($notification->patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
+                // Use indexed collections for efficient lookups
+                $name = optional($answersByQuestionId->get(1))->answer;
+                $hospital = optional($answersByQuestionId->get(2))->answer;
+                $governorate = optional($answersByQuestionId->get(11))->answer;
+
+                $submitStatus = optional($statusByKey->get('submit_status'))->status;
+                $outcomeStatus = optional($statusByKey->get('outcome_status'))->status;
 
                 $doctor = $notification->patient->doctor;
                 $doctorDetails = [

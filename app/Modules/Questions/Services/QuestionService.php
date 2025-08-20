@@ -160,6 +160,29 @@ class QuestionService
             ->orderBy('sort')
             ->get();
 
+        // Get the answers model for the section ONCE before the loop
+        $answersModel = $this->getAnswersModel($sectionId);
+        if (! $answersModel) {
+            Log::warning("No answer model found for section ID {$sectionId}.");
+
+            return [
+                'data' => [
+                    'value' => false,
+                    'message' => 'No answer model found for the given section ID.',
+                ],
+                'status_code' => 404,
+            ];
+        }
+
+        // Fetch ALL answers for this patient/section ONCE before the loop
+        $patientIdColumn = $sectionId == 1 ? 'id' : 'patient_id';
+        $allAnswers = $answersModel::where($patientIdColumn, $patientId)->first();
+
+        // Pre-fetch all column mappings to avoid N+1 queries in getAnswerColumnName
+        $questionIds = $questions->pluck('id')->toArray();
+        $columnMappings = SectionFieldMapping::whereIn('field_name', $questionIds)
+            ->pluck('column_name', 'field_name');
+
         foreach ($questions as $question) {
             // Skip questions based on the skip flag
             if ($question->skip) {
@@ -168,27 +191,15 @@ class QuestionService
                 continue;
             }
 
-            // Get the answers model for the section
-            $answersModel = $this->getAnswersModel($sectionId);
-            if (! $answersModel) {
-                Log::warning("No answer model found for section ID {$sectionId}.");
-
-                continue;
-            }
-
-            // Adjust patient_id column based on section_id
-            $patientIdColumn = $sectionId == 1 ? 'id' : 'patient_id';
-            $answers = $answersModel::where($patientIdColumn, $patientId)->first();
-
-            // Get the main answer column name dynamically
-            $mainAnswerColumnName = $this->getAnswerColumnName($question->id);
+            // Get the main answer column name using pre-fetched mappings
+            $mainAnswerColumnName = $columnMappings->get($question->id) ?? 'column_'.$question->id;
 
             // Construct the other field column name by appending '_other_field' to the main answer column name
             $otherFieldColumnName = $mainAnswerColumnName.'_other_field';
 
             // Check if the question is hidden and handle accordingly
-            $hasAnswer = ! empty($answers->$mainAnswerColumnName) ||
-                ! empty($answers->$otherFieldColumnName);
+            $hasAnswer = ! empty($allAnswers->$mainAnswerColumnName) ||
+                ! empty($allAnswers->$otherFieldColumnName);
 
             if ($question->hidden && ! $hasAnswer) {
                 // Skip the question if it's hidden and has no answer
@@ -212,12 +223,12 @@ class QuestionService
             // Existing logic for multiple choice and select questions
             if ($question->type === 'multiple' || $question->type === 'select') {
                 $questionData['answer'] = [
-                    'answers' => $answers->$mainAnswerColumnName ?? null,
-                    'other_field' => $answers->$otherFieldColumnName ?? null,
+                    'answers' => $allAnswers->$mainAnswerColumnName ?? null,
+                    'other_field' => $allAnswers->$otherFieldColumnName ?? null,
                 ];
             } else {
                 // For other question types, assign the main answer directly
-                $questionData['answer'] = $answers->$mainAnswerColumnName ?? null;
+                $questionData['answer'] = $allAnswers->$mainAnswerColumnName ?? null;
             }
 
             $data[] = $questionData;

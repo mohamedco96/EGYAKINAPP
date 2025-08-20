@@ -14,8 +14,8 @@ use App\Models\PatientHistory;
 use App\Models\Questions;
 use App\Models\Risk;
 use App\Models\SectionFieldMapping;
-use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Response;
 
 class QuestionsController extends Controller
 {
@@ -27,7 +27,8 @@ class QuestionsController extends Controller
         $questions = Questions::all();
 
         if ($questions->isEmpty()) {
-            Log::warning("No questions found.");
+            Log::warning('No questions found.');
+
             return Response::json(['value' => false, 'message' => 'No questions found.'], 404);
         }
 
@@ -60,6 +61,7 @@ class QuestionsController extends Controller
         // Check if questions are found
         if ($questions->isEmpty()) {
             Log::warning("No questions found for section ID: {$section_id}");
+
             return response()->json([
                 'value' => false,
                 'message' => 'No questions found for the given section ID.',
@@ -70,6 +72,7 @@ class QuestionsController extends Controller
         foreach ($questions as $question) {
             if ($question->skip) {
                 Log::info("Question with ID {$question->id} skipped as per skip flag.");
+
                 continue;
             }
             // Construct question data
@@ -112,37 +115,48 @@ class QuestionsController extends Controller
             ->orderBy('sort')
             ->get();
 
+        // Get the answers model for the section ONCE before the loop
+        $answersModel = $this->getAnswersModel($section_id);
+        if (! $answersModel) {
+            Log::warning("No answer model found for section ID {$section_id}.");
+
+            return response()->json([
+                'value' => false,
+                'message' => 'No answer model found for the given section ID.',
+            ], 404);
+        }
+
+        // Fetch ALL answers for this patient/section ONCE before the loop
+        $patientIdColumn = $section_id == 1 ? 'id' : 'patient_id';
+        $allAnswers = $answersModel::where($patientIdColumn, $patient_id)->first();
+
+        // Pre-fetch all column mappings to avoid N+1 queries
+        $questionIds = $questions->pluck('id')->toArray();
+        $columnMappings = SectionFieldMapping::whereIn('field_name', $questionIds)
+            ->pluck('column_name', 'field_name');
+
         foreach ($questions as $question) {
             // Skip questions based on the skip flag
             if ($question->skip) {
                 Log::info("Question with ID {$question->id} skipped as per skip flag.");
+
                 continue;
             }
 
-            // Get the answers model for the section
-            $answersModel = $this->getAnswersModel($section_id);
-            if (!$answersModel) {
-                Log::warning("No answer model found for section ID {$section_id}.");
-                continue;
-            }
-
-            // Adjust patient_id column based on section_id
-            $patientIdColumn = $section_id == 1 ? 'id' : 'patient_id';
-            $answers = $answersModel::where($patientIdColumn, $patient_id)->first();
-
-            // Get the main answer column name dynamically
-            $mainAnswerColumnName = $this->getAnswerColumnName($question->id);
+            // Get the main answer column name using pre-fetched mappings
+            $mainAnswerColumnName = $columnMappings->get($question->id) ?? 'column_'.$question->id;
 
             // Construct the other field column name by appending '_other_field' to the main answer column name
-            $otherFieldColumnName = $mainAnswerColumnName . '_other_field';
+            $otherFieldColumnName = $mainAnswerColumnName.'_other_field';
 
             // Check if the question is hidden and handle accordingly
-            $hasAnswer = !empty($answers->$mainAnswerColumnName) ||
-                !empty($answers->$otherFieldColumnName);
+            $hasAnswer = ! empty($allAnswers->$mainAnswerColumnName) ||
+                ! empty($allAnswers->$otherFieldColumnName);
 
-            if ($question->hidden && !$hasAnswer) {
+            if ($question->hidden && ! $hasAnswer) {
                 // Skip the question if it's hidden and has no answer
                 Log::info("Hidden question with ID {$question->id} skipped due to no answer.");
+
                 continue;
             }
 
@@ -161,12 +175,12 @@ class QuestionsController extends Controller
             // Existing logic for multiple choice and select questions
             if ($question->type === 'multiple' || $question->type === 'select') {
                 $questionData['answer'] = [
-                    'answers' => $answers->$mainAnswerColumnName ?? null,
-                    'other_field' => $answers->$otherFieldColumnName ?? null,
+                    'answers' => $allAnswers->$mainAnswerColumnName ?? null,
+                    'other_field' => $allAnswers->$otherFieldColumnName ?? null,
                 ];
             } else {
                 // For other question types, assign the main answer directly
-                $questionData['answer'] = $answers->$mainAnswerColumnName ?? null;
+                $questionData['answer'] = $allAnswers->$mainAnswerColumnName ?? null;
             }
 
             $data[] = $questionData;
@@ -181,8 +195,6 @@ class QuestionsController extends Controller
 
         return response()->json($response, 200);
     }
-
-
 
     private function getAnswersModel($section_id)
     {
@@ -214,7 +226,7 @@ class QuestionsController extends Controller
         $columnName = SectionFieldMapping::where('field_name', $question_id)
             ->value('column_name');
 
-        return $columnName ? $columnName : 'column_' . $question_id;
+        return $columnName ? $columnName : 'column_'.$question_id;
     }
 
     /**
@@ -224,8 +236,9 @@ class QuestionsController extends Controller
     {
         $questions = Questions::find($id);
 
-        if (!$questions) {
+        if (! $questions) {
             Log::warning("No questions found for update. ID: {$id}");
+
             return Response::json(['value' => false, 'message' => 'No questions found.'], 404);
         }
 
@@ -243,8 +256,9 @@ class QuestionsController extends Controller
     {
         $questions = Questions::find($id);
 
-        if (!$questions) {
+        if (! $questions) {
             Log::warning("No questions found for deletion. ID: {$id}");
+
             return Response::json(['value' => false, 'message' => 'No questions found.'], 404);
         }
 

@@ -3,23 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\Answers;
-use App\Modules\Notifications\Models\AppNotification;
-use App\Modules\Notifications\Models\FcmToken;
-use App\Modules\Patients\Models\Patients;
-use App\Models\User;
-use Illuminate\Http\Request;
 use App\Models\Consultation;
 use App\Models\ConsultationDoctor;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use App\Models\User;
+use App\Modules\Notifications\Models\AppNotification;
+use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Notifications\Services\NotificationService;
+use App\Modules\Patients\Models\Patients;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class ConsultationController extends Controller
 {
-
     protected $notificationService;
+
     protected $patients;
 
     public function __construct(NotificationService $notificationService, Patients $patients)
@@ -36,7 +35,6 @@ class ConsultationController extends Controller
             'consult_doctor_ids' => 'required|array',
             'consult_doctor_ids.*' => 'exists:users,id',
         ]);
-
 
         $consultation = Consultation::create([
             'doctor_id' => Auth::id(),
@@ -61,21 +59,26 @@ class ConsultationController extends Controller
             'message' => 'Consultation Created Successfully',
         ];
 
-
         $user = Auth::user();
-        foreach ($doctors as $doctorId) {
-            AppNotification::create([
+
+        // Batch insert notifications to avoid N+1 queries
+        $notifications = collect($doctors)->map(function ($doctorId) use ($user, $consultation, $request) {
+            return [
                 'doctor_id' => $doctorId,
                 'type' => 'Consultation',
                 'type_id' => $consultation->id,
-                'content' => 'Dr. ' . $user->name . ' is seeking your advice for his patient',
+                'content' => 'Dr. '.$user->name.' is seeking your advice for his patient',
                 'type_doctor_id' => Auth::id(),
-                'patient_id' => $request->patient_id
-            ]);
-        }
+                'patient_id' => $request->patient_id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        })->toArray();
+
+        AppNotification::insert($notifications);
 
         $title = 'New consultation request was created 📣';
-        $body = 'Dr. ' . $user->name . ' is seeking your advice for his patient';
+        $body = 'Dr. '.$user->name.' is seeking your advice for his patient';
         $tokens = FcmToken::whereIn('doctor_id', $doctors)
             ->pluck('token')
             ->toArray();
@@ -94,17 +97,19 @@ class ConsultationController extends Controller
             ->orderBy('updated_at', 'desc') // Order by updated_at in descending order
             ->get();
 
+        // Pre-fetch all patient names to avoid N+1 queries
+        $patientIds = $consultations->pluck('patient_id')->unique()->toArray();
+        $patientNames = Answers::whereIn('patient_id', $patientIds)
+            ->where('question_id', '1')
+            ->pluck('answer', 'patient_id');
+
         // Initialize an array to hold the final response
         $response = [];
 
         // Iterate through each consultation to extract the required details
         foreach ($consultations as $consultation) {
-            // Get patient ID and fetch the patient's name
-            $patientId = $consultation->patient_id;
-            $patientName = Answers::where('patient_id', $patientId)
-                ->where('question_id', '1')
-                ->pluck('answer')
-                ->first();
+            // Get patient name from pre-fetched data
+            $patientName = $patientNames->get($consultation->patient_id);
 
             // Prepare the consultation object with required details
             $consultationData = [
@@ -142,17 +147,19 @@ class ConsultationController extends Controller
             ->orderBy('updated_at', 'desc')
             ->get();
 
+        // Pre-fetch all patient names to avoid N+1 queries
+        $patientIds = $ConsultationDoctor->pluck('consultation.patient_id')->unique()->toArray();
+        $patientNames = Answers::whereIn('patient_id', $patientIds)
+            ->where('question_id', '1')
+            ->pluck('answer', 'patient_id');
+
         // Initialize an array to hold the final response
         $response = [];
 
         // Iterate through each consultation to extract the required details
         foreach ($ConsultationDoctor as $ConsultationDoctor) {
-            // Get patient ID and fetch the patient's name
-            $patientId = $ConsultationDoctor->consultation->patient_id;
-            $patientName = Answers::where('patient_id', $patientId)
-                ->where('question_id', '1')
-                ->pluck('answer')
-                ->first();
+            // Get patient name from pre-fetched data
+            $patientName = $patientNames->get($ConsultationDoctor->consultation->patient_id);
 
             // Prepare the consultation object with required details
             $consultationData = [
@@ -187,57 +194,60 @@ class ConsultationController extends Controller
 
     public function consultationDetails($id)
     {
-        // Fetch consultations with associated doctor, patient, and consultationDoctors data
+        // Fetch consultations with proper eager loading to avoid N+1 queries
         $consultations = Consultation::where('id', $id)
-            ->with(['consultationDoctors' => function ($query) {
-                // Retrieve all consultationDoctors for each Consultation
-            }])
+            ->with([
+                'consultationDoctors',
+                'doctor' => function ($query) {
+                    $query->select('id', 'name', 'lname', 'workingplace', 'image', 'isSyndicateCardRequired');
+                },
+                'patient' => function ($query) {
+                    $query->select('id', 'doctor_id', 'updated_at')
+                        ->with([
+                            'doctor' => function ($q) {
+                                $q->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
+                            },
+                            'status' => function ($q) {
+                                $q->select('id', 'patient_id', 'key', 'status')
+                                    ->whereIn('key', ['submit_status', 'outcome_status']);
+                            },
+                            'answers' => function ($q) {
+                                $q->select('id', 'patient_id', 'answer', 'question_id')
+                                    ->whereIn('question_id', [1, 2]); // Only fetch needed answers
+                            },
+                        ]);
+                },
+            ])
             ->whereHas('consultationDoctors', function ($query) {
                 // Only include Consultations where the authenticated user has a record
                 //$query->where('consult_doctor_id', Auth::id());
             })
-            ->with('doctor')
-            ->with('patient')
             ->get();
-
-
-
 
         // Initialize an array to hold the final response
         $response = [];
 
         // Iterate through each consultation to extract the required details
         foreach ($consultations as $consultation) {
-            // Get patient ID and fetch the patient's name
-            $patientId = $consultation->patient_id;
-            $patientName = Answers::where('patient_id', $patientId)
-                ->where('question_id', '1')
-                ->pluck('answer')
-                ->first();
+            // Access already loaded relationships - no additional queries
+            $patient = $consultation->patient;
 
-            $patient = Patients::select('id', 'doctor_id', 'updated_at')
-                ->where('id', $consultation->patient_id)
-                ->with(['doctor' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired');
-                }])
-                ->with(['status' => function ($query) {
-                    $query->select('id', 'patient_id', 'key', 'status');
-                }])
-                ->with(['answers' => function ($query) {
-                    $query->select('id', 'patient_id', 'answer', 'question_id');
-                }])
-                ->latest('updated_at')
-                ->first(); // Use first() to get a single object
+            // Get patient name from already loaded answers
+            $patientName = optional($patient->answers->where('question_id', 1)->first())->answer;
 
-            // Transform the single patient
+            // Transform the patient data using already loaded relationships
             $transformedPatient = null;
 
             if ($patient) {
-                $submitStatus = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
-                $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
+                // Create indexed collections for O(1) lookups instead of O(n) where() calls
+                $statusByKey = $patient->status->keyBy('key');
+                $answersByQuestionId = $patient->answers->keyBy('question_id');
 
-                $nameAnswer = optional($patient->answers->where('question_id', 1)->first())->answer;
-                $hospitalAnswer = optional($patient->answers->where('question_id', 2)->first())->answer;
+                $submitStatus = optional($statusByKey->get('submit_status'))->status;
+                $outcomeStatus = optional($statusByKey->get('outcome_status'))->status;
+
+                $nameAnswer = optional($answersByQuestionId->get(1))->answer;
+                $hospitalAnswer = optional($answersByQuestionId->get(2))->answer;
 
                 $transformedPatient = [
                     'id' => $patient->id,
@@ -250,7 +260,7 @@ class ConsultationController extends Controller
                         'patient_id' => $patient->id,
                         'submit_status' => $submitStatus ?? false,
                         'outcome_status' => $outcomeStatus ?? false,
-                    ]
+                    ],
                 ];
             }
 
@@ -283,7 +293,7 @@ class ConsultationController extends Controller
                         'created_at' => $consultationDoctor->created_at,
                         'updated_at' => $consultationDoctor->updated_at,
                     ];
-                })
+                }),
             ];
 
             // Add the consultation object to the response array
@@ -331,18 +341,17 @@ class ConsultationController extends Controller
                 'doctor_id' => $doctorId,
                 'type' => 'Consultation',
                 'type_id' => $id,
-                'content' => 'Dr. ' . $user->name . ' has replied to your consultation request. 📩',
+                'content' => 'Dr. '.$user->name.' has replied to your consultation request. 📩',
                 'type_doctor_id' => $user->id,
-                'patient_id' => $request->patient_id
+                'patient_id' => $request->patient_id,
             ]);
 
             // Prepare and send push notifications to relevant doctors
             $title = 'New Reply on Consultation Request 🔔';
-            $body = 'Dr. ' . $user->name . ' has replied to your consultation request. 📩';
+            $body = 'Dr. '.$user->name.' has replied to your consultation request. 📩';
             $tokens = FcmToken::whereIn('doctor_id', [$doctorId]) // Wrap $doctorId in an array
                 ->pluck('token')
                 ->toArray();
-
 
             // Send push notifications
             $this->notificationService->sendPushNotification($title, $body, $tokens);
@@ -363,8 +372,8 @@ class ConsultationController extends Controller
                     'consultation_id' => $id,
                     'doctor_id' => $user->id,
                     'reply' => $request->input('reply'),
-                    'all_replied' => $allReplied
-                ]
+                    'all_replied' => $allReplied,
+                ],
             ]);
         } catch (ModelNotFoundException $e) {
             // Handle the case where the consultation doctor record was not found
@@ -398,21 +407,21 @@ class ConsultationController extends Controller
         try {
             $user = Auth::user();
             $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
-    
+
             // Explode the input string into words
             $keywords = explode(' ', $data);
-    
+
             $users = User::select('id', 'name', 'lname', 'email', 'phone', 'specialty', 'workingplace', 'image', 'syndicate_card', 'isSyndicateCardRequired')
-                ->when(!$isAdminOrTester, function ($query) {
+                ->when(! $isAdminOrTester, function ($query) {
                     return $query->where('id', '!=', Auth::id());
                 })
                 ->where(function ($query) use ($keywords) {
                     foreach ($keywords as $word) {
                         $query->where(function ($subQuery) use ($word) {
-                            $subQuery->where('name', 'like', '%' . $word . '%')
-                                     ->orWhere('lname', 'like', '%' . $word . '%')
-                                     ->orWhere('email', 'like', '%' . $word . '%')
-                                     ->orWhere('phone', 'like', '%' . $word . '%');
+                            $subQuery->where('name', 'like', '%'.$word.'%')
+                                ->orWhere('lname', 'like', '%'.$word.'%')
+                                ->orWhere('email', 'like', '%'.$word.'%')
+                                ->orWhere('phone', 'like', '%'.$word.'%');
                         });
                     }
                 })
@@ -427,25 +436,21 @@ class ConsultationController extends Controller
                 ->get()
                 ->map(function ($user) {
                     $user->patients_count = strval($user->patients_count);
+
                     return $user;
                 });
 
-
-
-    
-
             return response()->json([
                 'value' => true,
-                'data' => $users
+                'data' => $users,
             ], 200);
         } catch (\Exception $e) {
             Log::error('Error searching for data.', ['exception' => $e]);
-            
+
             return response()->json([
                 'value' => false,
                 'message' => 'Failed to search for data.',
             ], 500);
         }
     }
-    
 }

@@ -17,8 +17,6 @@ class RecommendationResource extends JsonResource
         return [
             'id' => $this->id,
             'patient_id' => $this->patient_id,
-            'type' => $this->type,
-            'content' => $this->content,
             'dose_name' => $this->dose_name,
             'dose' => $this->dose,
             'route' => $this->route,

@@ -18,8 +18,6 @@ class Recommendation extends Model
      */
     protected $fillable = [
         'patient_id',
-        'type',
-        'content',
         'dose_name',
         'dose',
         'route',
@@ -33,8 +31,7 @@ class Recommendation extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'patient_id' => 'integer',
-        'type' => 'string',
+        'patient_id' => 'integer'
     ];
 
     /**

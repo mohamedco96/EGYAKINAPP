@@ -23,18 +23,18 @@ class StoreRecommendationRequest extends FormRequest
     {
         return [
             'recommendations' => 'required|array',
-            'recommendations.*.dose_name' => 'required|string|max:255',
-            'recommendations.*.dose' => 'required|string|max:255',
-            'recommendations.*.route' => 'required|string|max:100',
-            'recommendations.*.frequency' => 'required|string|max:100',
-            'recommendations.*.duration' => 'required|string|max:100',
+            'recommendations.*.type' => 'nullable|string|in:note,rec',
+            'recommendations.*.content' => 'nullable|string|required_if:recommendations.*.type,note',
+            'recommendations.*.dose_name' => 'nullable|string|max:255|required_if:recommendations.*.type,rec',
+            'recommendations.*.dose' => 'nullable|string|max:255|required_if:recommendations.*.type,rec',
+            'recommendations.*.route' => 'nullable|string|max:100|required_if:recommendations.*.type,rec',
+            'recommendations.*.frequency' => 'nullable|string|max:100|required_if:recommendations.*.type,rec',
+            'recommendations.*.duration' => 'nullable|string|max:100|required_if:recommendations.*.type,rec',
         ];
     }
 
     /**
      * Get custom error messages for validation rules.
-     *
-     * @return array
      */
     public function messages(): array
     {

@@ -23,6 +23,7 @@ class UpdateRecommendationRequest extends FormRequest
     {
         return [
             'recommendations' => 'required|array',
+            'recommendations.*.id' => 'nullable|integer|exists:recommendations,id',
             'recommendations.*.type' => 'nullable|string|in:note,rec',
             'recommendations.*.content' => 'nullable|string|required_if:recommendations.*.type,note',
             'recommendations.*.dose_name' => 'nullable|string|max:255|required_if:recommendations.*.type,rec',

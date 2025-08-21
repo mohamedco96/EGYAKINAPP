@@ -143,11 +143,10 @@ class RecommendationService
             $patient = Patients::findOrFail($patientId);
 
             $result = DB::transaction(function () use ($patient, $patientId, $recommendations) {
-                // Delete existing recommendations
-                $patient->recommendations()->delete();
+                $updatedRecommendations = [];
+                $createdRecommendations = [];
 
-                // Create new recommendations
-                $recommendationModels = collect($recommendations)->map(function ($item) use ($patientId) {
+                foreach ($recommendations as $item) {
                     $data = [
                         'patient_id' => $patientId,
                         'type' => $item['type'] ?? 'rec', // Default to 'rec' for backward compatibility
@@ -159,18 +158,42 @@ class RecommendationService
                         'duration' => $item['duration'] ?? null,
                     ];
 
-                    return new Recommendation($data);
-                });
+                    if (isset($item['id']) && $item['id']) {
+                        // Update existing recommendation
+                        $recommendation = $patient->recommendations()->where('id', $item['id'])->first();
+                        if ($recommendation) {
+                            $recommendation->update($data);
+                            $updatedRecommendations[] = $recommendation;
+                        }
+                    } else {
+                        // Create new recommendation
+                        $newRecommendation = $patient->recommendations()->create($data);
+                        $createdRecommendations[] = $newRecommendation;
+                    }
+                }
 
-                return $patient->recommendations()->saveMany($recommendationModels);
+                return [
+                    'updated' => $updatedRecommendations,
+                    'created' => $createdRecommendations,
+                    'all' => array_merge($updatedRecommendations, $createdRecommendations),
+                ];
             });
 
-            Log::info('Successfully updated recommendations', ['patient_id' => $patientId, 'count' => count($recommendations)]);
+            Log::info('Successfully updated recommendations', [
+                'patient_id' => $patientId,
+                'updated_count' => count($result['updated']),
+                'created_count' => count($result['created']),
+                'total_processed' => count($recommendations),
+            ]);
 
             return [
                 'value' => true,
-                'data' => $result,
+                'data' => $result['all'],
                 'message' => 'Recommendations updated successfully.',
+                'summary' => [
+                    'updated' => count($result['updated']),
+                    'created' => count($result['created']),
+                ],
             ];
         } catch (ModelNotFoundException $e) {
             Log::error('Patient not found', ['patient_id' => $patientId]);

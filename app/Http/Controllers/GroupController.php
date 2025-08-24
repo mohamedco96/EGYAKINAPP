@@ -1,22 +1,22 @@
 <?php
+
 namespace App\Http\Controllers;
 
+use App\Models\FeedPost;
 use App\Models\Group;
 use App\Models\User;
+use App\Modules\Notifications\Models\AppNotification;
+use App\Modules\Notifications\Models\FcmToken;
+use App\Modules\Notifications\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\MainController;
-use App\Models\FeedPost;
 use Illuminate\Support\Facades\DB;
-use App\Modules\Notifications\Services\NotificationService;
-use App\Modules\Notifications\Models\FcmToken;
-use App\Modules\Notifications\Models\AppNotification;
-
+use Illuminate\Support\Facades\Log;
 
 class GroupController extends Controller
 {
     protected $mainController;
+
     protected $notificationService;
 
     public function __construct(MainController $mainController, NotificationService $notificationService)
@@ -27,8 +27,7 @@ class GroupController extends Controller
 
     /**
      * Authorize the owner of the group.
-     * 
-     * @param \App\Models\Group $group
+     *
      * @throws \App\Exceptions\UnauthorizedException
      */
     protected function authorizeOwner(Group $group)
@@ -36,7 +35,7 @@ class GroupController extends Controller
         if (Auth::id() !== $group->owner_id) {
             Log::warning('Unauthorized action attempt', [
                 'user_id' => Auth::id(),
-                'group_id' => $group->id
+                'group_id' => $group->id,
             ]);
             throw new UnauthorizedException('Unauthorized');
         }
@@ -44,8 +43,7 @@ class GroupController extends Controller
 
     /**
      * Create a new group.
-     * 
-     * @param \Illuminate\Http\Request $request
+     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function create(Request $request)
@@ -56,7 +54,7 @@ class GroupController extends Controller
             'description' => 'nullable|string',
             'header_picture' => 'nullable|file|mimes:jpeg,png,jpg,gif|max:20480',  // Validate file input for images
             'group_image' => 'nullable|file|mimes:jpeg,png,jpg,gif|max:20480',     // Validate file input for images
-            'privacy' => 'in:public,private'
+            'privacy' => 'in:public,private',
         ]);
 
         // Initialize media paths as null
@@ -75,7 +73,7 @@ class GroupController extends Controller
                 // Handle upload error
                 return response()->json([
                     'value' => false,
-                    'message' => 'Header picture upload failed.'
+                    'message' => 'Header picture upload failed.',
                 ], 500);
             }
         }
@@ -92,7 +90,7 @@ class GroupController extends Controller
                 // Handle upload error
                 return response()->json([
                     'value' => false,
-                    'message' => 'Group image upload failed.'
+                    'message' => 'Group image upload failed.',
                 ], 500);
             }
         }
@@ -118,36 +116,35 @@ class GroupController extends Controller
             Log::info('Group created', [
                 'group_id' => $group->id,
                 'owner_id' => Auth::id(),
-                'name' => $group->name
+                'name' => $group->name,
             ]);
 
             // Return success response
             return response()->json([
                 'value' => true,
                 'data' => $group,
-                'message' => 'Group created successfully'
+                'message' => 'Group created successfully',
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             // Log the error
             Log::error('Error creating group', [
                 'error' => $e->getMessage(),
-                'user_id' => Auth::id()
+                'user_id' => Auth::id(),
             ]);
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while creating the group'
+                'message' => 'An error occurred while creating the group',
             ], 500);
         }
     }
 
     /**
      * Update an existing group.
-     * 
-     * @param \Illuminate\Http\Request $request
-     * @param int $id
+     *
+     * @param  int  $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, $id)
@@ -165,7 +162,7 @@ class GroupController extends Controller
                 'description' => 'nullable|string',
                 'header_picture' => 'nullable|file|mimes:jpeg,png,jpg,gif',
                 'group_image' => 'nullable|file|mimes:jpeg,png,jpg,gif',
-                'privacy' => 'in:public,private'
+                'privacy' => 'in:public,private',
             ]);
 
             // Initialize media paths as null
@@ -216,14 +213,14 @@ class GroupController extends Controller
                 Log::info('Group updated', [
                     'group_id' => $group->id,
                     'updated_by' => Auth::id(),
-                    'changes' => array_intersect_key($validated, array_flip(['name', 'privacy'])) // Only log non-sensitive fields
+                    'changes' => array_intersect_key($validated, array_flip(['name', 'privacy'])), // Only log non-sensitive fields
                 ]);
 
                 // Return success response
                 return response()->json([
                     'value' => true,
                     'data' => $group,
-                    'message' => 'Group updated successfully'
+                    'message' => 'Group updated successfully',
                 ], 200);
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -233,46 +230,46 @@ class GroupController extends Controller
             // Log the error
             Log::error('Group not found', [
                 'group_id' => $id,
-                'updated_by' => Auth::id()
+                'updated_by' => Auth::id(),
             ]);
 
             // Return error response
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found'
+                'message' => 'Group not found',
             ], 404);
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Log validation errors
             Log::warning('Group update validation failed', [
                 'group_id' => $id,
                 'errors' => $e->errors(),
-                'user_id' => Auth::id()
+                'user_id' => Auth::id(),
             ]);
 
             return response()->json([
                 'value' => false,
                 'message' => 'Validation failed',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             // Log the error
             Log::error('Error updating group', [
                 'group_id' => $id,
                 'error' => $e->getMessage(),
-                'user_id' => Auth::id()
+                'user_id' => Auth::id(),
             ]);
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while updating the group'
+                'message' => 'An error occurred while updating the group',
             ], 500);
         }
     }
 
     /**
      * Delete a group.
-     * 
-     * @param int $id
+     *
+     * @param  int  $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function delete($id)
@@ -291,45 +288,44 @@ class GroupController extends Controller
 
             $deletedCount = AppNotification::where(function ($query) {
                 $query->where('type', 'group_invitation')
-                ->orWhere('type', 'group_invitation_accepted')
-                ->orWhere('type', 'group_join_request');
+                    ->orWhere('type', 'group_invitation_accepted')
+                    ->orWhere('type', 'group_join_request');
             })
-            ->where('type_id', $id)
-            ->delete();
+                ->where('type_id', $id)
+                ->delete();
 
             Log::info("Deleted $deletedCount notifications for post ID $id.");
 
             // Log the deletion
             Log::info('Group deleted', [
                 'group_id' => $id,
-                'deleted_by' => Auth::id()
+                'deleted_by' => Auth::id(),
             ]);
 
             // Return success response
             return response()->json([
                 'value' => true,
-                'message' => 'Group deleted successfully'
+                'message' => 'Group deleted successfully',
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             // Log the error
             Log::error('Group not found', [
                 'group_id' => $id,
-                'deleted_by' => Auth::id()
+                'deleted_by' => Auth::id(),
             ]);
 
             // Return error response
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found'
+                'message' => 'Group not found',
             ], 404);
         }
     }
 
     /**
      * Invite a member to the group.
-     * 
-     * @param \Illuminate\Http\Request $request
-     * @param int $groupId
+     *
+     * @param  int  $groupId
      * @return \Illuminate\Http\JsonResponse
      */
     public function inviteMember(Request $request, $groupId)
@@ -337,16 +333,16 @@ class GroupController extends Controller
         // Validate the incoming request
         $validated = $request->validate([
             'doctor_ids' => 'required|array', // Ensure doctor_ids is an array
-            'doctor_ids.*' => 'exists:users,id' // Ensure each doctor_id exists in the users table
+            'doctor_ids.*' => 'exists:users,id', // Ensure each doctor_id exists in the users table
         ]);
 
         // Find the group or fail if not found
         $group = Group::find($groupId);
 
-        if (!$group) {
+        if (! $group) {
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found'
+                'message' => 'Group not found',
             ], 404);
         }
 
@@ -366,60 +362,58 @@ class GroupController extends Controller
                     Log::info('Doctor is already a member of the group', [
                         'group_id' => $groupId,
                         'doctor_id' => $doctorId,
-                        'attempted_by' => Auth::id()
+                        'attempted_by' => Auth::id(),
                     ]);
                 } elseif ($existingStatus === 'invited' || $existingStatus === 'pending') {
                     // Log the attempt to invite an already invited member
                     Log::info('Doctor is already invited to the group', [
                         'group_id' => $groupId,
                         'doctor_id' => $doctorId,
-                        'attempted_by' => Auth::id()
+                        'attempted_by' => Auth::id(),
                     ]);
                 } elseif ($existingStatus === 'declined') {
                     // Update the status to invited again
                     $group->doctors()->updateExistingPivot($doctorId, ['status' => 'invited']);
-                     
-                    
 
                     if ($doctorId !== Auth::id()) {
                         AppNotification::create([
                             'doctor_id' => $doctorId,
                             'type' => 'group_invitation',
                             'type_id' => $groupId,
-                            'content' => sprintf('Dr. %s Invited you to his group', Auth::user()->name . ' ' . Auth::user()->lname),
+                            'content' => sprintf('Dr. %s Invited you to his group', Auth::user()->name.' '.Auth::user()->lname),
                             'type_doctor_id' => Auth::id(),
                             'created_at' => now(),
-                            'updated_at' => now()
+                            'updated_at' => now(),
                         ]);
 
-                        Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $groupId);
+                        Log::info('Notification sent to group owner ID: '.$group->owner_id.' for group ID: '.$groupId);
 
                         // Get FCM tokens for push notification
                         $tokens = FcmToken::where('doctor_id', $doctorId)
                             ->pluck('token')
                             ->toArray();
 
-                        if (!empty($tokens)) {
+                        if (! empty($tokens)) {
                             $this->notificationService->sendPushNotification(
                                 'New Invitation was created 📣',
-                                'Dr. ' . ucfirst(Auth::user()->name) . ' invited you to his group',
+                                'Dr. '.ucfirst(Auth::user()->name).' invited you to his group',
                                 $tokens
                             );
                         }
                     }
-                    
+
                     // Log the re-invitation
                     Log::info('Doctor re-invited to the group', [
                         'group_id' => $groupId,
                         'doctor_id' => $doctorId,
-                        'invited_by' => Auth::id()
+                        'invited_by' => Auth::id(),
                     ]);
                 } elseif ($existingStatus === 'accepted') {
                     // Log the attempt to invite an already invited member
                     Log::info('Doctor is already accepted the invitation', [
                         'group_id' => $groupId,
                         'doctor_id' => $doctorId,
-                        'attempted_by' => Auth::id()
+                        'attempted_by' => Auth::id(),
                     ]);
                 } else {
                     // Invite the user to the group (attach the user to the group members with status "invited")
@@ -429,31 +423,31 @@ class GroupController extends Controller
                     Log::info('User invited to group', [
                         'group_id' => $groupId,
                         'invited_doctor_id' => $doctorId,
-                        'invited_by' => Auth::id()
+                        'invited_by' => Auth::id(),
                     ]);
-            
+
                     if ($doctorId !== Auth::id()) {
                         AppNotification::create([
                             'doctor_id' => $doctorId,
                             'type' => 'group_invitation',
                             'type_id' => $groupId,
-                            'content' => sprintf('Dr. %s Invited you to his group', Auth::user()->name . ' ' . Auth::user()->lname),
+                            'content' => sprintf('Dr. %s Invited you to his group', Auth::user()->name.' '.Auth::user()->lname),
                             'type_doctor_id' => Auth::id(),
                             'created_at' => now(),
-                            'updated_at' => now()
+                            'updated_at' => now(),
                         ]);
 
-                        Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $groupId);
+                        Log::info('Notification sent to group owner ID: '.$group->owner_id.' for group ID: '.$groupId);
 
                         // Get FCM tokens for push notification
                         $tokens = FcmToken::where('doctor_id', $doctorId)
                             ->pluck('token')
                             ->toArray();
 
-                        if (!empty($tokens)) {
+                        if (! empty($tokens)) {
                             $this->notificationService->sendPushNotification(
                                 'New Invitation was created 📣',
-                                'Dr. ' . ucfirst(Auth::user()->name) . ' invited you to his group',
+                                'Dr. '.ucfirst(Auth::user()->name).' invited you to his group',
                                 $tokens
                             );
                         }
@@ -466,30 +460,29 @@ class GroupController extends Controller
             // Return success response with details of successful and failed invites
             return response()->json([
                 'value' => true,
-                'message' => 'Invitations processed'
+                'message' => 'Invitations processed',
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             // Log the error
             Log::error('Error processing group invitations', [
                 'error' => $e->getMessage(),
                 'group_id' => $groupId,
-                'user_id' => Auth::id()
+                'user_id' => Auth::id(),
             ]);
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while processing invitations'
+                'message' => 'An error occurred while processing invitations',
             ], 500);
         }
     }
 
     /**
      * Accept or decline a group invitation.
-     * 
-     * @param \Illuminate\Http\Request $request
-     * @param int $groupId
+     *
+     * @param  int  $groupId
      * @return \Illuminate\Http\JsonResponse
      */
     public function handleInvitation(Request $request, $groupId)
@@ -498,7 +491,7 @@ class GroupController extends Controller
             // Validate the request with stricter rules
             $validated = $request->validate([
                 'status' => 'required|in:accepted,declined',
-                'invitation_id' => 'required|exists:group_user,id'
+                'invitation_id' => 'required|exists:group_user,id',
             ]);
 
             // Find the group or fail if not found
@@ -512,16 +505,16 @@ class GroupController extends Controller
                 ->whereIn('status', ['invited', 'pending'])
                 ->first();
 
-            if (!$invitation) {
+            if (! $invitation) {
                 Log::error('Invalid invitation', [
                     'group_id' => $groupId,
                     'doctor_id' => $userId,
-                    'invitation_id' => $validated['invitation_id']
+                    'invitation_id' => $validated['invitation_id'],
                 ]);
 
                 return response()->json([
                     'value' => false,
-                    'message' => 'Invalid invitation'
+                    'message' => 'Invalid invitation',
                 ], 400);
             }
 
@@ -534,7 +527,7 @@ class GroupController extends Controller
                     ->where('id', $validated['invitation_id'])
                     ->update([
                         'status' => $newStatus,
-                        'updated_at' => now()
+                        'updated_at' => now(),
                     ]);
 
                 if ($validated['status'] === 'accepted') {
@@ -544,15 +537,15 @@ class GroupController extends Controller
                             'doctor_id' => $group->owner_id,
                             'type' => 'group_invitation_accepted',
                             'type_id' => $groupId,
-                            'content' => sprintf('Dr. %s accepted your group invitation', Auth::user()->name . ' ' . Auth::user()->lname),
+                            'content' => sprintf('Dr. %s accepted your group invitation', Auth::user()->name.' '.Auth::user()->lname),
                             'type_doctor_id' => $userId,
                             'created_at' => now(),
-                            'updated_at' => now()
+                            'updated_at' => now(),
                         ]);
 
-                        Log::info("Notification sent to group owner", [
+                        Log::info('Notification sent to group owner', [
                             'owner_id' => $group->owner_id,
-                            'group_id' => $groupId
+                            'group_id' => $groupId,
                         ]);
                     }
                 }
@@ -564,12 +557,12 @@ class GroupController extends Controller
                     'group_id' => $groupId,
                     'doctor_id' => $userId,
                     'invitation_id' => $validated['invitation_id'],
-                    'status' => $newStatus
+                    'status' => $newStatus,
                 ]);
 
                 return response()->json([
                     'value' => true,
-                    'message' => sprintf('Invitation %s successfully', $validated['status'])
+                    'message' => sprintf('Invitation %s successfully', $validated['status']),
                 ], 200);
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -579,43 +572,43 @@ class GroupController extends Controller
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::error('Group not found', [
                 'group_id' => $groupId,
-                'user_id' => Auth::id()
+                'user_id' => Auth::id(),
             ]);
 
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found'
+                'message' => 'Group not found',
             ], 404);
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::warning('Invitation handling validation failed', [
                 'group_id' => $groupId,
                 'errors' => $e->errors(),
-                'user_id' => Auth::id()
+                'user_id' => Auth::id(),
             ]);
 
             return response()->json([
                 'value' => false,
                 'message' => 'Validation failed',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             Log::error('Error handling invitation', [
                 'group_id' => $groupId,
                 'user_id' => Auth::id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while handling the invitation'
+                'message' => 'An error occurred while handling the invitation',
             ], 500);
         }
     }
 
     /**
      * Get group details, including members and privacy settings.
-     * 
-     * @param int $id
+     *
+     * @param  int  $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function show($id)
@@ -623,12 +616,12 @@ class GroupController extends Controller
         try {
             // Retrieve the group without loading the doctors relationship
             $group = Group::with(['owner' => function ($query) {
-                    $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
-                }])
+                $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
+            }])
                 ->findOrFail($id);
 
             // Count the number of members in the group
-            $group->members_count = (int)$group->doctors()->where('status', 'joined')->count();
+            $group->members_count = (int) $group->doctors()->where('status', 'joined')->count();
 
             // Check if the authenticated user is a member of the group and get their status
             $userId = Auth::id();
@@ -644,36 +637,34 @@ class GroupController extends Controller
             Log::info('Group details retrieved', [
                 'group_id' => $id,
                 'retrieved_by' => $userId,
-                'user_status' => $userStatus
+                'user_status' => $userStatus,
             ]);
 
             // Return success response with members count and user status
             return response()->json([
                 'value' => true,
                 'data' => $group,
-                'message' => 'Group details retrieved successfully'
+                'message' => 'Group details retrieved successfully',
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             // Log the error
             Log::error('Group not found', [
                 'group_id' => $id,
-                'retrieved_by' => Auth::id()
+                'retrieved_by' => Auth::id(),
             ]);
 
             // Return error response
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found'
+                'message' => 'Group not found',
             ], 404);
         }
     }
 
-
     /**
      * Remove a member from the group.
-     * 
-     * @param \Illuminate\Http\Request $request
-     * @param int $groupId
+     *
+     * @param  int  $groupId
      * @return \Illuminate\Http\JsonResponse
      */
     public function removeMember(Request $request, $groupId)
@@ -681,7 +672,7 @@ class GroupController extends Controller
         try {
             // Validate the incoming request
             $validated = $request->validate([
-                'doctor_id' => 'required|exists:users,id'
+                'doctor_id' => 'required|exists:users,id',
             ]);
 
             $doctorId = $validated['doctor_id'];
@@ -693,10 +684,10 @@ class GroupController extends Controller
             //$this->authorizeOwner($group);
 
             // Check if the member exists in the group
-            if (!$group->doctors()->where('doctor_id', $doctorId)->exists()) {
+            if (! $group->doctors()->where('doctor_id', $doctorId)->exists()) {
                 return response()->json([
                     'value' => false,
-                    'message' => 'Member not found in the group'
+                    'message' => 'Member not found in the group',
                 ], 404);
             }
 
@@ -707,34 +698,33 @@ class GroupController extends Controller
             Log::info('Member removed from group', [
                 'group_id' => $groupId,
                 'removed_doctor_id' => $doctorId,
-                'removed_by' => Auth::id()
+                'removed_by' => Auth::id(),
             ]);
 
             // Return success response
             return response()->json([
                 'value' => true,
-                'message' => 'Member removed successfully'
+                'message' => 'Member removed successfully',
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             // Log the error
             Log::error('Group not found', [
                 'group_id' => $groupId,
-                'removed_by' => Auth::id()
+                'removed_by' => Auth::id(),
             ]);
 
             // Return error response
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found'
+                'message' => 'Group not found',
             ], 404);
         }
     }
 
     /**
      * Search for members in a group.
-     * 
-     * @param \Illuminate\Http\Request $request
-     * @param int $groupId
+     *
+     * @param  int  $groupId
      * @return \Illuminate\Http\JsonResponse
      */
     public function searchMembers(Request $request, $groupId)
@@ -742,7 +732,7 @@ class GroupController extends Controller
         try {
             // Validate the incoming request
             $validated = $request->validate([
-                'query' => 'required|string|max:255'
+                'query' => 'required|string|max:255',
             ]);
 
             // Find the group or fail if not found
@@ -751,8 +741,8 @@ class GroupController extends Controller
             // Search for members in the group based on the query with pagination
             $members = $group->doctors()
                 ->where(function ($query) use ($validated) {
-                    $query->where('users.name', 'like', '%' . $validated['query'] . '%')
-                        ->orWhere('users.email', 'like', '%' . $validated['query'] . '%');
+                    $query->where('users.name', 'like', '%'.$validated['query'].'%')
+                        ->orWhere('users.email', 'like', '%'.$validated['query'].'%');
                 })
                 ->select('users.id', 'users.name', 'users.lname', 'users.image', 'users.syndicate_card', 'users.isSyndicateCardRequired', 'users.version')
                 ->paginate(10)
@@ -772,34 +762,34 @@ class GroupController extends Controller
             Log::info('Group members searched', [
                 'group_id' => $groupId,
                 'searched_by' => Auth::id(),
-                'query' => $validated['query']
+                'query' => $validated['query'],
             ]);
 
             // Return success response
             return response()->json([
                 'value' => true,
                 'data' => $members,
-                'message' => 'Members search results'
+                'message' => 'Members search results',
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             // Log the error
             Log::error('Group not found', [
                 'group_id' => $groupId,
-                'searched_by' => Auth::id()
+                'searched_by' => Auth::id(),
             ]);
 
             // Return error response
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found'
+                'message' => 'Group not found',
             ], 404);
         }
     }
 
     /**
      * Fetch community members with pagination.
-     * 
-     * @param int $groupId
+     *
+     * @param  int  $groupId
      * @return \Illuminate\Http\JsonResponse
      */
     public function fetchMembers($groupId)
@@ -840,7 +830,7 @@ class GroupController extends Controller
                     'group_user.created_at as invited_at'
                 )
                 ->get()
-                ->map(function($doctor) {
+                ->map(function ($doctor) {
                     return [
                         'id' => $doctor->id,
                         'name' => $doctor->name,
@@ -849,8 +839,8 @@ class GroupController extends Controller
                         'syndicate_card' => $doctor->syndicate_card,
                         'isSyndicateCardRequired' => $doctor->isSyndicateCardRequired,
                         'version' => $doctor->version,
-                        'invitation_id' => (int)$doctor->invitation_id,
-                        'invited_at' => $doctor->invited_at
+                        'invitation_id' => (int) $doctor->invitation_id,
+                        'invited_at' => $doctor->invited_at,
                     ];
                 });
 
@@ -858,7 +848,7 @@ class GroupController extends Controller
             Log::info('Community members and pending invitations fetched', [
                 'group_id' => $groupId,
                 'members_count' => $members->count(),
-                'pending_invitations_count' => $pendingInvitations->count()
+                'pending_invitations_count' => $pendingInvitations->count(),
             ]);
 
             // Return success response with both members and pending invitations
@@ -866,41 +856,41 @@ class GroupController extends Controller
                 'value' => true,
                 'data' => [
                     'members' => $members,
-                    'pending_invitations' => $pendingInvitations
+                    'pending_invitations' => $pendingInvitations,
                 ],
-                'message' => 'Community members and pending invitations fetched successfully'
+                'message' => 'Community members and pending invitations fetched successfully',
             ], 200);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             // Log the error
             Log::error('Group not found', [
                 'group_id' => $groupId,
-                'fetched_by' => Auth::id()
+                'fetched_by' => Auth::id(),
             ]);
 
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found'
+                'message' => 'Group not found',
             ], 404);
         } catch (\Exception $e) {
             // Log the error
             Log::error('Error fetching community members and invitations', [
                 'group_id' => $groupId,
                 'fetched_by' => Auth::id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while fetching members and invitations'
+                'message' => 'An error occurred while fetching members and invitations',
             ], 500);
         }
     }
 
     /**
      * Fetch group details along with paginated posts.
-     * 
-     * @param int $groupId
+     *
+     * @param  int  $groupId
      * @return \Illuminate\Http\JsonResponse
      */
     public function fetchGroupDetailsWithPosts($groupId)
@@ -922,7 +912,7 @@ class GroupController extends Controller
                 ->first();
 
             $group->user_status = $userGroupData->status ?? null;
-            $group->invitation_id = $userGroupData->invitation_id ? (int)$userGroupData->invitation_id : null;
+            $group->invitation_id = $userGroupData ? ($userGroupData->invitation_id ? (int) $userGroupData->invitation_id : null) : null;
 
             // Check if group has pending invitations
             $hasPendingInvitations = $group->doctors()
@@ -933,7 +923,7 @@ class GroupController extends Controller
             $group->has_pending_invitations = $hasPendingInvitations;
 
             // Fetch member count for the group from the group_user table
-            $memberCount = (int)DB::table('group_user')
+            $memberCount = (int) DB::table('group_user')
                 ->where('group_id', $group->id)
                 ->where('status', 'joined')
                 ->count();
@@ -948,7 +938,7 @@ class GroupController extends Controller
                         ->with(['votes' => function ($voteQuery) use ($doctorId) {
                             $voteQuery->where('doctor_id', $doctorId); // Check if user voted
                         }]);
-                }
+                },
             ])
                 ->withCount(['likes', 'comments'])  // Count likes and comments
                 ->with([
@@ -957,13 +947,13 @@ class GroupController extends Controller
                     },
                     'likes' => function ($query) use ($doctorId) {
                         $query->where('doctor_id', $doctorId); // Check if the post is liked by the doctor
-                    }
+                    },
                 ])
                 ->latest('created_at') // Sort by created_at in descending order
                 ->paginate(10); // Paginate 10 posts per page
 
             // Add 'is_saved' and 'is_liked' fields to each post
-            $feedPosts->getCollection()->transform(function ($post) use ($doctorId) {
+            $feedPosts->getCollection()->transform(function ($post) {
                 // Add 'is_saved' field (true if the doctor saved the post)
                 $post->isSaved = $post->saves->isNotEmpty();
 
@@ -972,9 +962,10 @@ class GroupController extends Controller
 
                 // Sort poll options by vote count (highest first) and check if the user has voted
                 if ($post->poll) {
-                    $post->poll->options = $post->poll->options->map(function ($option) use ($doctorId) {
+                    $post->poll->options = $post->poll->options->map(function ($option) {
                         $option->is_voted = $option->votes->isNotEmpty(); // If user has voted for this option
                         unset($option->votes); // Remove unnecessary vote data
+
                         return $option;
                     })->sortByDesc('votes_count')->values();
                 }
@@ -988,7 +979,7 @@ class GroupController extends Controller
             // Log the action
             Log::info('Group details with paginated posts fetched', [
                 'group_id' => $groupId,
-                'fetched_by' => Auth::id()
+                'fetched_by' => Auth::id(),
             ]);
 
             // Return success response with group details and paginated posts
@@ -996,30 +987,29 @@ class GroupController extends Controller
                 'value' => true,
                 'data' => [
                     'group' => $group,
-                    'posts' => $feedPosts
+                    'posts' => $feedPosts,
                 ],
-                'message' => 'Group details with paginated posts fetched successfully'
+                'message' => 'Group details with paginated posts fetched successfully',
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             // Log the error
             Log::error('Group not found', [
                 'group_id' => $groupId,
-                'fetched_by' => Auth::id()
+                'fetched_by' => Auth::id(),
             ]);
 
             // Return error response
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found'
+                'message' => 'Group not found',
             ], 404);
         }
     }
 
-
     /**
      * Join a group.
-     * 
-     * @param int $groupId
+     *
+     * @param  int  $groupId
      * @return \Illuminate\Http\JsonResponse
      */
     public function joinGroup($groupId)
@@ -1040,11 +1030,12 @@ class GroupController extends Controller
                     case 'joined':
                         Log::info('User already a member of the group', [
                             'group_id' => $groupId,
-                            'doctor_id' => $userId
+                            'doctor_id' => $userId,
                         ]);
+
                         return response()->json([
                             'value' => false,
-                            'message' => 'You are already a member of this group'
+                            'message' => 'You are already a member of this group',
                         ], 400);
 
                     case 'pending':
@@ -1052,24 +1043,25 @@ class GroupController extends Controller
                         Log::info('User already has a pending request or invitation', [
                             'group_id' => $groupId,
                             'doctor_id' => $userId,
-                            'status' => $existingRecord->status
+                            'status' => $existingRecord->status,
                         ]);
+
                         return response()->json([
                             'value' => false,
-                            'message' => $existingRecord->status === 'pending' 
+                            'message' => $existingRecord->status === 'pending'
                                 ? 'Your join request is still pending'
-                                : 'You already have an invitation to this group'
+                                : 'You already have an invitation to this group',
                         ], 400);
 
                     case 'declined':
                         $newStatus = ($group->privacy === 'private') ? 'pending' : 'joined';
-                        
+
                         // Update the existing record
                         DB::table('group_user')
                             ->where('id', $existingRecord->id)
                             ->update([
                                 'status' => $newStatus,
-                                'updated_at' => now()
+                                'updated_at' => now(),
                             ]);
 
                         // Send notifications if needed
@@ -1081,20 +1073,20 @@ class GroupController extends Controller
                             'value' => true,
                             'message' => ($newStatus === 'joined')
                                 ? 'Joined group successfully'
-                                : 'Join request sent, waiting for approval'
+                                : 'Join request sent, waiting for approval',
                         ], 200);
                 }
             }
 
             // If user doesn't exist in the group, create new record
             $status = ($group->privacy === 'private') ? 'pending' : 'joined';
-            
+
             DB::table('group_user')->insert([
                 'group_id' => $groupId,
                 'doctor_id' => $userId,
                 'status' => $status,
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
 
             // Send notifications if needed
@@ -1106,18 +1098,18 @@ class GroupController extends Controller
                 'value' => true,
                 'message' => ($status === 'joined')
                     ? 'Joined group successfully'
-                    : 'Join request sent, waiting for approval'
+                    : 'Join request sent, waiting for approval',
             ], 200);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::error('Group not found', [
                 'group_id' => $groupId,
-                'user_id' => Auth::id()
+                'user_id' => Auth::id(),
             ]);
 
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found'
+                'message' => 'Group not found',
             ], 404);
         }
     }
@@ -1129,23 +1121,23 @@ class GroupController extends Controller
                 'doctor_id' => $group->owner_id,
                 'type' => 'group_join_request',
                 'type_id' => $group->id,
-                'content' => sprintf('Dr. %s requested to join group', Auth::user()->name . ' ' . Auth::user()->lname),
+                'content' => sprintf('Dr. %s requested to join group', Auth::user()->name.' '.Auth::user()->lname),
                 'type_doctor_id' => Auth::id(),
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
 
-            Log::info("Notification sent to group owner ID: " . $group->owner_id . " for group ID: " . $group->id);
+            Log::info('Notification sent to group owner ID: '.$group->owner_id.' for group ID: '.$group->id);
 
             // Get FCM tokens for push notification
             $tokens = FcmToken::where('doctor_id', $group->owner_id)
                 ->pluck('token')
                 ->toArray();
 
-            if (!empty($tokens)) {
+            if (! empty($tokens)) {
                 $this->notificationService->sendPushNotification(
                     'New Join Request 📣',
-                    'Dr. ' . ucfirst(Auth::user()->name) . ' requested to join group',
+                    'Dr. '.ucfirst(Auth::user()->name).' requested to join group',
                     $tokens
                 );
             }
@@ -1154,8 +1146,8 @@ class GroupController extends Controller
 
     /**
      * Leave a group.
-     * 
-     * @param int $groupId
+     *
+     * @param  int  $groupId
      * @return \Illuminate\Http\JsonResponse
      */
     public function leaveGroup($groupId)
@@ -1166,16 +1158,16 @@ class GroupController extends Controller
             $userId = Auth::id();
 
             // Check if the user is a member of the group
-            if (!$group->doctors()->where('doctor_id', $userId)->exists()) {
+            if (! $group->doctors()->where('doctor_id', $userId)->exists()) {
                 // Log the attempt to leave a group the user is not a member of
                 Log::info('User not a member of the group', [
                     'group_id' => $groupId,
-                    'doctor_id' => $userId
+                    'doctor_id' => $userId,
                 ]);
 
                 return response()->json([
                     'value' => false,
-                    'message' => 'You are not a member of this group'
+                    'message' => 'You are not a member of this group',
                 ], 400);
             }
 
@@ -1185,32 +1177,32 @@ class GroupController extends Controller
             // Log the leave action
             Log::info('User left group', [
                 'group_id' => $groupId,
-                'doctor_id' => $userId
+                'doctor_id' => $userId,
             ]);
 
             // Return success response
             return response()->json([
                 'value' => true,
-                'message' => 'Left group successfully'
+                'message' => 'Left group successfully',
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             // Log the error
             Log::error('Group not found', [
                 'group_id' => $groupId,
-                'user_id' => Auth::id()
+                'user_id' => Auth::id(),
             ]);
 
             // Return error response
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found'
+                'message' => 'Group not found',
             ], 404);
         }
     }
 
     /**
      * Fetch groups owned by the authenticated user with pagination.
-     * 
+     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function fetchMyGroups()
@@ -1221,39 +1213,40 @@ class GroupController extends Controller
         $myGroups = Group::with(['owner' => function ($query) {
             $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
         }])
-        ->withCount(['doctors' => function ($query) {
-            $query->where('status', 'joined');
-        }])
-        ->with(['doctors' => function ($query) use ($userId) {
-            $query->where('doctor_id', $userId)
-                ->select('group_user.status', 'group_user.group_id');
-        }])
-        ->where('owner_id', $userId)
-        ->orderBy('created_at', 'desc')
-        ->paginate(20)
-        ->through(function ($group) use ($userId) {
-            $group->user_status = $group->doctors->first()->status ?? null;
-            $group->member_count = (int)$group->doctors_count;
-            unset($group->doctors);
-            return $group;
-        });
+            ->withCount(['doctors' => function ($query) {
+                $query->where('status', 'joined');
+            }])
+            ->with(['doctors' => function ($query) use ($userId) {
+                $query->where('doctor_id', $userId)
+                    ->select('group_user.status', 'group_user.group_id');
+            }])
+            ->where('owner_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->paginate(20)
+            ->through(function ($group) {
+                $group->user_status = $group->doctors->first()->status ?? null;
+                $group->member_count = (int) $group->doctors_count;
+                unset($group->doctors);
+
+                return $group;
+            });
 
         // Log the action
         Log::info('User groups fetched with pagination', [
-            'owner_id' => $userId
+            'owner_id' => $userId,
         ]);
 
         // Return success response
         return response()->json([
             'value' => true,
             'data' => $myGroups,
-            'message' => 'User groups fetched successfully'
+            'message' => 'User groups fetched successfully',
         ], 200);
     }
 
     /**
      * Fetch all groups with pagination.
-     * 
+     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function fetchAllGroups()
@@ -1264,35 +1257,35 @@ class GroupController extends Controller
         $groups = Group::with(['owner' => function ($query) {
             $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
         }])
-        ->withCount(['doctors' => function ($query) {
-            $query->where('status', 'joined');
-        }])
-        ->with(['doctors' => function ($query) use ($userId) {
-            $query->where('doctor_id', $userId)
-                ->select('group_user.status', 'group_user.group_id');
-        }])
-        ->orderBy('created_at', 'desc')
-        ->paginate(20)
-        ->through(function ($group) use ($userId) {
-            $group->user_status = $group->doctors->first()->status ?? null;
-            $group->member_count = (int)$group->doctors_count;
-            unset($group->doctors);
-            return $group;
-        });
+            ->withCount(['doctors' => function ($query) {
+                $query->where('status', 'joined');
+            }])
+            ->with(['doctors' => function ($query) use ($userId) {
+                $query->where('doctor_id', $userId)
+                    ->select('group_user.status', 'group_user.group_id');
+            }])
+            ->orderBy('created_at', 'desc')
+            ->paginate(20)
+            ->through(function ($group) {
+                $group->user_status = $group->doctors->first()->status ?? null;
+                $group->member_count = (int) $group->doctors_count;
+                unset($group->doctors);
+
+                return $group;
+            });
 
         // Log the action
         Log::info('All groups fetched with pagination', [
-            'fetched_by' => Auth::id()
+            'fetched_by' => Auth::id(),
         ]);
 
         // Return success response
         return response()->json([
             'value' => true,
             'data' => $groups,
-            'message' => 'All groups fetched successfully'
+            'message' => 'All groups fetched successfully',
         ], 200);
     }
-
 
     /**
      * Fetch the latest three groups with user status and a paginated list of random posts from random groups.
@@ -1345,9 +1338,8 @@ class GroupController extends Controller
                     ->where('status', 'joined')
                     ->count();
 
-                $group->member_count = (int)$memberCount; // Add member count to the group object
+                $group->member_count = (int) $memberCount; // Add member count to the group object
             }
-
 
             // Fetch posts with necessary relationships and counts
             $randomPosts = FeedPost::with([
@@ -1357,7 +1349,7 @@ class GroupController extends Controller
                         ->with(['votes' => function ($voteQuery) use ($userId) {
                             $voteQuery->where('doctor_id', $userId); // Check if user voted
                         }]);
-                }
+                },
             ])
                 ->withCount(['likes', 'comments'])  // Count likes and comments
                 ->with([
@@ -1366,7 +1358,7 @@ class GroupController extends Controller
                     },
                     'likes' => function ($query) use ($userId) {
                         $query->where('doctor_id', $userId); // Check if the post is liked by the doctor
-                    }
+                    },
                 ])
                 ->whereNotNull('group_id') // Ensure group_id is not null
                 ->inRandomOrder() // Fetch posts randomly
@@ -1376,7 +1368,7 @@ class GroupController extends Controller
                 ->paginate(10); // Paginate 10 posts per page
 
             // Add 'is_saved' and 'is_liked' fields to each post
-            $randomPosts->getCollection()->transform(function ($post) use ($userId) {
+            $randomPosts->getCollection()->transform(function ($post) {
                 // Add 'is_saved' field (true if the doctor saved the post)
                 $post->isSaved = $post->saves->isNotEmpty();
 
@@ -1385,9 +1377,10 @@ class GroupController extends Controller
 
                 // Sort poll options by vote count (highest first) and check if the user has voted
                 if ($post->poll) {
-                    $post->poll->options = $post->poll->options->map(function ($option) use ($userId) {
+                    $post->poll->options = $post->poll->options->map(function ($option) {
                         $option->is_voted = $option->votes->isNotEmpty(); // If user has voted for this option
                         unset($option->votes); // Remove unnecessary vote data
+
                         return $option;
                     })->sortByDesc('votes_count')->values();
                 }
@@ -1399,7 +1392,7 @@ class GroupController extends Controller
 
             // Log the action
             Log::info('Latest groups and random posts fetched', [
-                'fetched_by' => Auth::id()
+                'fetched_by' => Auth::id(),
             ]);
 
             // Return success response
@@ -1407,29 +1400,29 @@ class GroupController extends Controller
                 'value' => true,
                 'data' => [
                     'latest_groups' => $latestGroups,
-                    'random_posts' => $randomPosts
+                    'random_posts' => $randomPosts,
                 ],
-                'message' => 'Latest groups and random posts fetched successfully'
+                'message' => 'Latest groups and random posts fetched successfully',
             ], 200);
         } catch (\Exception $e) {
             // Log the error
             Log::error('Error fetching latest groups and random posts', [
                 'error' => $e->getMessage(),
-                'fetched_by' => Auth::id()
+                'fetched_by' => Auth::id(),
             ]);
 
             // Return error response
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while fetching data'
+                'message' => 'An error occurred while fetching data',
             ], 500);
         }
     }
 
     /**
      * Get group invitations for a specific doctor.
-     * 
-     * @param int $doctorId
+     *
+     * @param  int  $doctorId
      * @return \Illuminate\Http\JsonResponse
      */
     public function getDoctorInvitations($doctorId)
@@ -1442,17 +1435,17 @@ class GroupController extends Controller
             $invitations = Group::with(['owner' => function ($query) {
                 $query->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version');
             }])
-            ->whereHas('doctors', function ($query) use ($doctorId) {
-                $query->where('doctor_id', $doctorId)
-                      ->where('status', 'invited');
-            })
-            ->with(['doctors' => function ($query) use ($doctorId) {
-                $query->where('doctor_id', $doctorId)
-                      ->where('status', 'invited')
-                      ->select('group_user.id as invitation_id');
-            }])
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+                ->whereHas('doctors', function ($query) use ($doctorId) {
+                    $query->where('doctor_id', $doctorId)
+                        ->where('status', 'invited');
+                })
+                ->with(['doctors' => function ($query) use ($doctorId) {
+                    $query->where('doctor_id', $doctorId)
+                        ->where('status', 'invited')
+                        ->select('group_user.id as invitation_id');
+                }])
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
 
             // Add member count and invitation_id to each group
             foreach ($invitations as $group) {
@@ -1462,53 +1455,53 @@ class GroupController extends Controller
                     ->where('status', 'joined')
                     ->count();
 
-                $group->member_count = (int)$memberCount;
+                $group->member_count = (int) $memberCount;
                 $group->user_status = 'invited';
                 // Add the invitation_id from the pivot table
-                $group->invitation_id = $group->doctors->first() ? (int)$group->doctors->first()->invitation_id : null;
+                $group->invitation_id = $group->doctors->first() ? (int) $group->doctors->first()->invitation_id : null;
                 // Remove the doctors relationship from the response
                 unset($group->doctors);
             }
 
             // Log the action
             Log::info('Group invitations fetched', [
-                'doctor_id' => $doctorId
+                'doctor_id' => $doctorId,
             ]);
 
             return response()->json([
                 'value' => true,
                 'data' => $invitations,
-                'message' => 'Group invitations fetched successfully'
+                'message' => 'Group invitations fetched successfully',
             ], 200);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             // Log the error
             Log::error('Doctor not found', [
-                'doctor_id' => $doctorId
+                'doctor_id' => $doctorId,
             ]);
 
             return response()->json([
                 'value' => false,
-                'message' => 'Doctor not found'
+                'message' => 'Doctor not found',
             ], 404);
         } catch (\Exception $e) {
             // Log the error
             Log::error('Error fetching group invitations', [
                 'doctor_id' => $doctorId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while fetching group invitations'
+                'message' => 'An error occurred while fetching group invitations',
             ], 500);
         }
     }
 
     /**
      * Get all invitations for a specific group.
-     * 
-     * @param int $groupId
+     *
+     * @param  int  $groupId
      * @return \Illuminate\Http\JsonResponse
      */
     public function getGroupInvitations($groupId)
@@ -1537,7 +1530,7 @@ class GroupController extends Controller
 
             // Log the action
             Log::info('Group invitations fetched by group ID', [
-                'group_id' => $groupId
+                'group_id' => $groupId,
             ]);
 
             return response()->json([
@@ -1550,35 +1543,34 @@ class GroupController extends Controller
                         'privacy' => $group->privacy,
                         'header_picture' => $group->header_picture,
                         'group_image' => $group->group_image,
-                        'owner' => $group->owner()->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version')->first()
+                        'owner' => $group->owner()->select('id', 'name', 'lname', 'image', 'syndicate_card', 'isSyndicateCardRequired', 'version')->first(),
                     ],
-                    'invitations' => $invitations
+                    'invitations' => $invitations,
                 ],
-                'message' => 'Group invitations fetched successfully'
+                'message' => 'Group invitations fetched successfully',
             ], 200);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             // Log the error
             Log::error('Group not found', [
-                'group_id' => $groupId
+                'group_id' => $groupId,
             ]);
 
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found'
+                'message' => 'Group not found',
             ], 404);
         } catch (\Exception $e) {
             // Log the error
             Log::error('Error fetching group invitations', [
                 'group_id' => $groupId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while fetching group invitations'
+                'message' => 'An error occurred while fetching group invitations',
             ], 500);
         }
     }
-
 }

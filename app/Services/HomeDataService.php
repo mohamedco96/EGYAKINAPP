@@ -2,14 +2,14 @@
 
 namespace App\Services;
 
+use App\Models\FeedPost;
+use App\Models\Group;
+use App\Models\Hashtag;
+use App\Models\User;
+use App\Modules\Notifications\Models\AppNotification;
 use App\Modules\Patients\Models\Patients;
 use App\Modules\Patients\Services\PatientService;
-use App\Models\User;
-use App\Models\FeedPost;
 use App\Modules\Posts\Models\Posts;
-use App\Models\Hashtag;
-use App\Models\Group;
-use App\Modules\Notifications\Models\AppNotification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -27,33 +27,33 @@ class HomeDataService
      */
     public function getHomeData(): array
     {
-        $user = Auth::user()->load(['roles', 'score', 'patients' => function($query) {
+        $user = Auth::user()->load(['roles', 'score', 'patients' => function ($query) {
             $query->where('hidden', false);
         }]);
-        
+
         $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
-        $isVerified = !is_null($user->email_verified_at);
+        $isVerified = ! is_null($user->email_verified_at);
         $isSyndicateCardRequired = $user->isSyndicateCardRequired === 'Verified';
-        
+
         $feedPosts = $this->getFeedPosts($user);
         $counts = $this->getBasicCounts($user);
-        
+
         $baseResponse = [
             'value' => true,
             'app_update_message' => '<ul><li><strong>Doctor Consultations</strong>: Doctors can now consult one or more colleagues for advice on their patients.</li><li><strong>User Achievements</strong>: Earn achievements by adding a set number of patients or completing specific outcomes.</li></ul>',
             'verified' => $isVerified,
-            'unreadCount' => (string)$counts['unreadCount'],
-            'doctor_patient_count' => (string)$counts['userPatientCount'],
+            'unreadCount' => (string) $counts['unreadCount'],
+            'doctor_patient_count' => (string) $counts['userPatientCount'],
             'isSyndicateCardRequired' => $user->isSyndicateCardRequired,
             'isUserBlocked' => $user->blocked,
-            'all_patient_count' => (string)$counts['allPatientCount'],
-            'score_value' => (string)($user->score->score ?? 0),
-            'posts_count' => (string)$counts['postsCount'],
-            'saved_posts_count' => (string)$counts['savedPostsCount'],
-            'role' => $user->roles->first()->name ?? "User",
+            'all_patient_count' => (string) $counts['allPatientCount'],
+            'score_value' => (string) ($user->score->score ?? 0),
+            'posts_count' => (string) $counts['postsCount'],
+            'saved_posts_count' => (string) $counts['savedPostsCount'],
+            'role' => $user->roles->first()->name ?? 'User',
         ];
 
-        if (!$isSyndicateCardRequired && !$isAdminOrTester) {
+        if (! $isSyndicateCardRequired && ! $isAdminOrTester) {
             return $this->getLimitedHomeData($baseResponse, $feedPosts, $user);
         }
 
@@ -78,34 +78,36 @@ class HomeDataService
             },
             'saves' => function ($query) use ($user) {
                 $query->where('doctor_id', $user->id);
-            }
+            },
         ])
-        ->withCount(['likes', 'comments'])
-        ->where('group_id', null)
-        ->where('media_type', 'image')
-        ->whereNotNull('media_path')
-        ->where('media_path', '!=', '[]')
-        ->latest('created_at')
-        ->limit(5)
-        ->get()
-        ->map(function ($post) use ($user) {
-            $post->doctor_id = (int)$post->doctor_id;
-            $post->likes_count = (int)$post->likes_count;
-            $post->comments_count = (int)$post->comments_count;
-            $post->isSaved = $post->saves->isNotEmpty();
-            $post->isLiked = $post->likes->isNotEmpty();
+            ->withCount(['likes', 'comments'])
+            ->where('group_id', null)
+            ->where('media_type', 'image')
+            ->whereNotNull('media_path')
+            ->where('media_path', '!=', '[]')
+            ->latest('created_at')
+            ->limit(5)
+            ->get()
+            ->map(function ($post) {
+                $post->doctor_id = (int) $post->doctor_id;
+                $post->likes_count = (int) $post->likes_count;
+                $post->comments_count = (int) $post->comments_count;
+                $post->isSaved = $post->saves->isNotEmpty();
+                $post->isLiked = $post->likes->isNotEmpty();
 
-            if ($post->poll) {
-                $post->poll->options = $post->poll->options->map(function ($option) {
-                    $option->is_voted = $option->votes->isNotEmpty();
-                    unset($option->votes);
-                    return $option;
-                })->sortByDesc('votes_count')->values();
-            }
+                if ($post->poll) {
+                    $post->poll->options = $post->poll->options->map(function ($option) {
+                        $option->is_voted = $option->votes->isNotEmpty();
+                        unset($option->votes);
 
-            unset($post->saves, $post->likes);
-            return $post;
-        });
+                        return $option;
+                    })->sortByDesc('votes_count')->values();
+                }
+
+                unset($post->saves, $post->likes);
+
+                return $post;
+            });
     }
 
     /**
@@ -118,7 +120,7 @@ class HomeDataService
             'allPatientCount' => Patients::count(),
             'postsCount' => $user->feedPosts()->count(),
             'savedPostsCount' => $user->saves()->count(),
-            'unreadCount' => AppNotification::where('doctor_id', $user->id)->where('read', false)->count()
+            'unreadCount' => AppNotification::where('doctor_id', $user->id)->where('read', false)->count(),
         ];
     }
 
@@ -156,7 +158,7 @@ class HomeDataService
         $pendingSyndicateCard = $this->getPendingSyndicateCard($isAdminOrTester);
 
         $transformPatientData = [$this->patientService, 'transformPatientData'];
-        
+
         $baseResponse['data'] = [
             'topDoctors' => $topDoctors,
             'pendingSyndicateCard' => $pendingSyndicateCard,
@@ -165,7 +167,7 @@ class HomeDataService
             'posts' => $posts,
             'feed_posts' => $feedPosts,
             'trending_hashtags' => [],
-            'latest_groups' => []
+            'latest_groups' => [],
         ];
 
         return $baseResponse;
@@ -180,8 +182,9 @@ class HomeDataService
             ->where('hidden', false)
             ->with(['doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version'])
             ->get()
-            ->map(function($post) {
-                $post->doctor_id = (int)$post->doctor_id;
+            ->map(function ($post) {
+                $post->doctor_id = (int) $post->doctor_id;
+
                 return $post;
             });
     }
@@ -191,11 +194,11 @@ class HomeDataService
      */
     private function getAllPatients(bool $isAdminOrTester): \Illuminate\Database\Eloquent\Collection
     {
-        return Patients::when(!$isAdminOrTester, fn($query) => $query->where('hidden', false))
+        return Patients::when(! $isAdminOrTester, fn ($query) => $query->where('hidden', false))
             ->with([
                 'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version',
                 'status:id,patient_id,key,status,doctor_id',
-                'answers:id,patient_id,answer,question_id'
+                'answers:id,patient_id,answer,question_id',
             ])
             ->latest('updated_at')
             ->limit(5)
@@ -208,11 +211,11 @@ class HomeDataService
     private function getCurrentPatients(User $user, bool $isAdminOrTester): \Illuminate\Database\Eloquent\Collection
     {
         return $user->patients()
-            ->when(!$isAdminOrTester, fn($query) => $query->where('hidden', false))
+            ->when(! $isAdminOrTester, fn ($query) => $query->where('hidden', false))
             ->with([
                 'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version',
                 'status:id,patient_id,key,status,doctor_id',
-                'answers:id,patient_id,answer,question_id'
+                'answers:id,patient_id,answer,question_id',
             ])
             ->latest('updated_at')
             ->limit(5)
@@ -225,14 +228,14 @@ class HomeDataService
     private function getTopDoctors(): \Illuminate\Support\Collection
     {
         return User::select(
-                'users.id', 
-                'users.name', 
-                'users.image', 
-                'users.syndicate_card', 
-                'users.isSyndicateCardRequired', 
-                'users.version',
-                'scores.score as score_value'
-            )
+            'users.id',
+            'users.name',
+            'users.image',
+            'users.syndicate_card',
+            'users.isSyndicateCardRequired',
+            'users.version',
+            'scores.score as score_value'
+        )
             ->leftJoin('scores', 'users.id', '=', 'scores.doctor_id')
             ->withCount(['patients', 'posts', 'saves'])
             ->orderByDesc('patients_count')
@@ -296,7 +299,7 @@ class HomeDataService
 
         $latestGroups->each(function ($group) use ($groupUserStatuses, $groupMemberCounts) {
             $group->user_status = $groupUserStatuses[$group->id] ?? null;
-            $group->member_count = $groupMemberCounts[$group->id] ?? 0;
+            $group->member_count = (int) ($groupMemberCounts[$group->id] ?? 0);
         });
 
         return $latestGroups;

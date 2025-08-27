@@ -1,0 +1,93 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1;
+
+use App\Http\Controllers\Controller;
+use App\Modules\Patients\Controllers\PatientsController as ModulePatientsController;
+use App\Modules\Patients\Requests\UpdatePatientsRequest;
+use Illuminate\Http\Request;
+
+class PatientsController extends Controller
+{
+    protected $patientsController;
+
+    public function __construct(ModulePatientsController $patientsController)
+    {
+        $this->patientsController = $patientsController;
+    }
+
+    public function storePatient(Request $request)
+    {
+        return $this->patientsController->storePatient($request);
+    }
+
+    public function updateFinalSubmit(Request $request, $patient_id)
+    {
+        return $this->patientsController->updateFinalSubmit($request, $patient_id);
+    }
+
+    public function updatePatient(UpdatePatientsRequest $request, $section_id, $patient_id)
+    {
+        return $this->patientsController->updatePatient($request, $section_id, $patient_id);
+    }
+
+    public function destroyPatient($id)
+    {
+        return $this->patientsController->destroyPatient($id);
+    }
+
+    public function searchNew(Request $request)
+    {
+        return $this->patientsController->searchNew($request);
+    }
+
+    public function homeGetAllData()
+    {
+        return $this->patientsController->homeGetAllData();
+    }
+
+    public function doctorPatientGet()
+    {
+        return $this->patientsController->doctorPatientGet();
+    }
+
+    public function doctorPatientGetAll()
+    {
+        return $this->patientsController->doctorPatientGetAll();
+    }
+
+    public function test()
+    {
+        return $this->patientsController->test();
+    }
+
+    public function uploadFile(Request $request)
+    {
+        return $this->patientsController->uploadFile($request);
+    }
+
+    public function uploadFileNew(Request $request)
+    {
+        return $this->patientsController->uploadFileNew($request);
+    }
+
+    public function patientFilterConditions()
+    {
+        return $this->patientsController->patientFilterConditions();
+    }
+
+    public function filteredPatients(Request $request)
+    {
+        return $this->patientsController->filteredPatients($request);
+    }
+
+    public function exportFilteredPatients(Request $request)
+    {
+        return $this->patientsController->exportFilteredPatients($request);
+    }
+
+    public function generatePatientPDF($patient_id)
+    {
+        return $this->patientsController->generatePatientPDF($patient_id);
+    }
+}

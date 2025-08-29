@@ -85,6 +85,7 @@ class FeedPostController extends Controller
             ])
                 ->with([
                     'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                    'hashtags:id,tag,usage_count',
                     'poll' => function ($query) {
                         $query->select('id', 'feed_post_id', 'question', 'allow_add_options', 'allow_multiple_choice');
                     },
@@ -173,10 +174,16 @@ class FeedPostController extends Controller
             // Fetch posts with necessary relationships and counts
             $feedPosts = FeedPost::with([
                 'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                'hashtags:id,tag,usage_count',
+                'poll' => function ($query) {
+                    $query->select('id', 'feed_post_id', 'question', 'allow_add_options', 'allow_multiple_choice');
+                },
                 'poll.options' => function ($query) use ($doctorId) {
-                    $query->withCount('votes') // Count votes per option
+                    $query->select('id', 'poll_id', 'option_text')
+                        ->withCount('votes') // Count votes per option
                         ->with(['votes' => function ($voteQuery) use ($doctorId) {
-                            $voteQuery->where('doctor_id', $doctorId); // Check if user voted
+                            $voteQuery->select('id', 'poll_option_id', 'doctor_id')
+                                ->where('doctor_id', $doctorId); // Check if user voted
                         }]);
                 },
             ])
@@ -257,11 +264,16 @@ class FeedPostController extends Controller
             })
                 ->with([
                     'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                    'hashtags:id,tag,usage_count',
+                    'poll' => function ($query) {
+                        $query->select('id', 'feed_post_id', 'question', 'allow_add_options', 'allow_multiple_choice');
+                    },
                     'poll.options' => function ($query) use ($doctorId) {
-                        Log::info('Inside poll.options closure - Doctor ID: '.$doctorId);
-                        $query->withCount('votes') // Count votes per option
+                        $query->select('id', 'poll_id', 'option_text')
+                            ->withCount('votes') // Count votes per option
                             ->with(['votes' => function ($voteQuery) use ($doctorId) {
-                                $voteQuery->where('doctor_id', $doctorId); // Check if user voted
+                                $voteQuery->select('id', 'poll_option_id', 'doctor_id')
+                                    ->where('doctor_id', $doctorId); // Check if user voted
                             }]);
                     },
                 ])
@@ -337,14 +349,20 @@ class FeedPostController extends Controller
 
             $post = FeedPost::with([
                 'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                'hashtags:id,tag,usage_count',
                 'comments' => function ($query) {
                     $query->orderBy('created_at', 'desc')->paginate(10);
                 },
                 'comments.doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                'poll' => function ($query) {
+                    $query->select('id', 'feed_post_id', 'question', 'allow_add_options', 'allow_multiple_choice');
+                },
                 'poll.options' => function ($query) use ($doctorId) {
-                    $query->withCount('votes') // Load vote count for each option
+                    $query->select('id', 'poll_id', 'option_text')
+                        ->withCount('votes') // Load vote count for each option
                         ->with(['votes' => function ($voteQuery) use ($doctorId) {
-                            $voteQuery->where('doctor_id', $doctorId); // Check if the user voted
+                            $voteQuery->select('id', 'poll_option_id', 'doctor_id')
+                                ->where('doctor_id', $doctorId); // Check if the user voted
                         }]);
                 },
             ])->withCount(['likes', 'comments'])
@@ -966,26 +984,75 @@ class FeedPostController extends Controller
             // Remove duplicate hashtags from the same post content
             $hashtags = array_unique($hashtags);
 
-            // Get currently attached hashtags for this post
-            $attachedHashtagIds = $post->hashtags()->pluck('hashtags.id')->toArray();
+            if (empty($hashtags)) {
+                return;
+            }
 
-            foreach ($hashtags as $hashtagName) {
-                // Use firstOrCreate to handle race conditions gracefully
-                $hashtag = Hashtag::firstOrCreate(
-                    ['tag' => $hashtagName],
-                    ['usage_count' => 0]
-                );
+            // Get currently attached hashtag tags for this post in one query
+            $attachedHashtagTags = $post->hashtags()->pluck('tag')->toArray();
 
-                // Only increment usage count and attach if not already attached to this post
-                if (! in_array($hashtag->id, $attachedHashtagIds)) {
-                    $hashtag->increment('usage_count');
-                    $post->hashtags()->attach($hashtag->id);
+            // Filter out hashtags that are already attached to this post
+            $newHashtags = array_diff($hashtags, $attachedHashtagTags);
+
+            if (empty($newHashtags)) {
+                return;
+            }
+
+            // Get existing hashtags in one query
+            $existingHashtags = Hashtag::whereIn('tag', $newHashtags)->get()->keyBy('tag');
+
+            $hashtagsToCreate = [];
+            $hashtagsToUpdate = [];
+            $hashtagsToAttach = [];
+
+            foreach ($newHashtags as $hashtagName) {
+                if (isset($existingHashtags[$hashtagName])) {
+                    // Hashtag exists, prepare for update and attach
+                    $hashtag = $existingHashtags[$hashtagName];
+                    $hashtagsToUpdate[] = $hashtag->id;
+                    $hashtagsToAttach[] = $hashtag->id;
+                } else {
+                    // Hashtag doesn't exist, prepare for creation
+                    $hashtagsToCreate[] = [
+                        'tag' => $hashtagName,
+                        'usage_count' => 1,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
                 }
+            }
+
+            // Create new hashtags one by one using firstOrCreate to handle race conditions
+            foreach ($hashtagsToCreate as $hashtagData) {
+                $hashtag = Hashtag::firstOrCreate(
+                    ['tag' => $hashtagData['tag']],
+                    ['usage_count' => 1]
+                );
+                $hashtagsToAttach[] = $hashtag->id;
+
+                // If hashtag was just created (not found), it already has usage_count = 1
+                // If it already existed, increment its usage count
+                if ($hashtag->wasRecentlyCreated === false) {
+                    $hashtagsToUpdate[] = $hashtag->id;
+                }
+            }
+
+            // Bulk increment usage count for existing hashtags
+            if (! empty($hashtagsToUpdate)) {
+                Hashtag::whereIn('id', $hashtagsToUpdate)->increment('usage_count');
+            }
+
+            // Bulk attach hashtags to post
+            if (! empty($hashtagsToAttach)) {
+                $post->hashtags()->attach($hashtagsToAttach);
             }
 
             Log::info('Hashtags attached successfully', [
                 'post_id' => $post->id,
                 'hashtags' => $hashtags,
+                'new_hashtags_count' => count($newHashtags),
+                'created_count' => count($hashtagsToCreate),
+                'updated_count' => count($hashtagsToUpdate),
             ]);
         } catch (\Exception $e) {
             Log::error('Error attaching hashtags', [
@@ -1620,10 +1687,16 @@ class FeedPostController extends Controller
             $posts = $hashtag->posts()
                 ->with([
                     'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                    'hashtags:id,tag,usage_count',
+                    'poll' => function ($query) {
+                        $query->select('id', 'feed_post_id', 'question', 'allow_add_options', 'allow_multiple_choice');
+                    },
                     'poll.options' => function ($query) use ($doctorId) {
-                        $query->withCount('votes') // Count votes per option
+                        $query->select('id', 'poll_id', 'option_text')
+                            ->withCount('votes') // Count votes per option
                             ->with(['votes' => function ($voteQuery) use ($doctorId) {
-                                $voteQuery->where('doctor_id', $doctorId); // Check if user voted
+                                $voteQuery->select('id', 'poll_option_id', 'doctor_id')
+                                    ->where('doctor_id', $doctorId); // Check if user voted
                             }]);
                     },
                 ])
@@ -1712,10 +1785,16 @@ class FeedPostController extends Controller
             $posts = FeedPost::where('content', 'LIKE', '%'.$query.'%')
                 ->with([
                     'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
+                    'hashtags:id,tag,usage_count',
+                    'poll' => function ($query) {
+                        $query->select('id', 'feed_post_id', 'question', 'allow_add_options', 'allow_multiple_choice');
+                    },
                     'poll.options' => function ($query) use ($doctorId) {
-                        $query->withCount('votes') // Count votes per option
+                        $query->select('id', 'poll_id', 'option_text')
+                            ->withCount('votes') // Count votes per option
                             ->with(['votes' => function ($voteQuery) use ($doctorId) {
-                                $voteQuery->where('doctor_id', $doctorId); // Check if user voted
+                                $voteQuery->select('id', 'poll_option_id', 'doctor_id')
+                                    ->where('doctor_id', $doctorId); // Check if user voted
                             }]);
                     },
                 ])

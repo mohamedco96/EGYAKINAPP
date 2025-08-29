@@ -3,24 +3,21 @@
 namespace Tests\Unit;
 
 use App\Http\Controllers\FeedPostController;
+use App\Http\Controllers\MainController;
 use App\Models\FeedPost;
 use App\Models\FeedPostComment;
-use App\Models\FeedPostCommentLike;
 use App\Models\FeedPostLike;
-use App\Models\FeedSaveLike;
 use App\Models\Hashtag;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
-use App\Http\Controllers\MainController;
 
 class FeedPostControllerTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $mainControllerMock;
+
     protected $feedPostController;
 
     protected function setUp(): void
@@ -33,8 +30,18 @@ class FeedPostControllerTest extends TestCase
 
     public function testExtractHashtags()
     {
-        $content = "This is a #test post with #multiple #hashtags.";
+        $content = 'This is a #test post with #multiple #hashtags.';
         $expected = ['test', 'multiple', 'hashtags'];
+
+        $result = $this->feedPostController->extractHashtags($content);
+
+        $this->assertEquals($expected, $result);
+    }
+
+    public function testExtractArabicHashtags()
+    {
+        $content = 'هاشتاج #بالعربي و #test و #مختلط123';
+        $expected = ['بالعربي', 'test', 'مختلط123'];
 
         $result = $this->feedPostController->extractHashtags($content);
 
@@ -125,7 +132,7 @@ class FeedPostControllerTest extends TestCase
         $request = Request::create('/store', 'POST', [
             'content' => 'This is a test post',
             'media_type' => 'image',
-            'visibility' => 'Public'
+            'visibility' => 'Public',
         ]);
 
         $response = $this->feedPostController->store($request);
@@ -154,7 +161,7 @@ class FeedPostControllerTest extends TestCase
 
         $request = Request::create('/update', 'PUT', [
             'content' => 'Updated content',
-            'visibility' => 'Friends'
+            'visibility' => 'Friends',
         ]);
 
         $response = $this->feedPostController->update($request, $post->id);
@@ -210,7 +217,7 @@ class FeedPostControllerTest extends TestCase
         $this->actingAs($post->doctor);
 
         $request = Request::create('/comment', 'POST', [
-            'comment' => 'This is a test comment'
+            'comment' => 'This is a test comment',
         ]);
 
         $response = $this->feedPostController->addComment($request, $post->id);

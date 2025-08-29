@@ -35,7 +35,7 @@ class FeedPostController extends Controller
     // Helper function to extract hashtags from post content
     public function extractHashtags($content)
     {
-        preg_match_all('/#(\w+)/', $content, $matches);
+        preg_match_all('/#([\p{L}\p{N}_]+)/u', $content, $matches);
 
         return $matches[1]; // Return an array of hashtags
     }
@@ -960,7 +960,7 @@ class FeedPostController extends Controller
     {
         try {
             // Extract hashtags from content
-            preg_match_all('/#(\w+)/', $content, $matches);
+            preg_match_all('/#([\p{L}\p{N}_]+)/u', $content, $matches);
             $hashtags = $matches[1];
 
             // Get existing hashtags to avoid duplicates

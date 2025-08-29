@@ -963,30 +963,22 @@ class FeedPostController extends Controller
             preg_match_all('/#([\p{L}\p{N}_]+)/u', $content, $matches);
             $hashtags = $matches[1];
 
-            // Get existing hashtags to avoid duplicates
-            $existingHashtags = Hashtag::whereIn('tag', $hashtags)->get()->keyBy('tag');
+            // Remove duplicate hashtags from the same post content
+            $hashtags = array_unique($hashtags);
 
             // Get currently attached hashtags for this post
             $attachedHashtagIds = $post->hashtags()->pluck('hashtags.id')->toArray();
 
             foreach ($hashtags as $hashtagName) {
-                // Check if hashtag exists
-                if (isset($existingHashtags[$hashtagName])) {
-                    $hashtag = $existingHashtags[$hashtagName];
+                // Use firstOrCreate to handle race conditions gracefully
+                $hashtag = Hashtag::firstOrCreate(
+                    ['tag' => $hashtagName],
+                    ['usage_count' => 0]
+                );
 
-                    // Only increment usage count and attach if not already attached to this post
-                    if (! in_array($hashtag->id, $attachedHashtagIds)) {
-                        $hashtag->increment('usage_count');
-                        $post->hashtags()->attach($hashtag->id);
-                    }
-                } else {
-                    // Create new hashtag
-                    $hashtag = Hashtag::create([
-                        'tag' => $hashtagName,
-                        'usage_count' => 1,
-                    ]);
-
-                    // Attach to post
+                // Only increment usage count and attach if not already attached to this post
+                if (! in_array($hashtag->id, $attachedHashtagIds)) {
+                    $hashtag->increment('usage_count');
                     $post->hashtags()->attach($hashtag->id);
                 }
             }

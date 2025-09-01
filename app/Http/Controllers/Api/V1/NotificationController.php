@@ -27,9 +27,9 @@ class NotificationController extends Controller
         return $this->notificationController->index();
     }
 
-    public function showNew()
+    public function showNew(Request $request)
     {
-        return $this->notificationController->showNew();
+        return $this->notificationController->showNew($request);
     }
 
     public function update(UpdateNotificationRequest $request, $id)

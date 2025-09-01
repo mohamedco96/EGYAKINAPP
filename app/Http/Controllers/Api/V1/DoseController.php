@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Doses\Controllers\DoseController as ModuleDoseController;
 use App\Modules\Doses\Requests\StoreDoseRequest;
 use App\Modules\Doses\Requests\UpdateDoseRequest;
+use Illuminate\Http\Request;
 
 class DoseController extends Controller
 {
@@ -41,8 +42,8 @@ class DoseController extends Controller
         return $this->doseController->destroy($id);
     }
 
-    public function doseSearch($query)
+    public function doseSearch(Request $request, $query)
     {
-        return $this->doseController->doseSearch($query);
+        return $this->doseController->doseSearch($request, $query);
     }
 }

@@ -609,7 +609,7 @@ class ConsultationService
             $creator = $doctors->get($consultation->doctor_id);
             if ($creator) {
                 $members[] = [
-                    'id' => strval($creator->id),
+                    'id' => $creator->id,
                     'name' => $creator->name,
                     'lname' => $creator->lname,
                     'email' => $creator->email,

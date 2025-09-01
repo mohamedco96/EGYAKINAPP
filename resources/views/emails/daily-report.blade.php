@@ -174,6 +174,47 @@
             border-radius: 6px;
             text-align: center;
         }
+
+        /* Top performers */
+        .performer-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .performer-item {
+            background: white;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .performer-info {
+            flex: 1;
+        }
+
+        .performer-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+
+        .performer-details {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+
+        .performer-stat {
+            background: #667eea;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
         
         /* Responsive design */
         @media (max-width: 600px) {
@@ -252,12 +293,12 @@
                             <div class="stat-label">Total Users</div>
                         </div>
                         <div class="stat-card">
-                            <span class="stat-number">{{ number_format($data['users']['verified_users'] ?? 0) }}</span>
-                            <div class="stat-label">Verified Users</div>
+                            <span class="stat-number">{{ number_format($data['users']['doctors'] ?? 0) }}</span>
+                            <div class="stat-label">Verified Doctors</div>
                         </div>
                         <div class="stat-card">
-                            <span class="stat-number">{{ number_format($data['users']['active_users'] ?? 0) }}</span>
-                            <div class="stat-label">Active Users</div>
+                            <span class="stat-number">{{ number_format($data['users']['regular_users'] ?? 0) }}</span>
+                            <div class="stat-label">Regular Users</div>
                         </div>
                     </div>
                 </div>
@@ -275,8 +316,12 @@
                             <div class="stat-label">Total Patients</div>
                         </div>
                         <div class="stat-card">
-                            <span class="stat-number">{{ number_format($data['patients']['hidden_patients'] ?? 0) }}</span>
-                            <div class="stat-label">Archived</div>
+                            <span class="stat-number">{{ number_format($data['patients']['submitted_patients'] ?? 0) }}</span>
+                            <div class="stat-label">Submitted</div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number">{{ number_format($data['patients']['outcome_patients'] ?? 0) }}</span>
+                            <div class="stat-label">With Outcomes</div>
                         </div>
                     </div>
                 </div>
@@ -290,16 +335,16 @@
                             <div class="stat-label">New Today</div>
                         </div>
                         <div class="stat-card">
+                            <span class="stat-number">{{ number_format($data['consultations']['new_ai_consultations'] ?? 0) }}</span>
+                            <div class="stat-label">New AI Today</div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number">{{ number_format($data['consultations']['ai_consultations'] ?? 0) }}</span>
+                            <div class="stat-label">Total AI</div>
+                        </div>
+                        <div class="stat-card">
                             <span class="stat-number">{{ number_format($data['consultations']['pending_consultations'] ?? 0) }}</span>
                             <div class="stat-label">Pending</div>
-                        </div>
-                        <div class="stat-card">
-                            <span class="stat-number">{{ number_format($data['consultations']['completed_consultations'] ?? 0) }}</span>
-                            <div class="stat-label">Completed</div>
-                        </div>
-                        <div class="stat-card">
-                            <span class="stat-number">{{ number_format($data['consultations']['open_consultations'] ?? 0) }}</span>
-                            <div class="stat-label">Open</div>
                         </div>
                     </div>
                 </div>
@@ -325,6 +370,45 @@
                             <div class="stat-label">Total Groups</div>
                         </div>
                     </div>
+                </div>
+
+                <!-- Top Performers -->
+                <div class="section">
+                    <h2>🏆 Top Performers Today</h2>
+                    
+                    <h3 style="color: #667eea; font-size: 18px; margin: 20px 0 15px 0;">Doctors Adding Patients</h3>
+                    @if(isset($data['top_performers']['doctors_with_patients']) && count($data['top_performers']['doctors_with_patients']) > 0)
+                        <ul class="performer-list">
+                            @foreach($data['top_performers']['doctors_with_patients'] as $doctor)
+                                <li class="performer-item">
+                                    <div class="performer-info">
+                                        <div class="performer-name">{{ $doctor['name'] ?? 'Unknown' }}</div>
+                                        <div class="performer-details">{{ $doctor['specialty'] ?? 'General' }}</div>
+                                    </div>
+                                    <div class="performer-stat">{{ $doctor['patients_count'] ?? 0 }} patients</div>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @else
+                        <p style="color: #7f8c8d; font-style: italic;">No doctors added patients today</p>
+                    @endif
+
+                    <h3 style="color: #667eea; font-size: 18px; margin: 25px 0 15px 0;">Doctors Creating Posts</h3>
+                    @if(isset($data['top_performers']['doctors_with_posts']) && count($data['top_performers']['doctors_with_posts']) > 0)
+                        <ul class="performer-list">
+                            @foreach($data['top_performers']['doctors_with_posts'] as $doctor)
+                                <li class="performer-item">
+                                    <div class="performer-info">
+                                        <div class="performer-name">{{ $doctor['name'] ?? 'Unknown' }}</div>
+                                        <div class="performer-details">{{ $doctor['specialty'] ?? 'General' }}</div>
+                                    </div>
+                                    <div class="performer-stat">{{ $doctor['posts_count'] ?? 0 }} posts</div>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @else
+                        <p style="color: #7f8c8d; font-style: italic;">No doctors created posts today</p>
+                    @endif
                 </div>
 
                 <!-- System Status -->

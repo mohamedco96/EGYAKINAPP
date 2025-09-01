@@ -354,10 +354,10 @@
                     <h2>📊 This Week's Performance</h2>
                     <div class="overview-grid">
                         <div class="overview-card">
-                            <span class="metric-number">{{ number_format($data['current_week']['new_users'] ?? 0) }}</span>
+                            <span class="metric-number">{{ number_format($data['current_week']['new_doctors'] ?? 0) }}</span>
                             <div class="metric-label">New Doctors</div>
                             @php
-                                $growth = $data['growth']['new_users'] ?? 0;
+                                $growth = $data['growth']['new_doctors'] ?? 0;
                                 $growthClass = $growth > 0 ? 'growth-positive' : ($growth < 0 ? 'growth-negative' : 'growth-neutral');
                                 $growthIcon = $growth > 0 ? '↗️' : ($growth < 0 ? '↘️' : '➡️');
                             @endphp
@@ -380,10 +380,10 @@
                         </div>
                         
                         <div class="overview-card">
-                            <span class="metric-number">{{ number_format($data['current_week']['new_consultations'] ?? 0) }}</span>
-                            <div class="metric-label">Consultations</div>
+                            <span class="metric-number">{{ number_format($data['current_week']['new_ai_consultations'] ?? 0) }}</span>
+                            <div class="metric-label">AI Consultations</div>
                             @php
-                                $growth = $data['growth']['new_consultations'] ?? 0;
+                                $growth = $data['growth']['new_ai_consultations'] ?? 0;
                                 $growthClass = $growth > 0 ? 'growth-positive' : ($growth < 0 ? 'growth-negative' : 'growth-neutral');
                                 $growthIcon = $growth > 0 ? '↗️' : ($growth < 0 ? '↘️' : '➡️');
                             @endphp
@@ -421,11 +421,11 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td>New Users</td>
-                                <td>{{ number_format($data['current_week']['new_users'] ?? 0) }}</td>
-                                <td>{{ number_format($data['last_week']['new_users'] ?? 0) }}</td>
+                                <td>New Doctors</td>
+                                <td>{{ number_format($data['current_week']['new_doctors'] ?? 0) }}</td>
+                                <td>{{ number_format($data['last_week']['new_doctors'] ?? 0) }}</td>
                                 <td>
-                                    @php $growth = $data['growth']['new_users'] ?? 0; @endphp
+                                    @php $growth = $data['growth']['new_doctors'] ?? 0; @endphp
                                     <span class="growth-indicator {{ $growth > 0 ? 'growth-positive' : ($growth < 0 ? 'growth-negative' : 'growth-neutral') }}">
                                         {{ $growth > 0 ? '+' : '' }}{{ $growth }}%
                                     </span>
@@ -443,11 +443,11 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td>Consultations</td>
-                                <td>{{ number_format($data['current_week']['new_consultations'] ?? 0) }}</td>
-                                <td>{{ number_format($data['last_week']['new_consultations'] ?? 0) }}</td>
+                                <td>AI Consultations</td>
+                                <td>{{ number_format($data['current_week']['new_ai_consultations'] ?? 0) }}</td>
+                                <td>{{ number_format($data['last_week']['new_ai_consultations'] ?? 0) }}</td>
                                 <td>
-                                    @php $growth = $data['growth']['new_consultations'] ?? 0; @endphp
+                                    @php $growth = $data['growth']['new_ai_consultations'] ?? 0; @endphp
                                     <span class="growth-indicator {{ $growth > 0 ? 'growth-positive' : ($growth < 0 ? 'growth-negative' : 'growth-neutral') }}">
                                         {{ $growth > 0 ? '+' : '' }}{{ $growth }}%
                                     </span>
@@ -472,10 +472,27 @@
                 <div class="section">
                     <h2>🏆 Top Performers This Week</h2>
                     
-                    <h3 style="color: #3498db; font-size: 18px; margin: 20px 0 15px 0;">Most Active Doctors</h3>
-                    @if(isset($data['top_performers']['most_active_doctors']) && count($data['top_performers']['most_active_doctors']) > 0)
+                    <h3 style="color: #3498db; font-size: 18px; margin: 20px 0 15px 0;">Doctors Adding Patients</h3>
+                    @if(isset($data['top_performers']['doctors_with_patients']) && count($data['top_performers']['doctors_with_patients']) > 0)
                         <ul class="performer-list">
-                            @foreach($data['top_performers']['most_active_doctors'] as $doctor)
+                            @foreach($data['top_performers']['doctors_with_patients'] as $doctor)
+                                <li class="performer-item">
+                                    <div class="performer-info">
+                                        <div class="performer-name">{{ $doctor['name'] ?? 'Unknown' }}</div>
+                                        <div class="performer-details">{{ $doctor['specialty'] ?? 'General' }}</div>
+                                    </div>
+                                    <div class="performer-stat">{{ $doctor['patients_count'] ?? 0 }} patients</div>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @else
+                        <p style="color: #7f8c8d; font-style: italic;">No doctors added patients this week</p>
+                    @endif
+
+                    <h3 style="color: #3498db; font-size: 18px; margin: 25px 0 15px 0;">Doctors Creating Posts</h3>
+                    @if(isset($data['top_performers']['doctors_with_posts']) && count($data['top_performers']['doctors_with_posts']) > 0)
+                        <ul class="performer-list">
+                            @foreach($data['top_performers']['doctors_with_posts'] as $doctor)
                                 <li class="performer-item">
                                     <div class="performer-info">
                                         <div class="performer-name">{{ $doctor['name'] ?? 'Unknown' }}</div>
@@ -486,7 +503,7 @@
                             @endforeach
                         </ul>
                     @else
-                        <p style="color: #7f8c8d; font-style: italic;">No active doctors this week</p>
+                        <p style="color: #7f8c8d; font-style: italic;">No doctors created posts this week</p>
                     @endif
 
                     <h3 style="color: #3498db; font-size: 18px; margin: 25px 0 15px 0;">Popular Posts</h3>
@@ -535,7 +552,7 @@
                     <h2>🌐 Platform Overview</h2>
                     <div class="overview-grid">
                         <div class="overview-card">
-                            <span class="metric-number">{{ number_format($data['system_overview']['total_users'] ?? 0) }}</span>
+                            <span class="metric-number">{{ number_format($data['system_overview']['total_doctors'] ?? 0) }}</span>
                             <div class="metric-label">Total Doctors</div>
                         </div>
                         <div class="overview-card">
@@ -543,8 +560,8 @@
                             <div class="metric-label">Total Patients</div>
                         </div>
                         <div class="overview-card">
-                            <span class="metric-number">{{ number_format($data['system_overview']['total_consultations'] ?? 0) }}</span>
-                            <div class="metric-label">All Consultations</div>
+                            <span class="metric-number">{{ number_format($data['system_overview']['total_ai_consultations'] ?? 0) }}</span>
+                            <div class="metric-label">AI Consultations</div>
                         </div>
                         <div class="overview-card">
                             <span class="metric-number">{{ number_format($data['system_overview']['total_posts'] ?? 0) }}</span>

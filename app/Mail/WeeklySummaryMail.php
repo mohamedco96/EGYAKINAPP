@@ -89,6 +89,8 @@ class WeeklySummaryMail extends Mailable
                 // Top performers this week
                 'top_performers' => [
                     'most_active_doctors' => $this->getMostActiveDoctors($weekStart, $weekEnd),
+                    'doctors_with_patients' => $this->getDoctorsWithPatients($weekStart, $weekEnd),
+                    'doctors_with_posts' => $this->getDoctorsWithPosts($weekStart, $weekEnd),
                     'popular_posts' => $this->getPopularPosts($weekStart, $weekEnd),
                     'active_groups' => $this->getMostActiveGroups($weekStart, $weekEnd),
                 ],
@@ -103,8 +105,10 @@ class WeeklySummaryMail extends Mailable
                 // System overview
                 'system_overview' => [
                     'total_users' => User::count(),
+                    'total_doctors' => User::where('isSyndicateCardRequired', 'Verified')->count(),
                     'total_patients' => Patients::count(),
                     'total_consultations' => Consultation::count(),
+                    'total_ai_consultations' => \App\Models\AIConsultation::count(),
                     'total_posts' => FeedPost::count(),
                     'total_groups' => Group::count(),
                 ],
@@ -126,8 +130,10 @@ class WeeklySummaryMail extends Mailable
     {
         return [
             'new_users' => User::whereBetween('created_at', [$start, $end])->count(),
+            'new_doctors' => User::where('isSyndicateCardRequired', 'Verified')->whereBetween('created_at', [$start, $end])->count(),
             'new_patients' => Patients::whereBetween('created_at', [$start, $end])->count(),
             'new_consultations' => Consultation::whereBetween('created_at', [$start, $end])->count(),
+            'new_ai_consultations' => \App\Models\AIConsultation::whereBetween('created_at', [$start, $end])->count(),
             'new_posts' => FeedPost::whereBetween('created_at', [$start, $end])->count(),
             'new_groups' => Group::whereBetween('created_at', [$start, $end])->count(),
             'total_likes' => FeedPostLike::whereBetween('created_at', [$start, $end])->count(),
@@ -286,5 +292,61 @@ class WeeklySummaryMail extends Mailable
             'average_likes_per_post' => $totalPosts > 0 ? round(FeedPostLike::whereBetween('created_at', [$start, $end])->count() / $totalPosts, 1) : 0,
             'average_comments_per_post' => $totalPosts > 0 ? round(FeedPostComment::whereBetween('created_at', [$start, $end])->count() / $totalPosts, 1) : 0,
         ];
+    }
+
+    /**
+     * Get doctors who added patients in the given period
+     */
+    private function getDoctorsWithPatients(Carbon $start, Carbon $end): array
+    {
+        try {
+            return User::select('users.id', 'users.name', 'users.lname', 'users.specialty')
+                ->join('patients', 'users.id', '=', 'patients.doctor_id')
+                ->where('users.isSyndicateCardRequired', 'Verified')
+                ->whereBetween('patients.created_at', [$start, $end])
+                ->groupBy('users.id', 'users.name', 'users.lname', 'users.specialty')
+                ->orderByRaw('COUNT(patients.id) DESC')
+                ->limit(5)
+                ->get()
+                ->map(function ($user) {
+                    return [
+                        'name' => $user->name.' '.$user->lname,
+                        'specialty' => $user->specialty,
+                        'patients_count' => $user->patients()->count(),
+                    ];
+                })
+                ->toArray();
+        } catch (\Exception $e) {
+            Log::error('Error getting doctors with patients: '.$e->getMessage());
+
+            return [];
+        }
+    }
+
+    /**
+     * Get doctors who created posts in the given period
+     */
+    private function getDoctorsWithPosts(Carbon $start, Carbon $end): array
+    {
+        try {
+            return User::select('users.id', 'users.name', 'users.lname', 'users.specialty')
+                ->join('feed_posts', 'users.id', '=', 'feed_posts.doctor_id')
+                ->groupBy('users.id', 'users.name', 'users.lname', 'users.specialty')
+                ->orderByRaw('COUNT(feed_posts.id) DESC')
+                ->limit(5)
+                ->get()
+                ->map(function ($user) {
+                    return [
+                        'name' => $user->name.' '.$user->lname,
+                        'specialty' => $user->specialty,
+                        'posts_count' => $user->feedPosts()->count(),
+                    ];
+                })
+                ->toArray();
+        } catch (\Exception $e) {
+            Log::error('Error getting doctors with posts: '.$e->getMessage());
+
+            return [];
+        }
     }
 }

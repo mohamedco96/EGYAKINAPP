@@ -152,7 +152,10 @@ class ConsultationService
                 'consultationDoctors' => function ($query) {
                     $query->with([
                         'consultDoctor:id,name,lname,image,workingplace,isSyndicateCardRequired',
-                        'replies:id,consultation_doctor_id,reply,created_at',
+                        'replies' => function ($repliesQuery) {
+                            $repliesQuery->select('id', 'consultation_doctor_id', 'reply', 'created_at')
+                                ->orderBy('created_at', 'asc');
+                        },
                     ]);
                 },
                 'doctor:id,name,lname,workingplace,image,isSyndicateCardRequired',
@@ -185,6 +188,27 @@ class ConsultationService
             // Use already loaded patient relationship
             $transformedPatient = $this->transformPatientData($consultation->patient);
 
+            // Collect all replies from all doctors in chronological order
+            $allReplies = collect();
+            foreach ($consultation->consultationDoctors as $consultationDoctor) {
+                foreach ($consultationDoctor->replies as $reply) {
+                    $allReplies->push([
+                        'id' => $reply->id,
+                        'reply' => $reply->reply,
+                        'created_at' => $reply->created_at,
+                        'doctor_id' => strval($consultationDoctor->consult_doctor_id),
+                        'doctor_name' => $consultationDoctor->consultDoctor->name,
+                        'doctor_lname' => $consultationDoctor->consultDoctor->lname,
+                        'doctor_image' => $consultationDoctor->consultDoctor->image,
+                        'doctor_workingplace' => $consultationDoctor->consultDoctor->workingplace,
+                        'doctor_isVerified' => $consultationDoctor->consultDoctor->isSyndicateCardRequired === 'Verified',
+                    ]);
+                }
+            }
+
+            // Sort all replies by created_at in ascending order
+            $sortedReplies = $allReplies->sortBy('created_at')->values();
+
             $consultationData = [
                 'id' => strval($consultation->id),
                 'doctor_id' => strval($consultation->doctor_id),
@@ -213,16 +237,11 @@ class ConsultationService
                         'status' => $consultationDoctor->status,
                         'created_at' => $consultationDoctor->created_at,
                         'updated_at' => $consultationDoctor->updated_at,
-                        'replies' => $consultationDoctor->replies->map(function ($reply) {
-                            return [
-                                'id' => $reply->id,
-                                'reply' => $reply->reply,
-                                'created_at' => $reply->created_at,
-                            ];
-                        }),
                         'total_replies' => $consultationDoctor->replies->count(),
                     ];
                 }),
+                'replies' => $sortedReplies,
+                'total_replies' => $sortedReplies->count(),
             ];
 
             $response = $consultationData;

@@ -2,9 +2,9 @@
 
 namespace App\Modules\Consultations\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
 
 class ConsultationDoctor extends Model
 {
@@ -19,7 +19,7 @@ class ConsultationDoctor extends Model
 
     protected $casts = [
         'consultation_id' => 'integer',
-        'consult_doctor_id' => 'integer'
+        'consult_doctor_id' => 'integer',
     ];
 
     public function consultation()
@@ -30,5 +30,10 @@ class ConsultationDoctor extends Model
     public function consultDoctor()
     {
         return $this->belongsTo(User::class, 'consult_doctor_id');
+    }
+
+    public function replies()
+    {
+        return $this->hasMany(ConsultationReply::class);
     }
 }

@@ -6,6 +6,7 @@ use App\Models\Answers;
 use App\Models\User;
 use App\Modules\Consultations\Models\Consultation;
 use App\Modules\Consultations\Models\ConsultationDoctor;
+use App\Modules\Consultations\Models\ConsultationReply;
 use App\Modules\Patients\Models\Patients;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Auth;
@@ -32,6 +33,7 @@ class ConsultationService
                 'patient_id' => $data['patient_id'],
                 'consult_message' => $data['consult_message'],
                 'status' => 'pending',
+                'is_open' => true,
             ]);
 
             $doctors = $data['consult_doctor_ids'];
@@ -223,6 +225,20 @@ class ConsultationService
         try {
             $user = Auth::user();
 
+            $consultation = Consultation::where('id', $id)->first();
+
+            if (! $consultation) {
+                return [
+                    'message' => 'Consultation not found.',
+                ];
+            }
+
+            if (! $consultation->is_open) {
+                return [
+                    'message' => 'Cannot reply to a closed consultation.',
+                ];
+            }
+
             $consultationDoctor = ConsultationDoctor::where('consultation_id', $id)
                 ->where('consult_doctor_id', $user->id)
                 ->firstOrFail();
@@ -231,17 +247,8 @@ class ConsultationService
             $consultationDoctor->status = 'replied';
             $consultationDoctor->save();
 
-            // Check if all doctors involved in the consultation have replied
-            $allReplied = ConsultationDoctor::where('consultation_id', $id)
-                ->where('status', '!=', 'replied')
-                ->count() === 0;
-
-            // If all doctors have replied, mark the consultation as complete
-            if ($allReplied) {
-                $consultation = $consultationDoctor->consultation;
-                $consultation->status = 'complete';
-                $consultation->save();
-            }
+            // Note: We no longer automatically mark consultation as complete when all doctors reply
+            // The consultation owner controls when to close the discussion
 
             // Send notification to the consultation creator
             $doctorId = Consultation::where('id', $id)->value('doctor_id');
@@ -257,7 +264,6 @@ class ConsultationService
                 'consultation_id' => $id,
                 'doctor_id' => $user->id,
                 'reply' => $data['reply'],
-                'all_replied' => $allReplied,
             ]);
 
             return [
@@ -266,7 +272,6 @@ class ConsultationService
                     'consultation_id' => $id,
                     'doctor_id' => $user->id,
                     'reply' => $data['reply'],
-                    'all_replied' => $allReplied,
                 ],
             ];
         } catch (ModelNotFoundException $e) {
@@ -396,5 +401,289 @@ class ConsultationService
                 'outcome_status' => $outcomeStatus ?? false,
             ],
         ];
+    }
+
+    /**
+     * Add new doctors to an existing consultation
+     */
+    public function addDoctorsToConsultation(int $consultationId, array $data): array
+    {
+        try {
+            $consultation = Consultation::where('id', $consultationId)
+                ->where('doctor_id', Auth::id())
+                ->firstOrFail();
+
+            if (! $consultation->is_open) {
+                return [
+                    'value' => false,
+                    'message' => 'Cannot add doctors to a closed consultation.',
+                ];
+            }
+
+            $newDoctorIds = $data['consult_doctor_ids'];
+
+            // Get existing doctor IDs to avoid duplicates
+            $existingDoctorIds = ConsultationDoctor::where('consultation_id', $consultationId)
+                ->pluck('consult_doctor_id')
+                ->toArray();
+
+            $doctorsToAdd = array_diff($newDoctorIds, $existingDoctorIds);
+
+            if (empty($doctorsToAdd)) {
+                return [
+                    'value' => false,
+                    'message' => 'All selected doctors are already part of this consultation.',
+                ];
+            }
+
+            return DB::transaction(function () use ($consultation, $doctorsToAdd) {
+                foreach ($doctorsToAdd as $doctorId) {
+                    ConsultationDoctor::create([
+                        'consultation_id' => $consultation->id,
+                        'consult_doctor_id' => $doctorId,
+                        'status' => 'not replied',
+                    ]);
+                }
+
+                // Send notifications to new doctors
+                $this->notificationService->sendConsultationCreatedNotifications(
+                    $consultation,
+                    $doctorsToAdd,
+                    $consultation->patient_id
+                );
+
+                return [
+                    'value' => true,
+                    'message' => 'Doctors added to consultation successfully.',
+                    'added_doctors_count' => count($doctorsToAdd),
+                ];
+            });
+        } catch (ModelNotFoundException $e) {
+            return [
+                'value' => false,
+                'message' => 'Consultation not found or you are not authorized to modify it.',
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error adding doctors to consultation.', [
+                'consultation_id' => $consultationId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'value' => false,
+                'message' => 'Failed to add doctors to consultation.',
+            ];
+        }
+    }
+
+    /**
+     * Toggle consultation open/close status
+     */
+    public function toggleConsultationStatus(int $consultationId, array $data): array
+    {
+        try {
+            $consultation = Consultation::where('id', $consultationId)
+                ->where('doctor_id', Auth::id())
+                ->firstOrFail();
+
+            $consultation->is_open = $data['is_open'];
+            $consultation->save();
+
+            $status = $data['is_open'] ? 'opened' : 'closed';
+
+            return [
+                'value' => true,
+                'message' => "Consultation {$status} successfully.",
+                'data' => [
+                    'consultation_id' => $consultationId,
+                    'is_open' => $consultation->is_open,
+                ],
+            ];
+        } catch (ModelNotFoundException $e) {
+            return [
+                'value' => false,
+                'message' => 'Consultation not found or you are not authorized to modify it.',
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error toggling consultation status.', [
+                'consultation_id' => $consultationId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'value' => false,
+                'message' => 'Failed to update consultation status.',
+            ];
+        }
+    }
+
+    /**
+     * Get consultation members (doctors involved)
+     */
+    public function getConsultationMembers(int $consultationId): array
+    {
+        try {
+            $consultation = Consultation::where('id', $consultationId)
+                ->with('doctor:id,name,lname,image,workingplace,isSyndicateCardRequired')
+                ->first();
+
+            if (! $consultation) {
+                return [
+                    'value' => false,
+                    'message' => 'Consultation not found.',
+                ];
+            }
+
+            // Check if user has access to this consultation
+            $hasAccess = $consultation->doctor_id === Auth::id() ||
+                ConsultationDoctor::where('consultation_id', $consultationId)
+                    ->where('consult_doctor_id', Auth::id())
+                    ->exists();
+
+            if (! $hasAccess) {
+                return [
+                    'value' => false,
+                    'message' => 'You are not authorized to view this consultation.',
+                ];
+            }
+
+            $consultationDoctors = ConsultationDoctor::where('consultation_id', $consultationId)
+                ->with('consultDoctor:id,name,lname,image,workingplace,isSyndicateCardRequired')
+                ->get();
+
+            $members = [];
+
+            // Add consultation creator
+            $members[] = [
+                'id' => strval($consultation->doctor->id),
+                'name' => $consultation->doctor->name,
+                'lname' => $consultation->doctor->lname,
+                'image' => $consultation->doctor->image,
+                'workingplace' => $consultation->doctor->workingplace,
+                'isVerified' => $consultation->doctor->isSyndicateCardRequired === 'Verified',
+                'role' => 'creator',
+                'status' => 'creator',
+            ];
+
+            // Add consulted doctors
+            foreach ($consultationDoctors as $consultationDoctor) {
+                $members[] = [
+                    'id' => strval($consultationDoctor->consultDoctor->id),
+                    'name' => $consultationDoctor->consultDoctor->name,
+                    'lname' => $consultationDoctor->consultDoctor->lname,
+                    'image' => $consultationDoctor->consultDoctor->image,
+                    'workingplace' => $consultationDoctor->consultDoctor->workingplace,
+                    'isVerified' => $consultationDoctor->consultDoctor->isSyndicateCardRequired === 'Verified',
+                    'role' => 'consulted',
+                    'status' => $consultationDoctor->status,
+                ];
+            }
+
+            return [
+                'value' => true,
+                'data' => [
+                    'consultation_id' => strval($consultationId),
+                    'is_open' => $consultation->is_open,
+                    'members' => $members,
+                    'total_members' => count($members),
+                ],
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error retrieving consultation members.', [
+                'consultation_id' => $consultationId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'value' => false,
+                'message' => 'Failed to retrieve consultation members.',
+            ];
+        }
+    }
+
+    /**
+     * Add a new reply to consultation (allows multiple replies)
+     */
+    public function addConsultationReply(int $consultationId, array $data): array
+    {
+        try {
+            $consultation = Consultation::where('id', $consultationId)->first();
+
+            if (! $consultation) {
+                return [
+                    'value' => false,
+                    'message' => 'Consultation not found.',
+                ];
+            }
+
+            if (! $consultation->is_open) {
+                return [
+                    'value' => false,
+                    'message' => 'Cannot reply to a closed consultation.',
+                ];
+            }
+
+            $user = Auth::user();
+            $consultationDoctor = ConsultationDoctor::where('consultation_id', $consultationId)
+                ->where('consult_doctor_id', $user->id)
+                ->first();
+
+            if (! $consultationDoctor) {
+                return [
+                    'value' => false,
+                    'message' => 'You are not authorized to reply to this consultation.',
+                ];
+            }
+
+            return DB::transaction(function () use ($consultationDoctor, $data, $consultation, $user) {
+                // For backward compatibility, update the main reply field if it's the first reply
+                if (empty($consultationDoctor->reply)) {
+                    $consultationDoctor->reply = $data['reply'];
+                    $consultationDoctor->status = 'replied';
+                    $consultationDoctor->save();
+                }
+
+                // Create new reply record for multiple replies support
+                $reply = ConsultationReply::create([
+                    'consultation_doctor_id' => $consultationDoctor->id,
+                    'reply' => $data['reply'],
+                ]);
+
+                // Send notification
+                $this->notificationService->sendConsultationReplyNotification(
+                    $user,
+                    $consultation->doctor_id,
+                    $consultation->id,
+                    $data['patient_id'] ?? null
+                );
+
+                Log::info('New consultation reply added.', [
+                    'consultation_id' => $consultation->id,
+                    'doctor_id' => $user->id,
+                    'reply_id' => $reply->id,
+                ]);
+
+                return [
+                    'value' => true,
+                    'message' => 'Reply added successfully.',
+                    'data' => [
+                        'reply_id' => $reply->id,
+                        'consultation_id' => $consultation->id,
+                        'doctor_id' => $user->id,
+                        'created_at' => $reply->created_at,
+                    ],
+                ];
+            });
+        } catch (\Exception $e) {
+            Log::error('Error adding consultation reply.', [
+                'consultation_id' => $consultationId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'value' => false,
+                'message' => 'Failed to add reply.',
+            ];
+        }
     }
 }

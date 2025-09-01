@@ -179,6 +179,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('/consultations/{id}', [ConsultationController::class, 'update']);
     Route::post('/consultationDoctorSearch/{data}', [ConsultationController::class, 'consultationSearch']);
 
+    // New consultation features (v1)
+    Route::post('/consultations/{id}/add-doctors', [ConsultationController::class, 'addDoctors']);
+    Route::put('/consultations/{id}/toggle-status', [ConsultationController::class, 'toggleStatus']);
+    Route::get('/consultations/{id}/members', [ConsultationController::class, 'getMembers']);
+    Route::post('/consultations/{id}/replies', [ConsultationController::class, 'addReply']);
+
     // Achievement management routes
     Route::post('/achievements', [AchievementController::class, 'createAchievement']);
     Route::get('/achievements', [AchievementController::class, 'listAchievements']);

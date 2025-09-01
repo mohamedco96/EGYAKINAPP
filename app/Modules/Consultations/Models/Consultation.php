@@ -2,10 +2,10 @@
 
 namespace App\Modules\Consultations\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
 use App\Modules\Patients\Models\Patients;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Consultation extends Model
 {
@@ -16,11 +16,13 @@ class Consultation extends Model
         'patient_id',
         'consult_message',
         'status',
+        'is_open',
     ];
 
     protected $casts = [
         'doctor_id' => 'integer',
-        'patient_id' => 'integer'
+        'patient_id' => 'integer',
+        'is_open' => 'boolean',
     ];
 
     public function consultationDoctors()

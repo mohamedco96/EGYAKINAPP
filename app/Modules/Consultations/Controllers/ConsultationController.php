@@ -3,12 +3,14 @@
 namespace App\Modules\Consultations\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Consultations\Services\ConsultationService;
+use App\Modules\Consultations\Requests\AddDoctorsToConsultationRequest;
 use App\Modules\Consultations\Requests\StoreConsultationRequest;
+use App\Modules\Consultations\Requests\ToggleConsultationStatusRequest;
 use App\Modules\Consultations\Requests\UpdateConsultationRequest;
+use App\Modules\Consultations\Services\ConsultationService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class ConsultationController extends Controller
 {
@@ -26,11 +28,12 @@ class ConsultationController extends Controller
     {
         try {
             $result = $this->consultationService->createConsultation($request->validated());
+
             return response()->json($result, 201);
         } catch (\Exception $e) {
             Log::error('Error creating consultation.', [
                 'request_data' => $request->validated(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
@@ -47,11 +50,12 @@ class ConsultationController extends Controller
     {
         try {
             $result = $this->consultationService->getSentRequests();
+
             return response()->json($result);
         } catch (\Exception $e) {
             Log::error('Error retrieving sent consultation requests.', [
                 'doctor_id' => auth()->id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
@@ -68,11 +72,12 @@ class ConsultationController extends Controller
     {
         try {
             $result = $this->consultationService->getReceivedRequests();
+
             return response()->json($result);
         } catch (\Exception $e) {
             Log::error('Error retrieving received consultation requests.', [
                 'doctor_id' => auth()->id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
@@ -89,12 +94,13 @@ class ConsultationController extends Controller
     {
         try {
             $result = $this->consultationService->getConsultationDetails($id);
+
             return response()->json($result);
         } catch (\Exception $e) {
             Log::error('Error retrieving consultation details.', [
                 'consultation_id' => $id,
                 'doctor_id' => auth()->id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
@@ -111,6 +117,7 @@ class ConsultationController extends Controller
     {
         try {
             $result = $this->consultationService->updateConsultationReply($id, $request->validated());
+
             return response()->json($result);
         } catch (ModelNotFoundException $e) {
             return response()->json([
@@ -138,17 +145,118 @@ class ConsultationController extends Controller
     {
         try {
             $result = $this->consultationService->searchDoctors($data);
+
             return response()->json($result, 200);
         } catch (\Exception $e) {
             Log::error('Error searching for doctors.', [
                 'search_term' => $data,
                 'doctor_id' => auth()->id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            
+
             return response()->json([
                 'value' => false,
                 'message' => 'Failed to search for doctors.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Add new doctors to an existing consultation.
+     */
+    public function addDoctors(AddDoctorsToConsultationRequest $request, int $id): JsonResponse
+    {
+        try {
+            $result = $this->consultationService->addDoctorsToConsultation($id, $request->validated());
+
+            $statusCode = $result['value'] ? 200 : 400;
+
+            return response()->json($result, $statusCode);
+        } catch (\Exception $e) {
+            Log::error('Error adding doctors to consultation.', [
+                'consultation_id' => $id,
+                'doctor_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to add doctors to consultation.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Toggle consultation open/close status.
+     */
+    public function toggleStatus(ToggleConsultationStatusRequest $request, int $id): JsonResponse
+    {
+        try {
+            $result = $this->consultationService->toggleConsultationStatus($id, $request->validated());
+
+            $statusCode = $result['value'] ? 200 : 400;
+
+            return response()->json($result, $statusCode);
+        } catch (\Exception $e) {
+            Log::error('Error toggling consultation status.', [
+                'consultation_id' => $id,
+                'doctor_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to update consultation status.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Get consultation members.
+     */
+    public function getMembers(int $id): JsonResponse
+    {
+        try {
+            $result = $this->consultationService->getConsultationMembers($id);
+
+            $statusCode = $result['value'] ? 200 : 400;
+
+            return response()->json($result, $statusCode);
+        } catch (\Exception $e) {
+            Log::error('Error getting consultation members.', [
+                'consultation_id' => $id,
+                'doctor_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to get consultation members.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Add a new reply to consultation (allows multiple replies).
+     */
+    public function addReply(UpdateConsultationRequest $request, int $id): JsonResponse
+    {
+        try {
+            $result = $this->consultationService->addConsultationReply($id, $request->validated());
+
+            $statusCode = $result['value'] ? 201 : 400;
+
+            return response()->json($result, $statusCode);
+        } catch (\Exception $e) {
+            Log::error('Error adding consultation reply.', [
+                'consultation_id' => $id,
+                'doctor_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to add reply.',
             ], 500);
         }
     }

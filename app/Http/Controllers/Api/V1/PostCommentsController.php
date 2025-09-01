@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Posts\Controllers\PostCommentsController as ModulePostCommentsController;
-use Illuminate\Http\Request;
+use App\Modules\Posts\Requests\StorePostCommentsRequest;
+use App\Modules\Posts\Requests\UpdatePostCommentsRequest;
 
 class PostCommentsController extends Controller
 {
@@ -20,7 +21,7 @@ class PostCommentsController extends Controller
         return $this->postCommentsController->index();
     }
 
-    public function store(Request $request)
+    public function store(StorePostCommentsRequest $request)
     {
         return $this->postCommentsController->store($request);
     }
@@ -30,7 +31,7 @@ class PostCommentsController extends Controller
         return $this->postCommentsController->show($id);
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdatePostCommentsRequest $request, $id)
     {
         return $this->postCommentsController->update($request, $id);
     }

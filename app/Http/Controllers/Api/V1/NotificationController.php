@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Notifications\Controllers\NotificationController as ModuleNotificationController;
+use App\Modules\Notifications\Requests\StoreNotificationRequest;
+use App\Modules\Notifications\Requests\UpdateNotificationRequest;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
@@ -15,7 +17,7 @@ class NotificationController extends Controller
         $this->notificationController = $notificationController;
     }
 
-    public function store(Request $request)
+    public function store(StoreNotificationRequest $request)
     {
         return $this->notificationController->store($request);
     }
@@ -30,7 +32,7 @@ class NotificationController extends Controller
         return $this->notificationController->showNew();
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateNotificationRequest $request, $id)
     {
         return $this->notificationController->update($request, $id);
     }

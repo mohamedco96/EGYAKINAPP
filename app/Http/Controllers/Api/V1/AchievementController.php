@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Achievements\Controllers\AchievementController as ModuleAchievementController;
+use App\Modules\Achievements\Requests\StoreAchievementRequest;
+use App\Modules\Achievements\Requests\UpdateAchievementRequest;
 use Illuminate\Http\Request;
 
 class AchievementController extends Controller
@@ -20,7 +22,7 @@ class AchievementController extends Controller
         return $this->achievementController->index();
     }
 
-    public function store(Request $request)
+    public function store(StoreAchievementRequest $request)
     {
         return $this->achievementController->store($request);
     }
@@ -30,7 +32,7 @@ class AchievementController extends Controller
         return $this->achievementController->show($id);
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateAchievementRequest $request, $id)
     {
         return $this->achievementController->update($request, $id);
     }

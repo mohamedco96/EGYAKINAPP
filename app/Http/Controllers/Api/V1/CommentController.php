@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Comments\Controllers\CommentController as ModuleCommentController;
-use Illuminate\Http\Request;
+use App\Modules\Comments\Requests\StoreCommentRequest;
+use App\Modules\Comments\Requests\UpdateCommentRequest;
 
 class CommentController extends Controller
 {
@@ -20,7 +21,7 @@ class CommentController extends Controller
         return $this->commentController->index();
     }
 
-    public function store(Request $request)
+    public function store(StoreCommentRequest $request)
     {
         return $this->commentController->store($request);
     }
@@ -30,7 +31,7 @@ class CommentController extends Controller
         return $this->commentController->show($patient_id);
     }
 
-    public function update(Request $request, $patient_id)
+    public function update(UpdateCommentRequest $request, $patient_id)
     {
         return $this->commentController->update($request, $patient_id);
     }

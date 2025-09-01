@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Posts\Controllers\PostsController as ModulePostsController;
-use Illuminate\Http\Request;
+use App\Modules\Posts\Requests\StorePostsRequest;
+use App\Modules\Posts\Requests\UpdatePostsRequest;
 
 class PostsController extends Controller
 {
@@ -20,7 +21,7 @@ class PostsController extends Controller
         return $this->postsController->index();
     }
 
-    public function store(Request $request)
+    public function store(StorePostsRequest $request)
     {
         return $this->postsController->store($request);
     }
@@ -30,7 +31,7 @@ class PostsController extends Controller
         return $this->postsController->show($id);
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdatePostsRequest $request, $id)
     {
         return $this->postsController->update($request, $id);
     }

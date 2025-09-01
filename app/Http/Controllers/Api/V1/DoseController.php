@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Doses\Controllers\DoseController as ModuleDoseController;
-use Illuminate\Http\Request;
+use App\Modules\Doses\Requests\StoreDoseRequest;
+use App\Modules\Doses\Requests\UpdateDoseRequest;
 
 class DoseController extends Controller
 {
@@ -20,7 +21,7 @@ class DoseController extends Controller
         return $this->doseController->index();
     }
 
-    public function store(Request $request)
+    public function store(StoreDoseRequest $request)
     {
         return $this->doseController->store($request);
     }
@@ -30,7 +31,7 @@ class DoseController extends Controller
         return $this->doseController->show($id);
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateDoseRequest $request, $id)
     {
         return $this->doseController->update($request, $id);
     }

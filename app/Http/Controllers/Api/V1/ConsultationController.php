@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Consultations\Controllers\ConsultationController as ModuleConsultationController;
-use Illuminate\Http\Request;
+use App\Modules\Consultations\Requests\StoreConsultationRequest;
+use App\Modules\Consultations\Requests\UpdateConsultationRequest;
 
 class ConsultationController extends Controller
 {
@@ -15,7 +16,7 @@ class ConsultationController extends Controller
         $this->consultationController = $consultationController;
     }
 
-    public function store(Request $request)
+    public function store(StoreConsultationRequest $request)
     {
         return $this->consultationController->store($request);
     }
@@ -35,7 +36,7 @@ class ConsultationController extends Controller
         return $this->consultationController->consultationDetails($id);
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateConsultationRequest $request, $id)
     {
         return $this->consultationController->update($request, $id);
     }

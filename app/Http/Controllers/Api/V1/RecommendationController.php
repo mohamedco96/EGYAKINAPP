@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Recommendations\Controllers\RecommendationController as ModuleRecommendationController;
-use Illuminate\Http\Request;
+use App\Modules\Recommendations\Requests\StoreRecommendationRequest;
+use App\Modules\Recommendations\Requests\UpdateRecommendationRequest;
 
 class RecommendationController extends Controller
 {
@@ -20,12 +21,12 @@ class RecommendationController extends Controller
         return $this->recommendationController->index($patient_id);
     }
 
-    public function store(Request $request, $patient_id)
+    public function store(StoreRecommendationRequest $request, $patient_id)
     {
         return $this->recommendationController->store($request, $patient_id);
     }
 
-    public function update(Request $request, $patient_id)
+    public function update(UpdateRecommendationRequest $request, $patient_id)
     {
         return $this->recommendationController->update($request, $patient_id);
     }

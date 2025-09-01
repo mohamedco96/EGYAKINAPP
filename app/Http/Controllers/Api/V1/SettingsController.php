@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Settings\Controllers\SettingsController as ModuleSettingsController;
-use Illuminate\Http\Request;
+use App\Modules\Settings\Requests\StoreSettingsRequest;
+use App\Modules\Settings\Requests\UpdateSettingsRequest;
 
 class SettingsController extends Controller
 {
@@ -20,7 +21,7 @@ class SettingsController extends Controller
         return $this->settingsController->index();
     }
 
-    public function store(Request $request)
+    public function store(StoreSettingsRequest $request)
     {
         return $this->settingsController->store($request);
     }
@@ -30,7 +31,7 @@ class SettingsController extends Controller
         return $this->settingsController->show($settings);
     }
 
-    public function update(Request $request, $settings)
+    public function update(UpdateSettingsRequest $request, $settings)
     {
         return $this->settingsController->update($request, $settings);
     }

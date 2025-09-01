@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Contacts\Controllers\ContactController as ModuleContactController;
-use Illuminate\Http\Request;
+use App\Modules\Contacts\Requests\StoreContactRequest;
+use App\Modules\Contacts\Requests\UpdateContactRequest;
 
 class ContactController extends Controller
 {
@@ -20,7 +21,7 @@ class ContactController extends Controller
         return $this->contactController->index();
     }
 
-    public function store(Request $request)
+    public function store(StoreContactRequest $request)
     {
         return $this->contactController->store($request);
     }
@@ -30,7 +31,7 @@ class ContactController extends Controller
         return $this->contactController->show($id);
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateContactRequest $request, $id)
     {
         return $this->contactController->update($request, $id);
     }

@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Questions\Controllers\QuestionsController as ModuleQuestionsController;
-use Illuminate\Http\Request;
+use App\Modules\Questions\Requests\StoreQuestionsRequest;
+use App\Modules\Questions\Requests\UpdateQuestionsRequest;
 
 class QuestionsController extends Controller
 {
@@ -20,7 +21,7 @@ class QuestionsController extends Controller
         return $this->questionsController->index();
     }
 
-    public function store(Request $request)
+    public function store(StoreQuestionsRequest $request)
     {
         return $this->questionsController->store($request);
     }
@@ -35,7 +36,7 @@ class QuestionsController extends Controller
         return $this->questionsController->ShowQuestitionsAnswars($section_id, $patient_id);
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateQuestionsRequest $request, $id)
     {
         return $this->questionsController->update($request, $id);
     }

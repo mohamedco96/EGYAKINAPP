@@ -4,6 +4,7 @@ namespace App\Console;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+use Illuminate\Support\Facades\Log;
 
 class Kernel extends ConsoleKernel
 {
@@ -15,6 +16,48 @@ class Kernel extends ConsoleKernel
         // $schedule->command('inspire')->hourly();
         // Run the command every minute
         $schedule->command('reminder:send')->daily();
+
+        // === EMAIL REPORTING SYSTEM ===
+
+        // Daily Report - Send every day at 08:00 AM
+        $schedule->command('reports:send-daily')
+            ->dailyAt('08:00')
+            ->withoutOverlapping(30) // Prevent overlapping runs, timeout after 30 minutes
+            ->runInBackground()
+            ->emailOutputOnFailure(config('mail.admin_email'))
+            ->appendOutputTo(storage_path('logs/daily_reports.log'))
+            ->onFailure(function () {
+                Log::error('Daily report scheduled job failed', [
+                    'timestamp' => now()->toISOString(),
+                    'scheduled_time' => '08:00',
+                ]);
+            })
+            ->onSuccess(function () {
+                Log::info('Daily report scheduled job completed successfully', [
+                    'timestamp' => now()->toISOString(),
+                    'scheduled_time' => '08:00',
+                ]);
+            });
+
+        // Weekly Summary - Send every Monday at 09:00 AM
+        $schedule->command('reports:send-weekly')
+            ->weeklyOn(1, '09:00') // Monday at 09:00 AM
+            ->withoutOverlapping(60) // Prevent overlapping runs, timeout after 1 hour
+            ->runInBackground()
+            ->emailOutputOnFailure(config('mail.admin_email'))
+            ->appendOutputTo(storage_path('logs/weekly_summaries.log'))
+            ->onFailure(function () {
+                Log::error('Weekly summary scheduled job failed', [
+                    'timestamp' => now()->toISOString(),
+                    'scheduled_time' => 'Monday 09:00',
+                ]);
+            })
+            ->onSuccess(function () {
+                Log::info('Weekly summary scheduled job completed successfully', [
+                    'timestamp' => now()->toISOString(),
+                    'scheduled_time' => 'Monday 09:00',
+                ]);
+            });
 
         // File cleanup scheduled job
         if (config('filesystems.cleanup.schedule.enabled', true)) {

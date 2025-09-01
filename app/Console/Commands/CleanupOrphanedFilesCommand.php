@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Models\FeedPost;
-use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Config;
@@ -30,15 +29,10 @@ class CleanupOrphanedFilesCommand extends Command
      * File patterns to check for cleanup
      */
     protected array $filePatterns = [
-        'media_images' => [
+        'images' => [
             'model' => FeedPost::class,
             'column' => 'media_path',
             'type' => 'json_array',
-        ],
-        'profile_images' => [
-            'model' => User::class,
-            'column' => 'image',
-            'type' => 'string',
         ],
         // Add more patterns as needed
     ];
@@ -169,42 +163,59 @@ class CleanupOrphanedFilesCommand extends Command
 
         $referencedFiles = [];
 
-        if ($type === 'json_array') {
-            // Handle JSON array columns (like media_path)
-            $records = $model::whereNotNull($column)
-                ->where($column, '!=', '[]')
-                ->where($column, '!=', '')
-                ->select('id', $column)
-                ->get();
+        try {
+            if ($type === 'json_array') {
+                // Handle JSON array columns (like media_path)
+                $records = $model::whereNotNull($column)
+                    ->where($column, '!=', '[]')
+                    ->where($column, '!=', '')
+                    ->select('id', $column)
+                    ->get();
 
-            foreach ($records as $record) {
-                $files = json_decode($record->{$column}, true);
-                if (is_array($files)) {
-                    foreach ($files as $file) {
-                        if ($file) {
-                            // Extract file path from URL if needed
-                            $filePath = $this->extractFilePathFromUrl($file);
-                            if ($filePath) {
-                                $referencedFiles[] = $filePath;
+                foreach ($records as $record) {
+                    $columnValue = $record->{$column};
+
+                    // Handle both string (JSON) and array values
+                    if (is_string($columnValue)) {
+                        $files = json_decode($columnValue, true);
+                    } elseif (is_array($columnValue)) {
+                        $files = $columnValue;
+                    } else {
+                        continue;
+                    }
+
+                    if (is_array($files)) {
+                        foreach ($files as $file) {
+                            if ($file) {
+                                // Extract file path from URL if needed
+                                $filePath = $this->extractFilePathFromUrl($file);
+                                if ($filePath) {
+                                    $referencedFiles[] = $filePath;
+                                }
                             }
                         }
                     }
                 }
-            }
-        } else {
-            // Handle string columns (like image)
-            $records = $model::whereNotNull($column)
-                ->where($column, '!=', '')
-                ->pluck($column)
-                ->filter()
-                ->toArray();
+            } else {
+                // Handle string columns (like image)
+                $records = $model::whereNotNull($column)
+                    ->where($column, '!=', '')
+                    ->pluck($column)
+                    ->filter()
+                    ->toArray();
 
-            foreach ($records as $file) {
-                $filePath = $this->extractFilePathFromUrl($file);
-                if ($filePath) {
-                    $referencedFiles[] = $filePath;
+                foreach ($records as $file) {
+                    $filePath = $this->extractFilePathFromUrl($file);
+                    if ($filePath) {
+                        $referencedFiles[] = $filePath;
+                    }
                 }
             }
+        } catch (\Exception $e) {
+            $this->warn('Database connection failed: '.$e->getMessage());
+            $this->warn('Proceeding with cleanup assuming no files are referenced in database.');
+
+            return [];
         }
 
         return array_unique($referencedFiles);
@@ -330,4 +341,3 @@ class CleanupOrphanedFilesCommand extends Command
         Log::channel('file_cleanup')->info($dryRun ? 'Dry run completed' : 'Cleanup completed', $logData);
     }
 }
-

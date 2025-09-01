@@ -1,8 +1,11 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Mail\DailyReportMail;
+use App\Mail\WeeklySummaryMail;
 use App\Modules\Chat\Controllers\ChatController;
 use App\Modules\Patients\Controllers\PatientsController;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,7 +41,6 @@ Route::get('/search', function () {
     return view('search');
 });
 
-
 Route::get('/post/{id}', function ($id) {
     // Check if the request is from a mobile device
     $isMobile = preg_match('/(android|iphone|ipad|mobile)/i', request()->header('User-Agent'));
@@ -56,3 +58,32 @@ Route::get('/post/{id}', function ($id) {
 });
 
 // test
+
+// === EMAIL REPORTING TEST ROUTES (Remove in production) ===
+Route::get('/test-daily-report', function () {
+    return new DailyReportMail();
+});
+
+Route::get('/test-weekly-summary', function () {
+    return new WeeklySummaryMail();
+});
+
+Route::get('/test-send-daily', function () {
+    try {
+        Mail::to('mohamedco215@gmail.com')->send(new DailyReportMail());
+
+        return response()->json(['success' => true, 'message' => 'Daily report sent successfully!']);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => 'Error: '.$e->getMessage()]);
+    }
+});
+
+Route::get('/test-send-weekly', function () {
+    try {
+        Mail::to('mohamedco215@gmail.com')->send(new WeeklySummaryMail());
+
+        return response()->json(['success' => true, 'message' => 'Weekly summary sent successfully!']);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => 'Error: '.$e->getMessage()]);
+    }
+});

@@ -552,7 +552,7 @@ class ConsultationService
     {
         try {
             $consultation = Consultation::where('id', $consultationId)
-                ->with('doctor:id,name,lname,image,workingplace,isSyndicateCardRequired')
+                ->with('doctor:id,name,lname,email,phone,specialty,workingplace,image,syndicate_card,isSyndicateCardRequired')
                 ->first();
 
             if (! $consultation) {
@@ -576,45 +576,82 @@ class ConsultationService
             }
 
             $consultationDoctors = ConsultationDoctor::where('consultation_id', $consultationId)
-                ->with('consultDoctor:id,name,lname,image,workingplace,isSyndicateCardRequired')
+                ->with('consultDoctor:id,name,lname,email,phone,specialty,workingplace,image,syndicate_card,isSyndicateCardRequired')
                 ->get();
+
+            // Get all doctor IDs to fetch additional data
+            $doctorIds = collect([$consultation->doctor_id])
+                ->merge($consultationDoctors->pluck('consult_doctor_id'))
+                ->unique()
+                ->values();
+
+            // Fetch all doctors with additional data (patients count and score)
+            $doctors = User::whereIn('id', $doctorIds)
+                ->select('id', 'name', 'lname', 'email', 'phone', 'specialty', 'workingplace', 'image', 'syndicate_card', 'isSyndicateCardRequired')
+                ->withCount('patients')
+                ->selectSub(function ($query) {
+                    $query->selectRaw('COALESCE(score, 0)')
+                        ->from('scores')
+                        ->whereColumn('users.id', 'scores.doctor_id')
+                        ->limit(1);
+                }, 'score')
+                ->get()
+                ->keyBy('id')
+                ->map(function ($user) {
+                    $user->patients_count = strval($user->patients_count);
+
+                    return $user;
+                });
 
             $members = [];
 
             // Add consultation creator
-            $members[] = [
-                'id' => strval($consultation->doctor->id),
-                'name' => $consultation->doctor->name,
-                'lname' => $consultation->doctor->lname,
-                'image' => $consultation->doctor->image,
-                'workingplace' => $consultation->doctor->workingplace,
-                'isVerified' => $consultation->doctor->isSyndicateCardRequired === 'Verified',
-                'role' => 'creator',
-                'status' => 'creator',
-            ];
+            $creator = $doctors->get($consultation->doctor_id);
+            if ($creator) {
+                $members[] = [
+                    'id' => strval($creator->id),
+                    'name' => $creator->name,
+                    'lname' => $creator->lname,
+                    'email' => $creator->email,
+                    'phone' => $creator->phone,
+                    'specialty' => $creator->specialty,
+                    'workingplace' => $creator->workingplace,
+                    'image' => $creator->image,
+                    'syndicate_card' => $creator->syndicate_card,
+                    'isSyndicateCardRequired' => $creator->isSyndicateCardRequired,
+                    'patients_count' => $creator->patients_count,
+                    'score' => $creator->score,
+                    'role' => 'creator',
+                    'status' => 'creator',
+                ];
+            }
 
             // Add consulted doctors
             foreach ($consultationDoctors as $consultationDoctor) {
-                $members[] = [
-                    'id' => strval($consultationDoctor->consultDoctor->id),
-                    'name' => $consultationDoctor->consultDoctor->name,
-                    'lname' => $consultationDoctor->consultDoctor->lname,
-                    'image' => $consultationDoctor->consultDoctor->image,
-                    'workingplace' => $consultationDoctor->consultDoctor->workingplace,
-                    'isVerified' => $consultationDoctor->consultDoctor->isSyndicateCardRequired === 'Verified',
-                    'role' => 'consulted',
-                    'status' => $consultationDoctor->status,
-                ];
+                $consultedDoctor = $doctors->get($consultationDoctor->consult_doctor_id);
+                if ($consultedDoctor) {
+                    $members[] = [
+                        'id' => strval($consultedDoctor->id),
+                        'name' => $consultedDoctor->name,
+                        'lname' => $consultedDoctor->lname,
+                        'email' => $consultedDoctor->email,
+                        'phone' => $consultedDoctor->phone,
+                        'specialty' => $consultedDoctor->specialty,
+                        'workingplace' => $consultedDoctor->workingplace,
+                        'image' => $consultedDoctor->image,
+                        'syndicate_card' => $consultedDoctor->syndicate_card,
+                        'isSyndicateCardRequired' => $consultedDoctor->isSyndicateCardRequired,
+                        'patients_count' => $consultedDoctor->patients_count,
+                        'score' => $consultedDoctor->score,
+                        'role' => 'consulted',
+                        'status' => $consultationDoctor->status,
+                    ];
+                }
             }
 
             return [
                 'value' => true,
-                'data' => [
-                    'consultation_id' => strval($consultationId),
-                    'is_open' => $consultation->is_open,
-                    'members' => $members,
-                    'total_members' => count($members),
-                ],
+                'data' => $members,
             ];
         } catch (\Exception $e) {
             Log::error('Error retrieving consultation members.', [

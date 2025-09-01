@@ -158,21 +158,27 @@ class WeeklySummaryMail extends Mailable
      */
     private function getMostActiveDoctors(Carbon $start, Carbon $end): array
     {
-        return User::select('users.*')
-            ->join('feed_posts', 'users.id', '=', 'feed_posts.doctor_id')
-            ->whereBetween('feed_posts.created_at', [$start, $end])
-            ->groupBy('users.id', 'users.name', 'users.lname', 'users.specialty')
-            ->orderByRaw('COUNT(feed_posts.id) DESC')
-            ->limit(5)
-            ->get(['users.id', 'users.name', 'users.lname', 'users.specialty'])
-            ->map(function ($user) {
-                return [
-                    'name' => $user->name.' '.$user->lname,
-                    'specialty' => $user->specialty,
-                    'posts_count' => $user->feedPosts()->count(),
-                ];
-            })
-            ->toArray();
+        try {
+            return User::select('users.id', 'users.name', 'users.lname', 'users.specialty')
+                ->join('feed_posts', 'users.id', '=', 'feed_posts.doctor_id')
+                ->whereBetween('feed_posts.created_at', [$start, $end])
+                ->groupBy('users.id', 'users.name', 'users.lname', 'users.specialty')
+                ->orderByRaw('COUNT(feed_posts.id) DESC')
+                ->limit(5)
+                ->get()
+                ->map(function ($user) {
+                    return [
+                        'name' => $user->name.' '.$user->lname,
+                        'specialty' => $user->specialty,
+                        'posts_count' => $user->feedPosts()->count(),
+                    ];
+                })
+                ->toArray();
+        } catch (\Exception $e) {
+            Log::error('Error getting most active doctors: '.$e->getMessage());
+
+            return [];
+        }
     }
 
     /**
@@ -180,21 +186,27 @@ class WeeklySummaryMail extends Mailable
      */
     private function getPopularPosts(Carbon $start, Carbon $end): array
     {
-        return FeedPost::with('doctor:id,name,lname')
-            ->whereBetween('created_at', [$start, $end])
-            ->withCount(['likes', 'comments'])
-            ->orderByDesc('likes_count')
-            ->limit(5)
-            ->get()
-            ->map(function ($post) {
-                return [
-                    'content' => substr($post->content, 0, 100).'...',
-                    'author' => $post->doctor->name.' '.$post->doctor->lname,
-                    'likes' => $post->likes_count,
-                    'comments' => $post->comments_count,
-                ];
-            })
-            ->toArray();
+        try {
+            return FeedPost::with('doctor:id,name,lname')
+                ->whereBetween('created_at', [$start, $end])
+                ->withCount(['likes', 'comments'])
+                ->orderByDesc('likes_count')
+                ->limit(5)
+                ->get()
+                ->map(function ($post) {
+                    return [
+                        'content' => substr($post->content, 0, 100).'...',
+                        'author' => $post->doctor->name.' '.$post->doctor->lname,
+                        'likes' => $post->likes_count,
+                        'comments' => $post->comments_count,
+                    ];
+                })
+                ->toArray();
+        } catch (\Exception $e) {
+            Log::error('Error getting popular posts: '.$e->getMessage());
+
+            return [];
+        }
     }
 
     /**
@@ -202,22 +214,28 @@ class WeeklySummaryMail extends Mailable
      */
     private function getMostActiveGroups(Carbon $start, Carbon $end): array
     {
-        return Group::select('groups.*')
-            ->join('feed_posts', 'groups.id', '=', 'feed_posts.group_id')
-            ->whereBetween('feed_posts.created_at', [$start, $end])
-            ->groupBy('groups.id', 'groups.name', 'groups.privacy')
-            ->orderByRaw('COUNT(feed_posts.id) DESC')
-            ->limit(5)
-            ->get(['groups.id', 'groups.name', 'groups.privacy'])
-            ->map(function ($group) {
-                return [
-                    'name' => $group->name,
-                    'privacy' => $group->privacy,
-                    'posts_count' => $group->posts()->count(),
-                    'members_count' => $group->doctors()->count(),
-                ];
-            })
-            ->toArray();
+        try {
+            return Group::select('groups.id', 'groups.name', 'groups.privacy')
+                ->join('feed_posts', 'groups.id', '=', 'feed_posts.group_id')
+                ->whereBetween('feed_posts.created_at', [$start, $end])
+                ->groupBy('groups.id', 'groups.name', 'groups.privacy')
+                ->orderByRaw('COUNT(feed_posts.id) DESC')
+                ->limit(5)
+                ->get()
+                ->map(function ($group) {
+                    return [
+                        'name' => $group->name,
+                        'privacy' => $group->privacy,
+                        'posts_count' => $group->posts()->count(),
+                        'members_count' => $group->doctors()->count(),
+                    ];
+                })
+                ->toArray();
+        } catch (\Exception $e) {
+            Log::error('Error getting most active groups: '.$e->getMessage());
+
+            return [];
+        }
     }
 
     /**

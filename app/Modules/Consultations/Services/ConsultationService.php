@@ -188,26 +188,30 @@ class ConsultationService
             // Use already loaded patient relationship
             $transformedPatient = $this->transformPatientData($consultation->patient);
 
-            // Collect all replies from all doctors in chronological order
-            $allReplies = collect();
+            // Collect all replies as separate doctor entries in chronological order
+            $consultationDoctorsWithReplies = collect();
+
             foreach ($consultation->consultationDoctors as $consultationDoctor) {
                 foreach ($consultationDoctor->replies as $reply) {
-                    $allReplies->push([
-                        'id' => $reply->id,
+                    $consultationDoctorsWithReplies->push([
+                        'id' => strval($consultationDoctor->id),
+                        'consultation_id' => strval($consultationDoctor->consultation_id),
+                        'consult_doctor_id' => strval($consultationDoctor->consult_doctor_id),
+                        'consult_doctor_fname' => $consultationDoctor->consultDoctor->name,
+                        'consult_doctor_lname' => $consultationDoctor->consultDoctor->lname,
+                        'consult_doctor_image' => $consultationDoctor->consultDoctor->image,
+                        'workingplace' => $consultationDoctor->consultDoctor->workingplace,
+                        'isVerified' => $consultationDoctor->consultDoctor->isSyndicateCardRequired === 'Verified',
                         'reply' => $reply->reply,
+                        'status' => $consultationDoctor->status,
                         'created_at' => $reply->created_at,
-                        'doctor_id' => strval($consultationDoctor->consult_doctor_id),
-                        'doctor_name' => $consultationDoctor->consultDoctor->name,
-                        'doctor_lname' => $consultationDoctor->consultDoctor->lname,
-                        'doctor_image' => $consultationDoctor->consultDoctor->image,
-                        'doctor_workingplace' => $consultationDoctor->consultDoctor->workingplace,
-                        'doctor_isVerified' => $consultationDoctor->consultDoctor->isSyndicateCardRequired === 'Verified',
+                        'updated_at' => $reply->created_at,
                     ]);
                 }
             }
 
-            // Sort all replies by created_at in ascending order
-            $sortedReplies = $allReplies->sortBy('created_at')->values();
+            // Sort all entries by reply created_at in ascending order
+            $sortedConsultationDoctors = $consultationDoctorsWithReplies->sortBy('created_at')->values();
 
             $consultationData = [
                 'id' => strval($consultation->id),
@@ -223,25 +227,7 @@ class ConsultationService
                 'created_at' => $consultation->created_at,
                 'updated_at' => $consultation->updated_at,
                 'patient_info' => $transformedPatient,
-                'consultationDoctors' => $consultation->consultationDoctors->map(function ($consultationDoctor) {
-                    return [
-                        'id' => strval($consultationDoctor->id),
-                        'consultation_id' => strval($consultationDoctor->consultation_id),
-                        'consult_doctor_id' => strval($consultationDoctor->consult_doctor_id),
-                        'consult_doctor_fname' => $consultationDoctor->consultDoctor->name,
-                        'consult_doctor_lname' => $consultationDoctor->consultDoctor->lname,
-                        'consult_doctor_image' => $consultationDoctor->consultDoctor->image,
-                        'workingplace' => $consultationDoctor->consultDoctor->workingplace,
-                        'isVerified' => $consultationDoctor->consultDoctor->isSyndicateCardRequired === 'Verified',
-                        'reply' => $consultationDoctor->reply ?? 'No reply available',
-                        'status' => $consultationDoctor->status,
-                        'created_at' => $consultationDoctor->created_at,
-                        'updated_at' => $consultationDoctor->updated_at,
-                        'total_replies' => $consultationDoctor->replies->count(),
-                    ];
-                }),
-                'replies' => $sortedReplies,
-                'total_replies' => $sortedReplies->count(),
+                'consultationDoctors' => $sortedConsultationDoctors,
             ];
 
             $response = $consultationData;

@@ -90,8 +90,8 @@ class DailyReportMail extends Mailable
                     'new_patients' => Patients::whereBetween('created_at', [$today, $now])->count(),
                     'total_patients' => Patients::count(),
                     'hidden_patients' => Patients::where('hidden', true)->count(),
-                    'submitted_patients' => \App\Models\PatientStatus::where('key', 'submit_status')->where('status', true)->count(),
-                    'outcome_patients' => \App\Models\PatientStatus::where('key', 'outcome_status')->where('status', true)->count(),
+                    'submitted_patients' => \App\Modules\Patients\Models\PatientStatus::where('key', 'submit_status')->where('status', true)->count(),
+                    'outcome_patients' => \App\Modules\Patients\Models\PatientStatus::where('key', 'outcome_status')->where('status', true)->count(),
                 ],
 
                 // Consultation Statistics
@@ -100,8 +100,8 @@ class DailyReportMail extends Mailable
                     'pending_consultations' => Consultation::where('status', 'pending')->count(),
                     'completed_consultations' => Consultation::where('status', 'completed')->count(),
                     'open_consultations' => Consultation::where('is_open', true)->count(),
-                    'ai_consultations' => \App\Models\AIConsultation::count(),
-                    'new_ai_consultations' => \App\Models\AIConsultation::whereBetween('created_at', [$today, $now])->count(),
+                    'ai_consultations' => \App\Modules\Chat\Models\AIConsultation::count(),
+                    'new_ai_consultations' => \App\Modules\Chat\Models\AIConsultation::whereBetween('created_at', [$today, $now])->count(),
                 ],
 
                 // Feed Activity

@@ -2,13 +2,6 @@
 
 namespace App\Modules\Patients\Models;
 
-use App\Models\AIConsultation;
-use App\Models\Answers;
-use App\Models\AppNotification;
-use App\Models\Comment;
-use App\Models\Recommendation;
-use App\Models\SectionsInfo;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -34,7 +27,7 @@ class Patients extends Model
 
     protected $casts = [
         'hidden' => 'boolean',
-        'doctor_id' => 'integer'
+        'doctor_id' => 'integer',
     ];
 
     public function doctor(): BelongsTo
@@ -75,6 +68,6 @@ class Patients extends Model
 
     public function consultations()
     {
-        return $this->hasMany(\App\Models\AIConsultation::class);
+        return $this->hasMany(\App\Modules\Chat\Models\AIConsultation::class);
     }
 }

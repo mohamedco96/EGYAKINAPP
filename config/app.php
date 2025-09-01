@@ -172,6 +172,7 @@ return [
         App\Providers\TelescopeServiceProvider::class,
         Ichtrojan\Otp\OtpServiceProvider::class,
         App\Providers\FirebaseServiceProvider::class,
+        App\Providers\FileCleanupServiceProvider::class,
     ])->toArray(),
 
     /*

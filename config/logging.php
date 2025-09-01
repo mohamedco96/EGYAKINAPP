@@ -26,8 +26,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | This option controls the log channel that should be used to log warnings
-    | regarding deprecated PHP and library features. This allows you to get
-    | your application ready for upcoming major versions of dependencies.
+    | regarding deprecated functionality that is being used by your application.
+    | This allows you to get your application ready for upcoming major versions
+    | of dependencies.
     |
     */
 
@@ -125,6 +126,23 @@ return [
 
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | File Cleanup Log Channel
+        |--------------------------------------------------------------------------
+        |
+        | Dedicated log channel for file cleanup operations
+        |
+        */
+
+        'file_cleanup' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/file_cleanup.log'),
+            'level' => env('FILE_CLEANUP_LOG_LEVEL', 'info'),
+            'days' => env('FILE_CLEANUP_LOG_RETENTION_DAYS', 30),
+            'replace_placeholders' => true,
         ],
     ],
 

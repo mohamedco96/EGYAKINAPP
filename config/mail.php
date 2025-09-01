@@ -113,7 +113,7 @@ return [
     |
     */
 
-    'admin_email' => env('ADMIN_EMAIL', 'mohamedco215@gmail.com'),
+    'admin_email' => env('ADMIN_EMAIL', env('MAIL_ADMIN_EMAIL', 'mohamedco215@gmail.com')),
 
     /*
     |--------------------------------------------------------------------------

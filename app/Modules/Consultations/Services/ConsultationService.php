@@ -90,6 +90,7 @@ class ConsultationService
                 'patient_id' => strval($consultation->patient_id),
                 'patient_name' => $patientName,
                 'status' => $consultation->status,
+                'is_open' => $consultation->is_open,
                 'created_at' => $consultation->created_at,
                 'updated_at' => $consultation->updated_at,
             ];
@@ -130,6 +131,7 @@ class ConsultationService
                 'patient_id' => strval($consultationDoctor->consultation->patient_id),
                 'patient_name' => $patientName,
                 'status' => $consultationDoctor->consultation->status,
+                'is_open' => $consultationDoctor->consultation->is_open,
                 'created_at' => $consultationDoctor->consultation->created_at,
                 'updated_at' => $consultationDoctor->consultation->updated_at,
             ];
@@ -148,7 +150,10 @@ class ConsultationService
         $consultations = Consultation::where('id', $id)
             ->with([
                 'consultationDoctors' => function ($query) {
-                    $query->with('consultDoctor:id,name,lname,image,workingplace,isSyndicateCardRequired');
+                    $query->with([
+                        'consultDoctor:id,name,lname,image,workingplace,isSyndicateCardRequired',
+                        'replies:id,consultation_doctor_id,reply,created_at',
+                    ]);
                 },
                 'doctor:id,name,lname,workingplace,image,isSyndicateCardRequired',
                 'patient' => function ($query) {
@@ -189,6 +194,7 @@ class ConsultationService
                 'image' => $consultation->doctor->image,
                 'isVerified' => $consultation->doctor->isSyndicateCardRequired === 'Verified',
                 'status' => $consultation->status,
+                'is_open' => $consultation->is_open,
                 'consult_message' => $consultation->consult_message,
                 'created_at' => $consultation->created_at,
                 'updated_at' => $consultation->updated_at,
@@ -207,6 +213,14 @@ class ConsultationService
                         'status' => $consultationDoctor->status,
                         'created_at' => $consultationDoctor->created_at,
                         'updated_at' => $consultationDoctor->updated_at,
+                        'replies' => $consultationDoctor->replies->map(function ($reply) {
+                            return [
+                                'id' => $reply->id,
+                                'reply' => $reply->reply,
+                                'created_at' => $reply->created_at,
+                            ];
+                        }),
+                        'total_replies' => $consultationDoctor->replies->count(),
                     ];
                 }),
             ];
@@ -243,9 +257,18 @@ class ConsultationService
                 ->where('consult_doctor_id', $user->id)
                 ->firstOrFail();
 
-            $consultationDoctor->reply = $data['reply'];
+            // For backward compatibility, keep the first reply in the main field
+            if (empty($consultationDoctor->reply)) {
+                $consultationDoctor->reply = $data['reply'];
+            }
             $consultationDoctor->status = 'replied';
             $consultationDoctor->save();
+
+            // Also store in consultation_replies table for consistency
+            ConsultationReply::create([
+                'consultation_doctor_id' => $consultationDoctor->id,
+                'reply' => $data['reply'],
+            ]);
 
             // Note: We no longer automatically mark consultation as complete when all doctors reply
             // The consultation owner controls when to close the discussion
@@ -636,14 +659,13 @@ class ConsultationService
             }
 
             return DB::transaction(function () use ($consultationDoctor, $data, $consultation, $user) {
-                // For backward compatibility, update the main reply field if it's the first reply
-                if (empty($consultationDoctor->reply)) {
-                    $consultationDoctor->reply = $data['reply'];
+                // Update status to 'replied' if this is the first reply
+                if ($consultationDoctor->status === 'not replied') {
                     $consultationDoctor->status = 'replied';
                     $consultationDoctor->save();
                 }
 
-                // Create new reply record for multiple replies support
+                // Always create new reply record in consultation_replies table
                 $reply = ConsultationReply::create([
                     'consultation_doctor_id' => $consultationDoctor->id,
                     'reply' => $data['reply'],

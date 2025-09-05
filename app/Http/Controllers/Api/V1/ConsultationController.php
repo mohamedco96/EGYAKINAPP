@@ -67,4 +67,9 @@ class ConsultationController extends Controller
     {
         return $this->consultationController->addReply($request, $id);
     }
+
+    public function removeDoctor($consultationId, $doctorId)
+    {
+        return $this->consultationController->removeDoctor($consultationId, $doctorId);
+    }
 }

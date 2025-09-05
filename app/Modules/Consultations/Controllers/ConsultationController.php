@@ -260,4 +260,30 @@ class ConsultationController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Remove a doctor from consultation.
+     */
+    public function removeDoctor(int $consultationId, int $doctorId): JsonResponse
+    {
+        try {
+            $result = $this->consultationService->removeDoctorFromConsultation($consultationId, $doctorId);
+
+            $statusCode = $result['value'] ? 200 : 400;
+
+            return response()->json($result, $statusCode);
+        } catch (\Exception $e) {
+            Log::error('Error removing doctor from consultation.', [
+                'consultation_id' => $consultationId,
+                'doctor_id' => $doctorId,
+                'auth_doctor_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to remove doctor from consultation.',
+            ], 500);
+        }
+    }
 }

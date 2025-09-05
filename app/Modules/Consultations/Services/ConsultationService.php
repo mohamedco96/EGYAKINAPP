@@ -750,4 +750,78 @@ class ConsultationService
             ];
         }
     }
+
+    /**
+     * Remove a doctor from consultation
+     */
+    public function removeDoctorFromConsultation(int $consultationId, int $doctorId): array
+    {
+        try {
+            $consultation = Consultation::find($consultationId);
+
+            if (! $consultation) {
+                return [
+                    'value' => false,
+                    'message' => 'Consultation not found.',
+                ];
+            }
+
+            // Check if user has permission to remove doctors (only consultation creator can remove doctors)
+            if ($consultation->doctor_id !== Auth::id()) {
+                return [
+                    'value' => false,
+                    'message' => 'You are not authorized to remove doctors from this consultation.',
+                ];
+            }
+
+            // Check if trying to remove the consultation creator
+            if ($consultation->doctor_id === $doctorId) {
+                return [
+                    'value' => false,
+                    'message' => 'Cannot remove the consultation creator.',
+                ];
+            }
+
+            // Find the consultation doctor record
+            $consultationDoctor = ConsultationDoctor::where('consultation_id', $consultationId)
+                ->where('consult_doctor_id', $doctorId)
+                ->first();
+
+            if (! $consultationDoctor) {
+                return [
+                    'value' => false,
+                    'message' => 'Doctor is not part of this consultation.',
+                ];
+            }
+
+            // Delete the consultation doctor record and all related replies
+            DB::transaction(function () use ($consultationDoctor) {
+                // Delete all replies for this consultation doctor
+                $consultationDoctor->replies()->delete();
+
+                // Delete the consultation doctor record
+                $consultationDoctor->delete();
+            });
+
+            return [
+                'value' => true,
+                'message' => 'Doctor removed from consultation successfully.',
+                'data' => [
+                    'consultation_id' => $consultationId,
+                    'removed_doctor_id' => $doctorId,
+                ],
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error removing doctor from consultation.', [
+                'consultation_id' => $consultationId,
+                'doctor_id' => $doctorId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'value' => false,
+                'message' => 'Failed to remove doctor from consultation.',
+            ];
+        }
+    }
 }

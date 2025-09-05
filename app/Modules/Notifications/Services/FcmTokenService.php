@@ -11,7 +11,7 @@ class FcmTokenService
     /**
      * Store FCM token for authenticated user with proper validation and cleanup
      */
-    public function storeFcmToken(string $token): array
+    public function storeFcmToken(string $token, ?string $deviceId = null, ?string $deviceType = null, ?string $appVersion = null): array
     {
         try {
             $doctorId = Auth::id();
@@ -21,6 +21,7 @@ class FcmTokenService
                 Log::warning('Invalid FCM token format', [
                     'doctor_id' => $doctorId,
                     'token' => substr($token, 0, 20).'...',
+                    'device_id' => $deviceId,
                 ]);
 
                 return [
@@ -29,18 +30,53 @@ class FcmTokenService
                 ];
             }
 
-            // Use updateOrCreate to handle existing tokens properly
-            $fcmToken = FcmToken::updateOrCreate(
-                ['token' => $token],
-                ['doctor_id' => $doctorId, 'updated_at' => now()]
-            );
+            // Validate device ID format if provided
+            if ($deviceId && ! $this->isValidDeviceId($deviceId)) {
+                Log::warning('Invalid device ID format', [
+                    'doctor_id' => $doctorId,
+                    'device_id' => $deviceId,
+                ]);
 
-            // Limit tokens per user (keep only latest 5 tokens per user)
-            $this->limitUserTokens($doctorId, 5);
+                return [
+                    'value' => false,
+                    'message' => 'Invalid device ID format.',
+                ];
+            }
+
+            // Prepare data for storage
+            $tokenData = [
+                'doctor_id' => $doctorId,
+                'token' => $token,
+                'updated_at' => now(),
+            ];
+
+            if ($deviceId) {
+                $tokenData['device_id'] = $deviceId;
+            }
+
+            if ($deviceType) {
+                $tokenData['device_type'] = strtolower($deviceType);
+            }
+
+            if ($appVersion) {
+                $tokenData['app_version'] = $appVersion;
+            }
+
+            // Use unique constraint on doctor_id + device_id if device_id is provided
+            $uniqueFields = $deviceId
+                ? ['doctor_id' => $doctorId, 'device_id' => $deviceId]
+                : ['token' => $token];
+
+            $fcmToken = FcmToken::updateOrCreate($uniqueFields, $tokenData);
+
+            // Limit tokens per user (keep only latest 10 tokens per user to accommodate multiple devices)
+            $this->limitUserTokens($doctorId, 10);
 
             Log::info('FCM token stored successfully', [
                 'doctor_id' => $doctorId,
                 'token' => substr($token, 0, 20).'...',
+                'device_id' => $deviceId,
+                'device_type' => $deviceType,
                 'was_updated' => ! $fcmToken->wasRecentlyCreated,
             ]);
 
@@ -52,6 +88,7 @@ class FcmTokenService
         } catch (\Exception $e) {
             Log::error('Error storing FCM token', [
                 'doctor_id' => Auth::id(),
+                'device_id' => $deviceId,
                 'error' => $e->getMessage(),
             ]);
 
@@ -113,24 +150,42 @@ class FcmTokenService
     /**
      * Remove FCM token for authenticated user
      */
-    public function removeFcmToken(string $token): array
+    public function removeFcmToken(?string $token = null, ?string $deviceId = null): array
     {
         try {
             $doctorId = Auth::id();
 
-            $deleted = FcmToken::where('doctor_id', $doctorId)
-                ->where('token', $token)
-                ->delete();
+            $query = FcmToken::where('doctor_id', $doctorId);
+
+            if ($token) {
+                $query->where('token', $token);
+            }
+
+            if ($deviceId) {
+                $query->where('device_id', $deviceId);
+            }
+
+            if (! $token && ! $deviceId) {
+                return [
+                    'value' => false,
+                    'message' => 'Either token or device ID must be provided',
+                ];
+            }
+
+            $deleted = $query->delete();
 
             if ($deleted) {
                 Log::info('FCM token removed successfully', [
                     'doctor_id' => $doctorId,
-                    'token' => substr($token, 0, 20).'...',
+                    'token' => $token ? substr($token, 0, 20).'...' : null,
+                    'device_id' => $deviceId,
+                    'deleted_count' => $deleted,
                 ]);
 
                 return [
                     'value' => true,
                     'message' => 'FCM token removed successfully',
+                    'deleted_count' => $deleted,
                 ];
             }
 
@@ -141,6 +196,8 @@ class FcmTokenService
         } catch (\Exception $e) {
             Log::error('Failed to remove FCM token', [
                 'doctor_id' => Auth::id(),
+                'token' => $token,
+                'device_id' => $deviceId,
                 'error' => $e->getMessage(),
             ]);
 
@@ -180,6 +237,74 @@ class FcmTokenService
         return is_string($token) &&
                strlen($token) >= 152 &&
                preg_match('/^[a-zA-Z0-9:_-]+$/', $token);
+    }
+
+    /**
+     * Validate device ID format
+     */
+    private function isValidDeviceId(string $deviceId): bool
+    {
+        // Device IDs can be UUIDs, iOS identifiers, Android IDs, etc.
+        // Allow alphanumeric, hyphens, and underscores, length 10-50 characters
+        return is_string($deviceId) &&
+               strlen($deviceId) >= 10 &&
+               strlen($deviceId) <= 50 &&
+               preg_match('/^[a-zA-Z0-9_-]+$/', $deviceId);
+    }
+
+    /**
+     * Get tokens for a specific device
+     */
+    public function getTokensForDevice(string $deviceId): array
+    {
+        try {
+            $tokens = FcmToken::forDevice($deviceId)->pluck('token')->toArray();
+
+            Log::info('Retrieved FCM tokens for device', [
+                'device_id' => $deviceId,
+                'token_count' => count($tokens),
+            ]);
+
+            return $tokens;
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve FCM tokens for device', [
+                'device_id' => $deviceId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
+    }
+
+    /**
+     * Get user's devices information
+     */
+    public function getUserDevices(?int $userId = null): array
+    {
+        try {
+            $userId = $userId ?? Auth::id();
+
+            $devices = FcmToken::forUser($userId)
+                ->select('device_id', 'device_type', 'app_version', 'updated_at')
+                ->whereNotNull('device_id')
+                ->orderBy('updated_at', 'desc')
+                ->get()
+                ->toArray();
+
+            Log::info('Retrieved user devices', [
+                'user_id' => $userId,
+                'device_count' => count($devices),
+            ]);
+
+            return $devices;
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve user devices', [
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
     }
 
     /**

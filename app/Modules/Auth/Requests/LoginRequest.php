@@ -25,14 +25,16 @@ class LoginRequest extends FormRequest
         return [
             'email' => 'required|email|max:255',
             'password' => 'required|string|min:6',
-            'fcmToken' => 'nullable|string|max:255'
+            'fcmToken' => 'nullable|string|min:152|max:255|regex:/^[a-zA-Z0-9:_-]+$/',
+            'deviceId' => 'nullable|string|min:10|max:50|regex:/^[a-zA-Z0-9_-]+$/',
+            'deviceType' => 'nullable|string|in:ios,android,web',
+            'appVersion' => 'nullable|string|max:20|regex:/^[0-9.]+$/',
         ];
     }
 
     /**
      * Handle a failed validation attempt.
      *
-     * @param  \Illuminate\Contracts\Validation\Validator  $validator
      * @return void
      *
      * @throws \Illuminate\Validation\ValidationException

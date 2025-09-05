@@ -29,6 +29,11 @@
             "key": "test_fcm_token",
             "value": "dGVzdF90b2tlbl9hYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ejEyMzQ1Njc4OTBfYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY3ODkwX2FiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6MTIzNDU2Nzg5MA",
             "type": "string"
+        },
+        {
+            "key": "device_id",
+            "value": "63B6779A-3BFF-40B5-A084-F8371EBFE952",
+            "type": "string"
         }
     ],
     "item": [
@@ -47,7 +52,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"fcmToken\": \"{{test_fcm_token}}\"\n}"
+                            "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"fcmToken\": \"{{test_fcm_token}}\",\n  \"deviceId\": \"{{device_id}}\",\n  \"deviceType\": \"ios\",\n  \"appVersion\": \"1.0.0\"\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/api/login",
@@ -79,7 +84,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"token\": \"{{test_fcm_token}}\"\n}"
+                            "raw": "{\n  \"token\": \"{{test_fcm_token}}\",\n  \"deviceId\": \"{{device_id}}\",\n  \"deviceType\": \"ios\",\n  \"appVersion\": \"1.0.0\"\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/api/storeFCM",

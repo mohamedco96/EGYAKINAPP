@@ -43,9 +43,13 @@ class PushNotificationTest extends TestCase
         Sanctum::actingAs($this->user);
 
         $token = $this->generateValidFcmToken();
+        $deviceId = $this->generateValidDeviceId();
 
         $response = $this->postJson('/api/storeFCM', [
             'token' => $token,
+            'deviceId' => $deviceId,
+            'deviceType' => 'ios',
+            'appVersion' => '1.0.0',
         ]);
 
         $response->assertStatus(201)
@@ -57,6 +61,7 @@ class PushNotificationTest extends TestCase
         $this->assertDatabaseHas('fcm_tokens', [
             'doctor_id' => $this->user->id,
             'token' => $token,
+            'device_id' => $deviceId,
         ]);
     }
 
@@ -83,11 +88,13 @@ class PushNotificationTest extends TestCase
         FcmToken::create([
             'doctor_id' => $this->user->id,
             'token' => $this->generateValidFcmToken(),
+            'device_id' => $this->generateValidDeviceId(),
         ]);
 
         FcmToken::create([
             'doctor_id' => $this->adminUser->id,
             'token' => $this->generateValidFcmToken(),
+            'device_id' => $this->generateValidDeviceId(),
         ]);
 
         Sanctum::actingAs($this->adminUser);
@@ -107,6 +114,7 @@ class PushNotificationTest extends TestCase
         FcmToken::create([
             'doctor_id' => $this->user->id,
             'token' => $this->generateValidFcmToken(),
+            'device_id' => $this->generateValidDeviceId(),
         ]);
 
         Sanctum::actingAs($this->adminUser);
@@ -121,42 +129,48 @@ class PushNotificationTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        // Create 6 tokens (should limit to 5)
-        for ($i = 0; $i < 6; $i++) {
+        // Create 6 tokens (should limit to 10 now due to multi-device support)
+        for ($i = 0; $i < 12; $i++) {
             $this->postJson('/api/storeFCM', [
                 'token' => $this->generateValidFcmToken(),
+                'deviceId' => $this->generateValidDeviceId(),
             ]);
         }
 
         $tokenCount = FcmToken::where('doctor_id', $this->user->id)->count();
-        $this->assertEquals(5, $tokenCount, 'Should limit to 5 tokens per user');
+        $this->assertEquals(10, $tokenCount, 'Should limit to 10 tokens per user');
     }
 
     /** @test */
-    public function it_updates_existing_token_instead_of_duplicating()
+    public function it_updates_existing_device_token_instead_of_duplicating()
     {
-        $token = $this->generateValidFcmToken();
+        $deviceId = $this->generateValidDeviceId();
 
-        // Create token for first user
-        FcmToken::create([
-            'doctor_id' => $this->user->id,
-            'token' => $token,
+        // Create token for user with specific device
+        Sanctum::actingAs($this->user);
+        $response1 = $this->postJson('/api/storeFCM', [
+            'token' => $this->generateValidFcmToken(),
+            'deviceId' => $deviceId,
+            'deviceType' => 'ios',
         ]);
+        $response1->assertStatus(201);
 
-        // Try to store same token for different user
-        Sanctum::actingAs($this->adminUser);
-
-        $response = $this->postJson('/api/storeFCM', [
-            'token' => $token,
+        // Update token for same device (should update, not create new)
+        $newToken = $this->generateValidFcmToken();
+        $response2 = $this->postJson('/api/storeFCM', [
+            'token' => $newToken,
+            'deviceId' => $deviceId,
+            'deviceType' => 'ios',
         ]);
+        $response2->assertStatus(201);
 
-        $response->assertStatus(201);
-
-        // Should have only one token record, updated to new user
-        $this->assertEquals(1, FcmToken::where('token', $token)->count());
+        // Should have only one token record for this user+device combination
+        $this->assertEquals(1, FcmToken::where('doctor_id', $this->user->id)
+            ->where('device_id', $deviceId)->count());
         $this->assertDatabaseHas('fcm_tokens', [
-            'token' => $token,
-            'doctor_id' => $this->adminUser->id,
+            'token' => $newToken,
+            'doctor_id' => $this->user->id,
+            'device_id' => $deviceId,
         ]);
     }
 
@@ -193,6 +207,7 @@ class PushNotificationTest extends TestCase
         FcmToken::create([
             'doctor_id' => $this->user->id,
             'token' => $token,
+            'device_id' => $this->generateValidDeviceId(),
         ]);
 
         $notificationService = app(NotificationService::class);
@@ -255,5 +270,21 @@ class PushNotificationTest extends TestCase
         }
 
         return $token;
+    }
+
+    /**
+     * Generate a valid device ID format for testing
+     */
+    protected function generateValidDeviceId(): string
+    {
+        // Generate a realistic device ID format (UUID-like)
+        return sprintf(
+            '%08X-%04X-%04X-%04X-%12X',
+            mt_rand(0, 0xFFFFFFFF),
+            mt_rand(0, 0xFFFF),
+            mt_rand(0, 0xFFFF),
+            mt_rand(0, 0xFFFF),
+            mt_rand(0, 0xFFFFFFFFFFFF)
+        );
     }
 }

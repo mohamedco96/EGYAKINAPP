@@ -35,7 +35,13 @@ class AuthService
 
             // Store FCM token if provided
             if (isset($validatedData['fcmToken'])) {
-                $this->storeFcmToken($user->id, $validatedData['fcmToken']);
+                $this->storeFcmToken(
+                    $user->id,
+                    $validatedData['fcmToken'],
+                    $validatedData['deviceId'] ?? null,
+                    $validatedData['deviceType'] ?? null,
+                    $validatedData['appVersion'] ?? null
+                );
             }
 
             // Retrieve the user from the database to get default values
@@ -100,7 +106,13 @@ class AuthService
 
         // Store FCM token if provided
         if (isset($validatedData['fcmToken'])) {
-            $this->storeFcmToken($user->id, $validatedData['fcmToken']);
+            $this->storeFcmToken(
+                $user->id,
+                $validatedData['fcmToken'],
+                $validatedData['deviceId'] ?? null,
+                $validatedData['deviceType'] ?? null,
+                $validatedData['appVersion'] ?? null
+            );
         }
 
         // Generate new token
@@ -629,28 +641,62 @@ class AuthService
     /**
      * Store the FCM token for the user if it does not already exist
      */
-    protected function storeFcmToken(int $userId, string $token): void
+    protected function storeFcmToken(int $userId, string $token, ?string $deviceId = null, ?string $deviceType = null, ?string $appVersion = null): void
     {
         // Validate token format
         if (! preg_match('/^[a-zA-Z0-9:_-]{1,255}$/', $token)) {
             Log::warning('Invalid FCM token format', [
                 'user_id' => $userId,
                 'token' => substr($token, 0, 32).'...',
+                'device_id' => $deviceId,
+            ]);
+
+            return;
+        }
+
+        // Validate device ID format if provided
+        if ($deviceId && ! preg_match('/^[a-zA-Z0-9_-]{10,50}$/', $deviceId)) {
+            Log::warning('Invalid device ID format', [
+                'user_id' => $userId,
+                'device_id' => $deviceId,
             ]);
 
             return;
         }
 
         try {
-            FcmToken::updateOrCreate(
-                ['token' => $token],
-                ['doctor_id' => $userId]
-            );
+            // Prepare data for storage
+            $tokenData = ['doctor_id' => $userId, 'token' => $token];
 
-            Log::info('FCM token stored', ['user_id' => $userId]);
+            if ($deviceId) {
+                $tokenData['device_id'] = $deviceId;
+            }
+
+            if ($deviceType) {
+                $tokenData['device_type'] = strtolower($deviceType);
+            }
+
+            if ($appVersion) {
+                $tokenData['app_version'] = $appVersion;
+            }
+
+            // Use unique constraint on doctor_id + device_id if device_id is provided
+            $uniqueFields = $deviceId
+                ? ['doctor_id' => $userId, 'device_id' => $deviceId]
+                : ['token' => $token];
+
+            FcmToken::updateOrCreate($uniqueFields, $tokenData);
+
+            Log::info('FCM token stored', [
+                'user_id' => $userId,
+                'device_id' => $deviceId,
+                'device_type' => $deviceType,
+                'app_version' => $appVersion,
+            ]);
         } catch (\Exception $e) {
             Log::error('FCM token storage failed', [
                 'user_id' => $userId,
+                'device_id' => $deviceId,
                 'error' => $e->getMessage(),
             ]);
         }

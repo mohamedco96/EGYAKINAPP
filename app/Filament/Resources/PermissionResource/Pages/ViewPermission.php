@@ -45,7 +45,8 @@ class ViewPermission extends ViewRecord
                             ->label('Category')
                             ->badge()
                             ->color('warning')
-                            ->placeholder('Uncategorized'),
+                            ->placeholder('Uncategorized')
+                            ->formatStateUsing(fn (?string $state): string => $state ? ucwords(str_replace(['-', '_'], ' ', $state)) : 'Uncategorized'),
 
                         TextEntry::make('created_at')
                             ->label('Created At')
@@ -56,6 +57,11 @@ class ViewPermission extends ViewRecord
                             ->label('Last Updated')
                             ->dateTime()
                             ->since(),
+
+                        TextEntry::make('description')
+                            ->label('Description')
+                            ->placeholder('No description provided')
+                            ->columnSpanFull(),
                     ])->columns(3),
 
                 Section::make('Assigned Roles')

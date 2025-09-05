@@ -5,7 +5,10 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
 use Filament\Forms;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -13,8 +16,8 @@ use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\FileUpload;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class UserResource extends Resource
 {
@@ -28,7 +31,6 @@ class UserResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
-
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::count();
@@ -38,52 +40,97 @@ class UserResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('name')->required()->label('First Name'),
-                Forms\Components\TextInput::make('lname')->required()->label('Last Name'),
-                Forms\Components\TextInput::make('email')->required()->email()->label('Email address'),
-                Forms\Components\TextInput::make('age'),
-                Forms\Components\TextInput::make('specialty')->required(),
-                Forms\Components\TextInput::make('workingplace')->required()->label('Working place'),
-                Forms\Components\TextInput::make('phone')->required()->tel(),
-                Forms\Components\TextInput::make('job')->required(),
-                Forms\Components\Select::make('gender')
-                    ->options([
-                        'Male' => 'Male',
-                        'Female' => 'Female',
-                    ]),
-                Forms\Components\TextInput::make('highestdegree')->required()->label('Highest degree'),
-                Forms\Components\TextInput::make('registration_number')->required()->label('Registration Number'),
-                Forms\Components\DateTimePicker::make('email_verified_at'),
-                Forms\Components\Radio::make('blocked')->boolean(),
-                Forms\Components\Radio::make('limited')->boolean(),
-                FileUpload::make('image')
-                    ->label('Profile Image')
-                    ->directory('profile_images')
-                    ->image()
-                    ->imageEditor()
-                    ->previewable(true)
-                    ->imageCropAspectRatio('1:1')
-                    ->imagePreviewHeight('250'),
-//                    ->default(fn ($record) => $record->image ? asset('storage/profile_images/' . $record->image) : null),
+                Section::make('Personal Information')
+                    ->description('Basic user information')
+                    ->schema([
+                        Forms\Components\TextInput::make('name')->required()->label('First Name'),
+                        Forms\Components\TextInput::make('lname')->required()->label('Last Name'),
+                        Forms\Components\TextInput::make('email')->required()->email()->label('Email address'),
+                        Forms\Components\TextInput::make('age'),
+                        Forms\Components\Select::make('gender')
+                            ->options([
+                                'Male' => 'Male',
+                                'Female' => 'Female',
+                            ]),
+                        Forms\Components\TextInput::make('phone')->required()->tel(),
+                    ])->columns(2),
 
-                FileUpload::make('syndicate_card')
-                    ->label('Syndicate Card')
-                    ->directory('syndicate_card')
-                    ->image()
-                    ->imageEditor()
-                    ->previewable(true)
-                    ->imageCropAspectRatio('1:1')
-                    ->imagePreviewHeight('250'),
-//                    ->default(fn ($record) => $record->syndicate_card ? asset('storage/syndicate_card/' . $record->syndicate_card) : ''),
+                Section::make('Professional Information')
+                    ->description('Professional details')
+                    ->schema([
+                        Forms\Components\TextInput::make('specialty')->required(),
+                        Forms\Components\TextInput::make('workingplace')->required()->label('Working place'),
+                        Forms\Components\TextInput::make('job')->required(),
+                        Forms\Components\TextInput::make('highestdegree')->required()->label('Highest degree'),
+                        Forms\Components\TextInput::make('registration_number')->required()->label('Registration Number'),
+                    ])->columns(2),
 
+                Section::make('Account Status')
+                    ->description('Account verification and status')
+                    ->schema([
+                        Forms\Components\DateTimePicker::make('email_verified_at'),
+                        Forms\Components\Radio::make('blocked')->boolean(),
+                        Forms\Components\Radio::make('limited')->boolean(),
+                        Forms\Components\Select::make('isSyndicateCardRequired')
+                            ->label('Is Syndicate Card Required')
+                            ->options([
+                                'Not Required' => 'Not Required',
+                                'Required' => 'Required',
+                                'Pending' => 'Pending',
+                                'Verified' => 'Verified',
+                            ]),
+                    ])->columns(2),
 
-                Forms\Components\Select::make('isSyndicateCardRequired')
-                    ->label('Is Syndicate Card Required')
-                    ->options([
-                        'Not Required' => 'Not Required',
-                        'Required' => 'Required',
-                        'Pending' => 'Pending',
-                        'Verified' => 'Verified',
+                Section::make('Profile Images')
+                    ->description('Upload profile and syndicate card images')
+                    ->schema([
+                        FileUpload::make('image')
+                            ->label('Profile Image')
+                            ->directory('profile_images')
+                            ->image()
+                            ->imageEditor()
+                            ->previewable(true)
+                            ->imageCropAspectRatio('1:1')
+                            ->imagePreviewHeight('250'),
+
+                        FileUpload::make('syndicate_card')
+                            ->label('Syndicate Card')
+                            ->directory('syndicate_card')
+                            ->image()
+                            ->imageEditor()
+                            ->previewable(true)
+                            ->imageCropAspectRatio('1:1')
+                            ->imagePreviewHeight('250'),
+                    ])->columns(2),
+
+                Section::make('Roles & Permissions')
+                    ->description('Assign roles and permissions to this user')
+                    ->schema([
+                        CheckboxList::make('roles')
+                            ->relationship('roles', 'name')
+                            ->columns(3)
+                            ->gridDirection('row')
+                            ->bulkToggleable()
+                            ->searchable()
+                            ->getOptionLabelFromRecordUsing(fn (Role $record): string => ucwords(str_replace(['-', '_'], ' ', $record->name)))
+                            ->descriptions(
+                                fn (): array => Role::all()->pluck('name', 'id')->map(
+                                    fn ($name) => 'Assign '.ucwords(str_replace(['-', '_'], ' ', $name)).' role'
+                                )->toArray()
+                            ),
+
+                        CheckboxList::make('permissions')
+                            ->relationship('permissions', 'name')
+                            ->columns(3)
+                            ->gridDirection('row')
+                            ->bulkToggleable()
+                            ->searchable()
+                            ->getOptionLabelFromRecordUsing(fn (Permission $record): string => ucwords(str_replace(['-', '_'], ' ', $record->name)))
+                            ->descriptions(
+                                fn (): array => Permission::all()->pluck('name', 'id')->map(
+                                    fn ($name) => 'Grant '.str_replace(['-', '_'], ' ', $name).' permission'
+                                )->toArray()
+                            ),
                     ]),
             ]);
     }
@@ -102,7 +149,7 @@ class UserResource extends Resource
                     ->extraAttributes(['style' => 'cursor: pointer;'])
                     ->action(function ($record) {
                         // Action to open the image in a new tab
-                        return redirect()->away(asset('storage/profile_images/' . $record->image));
+                        return redirect()->away(asset('storage/profile_images/'.$record->image));
                     }),
                 Tables\Columns\ImageColumn::make('syndicate_card')
                     ->label('Syndicate Card')
@@ -111,7 +158,7 @@ class UserResource extends Resource
                     ->extraAttributes(['style' => 'cursor: pointer;'])
                     ->action(function ($record) {
                         // Action to open the image in a new tab
-                        return redirect()->away(asset('storage/syndicate_card/' . $record->image));
+                        return redirect()->away(asset('storage/syndicate_card/'.$record->image));
                     }),
                 Tables\Columns\TextColumn::make('isSyndicateCardRequired')
                     ->label('Is Syndicate Card Required')
@@ -127,6 +174,18 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('registration_number')->label('Registration Number')->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\ToggleColumn::make('blocked')->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\ToggleColumn::make('limited')->toggleable(isToggledHiddenByDefault: false),
+                Tables\Columns\TextColumn::make('roles.name')
+                    ->label('Roles')
+                    ->badge()
+                    ->color('success')
+                    ->formatStateUsing(fn (string $state): string => ucwords(str_replace(['-', '_'], ' ', $state)))
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('permissions.name')
+                    ->label('Direct Permissions')
+                    ->badge()
+                    ->color('info')
+                    ->formatStateUsing(fn (string $state): string => ucwords(str_replace(['-', '_'], ' ', $state)))
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('email_verified_at')->toggleable(isToggledHiddenByDefault: false),
 

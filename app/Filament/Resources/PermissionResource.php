@@ -4,16 +4,24 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\PermissionResource\Pages;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -27,27 +35,79 @@ class PermissionResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
+    protected static int $globalSearchResultsLimit = 20;
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
+    }
+
+    public static function getGlobalSearchResultTitle(\Illuminate\Database\Eloquent\Model $record): string
+    {
+        return ucwords(str_replace(['-', '_'], ' ', $record->name));
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['name', 'guard_name'];
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Section::make('Permission Information')
-                    ->description('Manage permission details')
+                    ->description('Define the permission details and scope')
+                    ->icon('heroicon-o-key')
                     ->schema([
                         TextInput::make('name')
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->maxLength(255)
-                            ->placeholder('Enter permission name')
-                            ->helperText('The name of the permission (e.g., create-posts, edit-users, view-reports). Use only lowercase letters, numbers, hyphens, and underscores.')
-                            ->rules(['regex:/^[a-z0-9-_]+$/']),
+                            ->placeholder('Enter permission name (e.g., create-posts, edit-users)')
+                            ->helperText('Use lowercase with hyphens. Format: action-resource (e.g., create-posts, edit-users)')
+                            ->rules(['regex:/^[a-z0-9-_]+$/', 'min:3'])
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(fn (callable $set, $state) => $set('name', strtolower(str_replace(' ', '-', $state)))),
 
-                        TextInput::make('guard_name')
+                        Select::make('guard_name')
                             ->default('web')
                             ->required()
-                            ->maxLength(255)
-                            ->placeholder('web')
-                            ->helperText('Guard name for the permission (usually "web")'),
+                            ->options([
+                                'web' => 'Web Guard (for web routes)',
+                                'api' => 'API Guard (for API routes)',
+                            ])
+                            ->helperText('Select the appropriate guard for this permission'),
+
+                        Select::make('category')
+                            ->label('Permission Category')
+                            ->options([
+                                'users' => 'User Management',
+                                'roles' => 'Role Management',
+                                'posts' => 'Content Management',
+                                'reports' => 'Reports & Analytics',
+                                'settings' => 'System Settings',
+                                'other' => 'Other',
+                            ])
+                            ->placeholder('Select category')
+                            ->helperText('Categorize this permission for better organization'),
+
+                        Textarea::make('description')
+                            ->placeholder('Optional description of what this permission allows...')
+                            ->helperText('Describe what actions this permission grants')
+                            ->columnSpanFull()
+                            ->rows(2),
+
+                        Placeholder::make('usage_info')
+                            ->label('Permission Usage')
+                            ->content(fn ($record) => $record ?
+                                "Assigned to {$record->roles()->count()} roles | Direct users: {$record->users()->count()} | Created: {$record->created_at?->diffForHumans()}" :
+                                'New permission - usage statistics will be available after creation'
+                            )
+                            ->columnSpanFull()
+                            ->visible(fn ($livewire) => $livewire instanceof \Filament\Resources\Pages\EditRecord),
                     ])->columns(2),
 
                 Section::make('Assign to Roles')
@@ -117,23 +177,78 @@ class PermissionResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('guard_name')
+                    ->label('Guard')
                     ->options([
-                        'web' => 'Web',
-                        'api' => 'API',
-                    ]),
+                        'web' => 'Web Guard',
+                        'api' => 'API Guard',
+                    ])
+                    ->placeholder('All Guards'),
+
+                Tables\Filters\SelectFilter::make('category')
+                    ->label('Category')
+                    ->options([
+                        'users' => 'User Management',
+                        'roles' => 'Role Management',
+                        'posts' => 'Content Management',
+                        'reports' => 'Reports & Analytics',
+                        'settings' => 'System Settings',
+                        'other' => 'Other',
+                    ])
+                    ->placeholder('All Categories'),
+
+                Filter::make('has_roles')
+                    ->label('Assigned to Roles')
+                    ->query(fn (Builder $query): Builder => $query->has('roles'))
+                    ->toggle(),
+
+                Filter::make('has_direct_users')
+                    ->label('Has Direct Users')
+                    ->query(fn (Builder $query): Builder => $query->has('users'))
+                    ->toggle(),
+
                 Tables\Filters\SelectFilter::make('roles')
+                    ->label('Assigned to Role')
                     ->relationship('roles', 'name')
                     ->multiple()
-                    ->preload(),
-            ])
+                    ->preload()
+                    ->searchable(),
+            ], layout: FiltersLayout::AboveContent)
+            ->filtersFormColumns(5)
             ->actions([
-                ViewAction::make(),
-                EditAction::make(),
-                DeleteAction::make()
-                    ->requiresConfirmation()
-                    ->modalHeading('Delete Permission')
-                    ->modalDescription('Are you sure you want to delete this permission? This action cannot be undone and will remove this permission from all roles and users.')
-                    ->modalSubmitActionLabel('Yes, delete it'),
+                ActionGroup::make([
+                    ViewAction::make()
+                        ->color('info'),
+                    EditAction::make()
+                        ->color('warning'),
+                    Action::make('assign_to_role')
+                        ->label('Quick Assign to Role')
+                        ->icon('heroicon-o-shield-check')
+                        ->color('success')
+                        ->form([
+                            CheckboxList::make('roles')
+                                ->label('Select Roles')
+                                ->options(Role::all()->pluck('name', 'id'))
+                                ->columns(2)
+                                ->searchable(),
+                        ])
+                        ->action(function (Permission $record, array $data) {
+                            $record->roles()->sync($data['roles'] ?? []);
+                            \Filament\Notifications\Notification::make()
+                                ->title('Permission assigned to roles successfully')
+                                ->success()
+                                ->send();
+                        }),
+                    DeleteAction::make()
+                        ->requiresConfirmation()
+                        ->modalHeading('Delete Permission')
+                        ->modalDescription('This will remove this permission from all roles and users. This action cannot be undone.')
+                        ->modalSubmitActionLabel('Yes, delete it')
+                        ->color('danger'),
+                ])->label('Actions')
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->size('sm')
+                    ->color('gray')
+                    ->button(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

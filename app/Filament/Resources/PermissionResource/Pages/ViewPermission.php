@@ -26,25 +26,37 @@ class ViewPermission extends ViewRecord
             ->record($this->getRecord())
             ->schema([
                 Section::make('Permission Information')
+                    ->icon('heroicon-o-key')
+                    ->description('Permission details and metadata')
                     ->schema([
                         TextEntry::make('name')
                             ->label('Permission Name')
                             ->size('lg')
                             ->weight('bold')
+                            ->color('primary')
                             ->formatStateUsing(fn (string $state): string => ucwords(str_replace(['-', '_'], ' ', $state))),
 
                         TextEntry::make('guard_name')
                             ->label('Guard Name')
-                            ->badge(),
+                            ->badge()
+                            ->color('secondary'),
+
+                        TextEntry::make('category')
+                            ->label('Category')
+                            ->badge()
+                            ->color('warning')
+                            ->placeholder('Uncategorized'),
 
                         TextEntry::make('created_at')
                             ->label('Created At')
-                            ->dateTime(),
+                            ->dateTime()
+                            ->since(),
 
                         TextEntry::make('updated_at')
-                            ->label('Updated At')
-                            ->dateTime(),
-                    ])->columns(2),
+                            ->label('Last Updated')
+                            ->dateTime()
+                            ->since(),
+                    ])->columns(3),
 
                 Section::make('Assigned Roles')
                     ->schema([
@@ -56,16 +68,29 @@ class ViewPermission extends ViewRecord
                             ->formatStateUsing(fn (string $state): string => ucwords(str_replace(['-', '_'], ' ', $state))),
                     ]),
 
-                Section::make('Statistics')
+                Section::make('Usage Statistics')
+                    ->icon('heroicon-o-chart-pie')
+                    ->description('Permission assignment and usage data')
                     ->schema([
                         TextEntry::make('roles_count')
-                            ->label('Total Roles')
-                            ->numeric(),
+                            ->label('Assigned to Roles')
+                            ->numeric()
+                            ->badge()
+                            ->color('success'),
 
                         TextEntry::make('users_count')
-                            ->label('Direct Users')
-                            ->numeric(),
-                    ])->columns(2),
+                            ->label('Direct User Assignments')
+                            ->numeric()
+                            ->badge()
+                            ->color('info'),
+
+                        TextEntry::make('total_users_with_permission')
+                            ->label('Total Users with Permission')
+                            ->state(fn ($record) => $record->users()->count() + $record->roles()->withCount('users')->get()->sum('users_count'))
+                            ->numeric()
+                            ->badge()
+                            ->color('warning'),
+                    ])->columns(3),
             ]);
     }
 }

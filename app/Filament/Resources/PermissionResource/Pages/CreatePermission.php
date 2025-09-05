@@ -12,15 +12,16 @@ class CreatePermission extends CreateRecord
 
     protected function getRedirectUrl(): string
     {
-        return $this->getResource()::getUrl('index');
+        return $this->getResource()::getUrl('view', ['record' => $this->getRecord()]);
     }
 
     protected function getCreatedNotification(): ?Notification
     {
         return Notification::make()
             ->success()
-            ->title('Permission Created')
-            ->body('The permission has been created successfully.');
+            ->title('Permission Created Successfully')
+            ->body("The permission '{$this->getRecord()->name}' has been created and assigned to {$this->getRecord()->roles()->count()} roles.")
+            ->duration(5000);
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array
@@ -29,5 +30,15 @@ class CreatePermission extends CreateRecord
         $data['name'] = strtolower(str_replace(' ', '-', $data['name']));
 
         return $data;
+    }
+
+    public function getTitle(): string
+    {
+        return 'Create New Permission';
+    }
+
+    public function getSubheading(): ?string
+    {
+        return 'Define a new permission and assign it to roles';
     }
 }

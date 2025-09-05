@@ -26,23 +26,30 @@ class ViewRole extends ViewRecord
             ->record($this->getRecord())
             ->schema([
                 Section::make('Role Information')
+                    ->icon('heroicon-o-identification')
+                    ->description('Basic role details and metadata')
                     ->schema([
                         TextEntry::make('name')
                             ->label('Role Name')
                             ->size('lg')
-                            ->weight('bold'),
+                            ->weight('bold')
+                            ->color('primary')
+                            ->formatStateUsing(fn (string $state): string => ucwords(str_replace(['-', '_'], ' ', $state))),
 
                         TextEntry::make('guard_name')
                             ->label('Guard Name')
-                            ->badge(),
+                            ->badge()
+                            ->color('secondary'),
 
                         TextEntry::make('created_at')
                             ->label('Created At')
-                            ->dateTime(),
+                            ->dateTime()
+                            ->since(),
 
                         TextEntry::make('updated_at')
-                            ->label('Updated At')
-                            ->dateTime(),
+                            ->label('Last Updated')
+                            ->dateTime()
+                            ->since(),
                     ])->columns(2),
 
                 Section::make('Permissions')
@@ -55,15 +62,29 @@ class ViewRole extends ViewRecord
                             ->formatStateUsing(fn (string $state): string => ucwords(str_replace(['-', '_'], ' ', $state))),
                     ]),
 
-                Section::make('Statistics')
+                Section::make('Statistics & Usage')
+                    ->icon('heroicon-o-chart-bar')
+                    ->description('Role usage and assignment statistics')
                     ->schema([
                         TextEntry::make('permissions_count')
                             ->label('Total Permissions')
-                            ->numeric(),
+                            ->numeric()
+                            ->badge()
+                            ->color('success'),
 
                         TextEntry::make('users_count')
                             ->label('Users with this Role')
-                            ->numeric(),
+                            ->numeric()
+                            ->badge()
+                            ->color('info'),
+
+                        TextEntry::make('users.name')
+                            ->label('Assigned Users')
+                            ->listWithLineBreaks()
+                            ->bulleted()
+                            ->limitList(5)
+                            ->placeholder('No users assigned')
+                            ->columnSpanFull(),
                     ])->columns(2),
             ]);
     }

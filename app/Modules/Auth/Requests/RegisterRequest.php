@@ -38,7 +38,7 @@ class RegisterRequest extends FormRequest
             'job' => 'nullable|string|max:255',
             'highestdegree' => 'nullable|string|max:255',
             'registration_number' => 'nullable|string|unique:users',
-            'fcmToken' => 'nullable|string|min:152|max:255|regex:/^[a-zA-Z0-9:_-]+$/',
+            'fcmToken' => 'nullable|string|max:255|regex:/^[a-zA-Z0-9:_-]+$/',
             'deviceId' => 'nullable|string|min:10|max:50|regex:/^[a-zA-Z0-9_-]+$/',
             'deviceType' => 'nullable|string|in:ios,android,web',
             'appVersion' => 'nullable|string|max:20|regex:/^[0-9.]+$/',

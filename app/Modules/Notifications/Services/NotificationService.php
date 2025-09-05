@@ -584,8 +584,8 @@ class NotificationService
         $validTokens = [];
 
         foreach ($tokens as $token) {
-            // FCM token validation: alphanumeric, colons, underscores, hyphens, 152+ chars
-            if (is_string($token) && preg_match('/^[a-zA-Z0-9:_-]{152,}$/', $token)) {
+            // FCM token validation: alphanumeric, colons, underscores, hyphens (removed min length requirement)
+            if (is_string($token) && strlen($token) > 0 && preg_match('/^[a-zA-Z0-9:_-]+$/', $token)) {
                 $validTokens[] = $token;
             } else {
                 Log::warning('Invalid FCM token format detected', [

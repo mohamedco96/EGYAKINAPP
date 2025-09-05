@@ -233,9 +233,9 @@ class FcmTokenService
      */
     private function isValidTokenFormat(string $token): bool
     {
-        // FCM tokens are typically 152+ characters, alphanumeric with colons, underscores, hyphens
+        // FCM tokens are alphanumeric with colons, underscores, hyphens (removed min length requirement)
         return is_string($token) &&
-               strlen($token) >= 152 &&
+               strlen($token) > 0 &&
                preg_match('/^[a-zA-Z0-9:_-]+$/', $token);
     }
 

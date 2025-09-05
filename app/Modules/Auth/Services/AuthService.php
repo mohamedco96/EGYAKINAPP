@@ -644,7 +644,7 @@ class AuthService
     protected function storeFcmToken(int $userId, string $token, ?string $deviceId = null, ?string $deviceType = null, ?string $appVersion = null): void
     {
         // Validate token format
-        if (! preg_match('/^[a-zA-Z0-9:_-]{1,255}$/', $token)) {
+        if (! preg_match('/^[a-zA-Z0-9:_-]+$/', $token) || strlen($token) === 0) {
             Log::warning('Invalid FCM token format', [
                 'user_id' => $userId,
                 'token' => substr($token, 0, 32).'...',

@@ -23,6 +23,7 @@ class ViewPermission extends ViewRecord
     public function infolist(Infolist $infolist): Infolist
     {
         return $infolist
+            ->record($this->getRecord())
             ->schema([
                 Section::make('Permission Information')
                     ->schema([

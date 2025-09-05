@@ -17,38 +17,31 @@ class FilamentNavigationServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Filament::serving(function () {
-            // Define navigation groups with icons and sorting
+            // Define navigation groups with emoji prefixes (no icons per Filament UX guidelines)
+            // Individual resources have icons, so groups use emojis for visual distinction
             Filament::registerNavigationGroups([
                 NavigationGroup::make('🏠 Dashboard')
-                    ->icon('heroicon-o-home')
                     ->collapsed(false),
 
                 NavigationGroup::make('🔐 Access Control')
-                    ->icon('heroicon-o-shield-check')
                     ->collapsed(false),
 
                 NavigationGroup::make('👨‍⚕️ Medical Team')
-                    ->icon('heroicon-o-users')
                     ->collapsed(false),
 
                 NavigationGroup::make('🏥 Patient Management')
-                    ->icon('heroicon-o-user-group')
                     ->collapsed(true),
 
                 NavigationGroup::make('📊 Medical Data')
-                    ->icon('heroicon-o-chart-bar')
                     ->collapsed(true),
 
                 NavigationGroup::make('📝 Content Management')
-                    ->icon('heroicon-o-document-text')
                     ->collapsed(true),
 
                 NavigationGroup::make('📢 Communications')
-                    ->icon('heroicon-o-bell')
                     ->collapsed(true),
 
                 NavigationGroup::make('⚙️ System Settings')
-                    ->icon('heroicon-o-cog-6-tooth')
                     ->collapsed(true),
             ]);
 

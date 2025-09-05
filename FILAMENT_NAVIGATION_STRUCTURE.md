@@ -152,15 +152,8 @@ These should be created or cleaned up based on business requirements.
 
 ## Icon Reference
 
-### Navigation Group Icons
-- 🏠 Dashboard: `heroicon-o-home`
-- 🔐 Access Control: `heroicon-o-shield-check`
-- 👨‍⚕️ Medical Team: `heroicon-o-users`
-- 🏥 Patient Management: `heroicon-o-user-group`
-- 📊 Medical Data: `heroicon-o-chart-bar`
-- 📝 Content Management: `heroicon-o-document-text`
-- 📢 Communications: `heroicon-o-bell`
-- ⚙️ System Settings: `heroicon-o-cog-6-tooth`
+### Navigation Group Design
+Groups use emoji prefixes for visual distinction (no icons to allow resource items to have icons as per Filament UX guidelines):
 
 ### Resource Icons
 - **Security**: `heroicon-o-shield-check`, `heroicon-o-key`

@@ -173,6 +173,7 @@ return [
         Ichtrojan\Otp\OtpServiceProvider::class,
         App\Providers\FirebaseServiceProvider::class,
         App\Providers\FileCleanupServiceProvider::class,
+        App\Providers\FilamentNavigationServiceProvider::class,
     ])->toArray(),
 
     /*

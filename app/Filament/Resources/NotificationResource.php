@@ -17,13 +17,13 @@ class NotificationResource extends Resource
 {
     protected static ?string $model = AppNotification::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-bell';
 
     protected static ?string $navigationLabel = 'Notifications';
 
-    protected static ?string $navigationGroup = 'Other';
+    protected static ?string $navigationGroup = '📢 Communications';
 
-    protected static ?int $navigationSort = 11;
+    protected static ?int $navigationSort = 10;
 
     public static function getNavigationBadge(): ?string
     {
@@ -59,7 +59,7 @@ class NotificationResource extends Resource
                 Tables\Filters\SelectFilter::make('Doctor Name')
                     ->relationship('doctor', 'name'),
                 //Tables\Filters\SelectFilter::make('Patient Name')
-                    //->relationship('patient', 'name'),
+                //->relationship('patient', 'name'),
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         DatePicker::make('created_from'),

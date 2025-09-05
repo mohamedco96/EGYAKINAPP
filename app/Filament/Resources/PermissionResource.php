@@ -31,9 +31,9 @@ class PermissionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-key';
 
-    protected static ?string $navigationGroup = 'User Management';
+    protected static ?string $navigationGroup = '🔐 Access Control';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 20;
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -284,6 +284,11 @@ class PermissionResource extends Resource
     public static function getNavigationLabel(): string
     {
         return 'Permissions';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return '🔐 Access Control';
     }
 
     public static function getModelLabel(): string

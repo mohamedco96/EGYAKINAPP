@@ -23,13 +23,13 @@ class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static ?string $navigationIcon = 'heroicon-s-user';
+    protected static ?string $navigationIcon = 'heroicon-o-users';
 
-    protected static ?string $navigationLabel = 'Doctors info.';
+    protected static ?string $navigationLabel = 'Doctors';
 
-    protected static ?string $navigationGroup = 'Doctors';
+    protected static ?string $navigationGroup = '👨‍⚕️ Medical Team';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 10;
 
     public static function getNavigationBadge(): ?string
     {

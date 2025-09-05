@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\SectionsInfoResource\Pages;
-use App\Filament\Resources\SectionsInfoResource\RelationManagers;
 use App\Models\SectionsInfo;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
@@ -13,25 +12,25 @@ use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class SectionsInfoResource extends Resource
 {
     protected static ?string $model = SectionsInfo::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-squares-2x2';
 
-    protected static ?string $navigationLabel = 'Sections Info';
+    protected static ?string $navigationLabel = 'Section Information';
 
-    protected static ?string $navigationGroup = 'App Data';
+    protected static ?string $navigationGroup = '📊 Medical Data';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 30;
 
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::count();
     }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -50,7 +49,7 @@ class SectionsInfoResource extends Resource
                 Tables\Columns\TextColumn::make('section_description')->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: false),
-                ])
+            ])
             ->persistSearchInSession()
             ->persistColumnSearchesInSession()
             ->persistSortInSession()
@@ -64,23 +63,23 @@ class SectionsInfoResource extends Resource
                         return $query
                             ->when(
                                 $data['created_from'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
                             )
                             ->when(
                                 $data['created_until'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
             ])
             ->toggleColumnsTriggerAction(
-                fn(Action $action) => $action
+                fn (Action $action) => $action
                     ->button()
                     ->label('Toggle columns'),
             )
             ->persistFiltersInSession()
             ->deselectAllRecordsWhenFiltered(true)
             ->filtersTriggerAction(
-                fn(Action $action) => $action
+                fn (Action $action) => $action
                     ->button()
                     ->label('Filter'),
             )

@@ -18,13 +18,13 @@ class ContactResource extends Resource
 {
     protected static ?string $model = Contact::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-phone';
 
-    protected static ?string $navigationLabel = 'Contact';
+    protected static ?string $navigationLabel = 'Contact Requests';
 
-    protected static ?string $navigationGroup = 'Other';
+    protected static ?string $navigationGroup = '📢 Communications';
 
-    protected static ?int $navigationSort = 11;
+    protected static ?int $navigationSort = 20;
 
     public static function getNavigationBadge(): ?string
     {

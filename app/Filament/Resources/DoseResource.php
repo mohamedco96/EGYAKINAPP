@@ -3,32 +3,29 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\DoseResource\Pages;
-use App\Filament\Resources\DoseResource\RelationManagers;
 use App\Modules\Doses\Models\Dose;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class DoseResource extends Resource
 {
     protected static ?string $model = Dose::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-beaker';
 
-    protected static ?string $navigationLabel = 'Dose modifier';
+    protected static ?string $navigationLabel = 'Dose Modifiers';
 
-    protected static ?string $navigationGroup = 'App Data';
+    protected static ?string $navigationGroup = '📊 Medical Data';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 20;
 
     public static function getNavigationBadge(): ?string
     {
@@ -59,60 +56,60 @@ class DoseResource extends Resource
                         'undo',
                     ]),
                 Forms\Components\RichEditor::make('dose')
-                            ->required()
-                            ->toolbarButtons([
-                                'blockquote',
-                                'bold',
-                                'bulletList',
-                                'codeBlock',
-                                'h2',
-                                'h3',
-                                'italic',
-                                'orderedList',
-                                'redo',
-                                'strike',
-                                'underline',
-                                'undo',
-                            ]),
-//                Forms\Components\FieldSet::make()
-//                    ->label('Description')
-//                    ->schema([
-//                        RichEditor::make('description')->toolbarButtons([
-//                            'blockquote',
-//                            'bold',
-//                            'bulletList',
-//                            'codeBlock',
-//                            'h2',
-//                            'h3',
-//                            'italic',
-//                            'orderedList',
-//                            'redo',
-//                            'strike',
-//                            'underline',
-//                            'undo',
-//                        ]),
-//                    ]),
-//
-//                Forms\Components\FieldSet::make()
-//                    ->label('Dose')
-//                    ->schema([
-//                        RichEditor::make('dose')
-//                            ->required()
-//                            ->toolbarButtons([
-//                                'blockquote',
-//                                'bold',
-//                                'bulletList',
-//                                'codeBlock',
-//                                'h2',
-//                                'h3',
-//                                'italic',
-//                                'orderedList',
-//                                'redo',
-//                                'strike',
-//                                'underline',
-//                                'undo',
-//                            ]),
-//                    ]),
+                    ->required()
+                    ->toolbarButtons([
+                        'blockquote',
+                        'bold',
+                        'bulletList',
+                        'codeBlock',
+                        'h2',
+                        'h3',
+                        'italic',
+                        'orderedList',
+                        'redo',
+                        'strike',
+                        'underline',
+                        'undo',
+                    ]),
+                //                Forms\Components\FieldSet::make()
+                //                    ->label('Description')
+                //                    ->schema([
+                //                        RichEditor::make('description')->toolbarButtons([
+                //                            'blockquote',
+                //                            'bold',
+                //                            'bulletList',
+                //                            'codeBlock',
+                //                            'h2',
+                //                            'h3',
+                //                            'italic',
+                //                            'orderedList',
+                //                            'redo',
+                //                            'strike',
+                //                            'underline',
+                //                            'undo',
+                //                        ]),
+                //                    ]),
+                //
+                //                Forms\Components\FieldSet::make()
+                //                    ->label('Dose')
+                //                    ->schema([
+                //                        RichEditor::make('dose')
+                //                            ->required()
+                //                            ->toolbarButtons([
+                //                                'blockquote',
+                //                                'bold',
+                //                                'bulletList',
+                //                                'codeBlock',
+                //                                'h2',
+                //                                'h3',
+                //                                'italic',
+                //                                'orderedList',
+                //                                'redo',
+                //                                'strike',
+                //                                'underline',
+                //                                'undo',
+                //                            ]),
+                //                    ]),
             ]);
     }
 
@@ -140,23 +137,23 @@ class DoseResource extends Resource
                         return $query
                             ->when(
                                 $data['created_from'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
                             )
                             ->when(
                                 $data['created_until'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
             ])
             ->toggleColumnsTriggerAction(
-                fn(Action $action) => $action
+                fn (Action $action) => $action
                     ->button()
                     ->label('Toggle columns'),
             )
             ->persistFiltersInSession()
             ->deselectAllRecordsWhenFiltered(true)
             ->filtersTriggerAction(
-                fn(Action $action) => $action
+                fn (Action $action) => $action
                     ->button()
                     ->label('Filter'),
             )

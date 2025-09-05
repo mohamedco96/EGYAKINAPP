@@ -3,8 +3,8 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PostsResource\Pages;
-use App\Modules\Posts\Models\Posts;
 use App\Models\User;
+use App\Modules\Posts\Models\Posts;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Form;
@@ -12,7 +12,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
-use Filament\Tables\Columns\ImageColumn;
 use Illuminate\Database\Eloquent\Builder;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
@@ -20,13 +19,13 @@ class PostsResource extends Resource
 {
     protected static ?string $model = Posts::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
     protected static ?string $navigationLabel = 'Posts';
 
-    protected static ?string $navigationGroup = 'Other';
+    protected static ?string $navigationGroup = '📝 Content Management';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 10;
 
     public static function getNavigationBadge(): ?string
     {

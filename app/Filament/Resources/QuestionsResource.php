@@ -5,28 +5,24 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\QuestionsResource\Pages;
 use App\Modules\Questions\Models\Questions;
 use Filament\Forms;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class QuestionsResource extends Resource
 {
     protected static ?string $model = Questions::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-question-mark-circle';
 
     protected static ?string $navigationLabel = 'Questions';
 
-    protected static ?string $navigationGroup = 'App Data';
+    protected static ?string $navigationGroup = '📊 Medical Data';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 10;
 
     public static function getNavigationBadge(): ?string
     {
@@ -95,8 +91,8 @@ class QuestionsResource extends Resource
                     ->boolean(),
 
                 Forms\Components\Radio::make('hidden')
-                ->label('Hidden')
-                ->boolean(),
+                    ->label('Hidden')
+                    ->boolean(),
             ]);
     }
 
@@ -124,13 +120,13 @@ class QuestionsResource extends Resource
                     ->sortable()
                     ->toggleable(),
 
-//                Tables\Columns\TextColumn::make('sort')
-//                    ->label('Sort Order')
-//                    ->sortable()
-//                    ->toggleable(),
+                //                Tables\Columns\TextColumn::make('sort')
+                //                    ->label('Sort Order')
+                //                    ->sortable()
+                //                    ->toggleable(),
 
                 TextInputColumn::make('sort') // Editable column
-                ->label('Sort Order')
+                    ->label('Sort Order')
                     ->rules(['required', 'max:255']) // Add validation if needed
                     ->placeholder('Enter a name...'),
 
@@ -154,8 +150,8 @@ class QuestionsResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\ToggleColumn::make('hidden')
-                ->label('Hidden')
-                ->sortable(),
+                    ->label('Hidden')
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Created At')
@@ -202,11 +198,11 @@ class QuestionsResource extends Resource
                     ]),
 
                 Tables\Filters\SelectFilter::make('hidden')
-                ->label('Hidden')
-                ->options([
-                    1 => 'Yes',
-                    0 => 'No',
-                ]),
+                    ->label('Hidden')
+                    ->options([
+                        1 => 'Yes',
+                        0 => 'No',
+                    ]),
             ])
             ->actions([
                 Tables\Actions\EditAction::make()->icon('heroicon-o-pencil'),

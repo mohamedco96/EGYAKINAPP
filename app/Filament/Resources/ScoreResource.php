@@ -18,13 +18,13 @@ class ScoreResource extends Resource
 {
     protected static ?string $model = Score::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-trophy';
 
-    protected static ?string $navigationLabel = 'Score';
+    protected static ?string $navigationLabel = 'Doctor Scores';
 
-    protected static ?string $navigationGroup = 'Doctors';
+    protected static ?string $navigationGroup = '👨‍⚕️ Medical Team';
 
-    protected static ?int $navigationSort = 9;
+    protected static ?int $navigationSort = 20;
 
     public static function getNavigationBadge(): ?string
     {

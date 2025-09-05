@@ -31,9 +31,11 @@ class RoleResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-shield-check';
 
-    protected static ?string $navigationGroup = 'User Management';
+    protected static ?string $navigationGroup = '🔐 Access Control';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?string $navigationLabel = 'Roles & Permissions';
+
+    protected static ?int $navigationSort = 10;
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -260,6 +262,11 @@ class RoleResource extends Resource
     public static function getNavigationLabel(): string
     {
         return 'Roles';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return '🔐 Access Control';
     }
 
     public static function getModelLabel(): string

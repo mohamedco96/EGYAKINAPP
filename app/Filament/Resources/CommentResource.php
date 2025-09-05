@@ -18,13 +18,13 @@ class CommentResource extends Resource
 {
     protected static ?string $model = Comment::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-left-ellipsis';
 
     protected static ?string $navigationLabel = 'Patient Comments';
 
-    protected static ?string $navigationGroup = 'Patients';
+    protected static ?string $navigationGroup = '🏥 Patient Management';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 30;
 
     public static function getNavigationBadge(): ?string
     {
@@ -67,7 +67,7 @@ class CommentResource extends Resource
                 Tables\Filters\SelectFilter::make('Doctor Name')
                     ->relationship('doctor', 'name'),
                 //Tables\Filters\SelectFilter::make('Patient Name')
-                    //->relationship('patient', 'name'),
+                //->relationship('patient', 'name'),
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         DatePicker::make('created_from'),

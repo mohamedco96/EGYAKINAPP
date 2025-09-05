@@ -52,7 +52,6 @@ class ViewPermission extends ViewRecord
                             ->listWithLineBreaks()
                             ->bulleted()
                             ->limitList(10)
-                            ->expandableLimitedList()
                             ->formatStateUsing(fn (string $state): string => ucwords(str_replace(['-', '_'], ' ', $state))),
                     ]),
 

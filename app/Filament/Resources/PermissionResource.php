@@ -39,11 +39,8 @@ class PermissionResource extends Resource
                             ->unique(ignoreRecord: true)
                             ->maxLength(255)
                             ->placeholder('Enter permission name')
-                            ->helperText('The name of the permission (e.g., create-posts, edit-users, view-reports)')
-                            ->rules(['regex:/^[a-z0-9-_]+$/'])
-                            ->validationMessages([
-                                'regex' => 'Permission name must contain only lowercase letters, numbers, hyphens, and underscores.',
-                            ]),
+                            ->helperText('The name of the permission (e.g., create-posts, edit-users, view-reports). Use only lowercase letters, numbers, hyphens, and underscores.')
+                            ->rules(['regex:/^[a-z0-9-_]+$/']),
 
                         TextInput::make('guard_name')
                             ->default('web')

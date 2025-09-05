@@ -266,28 +266,44 @@ class PatientService
     }
 
     /**
-     * Send notifications about new patient creation
+     * Send notifications to admins about new patient creation
      */
     private function sendNewPatientNotifications(User $user, int $patientId, ?string $patientName): void
     {
-        $doctors = User::where('id', '!=', Auth::id())
-            ->where('isSyndicateCardRequired', 'Verified')
+        // Get admin users only
+        $adminUsers = User::role('Admin')
+            ->where('id', '!=', Auth::id())
             ->pluck('id');
 
-        foreach ($doctors as $doctorId) {
+        if ($adminUsers->isEmpty()) {
+            Log::info('No admin users found to notify for new patient', ['patient_id' => $patientId]);
+
+            return;
+        }
+
+        foreach ($adminUsers as $adminId) {
             AppNotification::create([
-                'doctor_id' => $doctorId,
+                'doctor_id' => $adminId,
                 'type' => 'New Patient',
-                'content' => 'New Patient was created',
+                'content' => sprintf('Dr. %s created a new patient: %s', $user->name.' '.$user->lname, $patientName ?? 'Unknown'),
                 'patient_id' => $patientId,
+                'type_doctor_id' => $user->id,
             ]);
         }
 
-        $title = 'New Patient was created 📣';
-        $body = 'Dr. '.ucfirst($user->name).' added a new patient named '.$patientName;
-        $tokens = FcmToken::whereIn('doctor_id', $doctors)->pluck('token')->toArray();
+        $title = 'New Patient Created 🏥';
+        $body = 'Dr. '.ucfirst($user->name).' added a new patient: '.($patientName ?? 'Unknown');
+        $tokens = FcmToken::whereIn('doctor_id', $adminUsers)->pluck('token')->toArray();
 
-        $this->notificationService->sendPushNotification($title, $body, $tokens);
+        if (! empty($tokens)) {
+            $this->notificationService->sendPushNotification($title, $body, $tokens);
+        }
+
+        Log::info('Admin notifications sent for new patient (legacy service)', [
+            'patient_id' => $patientId,
+            'admin_count' => count($adminUsers),
+            'creator' => $user->name,
+        ]);
     }
 
     /**

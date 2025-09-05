@@ -1,0 +1,439 @@
+{
+    "info": {
+        "name": "EgyAkin Push Notifications Testing",
+        "description": "Collection for testing push notification endpoints",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{auth_token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8000",
+            "type": "string"
+        },
+        {
+            "key": "auth_token",
+            "value": "your-auth-token-here",
+            "type": "string"
+        },
+        {
+            "key": "test_fcm_token",
+            "value": "dGVzdF90b2tlbl9hYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ejEyMzQ1Njc4OTBfYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY3ODkwX2FiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6MTIzNDU2Nzg5MA",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "Login User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"fcmToken\": \"{{test_fcm_token}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "login"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "FCM Token Management",
+            "item": [
+                {
+                    "name": "Store FCM Token",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"token\": \"{{test_fcm_token}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/storeFCM",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "storeFCM"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Store Invalid FCM Token (Test Validation)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"token\": \"invalid-short-token\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/storeFCM",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "storeFCM"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Push Notifications",
+            "item": [
+                {
+                    "name": "Send Custom Notification",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Test Notification 🧪\",\n  \"body\": \"This is a test notification sent from Postman at {{$timestamp}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/send-notification",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "send-notification"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Send Predefined Notification (All Users)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/sendAllPushNotification",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "sendAllPushNotification"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Test Push Notification (Admin Only)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/send-notification",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "send-push-notification-test"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Notification Validation Tests",
+            "item": [
+                {
+                    "name": "Send Notification - Missing Title",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"body\": \"This should fail due to missing title\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/send-notification",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "send-notification"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Send Notification - Missing Body",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"This should fail due to missing body\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/send-notification",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "send-notification"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Send Notification - Title Too Long",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"This is a very long title that exceeds the maximum allowed length for push notification titles and should be rejected by the validation rules because it is way too long for a notification title which should be concise and short\",\n  \"body\": \"Test body\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/send-notification",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "send-notification"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Sample Notifications (Different Types)",
+            "item": [
+                {
+                    "name": "New Patient Created",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"New Patient Created 🏥\",\n  \"body\": \"Dr. Test created a new patient: John Doe\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/send-notification",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "send-notification"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Outcome Submitted",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Outcome Submitted ✅\",\n  \"body\": \"Dr. Test submitted outcome for patient: Jane Smith\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/send-notification",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "send-notification"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "New Group Post",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"New Group Post 👥\",\n  \"body\": \"Dr. Test posted in your group\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/send-notification",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "send-notification"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Comment Liked",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Comment was liked 👍\",\n  \"body\": \"Dr. Test liked your comment\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/send-notification",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "send-notification"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Group Invitation Accepted",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Group Invitation Accepted 🎉\",\n  \"body\": \"Dr. Test accepted your group invitation\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/send-notification",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "send-notification"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}

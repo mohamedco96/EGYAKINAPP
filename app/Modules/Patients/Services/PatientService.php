@@ -272,36 +272,120 @@ class PatientService
     }
 
     /**
-     * Send notifications to all doctors when a new patient is created
+     * Send notifications to admins when a new patient is created
      */
     private function sendNewPatientNotifications(User $user, int $patientId, ?string $patientName): void
     {
-        $doctors = User::where('id', '!=', Auth::id())
-            ->where('isSyndicateCardRequired', 'Verified')
+        // Get admin users only
+        $adminUsers = User::role('Admin')
+            ->where('id', '!=', Auth::id())
             ->pluck('id');
 
-        // Bulk insert notifications instead of individual creates
+        if ($adminUsers->isEmpty()) {
+            Log::info('No admin users found to notify for new patient', ['patient_id' => $patientId]);
+
+            return;
+        }
+
+        // Bulk insert notifications for admins
         $notificationsToInsert = [];
-        foreach ($doctors as $doctorId) {
+        foreach ($adminUsers as $adminId) {
             $notificationsToInsert[] = [
-                'doctor_id' => $doctorId,
+                'doctor_id' => $adminId,
                 'type' => 'New Patient',
-                'content' => 'New Patient was created',
+                'content' => sprintf('Dr. %s created a new patient: %s', $user->name.' '.$user->lname, $patientName ?? 'Unknown'),
                 'patient_id' => $patientId,
+                'type_doctor_id' => $user->id,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
         }
 
-        if (! empty($notificationsToInsert)) {
-            AppNotification::insert($notificationsToInsert);
+        AppNotification::insert($notificationsToInsert);
+
+        // Send push notifications to admins
+        $title = 'New Patient Created 🏥';
+        $body = 'Dr. '.ucfirst($user->name).' added a new patient: '.($patientName ?? 'Unknown');
+        $tokens = FcmToken::whereIn('doctor_id', $adminUsers)->pluck('token')->toArray();
+
+        if (! empty($tokens)) {
+            $this->notificationService->sendPushNotification($title, $body, $tokens);
         }
 
-        $title = 'New Patient was created 📣';
-        $body = 'Dr. '.ucfirst($user->name).' added a new patient named '.$patientName;
-        $tokens = FcmToken::whereIn('doctor_id', $doctors)->pluck('token')->toArray();
+        Log::info('Admin notifications sent for new patient', [
+            'patient_id' => $patientId,
+            'admin_count' => count($adminUsers),
+            'creator' => $user->name,
+        ]);
+    }
 
-        $this->notificationService->sendPushNotification($title, $body, $tokens);
+    /**
+     * Send notifications to admins when an outcome is submitted
+     */
+    private function sendOutcomeSubmittedNotifications(int $doctorId, int $patientId): void
+    {
+        try {
+            $user = User::find($doctorId);
+            if (! $user) {
+                Log::error('User not found for outcome notification', ['doctor_id' => $doctorId]);
+
+                return;
+            }
+
+            // Get patient name
+            $patientName = Answers::where('patient_id', $patientId)
+                ->where('question_id', 1)
+                ->value('answer');
+            $patientName = $patientName ? stripslashes(trim($patientName, '"')) : 'Unknown';
+
+            // Get admin users only
+            $adminUsers = User::role('Admin')
+                ->where('id', '!=', $doctorId)
+                ->pluck('id');
+
+            if ($adminUsers->isEmpty()) {
+                Log::info('No admin users found to notify for outcome submission', ['patient_id' => $patientId]);
+
+                return;
+            }
+
+            // Bulk insert notifications for admins
+            $notificationsToInsert = [];
+            foreach ($adminUsers as $adminId) {
+                $notificationsToInsert[] = [
+                    'doctor_id' => $adminId,
+                    'type' => 'Outcome Submitted',
+                    'content' => sprintf('Dr. %s submitted outcome for patient: %s', $user->name.' '.$user->lname, $patientName),
+                    'patient_id' => $patientId,
+                    'type_doctor_id' => $user->id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+
+            AppNotification::insert($notificationsToInsert);
+
+            // Send push notifications to admins
+            $title = 'Outcome Submitted ✅';
+            $body = 'Dr. '.ucfirst($user->name).' submitted outcome for: '.$patientName;
+            $tokens = FcmToken::whereIn('doctor_id', $adminUsers)->pluck('token')->toArray();
+
+            if (! empty($tokens)) {
+                $this->notificationService->sendPushNotification($title, $body, $tokens);
+            }
+
+            Log::info('Admin notifications sent for outcome submission', [
+                'patient_id' => $patientId,
+                'admin_count' => count($adminUsers),
+                'submitter' => $user->name,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send outcome submission notifications', [
+                'error' => $e->getMessage(),
+                'patient_id' => $patientId,
+                'doctor_id' => $doctorId,
+            ]);
+        }
     }
 
     /**
@@ -398,11 +482,14 @@ class PatientService
             ->where('key', 'outcome_status')
             ->first();
 
+        $isNewOutcome = false;
+
         if ($patientOutcomeStatus && $patientOutcomeStatus->status === false) {
             $patientOutcomeStatus->update([
                 'status' => true,
                 'doctor_id' => $doctorId,
             ]);
+            $isNewOutcome = true;
         } elseif (! $patientOutcomeStatus) {
             PatientStatus::create([
                 'doctor_id' => $doctorId,
@@ -412,6 +499,12 @@ class PatientService
             ]);
 
             $this->updateDoctorScore($doctorId, $patientId);
+            $isNewOutcome = true;
+        }
+
+        // Send admin notifications when outcome is submitted
+        if ($isNewOutcome) {
+            $this->sendOutcomeSubmittedNotifications($doctorId, $patientId);
         }
     }
 

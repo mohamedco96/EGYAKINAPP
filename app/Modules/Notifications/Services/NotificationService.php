@@ -105,26 +105,37 @@ class NotificationService
                 return ['success' => false, 'status' => 'No tokens found'];
             }
 
+            // Validate and filter tokens
+            $validTokens = $this->validateTokens($tokens);
+            if (empty($validTokens)) {
+                Log::warning('No valid FCM tokens found after validation');
+
+                return ['success' => false, 'status' => 'No valid tokens found'];
+            }
+
             $notification = Notification::create($title, $body);
             $messages = [];
 
-            foreach ($tokens as $token) {
+            foreach ($validTokens as $token) {
                 $messages[] = CloudMessage::withTarget('token', $token)
                     ->withNotification($notification);
             }
 
-            $this->messaging->sendAll($messages);
+            // Send messages and handle Firebase responses
+            $result = $this->messaging->sendAll($messages);
+            $this->handleSendAllResult($result, $validTokens);
 
             Log::info('Push notification sent successfully', [
                 'title' => $title,
                 'body' => $body,
-                'tokens_count' => count($tokens),
+                'total_tokens' => count($tokens),
+                'valid_tokens' => count($validTokens),
             ]);
 
             return [
                 'success' => true,
-                'status' => 'Message sent successfully to all tokens',
-                'tokens_count' => count($tokens),
+                'status' => 'Message sent successfully',
+                'tokens_count' => count($validTokens),
             ];
         } catch (\Exception $e) {
             Log::error('Failed to send push notification', [
@@ -563,5 +574,96 @@ class NotificationService
                 'consultation' => $consultationData,
             ];
         });
+    }
+
+    /**
+     * Validate FCM tokens format
+     */
+    private function validateTokens(array $tokens): array
+    {
+        $validTokens = [];
+
+        foreach ($tokens as $token) {
+            // FCM token validation: alphanumeric, colons, underscores, hyphens, 152+ chars
+            if (is_string($token) && preg_match('/^[a-zA-Z0-9:_-]{152,}$/', $token)) {
+                $validTokens[] = $token;
+            } else {
+                Log::warning('Invalid FCM token format detected', [
+                    'token' => substr($token, 0, 20).'...',
+                ]);
+            }
+        }
+
+        return $validTokens;
+    }
+
+    /**
+     * Handle Firebase sendAll result and cleanup invalid tokens
+     */
+    private function handleSendAllResult($result, array $tokens): void
+    {
+        try {
+            $invalidTokens = [];
+            $failureCount = 0;
+
+            // Check if result has failures
+            if (method_exists($result, 'failures') && $result->failures()) {
+                foreach ($result->failures() as $index => $failure) {
+                    $failureCount++;
+                    $token = $tokens[$index] ?? 'unknown';
+
+                    // Check for specific Firebase errors that indicate invalid tokens
+                    $error = $failure->error();
+                    if ($error && method_exists($error, 'getCode')) {
+                        $errorCode = $error->getCode();
+
+                        // Common invalid token error codes
+                        if (in_array($errorCode, ['INVALID_ARGUMENT', 'UNREGISTERED', 'NOT_FOUND'])) {
+                            $invalidTokens[] = $token;
+                            Log::info('Invalid FCM token detected', [
+                                'token' => substr($token, 0, 20).'...',
+                                'error_code' => $errorCode,
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            // Clean up invalid tokens from database
+            if (! empty($invalidTokens)) {
+                $this->cleanupInvalidTokens($invalidTokens);
+            }
+
+            if ($failureCount > 0) {
+                Log::warning('Some FCM notifications failed', [
+                    'total_failures' => $failureCount,
+                    'invalid_tokens_cleaned' => count($invalidTokens),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error handling Firebase sendAll result', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Clean up invalid tokens from database
+     */
+    private function cleanupInvalidTokens(array $invalidTokens): void
+    {
+        try {
+            $deletedCount = FcmToken::whereIn('token', $invalidTokens)->delete();
+
+            Log::info('Cleaned up invalid FCM tokens', [
+                'deleted_count' => $deletedCount,
+                'tokens_count' => count($invalidTokens),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to cleanup invalid FCM tokens', [
+                'error' => $e->getMessage(),
+                'tokens_count' => count($invalidTokens),
+            ]);
+        }
     }
 }

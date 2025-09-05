@@ -533,7 +533,7 @@ class GroupController extends Controller
                 if ($validated['status'] === 'accepted') {
                     // Send notification to group owner
                     if ($group->owner_id !== $userId) {
-                        $notification = AppNotification::create([
+                        AppNotification::create([
                             'doctor_id' => $group->owner_id,
                             'type' => 'group_invitation_accepted',
                             'type_id' => $groupId,
@@ -542,6 +542,19 @@ class GroupController extends Controller
                             'created_at' => now(),
                             'updated_at' => now(),
                         ]);
+
+                        // Send push notification
+                        $tokens = FcmToken::where('doctor_id', $group->owner_id)
+                            ->pluck('token')
+                            ->toArray();
+
+                        if (! empty($tokens)) {
+                            $this->notificationService->sendPushNotification(
+                                'Group Invitation Accepted 🎉',
+                                'Dr. '.ucfirst(Auth::user()->name).' accepted your group invitation',
+                                $tokens
+                            );
+                        }
 
                         Log::info('Notification sent to group owner', [
                             'owner_id' => $group->owner_id,

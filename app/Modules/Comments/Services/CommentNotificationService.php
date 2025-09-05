@@ -3,20 +3,24 @@
 namespace App\Modules\Comments\Services;
 
 use App\Modules\Comments\Models\Comment;
-use App\Modules\Patients\Models\Patients;
 use App\Modules\Notifications\Models\AppNotification;
+use App\Modules\Notifications\Models\FcmToken;
+use App\Modules\Patients\Models\Patients;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class CommentNotificationService
 {
+    protected $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
+
     /**
      * Handle comment notification logic
-     *
-     * @param Comment $comment
-     * @param Patients $patient
-     * @param int $doctorId
-     * @return void
      */
     public function handleCommentNotification(Comment $comment, Patients $patient, int $doctorId): void
     {
@@ -36,18 +40,13 @@ class CommentNotificationService
                 Log::debug('No notification sent as the authenticated doctor is the same as the patient\'s doctor.');
             }
         } catch (\Exception $e) {
-            Log::error('Error handling comment notification: ' . $e->getMessage());
+            Log::error('Error handling comment notification: '.$e->getMessage());
             // Don't throw exception to prevent breaking comment creation
         }
     }
 
     /**
      * Create notification for new comment
-     *
-     * @param Comment $comment
-     * @param int $patientDoctorId
-     * @param int $commentingDoctorId
-     * @return void
      */
     private function createCommentNotification(Comment $comment, int $patientDoctorId, int $commentingDoctorId): void
     {
@@ -62,6 +61,20 @@ class CommentNotificationService
                 'type_doctor_id' => $commentingDoctorId,
             ]);
 
+            // Send push notification
+            $tokens = FcmToken::where('doctor_id', $patientDoctorId)
+                ->pluck('token')
+                ->toArray();
+
+            if (! empty($tokens)) {
+                $commentingUser = Auth::user();
+                $this->notificationService->sendPushNotification(
+                    'New Patient Comment 💬',
+                    'Dr. '.ucfirst($commentingUser->name).' commented on your patient',
+                    $tokens
+                );
+            }
+
             Log::info('Comment notification created', [
                 'comment_id' => $comment->id,
                 'patient_id' => $comment->patient_id,
@@ -69,7 +82,7 @@ class CommentNotificationService
                 'commenting_doctor_id' => $commentingDoctorId,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error creating comment notification: ' . $e->getMessage());
+            Log::error('Error creating comment notification: '.$e->getMessage());
         }
     }
 }

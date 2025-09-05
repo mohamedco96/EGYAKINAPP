@@ -1065,36 +1065,62 @@ class FeedPostController extends Controller
 
     private function notifyDoctors(FeedPost $post)
     {
-        $doctors = User::where('id', '!=', Auth::id())
-            ->where('isSyndicateCardRequired', 'Verified')
-            ->pluck('id');
-
         $user = Auth::user();
         $doctorName = $user->name.' '.$user->lname;
+
+        // Determine who to notify based on post type
+        if ($post->group_id) {
+            // For group posts, notify only group members (excluding post creator)
+            $doctors = DB::table('group_user')
+                ->join('users', 'group_user.doctor_id', '=', 'users.id')
+                ->where('group_user.group_id', $post->group_id)
+                ->where('group_user.status', 'joined')
+                ->where('group_user.doctor_id', '!=', Auth::id())
+                ->pluck('users.id');
+
+            $title = 'New Group Post 👥';
+            $body = 'Dr. '.ucfirst($user->name).' posted in your group';
+        } else {
+            // For public posts, notify all verified doctors (excluding post creator)
+            $doctors = User::where('id', '!=', Auth::id())
+                ->pluck('id');
+
+            $title = 'New Post was created 📣';
+            $body = 'Dr. '.ucfirst($user->name).' added a new post';
+        }
+
+        if ($doctors->isEmpty()) {
+            Log::info('No users to notify for post ID: '.$post->id);
+
+            return [];
+        }
 
         $notifications = $doctors->map(function ($doctorId) use ($post, $doctorName, $user) {
             return [
                 'doctor_id' => $doctorId,
-                'type' => 'Post',
+                'type' => $post->group_id ? 'GroupPost' : 'Post',
                 'type_id' => $post->id,
-                'content' => sprintf('Dr. %s added a new post', $doctorName),
+                'content' => $post->group_id
+                    ? sprintf('Dr. %s posted in your group', $doctorName)
+                    : sprintf('Dr. %s added a new post', $doctorName),
                 'type_doctor_id' => $user->id,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
         })->toArray();
 
-        $createdNotifications = AppNotification::insert($notifications);
+        AppNotification::insert($notifications);
 
-        $title = 'New Post was created 📣';
-        $body = 'Dr. '.ucfirst($user->name).' added a new post ';
         $tokens = FcmToken::whereIn('doctor_id', $doctors)
             ->pluck('token')
             ->toArray();
 
         $this->notificationService->sendPushNotification($title, $body, $tokens);
 
-        Log::info('Notifications inserted successfully for post ID: '.$post->id);
+        Log::info('Notifications inserted successfully for post ID: '.$post->id, [
+            'post_type' => $post->group_id ? 'group' : 'public',
+            'recipients_count' => count($doctors),
+        ]);
 
         return $notifications;
     }
@@ -1554,8 +1580,6 @@ class FeedPostController extends Controller
                         'updated_at' => now(),
                     ]);
 
-                    Log::info('Notification sent to comment owner ID: '.$commentOwner->id.' for comment ID: '.$comment->id);
-
                     // Get FCM tokens for push notification
                     $tokens = FcmToken::where('doctor_id', $commentOwner->id)
                         ->pluck('token')
@@ -1563,11 +1587,13 @@ class FeedPostController extends Controller
 
                     if (! empty($tokens)) {
                         $this->notificationService->sendPushNotification(
-                            'New Comment was liked 📣',
-                            'Dr. '.ucfirst(Auth::user()->name).' liked your comment ',
+                            'Comment was liked 👍',
+                            'Dr. '.ucfirst(Auth::user()->name).' liked your comment',
                             $tokens
                         );
                     }
+
+                    Log::info('Notification sent to comment owner ID: '.$commentOwner->id.' for comment ID: '.$comment->id);
                 }
 
                 return response()->json([

@@ -2,12 +2,13 @@
 
 namespace App\Modules\Notifications\Models;
 
+use App\Models\User;
+use App\Modules\Consultations\Models\Consultation;
+use App\Modules\Patients\Models\Patients;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Laravel\Sanctum\HasApiTokens;
-use App\Modules\Patients\Models\Patients;
-use App\Models\User;
 
 class AppNotification extends Model
 {
@@ -36,7 +37,7 @@ class AppNotification extends Model
         'read' => 'boolean',
         'patient_id' => 'integer',
         'doctor_id' => 'integer',
-        'type_id' => 'integer'
+        'type_id' => 'integer',
     ];
 
     /**
@@ -58,5 +59,13 @@ class AppNotification extends Model
     public function typeDoctor()
     {
         return $this->belongsTo(User::class, 'type_doctor_id', 'id');
+    }
+
+    /**
+     * Get the consultation associated with the notification (when type is 'Consultation')
+     */
+    public function consultation(): BelongsTo
+    {
+        return $this->belongsTo(Consultation::class, 'type_id', 'id');
     }
 }

@@ -305,6 +305,7 @@ class NotificationService
                         ->whereIn('key', ['submit_status', 'outcome_status']);
                 },
                 'typeDoctor:id,name,lname,workingplace,image,isSyndicateCardRequired',
+                'consultation:id,is_open',
             ];
 
             // Fetch today's notifications (no pagination)
@@ -539,6 +540,15 @@ class NotificationService
                 'isSyndicateCardRequired' => null,
             ];
 
+            // Add consultation data for consultation notifications
+            $consultationData = null;
+            if ($notification->type === 'Consultation' && $notification->consultation) {
+                $consultationData = [
+                    'id' => $notification->consultation->id,
+                    'is_open' => $notification->consultation->is_open,
+                ];
+            }
+
             return [
                 'id' => $notification->id,
                 'read' => $notification->read,
@@ -550,6 +560,7 @@ class NotificationService
                 'created_at' => $notification->created_at,
                 'patient' => $patientDetails,
                 'type_doctor' => $typeDoctor,
+                'consultation' => $consultationData,
             ];
         });
     }

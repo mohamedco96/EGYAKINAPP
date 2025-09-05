@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Auth\Controllers\ResetPasswordController as ModuleResetPasswordController;
-use Illuminate\Http\Request;
+use App\Modules\Auth\Requests\ResetPasswordRequest;
 
 class ResetPasswordController extends Controller
 {
@@ -15,12 +15,12 @@ class ResetPasswordController extends Controller
         $this->resetPasswordController = $resetPasswordController;
     }
 
-    public function resetpasswordverification(Request $request)
+    public function resetpasswordverification(ResetPasswordRequest $request)
     {
         return $this->resetPasswordController->resetpasswordverification($request);
     }
 
-    public function resetpassword(Request $request)
+    public function resetpassword(ResetPasswordRequest $request)
     {
         return $this->resetPasswordController->resetpassword($request);
     }

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Auth\Controllers\ForgetPasswordController as ModuleForgetPasswordController;
-use Illuminate\Http\Request;
+use App\Modules\Auth\Requests\ForgetPasswordRequest;
 
 class ForgetPasswordController extends Controller
 {
@@ -15,7 +15,7 @@ class ForgetPasswordController extends Controller
         $this->forgetPasswordController = $forgetPasswordController;
     }
 
-    public function forgotPassword(Request $request)
+    public function forgotPassword(ForgetPasswordRequest $request)
     {
         return $this->forgetPasswordController->forgotPassword($request);
     }

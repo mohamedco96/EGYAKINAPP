@@ -107,8 +107,12 @@ class AnalyticsController extends Controller
             ->selectRaw('
                 CASE 
                     WHEN JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
+                        AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) != ""
                     THEN TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]"))
-                    ELSE COALESCE(answers.answer, "Unknown")
+                    WHEN answers.answer IS NOT NULL 
+                        AND TRIM(answers.answer) != ""
+                    THEN answers.answer
+                    ELSE "Unknown"
                 END as department_name,
                 COUNT(*) as count
             ')
@@ -195,8 +199,12 @@ class AnalyticsController extends Controller
             ->selectRaw('
                 CASE 
                     WHEN JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
+                        AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) != ""
                     THEN TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]"))
-                    ELSE COALESCE(answers.answer, "Unknown")
+                    WHEN answers.answer IS NOT NULL 
+                        AND TRIM(answers.answer) != ""
+                    THEN answers.answer
+                    ELSE "Unknown"
                 END as diagnosis_name,
                 COUNT(*) as count
             ')
@@ -217,8 +225,12 @@ class AnalyticsController extends Controller
             ->selectRaw('
                 CASE 
                     WHEN JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
+                        AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) != ""
                     THEN TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]"))
-                    ELSE COALESCE(answers.answer, "Unknown")
+                    WHEN answers.answer IS NOT NULL 
+                        AND TRIM(answers.answer) != ""
+                    THEN answers.answer
+                    ELSE "Unknown"
                 END as aki_cause,
                 COUNT(*) as count
             ')
@@ -265,8 +277,12 @@ class AnalyticsController extends Controller
             ->selectRaw('
                 CASE 
                     WHEN JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
+                        AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) != ""
                     THEN TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]"))
-                    ELSE COALESCE(answers.answer, "Unknown")
+                    WHEN answers.answer IS NOT NULL 
+                        AND TRIM(answers.answer) != ""
+                    THEN answers.answer
+                    ELSE "Unknown"
                 END as outcome_value,
                 COUNT(*) as count
             ')

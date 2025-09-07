@@ -71,41 +71,27 @@
         
         /* Optimize scrollable areas */
         .scrollable-content {
-            scrollbar-width: thin;
-            scrollbar-color: #6366f1 #f1f5f9;
+            scrollbar-width: auto;
+            scrollbar-color: #3b82f6 #e5e7eb;
         }
         
         .scrollable-content::-webkit-scrollbar {
-            width: 8px;
+            width: 12px;
         }
         
         .scrollable-content::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 4px;
-            border: 1px solid #e2e8f0;
+            background: #e5e7eb;
+            border-radius: 6px;
         }
         
         .scrollable-content::-webkit-scrollbar-thumb {
-            background: #6366f1;
-            border-radius: 4px;
-            border: 1px solid #e2e8f0;
+            background: #3b82f6;
+            border-radius: 6px;
+            border: 2px solid #e5e7eb;
         }
         
         .scrollable-content::-webkit-scrollbar-thumb:hover {
-            background: #4f46e5;
-        }
-        
-        /* Add subtle scroll indicator */
-        .scrollable-content::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            width: 8px;
-            height: 20px;
-            background: linear-gradient(transparent, rgba(99, 102, 241, 0.1));
-            pointer-events: none;
-            border-radius: 0 0 4px 0;
+            background: #2563eb;
         }
     </style>
 </head>
@@ -298,7 +284,7 @@
                     Provisional Diagnosis
                 </h3>
                 @if(count($analytics['provisional_diagnosis_stats']) > 0)
-                    <div class="space-y-3 max-h-64 overflow-y-auto scrollable-content border border-gray-200 rounded-lg p-2 relative">
+                    <div class="space-y-3 max-h-64 overflow-y-auto scrollable-content">
                         @foreach($analytics['provisional_diagnosis_stats'] as $diagnosis => $count)
                             <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
                                 <span class="text-sm text-gray-700">{{ Str::limit($diagnosis, 30) }}</span>
@@ -318,7 +304,7 @@
                     Cause of AKI
                 </h3>
                 @if(count($analytics['cause_of_aki_stats']) > 0)
-                    <div class="space-y-3 max-h-64 overflow-y-auto scrollable-content border border-gray-200 rounded-lg p-2 relative">
+                    <div class="space-y-3 max-h-64 overflow-y-auto scrollable-content">
                         @foreach($analytics['cause_of_aki_stats'] as $cause => $count)
                             <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
                                 <span class="text-sm text-gray-700">{{ Str::limit($cause, 30) }}</span>

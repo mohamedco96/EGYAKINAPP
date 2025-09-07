@@ -330,11 +330,11 @@
                 <div class="mb-6">
                     <div class="grid grid-cols-2 gap-4">
                         <div class="text-center p-4 bg-green-50 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-1">Outcome Status (True)</p>
+                            <p class="text-sm text-gray-600 mb-1">Outcome Status</p>
                             <p class="text-3xl font-bold text-green-600">{{ $analytics['outcome_stats']['outcome_status_count'] ?? 0 }}</p>
                         </div>
                         <div class="text-center p-4 bg-blue-50 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-1">Submit Status (True)</p>
+                            <p class="text-sm text-gray-600 mb-1">Submit Status</p>
                             <p class="text-3xl font-bold text-blue-600">{{ $analytics['outcome_stats']['submit_status_count'] ?? 0 }}</p>
                         </div>
                     </div>
@@ -343,7 +343,7 @@
                 <!-- Outcome Values from Question ID 79 -->
                 @if(isset($analytics['outcome_stats']['outcome_values']) && count($analytics['outcome_stats']['outcome_values']) > 0)
                     <div class="mb-4">
-                        <h4 class="text-md font-medium text-gray-700 mb-3">Outcome Values (Question ID: 79)</h4>
+                        <h4 class="text-md font-medium text-gray-700 mb-3">Outcome Values</h4>
                         <div class="space-y-2 mb-4">
                             @foreach($analytics['outcome_stats']['outcome_values'] as $outcome => $data)
                                 <div class="flex items-center justify-between p-2 bg-gray-50 rounded">

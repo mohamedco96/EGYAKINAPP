@@ -70,28 +70,29 @@ class AnalyticsController extends Controller
         // Gender question ID: 8
         $genderQuestionId = 8;
 
-        $genderAnswers = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
+        $maleCount = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $genderQuestionId)
             ->where('patients.hidden', false)
-            ->select('answers.*')
-            ->get()
-            ->groupBy(function ($answer) {
-                $answerValue = is_array($answer->answer) ?
-                    (isset($answer->answer[0]) ? strtolower($answer->answer[0]) : '') :
-                    strtolower($answer->answer);
+            ->where(function ($query) {
+                $query->whereRaw('LOWER(answers.answer) LIKE "%male%"')
+                    ->whereRaw('LOWER(answers.answer) NOT LIKE "%female%"')
+                    ->orWhereRaw('LOWER(JSON_EXTRACT(answers.answer, "$[0]")) LIKE "%male%"')
+                    ->whereRaw('LOWER(JSON_EXTRACT(answers.answer, "$[0]")) NOT LIKE "%female%"');
+            })
+            ->count();
 
-                if (str_contains($answerValue, 'male') && ! str_contains($answerValue, 'female')) {
-                    return 'male';
-                } elseif (str_contains($answerValue, 'female')) {
-                    return 'female';
-                } else {
-                    return 'other';
-                }
-            });
+        $femaleCount = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
+            ->where('answers.question_id', $genderQuestionId)
+            ->where('patients.hidden', false)
+            ->where(function ($query) {
+                $query->whereRaw('LOWER(answers.answer) LIKE "%female%"')
+                    ->orWhereRaw('LOWER(JSON_EXTRACT(answers.answer, "$[0]")) LIKE "%female%"');
+            })
+            ->count();
 
         return [
-            'male' => $genderAnswers->get('male', collect())->count(),
-            'female' => $genderAnswers->get('female', collect())->count(),
+            'male' => $maleCount,
+            'female' => $femaleCount,
         ];
     }
 
@@ -100,21 +101,21 @@ class AnalyticsController extends Controller
         // Department question ID: 168
         $departmentQuestionId = 168;
 
-        $departmentAnswers = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
+        $departmentStats = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $departmentQuestionId)
             ->where('patients.hidden', false)
-            ->select('answers.*')
-            ->get()
-            ->groupBy(function ($answer) {
-                return is_array($answer->answer) ?
-                    (isset($answer->answer[0]) ? $answer->answer[0] : 'Unknown') :
-                    ($answer->answer ?: 'Unknown');
-            })
-            ->map(function ($group) {
-                return $group->count();
-            });
+            ->selectRaw('
+                CASE 
+                    WHEN JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
+                    THEN JSON_EXTRACT(answers.answer, "$[0]")
+                    ELSE COALESCE(answers.answer, "Unknown")
+                END as department_name,
+                COUNT(*) as count
+            ')
+            ->groupBy('department_name')
+            ->pluck('count', 'department_name');
 
-        return $departmentAnswers->toArray();
+        return $departmentStats->toArray();
     }
 
     private function getDMStats()
@@ -122,26 +123,31 @@ class AnalyticsController extends Controller
         // DM question ID: 16 - "Does the patient have DM?"
         $dmQuestionId = 16;
 
-        $dmAnswers = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
+        $yesCount = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $dmQuestionId)
             ->where('patients.hidden', false)
-            ->select('answers.*')
-            ->get()
-            ->groupBy(function ($answer) {
-                $answerValue = is_array($answer->answer) ?
-                    (isset($answer->answer[0]) ? strtolower($answer->answer[0]) : '') :
-                    strtolower($answer->answer);
+            ->where(function ($query) {
+                $query->whereRaw('LOWER(answers.answer) LIKE "%yes%"')
+                    ->orWhereRaw('LOWER(answers.answer) LIKE "%positive%"')
+                    ->orWhereRaw('LOWER(JSON_EXTRACT(answers.answer, "$[0]")) LIKE "%yes%"')
+                    ->orWhereRaw('LOWER(JSON_EXTRACT(answers.answer, "$[0]")) LIKE "%positive%"');
+            })
+            ->count();
 
-                if (str_contains($answerValue, 'yes') || str_contains($answerValue, 'positive')) {
-                    return 'yes';
-                } else {
-                    return 'no';
-                }
-            });
+        $noCount = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
+            ->where('answers.question_id', $dmQuestionId)
+            ->where('patients.hidden', false)
+            ->where(function ($query) {
+                $query->whereRaw('LOWER(answers.answer) LIKE "%no%"')
+                    ->orWhereRaw('LOWER(answers.answer) LIKE "%negative%"')
+                    ->orWhereRaw('LOWER(JSON_EXTRACT(answers.answer, "$[0]")) LIKE "%no%"')
+                    ->orWhereRaw('LOWER(JSON_EXTRACT(answers.answer, "$[0]")) LIKE "%negative%"');
+            })
+            ->count();
 
         return [
-            'yes' => $dmAnswers->get('yes', collect())->count(),
-            'no' => $dmAnswers->get('no', collect())->count(),
+            'yes' => $yesCount,
+            'no' => $noCount,
         ];
     }
 
@@ -150,26 +156,31 @@ class AnalyticsController extends Controller
         // HTN question ID: 18 - "Does the patient have HTN?"
         $htnQuestionId = 18;
 
-        $htnAnswers = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
+        $yesCount = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $htnQuestionId)
             ->where('patients.hidden', false)
-            ->select('answers.*')
-            ->get()
-            ->groupBy(function ($answer) {
-                $answerValue = is_array($answer->answer) ?
-                    (isset($answer->answer[0]) ? strtolower($answer->answer[0]) : '') :
-                    strtolower($answer->answer);
+            ->where(function ($query) {
+                $query->whereRaw('LOWER(answers.answer) LIKE "%yes%"')
+                    ->orWhereRaw('LOWER(answers.answer) LIKE "%positive%"')
+                    ->orWhereRaw('LOWER(JSON_EXTRACT(answers.answer, "$[0]")) LIKE "%yes%"')
+                    ->orWhereRaw('LOWER(JSON_EXTRACT(answers.answer, "$[0]")) LIKE "%positive%"');
+            })
+            ->count();
 
-                if (str_contains($answerValue, 'yes') || str_contains($answerValue, 'positive')) {
-                    return 'yes';
-                } else {
-                    return 'no';
-                }
-            });
+        $noCount = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
+            ->where('answers.question_id', $htnQuestionId)
+            ->where('patients.hidden', false)
+            ->where(function ($query) {
+                $query->whereRaw('LOWER(answers.answer) LIKE "%no%"')
+                    ->orWhereRaw('LOWER(answers.answer) LIKE "%negative%"')
+                    ->orWhereRaw('LOWER(JSON_EXTRACT(answers.answer, "$[0]")) LIKE "%no%"')
+                    ->orWhereRaw('LOWER(JSON_EXTRACT(answers.answer, "$[0]")) LIKE "%negative%"');
+            })
+            ->count();
 
         return [
-            'yes' => $htnAnswers->get('yes', collect())->count(),
-            'no' => $htnAnswers->get('no', collect())->count(),
+            'yes' => $yesCount,
+            'no' => $noCount,
         ];
     }
 
@@ -178,21 +189,21 @@ class AnalyticsController extends Controller
         // Provisional diagnosis question ID: 166 - "What is the Provisional diagnosis?"
         $diagnosisQuestionId = 166;
 
-        $diagnosisAnswers = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
+        $diagnosisStats = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $diagnosisQuestionId)
             ->where('patients.hidden', false)
-            ->select('answers.*')
-            ->get()
-            ->groupBy(function ($answer) {
-                return is_array($answer->answer) ?
-                    (isset($answer->answer[0]) ? $answer->answer[0] : 'Unknown') :
-                    ($answer->answer ?: 'Unknown');
-            })
-            ->map(function ($group) {
-                return $group->count();
-            });
+            ->selectRaw('
+                CASE 
+                    WHEN JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
+                    THEN JSON_EXTRACT(answers.answer, "$[0]")
+                    ELSE COALESCE(answers.answer, "Unknown")
+                END as diagnosis_name,
+                COUNT(*) as count
+            ')
+            ->groupBy('diagnosis_name')
+            ->pluck('count', 'diagnosis_name');
 
-        return $diagnosisAnswers->toArray();
+        return $diagnosisStats->toArray();
     }
 
     private function getCauseOfAkiStats()
@@ -200,21 +211,21 @@ class AnalyticsController extends Controller
         // Cause of AKI question ID: 26 - "Cause of AKI"
         $akiQuestionId = 26;
 
-        $akiAnswers = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
+        $akiStats = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $akiQuestionId)
             ->where('patients.hidden', false)
-            ->select('answers.*')
-            ->get()
-            ->groupBy(function ($answer) {
-                return is_array($answer->answer) ?
-                    (isset($answer->answer[0]) ? $answer->answer[0] : 'Unknown') :
-                    ($answer->answer ?: 'Unknown');
-            })
-            ->map(function ($group) {
-                return $group->count();
-            });
+            ->selectRaw('
+                CASE 
+                    WHEN JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
+                    THEN JSON_EXTRACT(answers.answer, "$[0]")
+                    ELSE COALESCE(answers.answer, "Unknown")
+                END as aki_cause,
+                COUNT(*) as count
+            ')
+            ->groupBy('aki_cause')
+            ->pluck('count', 'aki_cause');
 
-        return $akiAnswers->toArray();
+        return $akiStats->toArray();
     }
 
     private function getDialysisPercentage()
@@ -248,23 +259,27 @@ class AnalyticsController extends Controller
         // Outcome values from question ID 79: "Outcome of the patient"
         $outcomeQuestionId = 79;
 
-        $outcomeAnswers = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
+        $outcomeStats = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $outcomeQuestionId)
             ->where('patients.hidden', false)
-            ->select('answers.*')
+            ->selectRaw('
+                CASE 
+                    WHEN JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
+                    THEN JSON_EXTRACT(answers.answer, "$[0]")
+                    ELSE COALESCE(answers.answer, "Unknown")
+                END as outcome_value,
+                COUNT(*) as count
+            ')
+            ->groupBy('outcome_value')
             ->get()
-            ->groupBy(function ($answer) {
-                return is_array($answer->answer) ?
-                    (isset($answer->answer[0]) ? $answer->answer[0] : 'Unknown') :
-                    ($answer->answer ?: 'Unknown');
-            })
-            ->map(function ($group) use ($totalPatients) {
-                $count = $group->count();
-                $percentage = $totalPatients > 0 ? round(($count / $totalPatients) * 100, 2) : 0;
+            ->mapWithKeys(function ($item) use ($totalPatients) {
+                $percentage = $totalPatients > 0 ? round(($item->count / $totalPatients) * 100, 2) : 0;
 
                 return [
-                    'count' => $count,
-                    'percentage' => $percentage,
+                    $item->outcome_value => [
+                        'count' => $item->count,
+                        'percentage' => $percentage,
+                    ],
                 ];
             });
 
@@ -282,7 +297,7 @@ class AnalyticsController extends Controller
             ->count();
 
         return [
-            'outcome_values' => $outcomeAnswers->toArray(),
+            'outcome_values' => $outcomeStats->toArray(),
             'outcome_status_count' => $outcomeStatusCount,
             'submit_status_count' => $submitStatusCount,
             'total_patients' => $totalPatients,

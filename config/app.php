@@ -174,6 +174,7 @@ return [
         App\Providers\FirebaseServiceProvider::class,
         App\Providers\FileCleanupServiceProvider::class,
         App\Providers\FilamentNavigationServiceProvider::class,
+        App\Providers\BrevoMailServiceProvider::class,
     ])->toArray(),
 
     /*

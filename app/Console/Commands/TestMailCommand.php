@@ -140,6 +140,11 @@ class TestMailCommand extends Command
             $this->line('   • Brevo API Key: not set');
         }
 
+        // Show current mailer info
+        if (config('mail.default') === 'brevo-api') {
+            $this->line('   • Default Mailer: Brevo API (Recommended for GoDaddy)');
+        }
+
         $this->newLine();
     }
 

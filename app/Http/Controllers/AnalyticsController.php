@@ -70,10 +70,10 @@ class AnalyticsController extends Controller
         // Gender question ID: 8
         $genderQuestionId = 8;
 
-        $genderAnswers = Answers::where('question_id', $genderQuestionId)
-            ->whereHas('patient', function ($query) {
-                $query->where('hidden', false);
-            })
+        $genderAnswers = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
+            ->where('answers.question_id', $genderQuestionId)
+            ->where('patients.hidden', false)
+            ->select('answers.*')
             ->get()
             ->groupBy(function ($answer) {
                 $answerValue = is_array($answer->answer) ?
@@ -100,10 +100,10 @@ class AnalyticsController extends Controller
         // Department question ID: 168
         $departmentQuestionId = 168;
 
-        $departmentAnswers = Answers::where('question_id', $departmentQuestionId)
-            ->whereHas('patient', function ($query) {
-                $query->where('hidden', false);
-            })
+        $departmentAnswers = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
+            ->where('answers.question_id', $departmentQuestionId)
+            ->where('patients.hidden', false)
+            ->select('answers.*')
             ->get()
             ->groupBy(function ($answer) {
                 return is_array($answer->answer) ?
@@ -122,10 +122,10 @@ class AnalyticsController extends Controller
         // DM question ID: 16 - "Does the patient have DM?"
         $dmQuestionId = 16;
 
-        $dmAnswers = Answers::where('question_id', $dmQuestionId)
-            ->whereHas('patient', function ($query) {
-                $query->where('hidden', false);
-            })
+        $dmAnswers = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
+            ->where('answers.question_id', $dmQuestionId)
+            ->where('patients.hidden', false)
+            ->select('answers.*')
             ->get()
             ->groupBy(function ($answer) {
                 $answerValue = is_array($answer->answer) ?
@@ -150,10 +150,10 @@ class AnalyticsController extends Controller
         // HTN question ID: 18 - "Does the patient have HTN?"
         $htnQuestionId = 18;
 
-        $htnAnswers = Answers::where('question_id', $htnQuestionId)
-            ->whereHas('patient', function ($query) {
-                $query->where('hidden', false);
-            })
+        $htnAnswers = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
+            ->where('answers.question_id', $htnQuestionId)
+            ->where('patients.hidden', false)
+            ->select('answers.*')
             ->get()
             ->groupBy(function ($answer) {
                 $answerValue = is_array($answer->answer) ?
@@ -178,10 +178,10 @@ class AnalyticsController extends Controller
         // Provisional diagnosis question ID: 166 - "What is the Provisional diagnosis?"
         $diagnosisQuestionId = 166;
 
-        $diagnosisAnswers = Answers::where('question_id', $diagnosisQuestionId)
-            ->whereHas('patient', function ($query) {
-                $query->where('hidden', false);
-            })
+        $diagnosisAnswers = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
+            ->where('answers.question_id', $diagnosisQuestionId)
+            ->where('patients.hidden', false)
+            ->select('answers.*')
             ->get()
             ->groupBy(function ($answer) {
                 return is_array($answer->answer) ?
@@ -200,10 +200,10 @@ class AnalyticsController extends Controller
         // Cause of AKI question ID: 26 - "Cause of AKI"
         $akiQuestionId = 26;
 
-        $akiAnswers = Answers::where('question_id', $akiQuestionId)
-            ->whereHas('patient', function ($query) {
-                $query->where('hidden', false);
-            })
+        $akiAnswers = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
+            ->where('answers.question_id', $akiQuestionId)
+            ->where('patients.hidden', false)
+            ->select('answers.*')
             ->get()
             ->groupBy(function ($answer) {
                 return is_array($answer->answer) ?
@@ -227,15 +227,14 @@ class AnalyticsController extends Controller
             return 0;
         }
 
-        $dialysisCount = Answers::where('question_id', $dialysisQuestionId)
-            ->whereHas('patient', function ($query) {
-                $query->where('hidden', false);
-            })
+        $dialysisCount = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
+            ->where('answers.question_id', $dialysisQuestionId)
+            ->where('patients.hidden', false)
             ->where(function ($query) {
-                $query->where('answer', 'LIKE', '%yes%')
-                    ->orWhere('answer', 'LIKE', '%positive%')
-                    ->orWhereRaw('JSON_EXTRACT(answer, "$[0]") LIKE "%yes%"')
-                    ->orWhereRaw('JSON_EXTRACT(answer, "$[0]") LIKE "%positive%"');
+                $query->where('answers.answer', 'LIKE', '%yes%')
+                    ->orWhere('answers.answer', 'LIKE', '%positive%')
+                    ->orWhereRaw('JSON_EXTRACT(answers.answer, "$[0]") LIKE "%yes%"')
+                    ->orWhereRaw('JSON_EXTRACT(answers.answer, "$[0]") LIKE "%positive%"');
             })
             ->count();
 
@@ -249,10 +248,10 @@ class AnalyticsController extends Controller
         // Outcome values from question ID 79: "Outcome of the patient"
         $outcomeQuestionId = 79;
 
-        $outcomeAnswers = Answers::where('question_id', $outcomeQuestionId)
-            ->whereHas('patient', function ($query) {
-                $query->where('hidden', false);
-            })
+        $outcomeAnswers = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
+            ->where('answers.question_id', $outcomeQuestionId)
+            ->where('patients.hidden', false)
+            ->select('answers.*')
             ->get()
             ->groupBy(function ($answer) {
                 return is_array($answer->answer) ?
@@ -270,18 +269,16 @@ class AnalyticsController extends Controller
             });
 
         // Patient count in patient_statuses with status = true (only count true status)
-        $outcomeStatusCount = PatientStatus::where('key', 'outcome_status')
-            ->where('status', true)
-            ->whereHas('patient', function ($query) {
-                $query->where('hidden', false);
-            })
+        $outcomeStatusCount = PatientStatus::join('patients', 'patient_statuses.patient_id', '=', 'patients.id')
+            ->where('patient_statuses.key', 'outcome_status')
+            ->where('patient_statuses.status', true)
+            ->where('patients.hidden', false)
             ->count();
 
-        $submitStatusCount = PatientStatus::where('key', 'submit_status')
-            ->where('status', true)
-            ->whereHas('patient', function ($query) {
-                $query->where('hidden', false);
-            })
+        $submitStatusCount = PatientStatus::join('patients', 'patient_statuses.patient_id', '=', 'patients.id')
+            ->where('patient_statuses.key', 'submit_status')
+            ->where('patient_statuses.status', true)
+            ->where('patients.hidden', false)
             ->count();
 
         return [

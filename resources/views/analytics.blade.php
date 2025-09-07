@@ -95,6 +95,19 @@
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
+    <!-- Warning Message -->
+    <div class="bg-red-600 text-white py-3">
+        <div class="container mx-auto px-6">
+            <div class="flex items-center justify-center">
+                <i class="fas fa-exclamation-triangle mr-3"></i>
+                <div class="text-center">
+                    <p class="font-semibold mb-1">لا يُسمح باستخدام البيانات دون موافقتنا.</p>
+                    <p class="text-sm opacity-90">Data use is not permitted without our approval.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Header -->
     <div class="gradient-bg text-white py-8">
         <div class="container mx-auto px-6">
@@ -116,16 +129,31 @@
 
     <div class="container mx-auto px-6 py-8">
         <!-- Key Statistics Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             <!-- Total Doctors -->
             <div class="stat-card rounded-xl p-6 text-white card-hover">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm opacity-90 mb-1">Total Doctors</p>
                         <p class="text-3xl font-bold">{{ number_format($analytics['total_doctors']) }}</p>
+                        <p class="text-xs opacity-75">Verified</p>
                     </div>
                     <div class="bg-white bg-opacity-20 rounded-full p-3">
                         <i class="fas fa-user-md text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Users -->
+            <div class="stat-card-orange rounded-xl p-6 text-white card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm opacity-90 mb-1">Total Users</p>
+                        <p class="text-3xl font-bold">{{ number_format($analytics['total_users']) }}</p>
+                        <p class="text-xs opacity-75">Non-verified</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-full p-3">
+                        <i class="fas fa-users text-2xl"></i>
                     </div>
                 </div>
             </div>
@@ -136,9 +164,10 @@
                     <div>
                         <p class="text-sm opacity-90 mb-1">Total Patients</p>
                         <p class="text-3xl font-bold">{{ number_format($analytics['total_patients']) }}</p>
+                        <p class="text-xs opacity-75">Active only</p>
                     </div>
                     <div class="bg-white bg-opacity-20 rounded-full p-3">
-                        <i class="fas fa-users text-2xl"></i>
+                        <i class="fas fa-hospital-user text-2xl"></i>
                     </div>
                 </div>
             </div>

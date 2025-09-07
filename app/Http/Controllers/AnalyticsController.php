@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Answers;
 use App\Models\User;
 use App\Modules\Patients\Models\Patients;
+use App\Modules\Patients\Models\PatientStatus;
 use App\Modules\Questions\Models\Questions;
 
 class AnalyticsController extends Controller
@@ -19,11 +20,12 @@ class AnalyticsController extends Controller
 
     private function getAnalyticsData()
     {
-        // Total users/doctors
-        $totalDoctors = User::count();
+        // Total users/doctors - doctors are users with isSyndicateCardRequired = 'Verified'
+        $totalDoctors = User::where('isSyndicateCardRequired', 'Verified')->count();
+        $totalUsers = User::where('isSyndicateCardRequired', '!=', 'Verified')->orWhereNull('isSyndicateCardRequired')->count();
 
-        // Total number of patients
-        $totalPatients = Patients::count();
+        // Total number of patients - only where hidden = false
+        $totalPatients = Patients::where('hidden', false)->count();
 
         // Male and female patients count
         $genderStats = $this->getGenderStats();
@@ -54,6 +56,7 @@ class AnalyticsController extends Controller
 
         return [
             'total_doctors' => $totalDoctors,
+            'total_users' => $totalUsers,
             'total_patients' => $totalPatients,
             'gender_stats' => $genderStats,
             'department_stats' => $departmentStats,
@@ -69,18 +72,13 @@ class AnalyticsController extends Controller
 
     private function getGenderStats()
     {
-        // Find gender question ID
-        $genderQuestion = Questions::where('question', 'LIKE', '%gender%')
-            ->orWhere('question', 'LIKE', '%sex%')
-            ->orWhere('question', 'LIKE', '%male%')
-            ->orWhere('question', 'LIKE', '%female%')
-            ->first();
+        // Gender question ID: 8
+        $genderQuestionId = 8;
 
-        if (! $genderQuestion) {
-            return ['male' => 0, 'female' => 0, 'other' => 0];
-        }
-
-        $genderAnswers = Answers::where('question_id', $genderQuestion->id)
+        $genderAnswers = Answers::where('question_id', $genderQuestionId)
+            ->whereHas('patient', function ($query) {
+                $query->where('hidden', false);
+            })
             ->get()
             ->groupBy(function ($answer) {
                 $answerValue = is_array($answer->answer) ?
@@ -105,17 +103,13 @@ class AnalyticsController extends Controller
 
     private function getDepartmentStats()
     {
-        // Find department/specialty related questions
-        $departmentQuestion = Questions::where('question', 'LIKE', '%department%')
-            ->orWhere('question', 'LIKE', '%specialty%')
-            ->orWhere('question', 'LIKE', '%ward%')
-            ->first();
+        // Department question ID: 168
+        $departmentQuestionId = 168;
 
-        if (! $departmentQuestion) {
-            return [];
-        }
-
-        $departmentAnswers = Answers::where('question_id', $departmentQuestion->id)
+        $departmentAnswers = Answers::where('question_id', $departmentQuestionId)
+            ->whereHas('patient', function ($query) {
+                $query->where('hidden', false);
+            })
             ->get()
             ->groupBy(function ($answer) {
                 return is_array($answer->answer) ?
@@ -131,17 +125,13 @@ class AnalyticsController extends Controller
 
     private function getDMStats()
     {
-        // Find DM (Diabetes Mellitus) related questions
-        $dmQuestion = Questions::where('question', 'LIKE', '%DM%')
-            ->orWhere('question', 'LIKE', '%diabetes%')
-            ->orWhere('question', 'LIKE', '%diabetic%')
-            ->first();
+        // DM question ID: 16 - "Does the patient have DM?"
+        $dmQuestionId = 16;
 
-        if (! $dmQuestion) {
-            return ['yes' => 0, 'no' => 0];
-        }
-
-        $dmAnswers = Answers::where('question_id', $dmQuestion->id)
+        $dmAnswers = Answers::where('question_id', $dmQuestionId)
+            ->whereHas('patient', function ($query) {
+                $query->where('hidden', false);
+            })
             ->get()
             ->groupBy(function ($answer) {
                 $answerValue = is_array($answer->answer) ?
@@ -163,17 +153,13 @@ class AnalyticsController extends Controller
 
     private function getHTNStats()
     {
-        // Find HTN (Hypertension) related questions
-        $htnQuestion = Questions::where('question', 'LIKE', '%HTN%')
-            ->orWhere('question', 'LIKE', '%hypertension%')
-            ->orWhere('question', 'LIKE', '%blood pressure%')
-            ->first();
+        // HTN question ID: 18 - "Does the patient have HTN?"
+        $htnQuestionId = 18;
 
-        if (! $htnQuestion) {
-            return ['yes' => 0, 'no' => 0];
-        }
-
-        $htnAnswers = Answers::where('question_id', $htnQuestion->id)
+        $htnAnswers = Answers::where('question_id', $htnQuestionId)
+            ->whereHas('patient', function ($query) {
+                $query->where('hidden', false);
+            })
             ->get()
             ->groupBy(function ($answer) {
                 $answerValue = is_array($answer->answer) ?
@@ -195,16 +181,13 @@ class AnalyticsController extends Controller
 
     private function getProvisionalDiagnosisStats()
     {
-        // Find provisional diagnosis related questions
-        $diagnosisQuestion = Questions::where('question', 'LIKE', '%provisional%')
-            ->orWhere('question', 'LIKE', '%diagnosis%')
-            ->first();
+        // Provisional diagnosis question ID: 166 - "What is the Provisional diagnosis?"
+        $diagnosisQuestionId = 166;
 
-        if (! $diagnosisQuestion) {
-            return [];
-        }
-
-        $diagnosisAnswers = Answers::where('question_id', $diagnosisQuestion->id)
+        $diagnosisAnswers = Answers::where('question_id', $diagnosisQuestionId)
+            ->whereHas('patient', function ($query) {
+                $query->where('hidden', false);
+            })
             ->get()
             ->groupBy(function ($answer) {
                 return is_array($answer->answer) ?
@@ -220,17 +203,13 @@ class AnalyticsController extends Controller
 
     private function getCauseOfAkiStats()
     {
-        // Find cause of AKI related questions
-        $akiQuestion = Questions::where('question', 'LIKE', '%cause%')
-            ->where('question', 'LIKE', '%AKI%')
-            ->orWhere('question', 'LIKE', '%acute kidney%')
-            ->first();
+        // Cause of AKI question ID: 26 - "Cause of AKI"
+        $akiQuestionId = 26;
 
-        if (! $akiQuestion) {
-            return [];
-        }
-
-        $akiAnswers = Answers::where('question_id', $akiQuestion->id)
+        $akiAnswers = Answers::where('question_id', $akiQuestionId)
+            ->whereHas('patient', function ($query) {
+                $query->where('hidden', false);
+            })
             ->get()
             ->groupBy(function ($answer) {
                 return is_array($answer->answer) ?
@@ -246,7 +225,7 @@ class AnalyticsController extends Controller
 
     private function getDialysisPercentage()
     {
-        // Find dialysis related questions
+        // Find dialysis related questions (keeping the search for now as no specific ID was provided)
         $dialysisQuestion = Questions::where('question', 'LIKE', '%dialysis%')
             ->first();
 
@@ -254,12 +233,15 @@ class AnalyticsController extends Controller
             return 0;
         }
 
-        $totalPatients = Patients::count();
+        $totalPatients = Patients::where('hidden', false)->count();
         if ($totalPatients == 0) {
             return 0;
         }
 
         $dialysisCount = Answers::where('question_id', $dialysisQuestion->id)
+            ->whereHas('patient', function ($query) {
+                $query->where('hidden', false);
+            })
             ->where(function ($query) {
                 $query->where('answer', 'LIKE', '%yes%')
                     ->orWhere('answer', 'LIKE', '%positive%')
@@ -273,52 +255,53 @@ class AnalyticsController extends Controller
 
     private function getOutcomeStats()
     {
-        // Find outcome related questions
-        $outcomeQuestion = Questions::where('question', 'LIKE', '%outcome%')
-            ->orWhere('question', 'LIKE', '%result%')
-            ->first();
-
-        if (! $outcomeQuestion) {
-            return [];
-        }
-
-        $outcomeAnswers = Answers::where('question_id', $outcomeQuestion->id)
+        // Patient count in patient_statuses with key outcome_status
+        $outcomeStats = PatientStatus::where('key', 'outcome_status')
+            ->whereHas('patient', function ($query) {
+                $query->where('hidden', false);
+            })
             ->get()
-            ->groupBy(function ($answer) {
-                return is_array($answer->answer) ?
-                    (isset($answer->answer[0]) ? $answer->answer[0] : 'Unknown') :
-                    ($answer->answer ?: 'Unknown');
+            ->groupBy('status')
+            ->map(function ($group) {
+                return $group->count();
+            });
+
+        // Also get survivor/death breakdown if available
+        $survivorDeathStats = PatientStatus::where('key', 'outcome_status')
+            ->whereHas('patient', function ($query) {
+                $query->where('hidden', false);
+            })
+            ->get()
+            ->groupBy(function ($status) {
+                $statusValue = strtolower($status->status ?? '');
+                if (str_contains($statusValue, 'death') || str_contains($statusValue, 'died') || str_contains($statusValue, 'dead')) {
+                    return 'Death';
+                } elseif (str_contains($statusValue, 'survivor') || str_contains($statusValue, 'alive') || str_contains($statusValue, 'recovered')) {
+                    return 'Survivor';
+                } else {
+                    return 'Other';
+                }
             })
             ->map(function ($group) {
                 return $group->count();
             });
 
-        return $outcomeAnswers->toArray();
+        return array_merge($outcomeStats->toArray(), $survivorDeathStats->toArray());
     }
 
     private function getFinalStatusStats()
     {
-        // Find final status related questions
-        $statusQuestion = Questions::where('question', 'LIKE', '%final%')
-            ->where('question', 'LIKE', '%status%')
-            ->orWhere('question', 'LIKE', '%discharge%')
-            ->first();
-
-        if (! $statusQuestion) {
-            return [];
-        }
-
-        $statusAnswers = Answers::where('question_id', $statusQuestion->id)
-            ->get()
-            ->groupBy(function ($answer) {
-                return is_array($answer->answer) ?
-                    (isset($answer->answer[0]) ? $answer->answer[0] : 'Unknown') :
-                    ($answer->answer ?: 'Unknown');
+        // Patient count in patient_statuses with key submit_status
+        $finalStatusStats = PatientStatus::where('key', 'submit_status')
+            ->whereHas('patient', function ($query) {
+                $query->where('hidden', false);
             })
+            ->get()
+            ->groupBy('status')
             ->map(function ($group) {
                 return $group->count();
             });
 
-        return $statusAnswers->toArray();
+        return $finalStatusStats->toArray();
     }
 }

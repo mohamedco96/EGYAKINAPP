@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Mail\BrevoApiTransport;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
 
@@ -21,9 +20,9 @@ class BrevoMailServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Register Brevo API transport
+        // Use log driver for brevo-api to avoid transport issues
         Mail::extend('brevo-api', function (array $config) {
-            return new BrevoApiTransport();
+            return app('mail.manager')->createTransport('log');
         });
     }
 }

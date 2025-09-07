@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Mail\BrevoApiMail;
+use App\Mail\BrevoMail;
 use App\Mail\DailyReportMail;
 use App\Mail\TestMail;
 use App\Mail\VerifyEmail;
@@ -190,7 +191,8 @@ class TestMailCommand extends Command
         $htmlContent = BrevoApiMail::getDefaultTestHtmlContent();
         $textContent = BrevoApiMail::getDefaultTestTextContent();
 
-        $brevoMail = new BrevoApiMail($email, $subject, $htmlContent, $textContent);
+        // Use the simpler BrevoMail class
+        $brevoMail = new BrevoMail($email, $subject, $htmlContent, $textContent);
         $result = $brevoMail->sendViaBrevoApi();
 
         if (! $result['success']) {

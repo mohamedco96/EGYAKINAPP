@@ -3,11 +3,12 @@
 namespace App\Mail;
 
 use App\Services\BrevoApiService;
-use Illuminate\Mail\Transport\Transport;
 use Illuminate\Support\Facades\Log;
-use Swift_Mime_SimpleMessage;
+use Symfony\Component\Mailer\SentMessage;
+use Symfony\Component\Mailer\Transport\AbstractTransport;
+use Symfony\Component\Mime\MessageConverter;
 
-class BrevoApiTransport extends Transport
+class BrevoApiTransport extends AbstractTransport
 {
     protected $brevoService;
 
@@ -18,22 +19,19 @@ class BrevoApiTransport extends Transport
 
     /**
      * Send the given Message.
-     *
-     * @param  string[]  $failedRecipients  An array of failures by-reference
-     * @return int The number of recipients who were accepted for delivery
      */
-    public function send(Swift_Mime_SimpleMessage $message, &$failedRecipients = null)
+    protected function doSend(SentMessage $message): void
     {
-        $this->beforeSendPerformed($message);
-
         try {
+            $originalMessage = MessageConverter::toEmail($message->getOriginalMessage());
+
             // Get recipients
-            $to = $this->getTo($message);
-            $subject = $message->getSubject();
+            $to = $this->getTo($originalMessage);
+            $subject = $originalMessage->getSubject();
 
             // Get HTML and text content
-            $htmlContent = $this->getHtmlContent($message);
-            $textContent = $this->getTextContent($message);
+            $htmlContent = $this->getHtmlContent($originalMessage);
+            $textContent = $this->getTextContent($originalMessage);
 
             // Send via Brevo API
             $result = $this->brevoService->sendEmail(
@@ -49,10 +47,6 @@ class BrevoApiTransport extends Transport
                     'subject' => $subject,
                     'message_id' => $result['message_id'],
                 ]);
-
-                $this->sendPerformed($message);
-
-                return count($message->getTo());
             } else {
                 Log::error('Brevo API email failed', [
                     'to' => $to,
@@ -76,42 +70,57 @@ class BrevoApiTransport extends Transport
     /**
      * Get the recipient email address
      */
-    protected function getTo(Swift_Mime_SimpleMessage $message)
+    protected function getTo($message)
     {
         $to = $message->getTo();
 
-        return is_array($to) ? array_keys($to)[0] : $to;
+        if (empty($to)) {
+            return '';
+        }
+
+        // Get first recipient
+        $firstTo = $to[0];
+
+        return $firstTo->getAddress();
     }
 
     /**
      * Get HTML content from the message
      */
-    protected function getHtmlContent(Swift_Mime_SimpleMessage $message)
+    protected function getHtmlContent($message)
     {
-        $body = $message->getBody();
+        $htmlBody = $message->getHtmlBody();
 
-        // If it's HTML, return as is
-        if ($message->getContentType() === 'text/html') {
-            return $body;
+        if ($htmlBody) {
+            return $htmlBody;
         }
 
-        // If it's plain text, convert to HTML
-        return '<html><body><pre>'.htmlspecialchars($body).'</pre></body></html>';
+        // If no HTML body, convert text to HTML
+        $textBody = $message->getTextBody();
+        if ($textBody) {
+            return '<html><body><pre>'.htmlspecialchars($textBody).'</pre></body></html>';
+        }
+
+        return '';
     }
 
     /**
      * Get text content from the message
      */
-    protected function getTextContent(Swift_Mime_SimpleMessage $message)
+    protected function getTextContent($message)
     {
-        $body = $message->getBody();
+        $textBody = $message->getTextBody();
 
-        // If it's plain text, return as is
-        if ($message->getContentType() === 'text/plain') {
-            return $body;
+        if ($textBody) {
+            return $textBody;
         }
 
-        // If it's HTML, strip tags for text version
-        return strip_tags($body);
+        // If no text body, strip HTML tags
+        $htmlBody = $message->getHtmlBody();
+        if ($htmlBody) {
+            return strip_tags($htmlBody);
+        }
+
+        return '';
     }
 }

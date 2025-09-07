@@ -318,20 +318,36 @@
         </div>
 
         <!-- Outcomes Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="grid grid-cols-1 gap-8">
             <!-- Patient Outcomes -->
             <div class="bg-white rounded-xl p-6 shadow-lg card-hover">
                 <h3 class="text-xl font-semibold mb-4 text-gray-800">
                     <i class="fas fa-heartbeat mr-2 text-green-600"></i>
-                    Patient Outcomes
+                    Patient Outcomes & Status
                 </h3>
-                @if(isset($analytics['outcome_stats']['outcome_statuses']) && count($analytics['outcome_stats']['outcome_statuses']) > 0)
+                
+                <!-- Status Counts -->
+                <div class="mb-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center p-4 bg-green-50 rounded-lg">
+                            <p class="text-sm text-gray-600 mb-1">Outcome Status (True)</p>
+                            <p class="text-3xl font-bold text-green-600">{{ $analytics['outcome_stats']['outcome_status_count'] ?? 0 }}</p>
+                        </div>
+                        <div class="text-center p-4 bg-blue-50 rounded-lg">
+                            <p class="text-sm text-gray-600 mb-1">Submit Status (True)</p>
+                            <p class="text-3xl font-bold text-blue-600">{{ $analytics['outcome_stats']['submit_status_count'] ?? 0 }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Outcome Values from Question ID 79 -->
+                @if(isset($analytics['outcome_stats']['outcome_values']) && count($analytics['outcome_stats']['outcome_values']) > 0)
                     <div class="mb-4">
-                        <h4 class="text-md font-medium text-gray-700 mb-3">Outcome Status</h4>
-                        <div class="space-y-2">
-                            @foreach($analytics['outcome_stats']['outcome_statuses'] as $status => $data)
+                        <h4 class="text-md font-medium text-gray-700 mb-3">Outcome Values (Question ID: 79)</h4>
+                        <div class="space-y-2 mb-4">
+                            @foreach($analytics['outcome_stats']['outcome_values'] as $outcome => $data)
                                 <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                    <span class="text-sm text-gray-700">{{ $status }}</span>
+                                    <span class="text-sm text-gray-700">{{ $outcome }}</span>
                                     <div class="flex items-center space-x-2">
                                         <span class="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded">{{ $data['count'] }}</span>
                                         <span class="text-xs text-gray-500">({{ $data['percentage'] }}%)</span>
@@ -339,45 +355,13 @@
                                 </div>
                             @endforeach
                         </div>
-                    </div>
-                    
-                    @if(isset($analytics['outcome_stats']['survivor_death']) && count($analytics['outcome_stats']['survivor_death']) > 0)
+                        
                         <div class="chart-fixed-height">
                             <canvas id="outcomeChart"></canvas>
                         </div>
-                    @endif
+                    </div>
                 @else
                     <p class="text-gray-500 text-center py-4">No outcome data available</p>
-                @endif
-            </div>
-
-            <!-- Final Status -->
-            <div class="bg-white rounded-xl p-6 shadow-lg card-hover">
-                <h3 class="text-xl font-semibold mb-4 text-gray-800">
-                    <i class="fas fa-clipboard-check mr-2 text-blue-600"></i>
-                    Submit Status
-                </h3>
-                @if(isset($analytics['final_status_stats']['submit_statuses']) && count($analytics['final_status_stats']['submit_statuses']) > 0)
-                    <div class="mb-4">
-                        <h4 class="text-md font-medium text-gray-700 mb-3">Submit Status</h4>
-                        <div class="space-y-2">
-                            @foreach($analytics['final_status_stats']['submit_statuses'] as $status => $data)
-                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                    <span class="text-sm text-gray-700">{{ $status }}</span>
-                                    <div class="flex items-center space-x-2">
-                                        <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded">{{ $data['count'] }}</span>
-                                        <span class="text-xs text-gray-500">({{ $data['percentage'] }}%)</span>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                    
-                    <div class="chart-fixed-height">
-                        <canvas id="finalStatusChart"></canvas>
-                    </div>
-                @else
-                    <p class="text-gray-500 text-center py-4">No submit status data available</p>
                 @endif
             </div>
         </div>
@@ -484,10 +468,10 @@
             }
         });
 
-        @if(isset($analytics['outcome_stats']['survivor_death']) && count($analytics['outcome_stats']['survivor_death']) > 0)
-        // Outcome Chart - Survivor/Death breakdown
+        @if(isset($analytics['outcome_stats']['outcome_values']) && count($analytics['outcome_stats']['outcome_values']) > 0)
+        // Outcome Chart - Outcome Values from Question ID 79
         const outcomeCtx = document.getElementById('outcomeChart').getContext('2d');
-        const outcomeData = @json($analytics['outcome_stats']['survivor_death']);
+        const outcomeData = @json($analytics['outcome_stats']['outcome_values']);
         const outcomeLabels = Object.keys(outcomeData);
         const outcomeCounts = outcomeLabels.map(label => outcomeData[label].count);
         
@@ -536,74 +520,6 @@
         });
         @endif
 
-        @if(isset($analytics['final_status_stats']['submit_statuses']) && count($analytics['final_status_stats']['submit_statuses']) > 0)
-        // Final Status Chart
-        const finalStatusCtx = document.getElementById('finalStatusChart').getContext('2d');
-        const finalStatusData = @json($analytics['final_status_stats']['submit_statuses']);
-        const finalStatusLabels = Object.keys(finalStatusData);
-        const finalStatusCounts = finalStatusLabels.map(label => finalStatusData[label].count);
-        
-        new Chart(finalStatusCtx, {
-            type: 'polarArea',
-            data: {
-                labels: finalStatusLabels,
-                datasets: [{
-                    data: finalStatusCounts,
-                    backgroundColor: [
-                        'rgba(59, 130, 246, 0.8)',
-                        'rgba(16, 185, 129, 0.8)',
-                        'rgba(245, 158, 11, 0.8)',
-                        'rgba(239, 68, 68, 0.8)',
-                        'rgba(139, 92, 246, 0.8)',
-                        'rgba(236, 72, 153, 0.8)'
-                    ],
-                    borderColor: [
-                        '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'
-                    ],
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: {
-                    duration: 1000
-                },
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 12,
-                            usePointStyle: true,
-                            font: {
-                                size: 11
-                            }
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label;
-                                const count = context.parsed;
-                                const percentage = finalStatusData[label].percentage;
-                                return `${label}: ${count} (${percentage}%)`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    r: {
-                        beginAtZero: true,
-                        ticks: {
-                            font: {
-                                size: 10
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        @endif
     </script>
 </body>
 </html>

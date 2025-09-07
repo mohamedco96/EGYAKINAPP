@@ -6,7 +6,6 @@ use App\Models\Answers;
 use App\Models\User;
 use App\Modules\Patients\Models\Patients;
 use App\Modules\Patients\Models\PatientStatus;
-use App\Modules\Questions\Models\Questions;
 
 class AnalyticsController extends Controller
 {
@@ -51,9 +50,6 @@ class AnalyticsController extends Controller
         // Patient with Outcome count
         $outcomeStats = $this->getOutcomeStats();
 
-        // Patient Final status count
-        $finalStatusStats = $this->getFinalStatusStats();
-
         return [
             'total_doctors' => $totalDoctors,
             'total_users' => $totalUsers,
@@ -66,7 +62,6 @@ class AnalyticsController extends Controller
             'cause_of_aki_stats' => $causeOfAkiStats,
             'dialysis_percentage' => $dialysisPercentage,
             'outcome_stats' => $outcomeStats,
-            'final_status_stats' => $finalStatusStats,
         ];
     }
 
@@ -224,20 +219,15 @@ class AnalyticsController extends Controller
 
     private function getDialysisPercentage()
     {
-        // Find dialysis related questions (keeping the search for now as no specific ID was provided)
-        $dialysisQuestion = Questions::where('question', 'LIKE', '%dialysis%')
-            ->first();
-
-        if (! $dialysisQuestion) {
-            return 0;
-        }
+        // Dialysis question ID: 86 - "Did the patient receive dialysis?"
+        $dialysisQuestionId = 86;
 
         $totalPatients = Patients::where('hidden', false)->count();
         if ($totalPatients == 0) {
             return 0;
         }
 
-        $dialysisCount = Answers::where('question_id', $dialysisQuestion->id)
+        $dialysisCount = Answers::where('question_id', $dialysisQuestionId)
             ->whereHas('patient', function ($query) {
                 $query->where('hidden', false);
             })
@@ -256,63 +246,19 @@ class AnalyticsController extends Controller
     {
         $totalPatients = Patients::where('hidden', false)->count();
 
-        // Patient count in patient_statuses with key outcome_status
-        $outcomeStatuses = PatientStatus::where('key', 'outcome_status')
-            ->whereHas('patient', function ($query) {
-                $query->where('hidden', false);
-            })
-            ->get();
+        // Outcome values from question ID 79: "Outcome of the patient"
+        $outcomeQuestionId = 79;
 
-        $outcomeStats = $outcomeStatuses->groupBy('status')
-            ->map(function ($group) use ($totalPatients) {
-                $count = $group->count();
-                $percentage = $totalPatients > 0 ? round(($count / $totalPatients) * 100, 2) : 0;
-
-                return [
-                    'count' => $count,
-                    'percentage' => $percentage,
-                ];
-            });
-
-        // Also get survivor/death breakdown
-        $survivorDeathStats = $outcomeStatuses->groupBy(function ($status) {
-            $statusValue = strtolower($status->status ?? '');
-            if (str_contains($statusValue, 'death') || str_contains($statusValue, 'died') || str_contains($statusValue, 'dead')) {
-                return 'Death';
-            } elseif (str_contains($statusValue, 'survivor') || str_contains($statusValue, 'alive') || str_contains($statusValue, 'recovered')) {
-                return 'Survivor';
-            } else {
-                return 'Other';
-            }
-        })
-            ->map(function ($group) use ($totalPatients) {
-                $count = $group->count();
-                $percentage = $totalPatients > 0 ? round(($count / $totalPatients) * 100, 2) : 0;
-
-                return [
-                    'count' => $count,
-                    'percentage' => $percentage,
-                ];
-            });
-
-        return [
-            'outcome_statuses' => $outcomeStats->toArray(),
-            'survivor_death' => $survivorDeathStats->toArray(),
-            'total_patients' => $totalPatients,
-        ];
-    }
-
-    private function getFinalStatusStats()
-    {
-        $totalPatients = Patients::where('hidden', false)->count();
-
-        // Patient count in patient_statuses with key submit_status
-        $finalStatusStats = PatientStatus::where('key', 'submit_status')
+        $outcomeAnswers = Answers::where('question_id', $outcomeQuestionId)
             ->whereHas('patient', function ($query) {
                 $query->where('hidden', false);
             })
             ->get()
-            ->groupBy('status')
+            ->groupBy(function ($answer) {
+                return is_array($answer->answer) ?
+                    (isset($answer->answer[0]) ? $answer->answer[0] : 'Unknown') :
+                    ($answer->answer ?: 'Unknown');
+            })
             ->map(function ($group) use ($totalPatients) {
                 $count = $group->count();
                 $percentage = $totalPatients > 0 ? round(($count / $totalPatients) * 100, 2) : 0;
@@ -323,8 +269,25 @@ class AnalyticsController extends Controller
                 ];
             });
 
+        // Patient count in patient_statuses with status = true (only count true status)
+        $outcomeStatusCount = PatientStatus::where('key', 'outcome_status')
+            ->where('status', true)
+            ->whereHas('patient', function ($query) {
+                $query->where('hidden', false);
+            })
+            ->count();
+
+        $submitStatusCount = PatientStatus::where('key', 'submit_status')
+            ->where('status', true)
+            ->whereHas('patient', function ($query) {
+                $query->where('hidden', false);
+            })
+            ->count();
+
         return [
-            'submit_statuses' => $finalStatusStats->toArray(),
+            'outcome_values' => $outcomeAnswers->toArray(),
+            'outcome_status_count' => $outcomeStatusCount,
+            'submit_status_count' => $submitStatusCount,
             'total_patients' => $totalPatients,
         ];
     }

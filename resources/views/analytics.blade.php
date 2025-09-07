@@ -267,15 +267,17 @@
                 @if(count($analytics['department_stats']) > 0)
                     <div class="space-y-3">
                         @foreach($analytics['department_stats'] as $department => $count)
-                            <div class="flex items-center justify-between">
-                                <span class="text-gray-700">{{ $department }}</span>
-                                <div class="flex items-center">
-                                    <div class="w-24 bg-gray-200 rounded-full h-2 mr-3">
-                                        <div class="bg-purple-600 h-2 rounded-full" style="width: {{ ($count / max($analytics['department_stats'])) * 100 }}%"></div>
+                            @if(!empty($department) && $department !== null && trim($department) !== '' && $department !== 'null')
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-700">{{ $department }}</span>
+                                    <div class="flex items-center">
+                                        <div class="w-24 bg-gray-200 rounded-full h-2 mr-3">
+                                            <div class="bg-purple-600 h-2 rounded-full" style="width: {{ ($count / max($analytics['department_stats'])) * 100 }}%"></div>
+                                        </div>
+                                        <span class="text-sm font-semibold text-gray-600">{{ $count }}</span>
                                     </div>
-                                    <span class="text-sm font-semibold text-gray-600">{{ $count }}</span>
                                 </div>
-                            </div>
+                            @endif
                         @endforeach
                     </div>
                 @else
@@ -295,10 +297,12 @@
                 @if(count($analytics['provisional_diagnosis_stats']) > 0)
                     <div class="space-y-3 max-h-64 overflow-y-auto scrollable-content">
                         @foreach($analytics['provisional_diagnosis_stats'] as $diagnosis => $count)
-                            <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                <span class="text-sm text-gray-700">{{ Str::limit($diagnosis, 30) }}</span>
-                                <span class="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2 py-1 rounded">{{ $count }}</span>
-                            </div>
+                            @if(!empty($diagnosis) && $diagnosis !== null && trim($diagnosis) !== '' && $diagnosis !== 'null')
+                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                    <span class="text-sm text-gray-700">{{ Str::limit($diagnosis, 30) }}</span>
+                                    <span class="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2 py-1 rounded">{{ $count }}</span>
+                                </div>
+                            @endif
                         @endforeach
                     </div>
                 @else
@@ -315,10 +319,12 @@
                 @if(count($analytics['cause_of_aki_stats']) > 0)
                     <div class="space-y-3 max-h-64 overflow-y-auto scrollable-content">
                         @foreach($analytics['cause_of_aki_stats'] as $cause => $count)
-                            <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                <span class="text-sm text-gray-700">{{ Str::limit($cause, 30) }}</span>
-                                <span class="bg-orange-100 text-orange-800 text-xs font-semibold px-2 py-1 rounded">{{ $count }}</span>
-                            </div>
+                            @if(!empty($cause) && $cause !== null && trim($cause) !== '' && $cause !== 'null')
+                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                    <span class="text-sm text-gray-700">{{ Str::limit($cause, 30) }}</span>
+                                    <span class="bg-orange-100 text-orange-800 text-xs font-semibold px-2 py-1 rounded">{{ $count }}</span>
+                                </div>
+                            @endif
                         @endforeach
                     </div>
                 @else
@@ -356,13 +362,15 @@
                         <h4 class="text-md font-medium text-gray-700 mb-3">Outcome Values</h4>
                         <div class="space-y-2 mb-4">
                             @foreach($analytics['outcome_stats']['outcome_values'] as $outcome => $data)
-                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                    <span class="text-sm text-gray-700">{{ $outcome }}</span>
-                                    <div class="flex items-center space-x-2">
-                                        <span class="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded">{{ $data['count'] }}</span>
-                                        <span class="text-xs text-gray-500">({{ $data['percentage'] }}%)</span>
+                                @if(!empty($outcome) && $outcome !== null && trim($outcome) !== '' && $outcome !== 'null')
+                                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                        <span class="text-sm text-gray-700">{{ $outcome }}</span>
+                                        <div class="flex items-center space-x-2">
+                                            <span class="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded">{{ $data['count'] }}</span>
+                                            <span class="text-xs text-gray-500">({{ $data['percentage'] }}%)</span>
+                                        </div>
                                     </div>
-                                </div>
+                                @endif
                             @endforeach
                         </div>
                         
@@ -482,7 +490,9 @@
         // Outcome Chart - Outcome Values from Question ID 79
         const outcomeCtx = document.getElementById('outcomeChart').getContext('2d');
         const outcomeData = @json($analytics['outcome_stats']['outcome_values']);
-        const outcomeLabels = Object.keys(outcomeData);
+        const outcomeLabels = Object.keys(outcomeData).filter(label => 
+            label && label !== null && label.trim() !== '' && label !== 'null'
+        );
         const outcomeCounts = outcomeLabels.map(label => outcomeData[label].count);
         
         new Chart(outcomeCtx, {

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AnalyticsController;
 use App\Mail\DailyReportMail;
 use App\Mail\WeeklySummaryMail;
 use App\Modules\Chat\Controllers\ChatController;
@@ -40,6 +41,8 @@ Route::get('/realTimeSearch', [PatientsController::class, 'realTimeSearch'])->na
 Route::get('/search', function () {
     return view('search');
 });
+
+Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics');
 
 Route::get('/post/{id}', function ($id) {
     // Check if the request is from a mobile device

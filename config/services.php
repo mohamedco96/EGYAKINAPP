@@ -22,10 +22,10 @@ return [
     // ],
 
     'mailgun' => [
-    'domain' => env('MAILGUN_DOMAIN'),
-    'secret' => env('MAILGUN_SECRET'),
-    'endpoint' => env('MAILGUN_ENDPOINT', 'https://api.eu.mailgun.net'),
-    'from' => env('MAILGUN_FROM_NAME', 'OTP Verification').' <'.env('MAILGUN_FROM_ADDRESS', 'verification@egyakin.com').'>',
+        'domain' => env('MAILGUN_DOMAIN'),
+        'secret' => env('MAILGUN_SECRET'),
+        'endpoint' => env('MAILGUN_ENDPOINT', 'https://api.eu.mailgun.net'),
+        'from' => env('MAILGUN_FROM_NAME', 'OTP Verification').' <'.env('MAILGUN_FROM_ADDRESS', 'verification@egyakin.com').'>',
     ],
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
@@ -37,5 +37,9 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
-    'openai' => [ 'api_key' => env('OPENAI_API_KEY'), ],
+    'openai' => ['api_key' => env('OPENAI_API_KEY')],
+
+    'brevo' => [
+        'api_key' => env('BREVO_API_KEY'),
+    ],
 ];

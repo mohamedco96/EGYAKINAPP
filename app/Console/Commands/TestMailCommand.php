@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Mail\BrevoApiMail;
 use App\Mail\DailyReportMail;
 use App\Mail\TestMail;
 use App\Mail\VerifyEmail;
@@ -18,9 +19,10 @@ class TestMailCommand extends Command
      */
     protected $signature = 'mail:test 
                             {email? : Email address to send test email to}
-                            {--type=simple : Type of test email (simple, daily-report, verify-email)}
+                            {--type=simple : Type of test email (simple, daily-report, verify-email, brevo-api)}
                             {--subject= : Custom subject for the email}
-                            {--body= : Custom body for the email}';
+                            {--body= : Custom body for the email}
+                            {--api : Use Brevo API instead of SMTP}';
 
     /**
      * The console command description.
@@ -59,12 +61,21 @@ class TestMailCommand extends Command
         $type = $this->option('type');
         $subject = $this->option('subject');
         $body = $this->option('body');
+        $useApi = $this->option('api');
+
+        // Override type if API flag is used
+        if ($useApi) {
+            $type = 'brevo-api';
+        }
 
         $this->info("📧 Sending {$type} test email to: {$email}");
         $this->newLine();
 
         try {
             switch ($type) {
+                case 'brevo-api':
+                    $this->sendBrevoApiTest($email, $subject, $body);
+                    break;
                 case 'daily-report':
                     $this->sendDailyReportTest($email);
                     break;
@@ -122,6 +133,13 @@ class TestMailCommand extends Command
             $this->line('   • SMTP Username: '.(config('mail.mailers.smtp.username') ? '***configured***' : 'not set'));
         }
 
+        // Show Brevo API configuration
+        if (config('services.brevo.api_key')) {
+            $this->line('   • Brevo API Key: ***configured***');
+        } else {
+            $this->line('   • Brevo API Key: not set');
+        }
+
         $this->newLine();
     }
 
@@ -156,6 +174,26 @@ class TestMailCommand extends Command
         $verifyEmail = new VerifyEmail($verificationUrl);
 
         Mail::to($email)->send($verifyEmail);
+    }
+
+    /**
+     * Send Brevo API test email
+     */
+    private function sendBrevoApiTest($email, $subject = null, $body = null)
+    {
+        $subject = $subject ?? 'EGYAKIN Mail Test (Brevo API) - '.now()->format('Y-m-d H:i:s');
+        $htmlContent = BrevoApiMail::getDefaultTestHtmlContent();
+        $textContent = BrevoApiMail::getDefaultTestTextContent();
+
+        $brevoMail = new BrevoApiMail($email, $subject, $htmlContent, $textContent);
+        $result = $brevoMail->sendViaBrevoApi();
+
+        if (! $result['success']) {
+            throw new \Exception('Brevo API Error: '.($result['error'] ?? 'Unknown error'));
+        }
+
+        $this->info('📡 Brevo API Response:');
+        $this->line('   • Message ID: '.($result['message_id'] ?? 'N/A'));
     }
 
     /**

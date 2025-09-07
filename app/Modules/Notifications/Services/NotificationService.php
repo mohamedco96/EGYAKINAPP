@@ -316,7 +316,21 @@ class NotificationService
                         ->whereIn('key', ['submit_status', 'outcome_status']);
                 },
                 'typeDoctor:id,name,lname,workingplace,image,isSyndicateCardRequired',
-                'consultation:id,is_open',
+                'consultation:id,is_open,patient_id',
+                'consultation.patient' => function ($query) {
+                    $query->select('id', 'doctor_id', 'updated_at');
+                },
+                'consultation.patient.doctor' => function ($query) {
+                    $query->select('id', 'name', 'lname', 'workingplace', 'image', 'isSyndicateCardRequired');
+                },
+                'consultation.patient.answers' => function ($query) {
+                    $query->select('id', 'patient_id', 'answer', 'question_id')
+                        ->whereIn('question_id', [1, 2, 11]);
+                },
+                'consultation.patient.status' => function ($query) {
+                    $query->select('id', 'patient_id', 'key', 'status')
+                        ->whereIn('key', ['submit_status', 'outcome_status']);
+                },
             ];
 
             // Fetch today's notifications (no pagination)
@@ -483,10 +497,16 @@ class NotificationService
     private function transformNotifications($notifications)
     {
         return $notifications->map(function ($notification) {
-            if ($notification->patient) {
+            // For consultation notifications, try to get patient from consultation if notification patient is null
+            $patient = $notification->patient;
+            if (! $patient && $notification->type === 'Consultation' && $notification->consultation) {
+                $patient = $notification->consultation->patient;
+            }
+
+            if ($patient) {
                 // Create indexed collections for O(1) lookups instead of O(n) where() calls
-                $answersByQuestionId = $notification->patient->answers->keyBy('question_id');
-                $statusByKey = $notification->patient->status->keyBy('key');
+                $answersByQuestionId = $patient->answers->keyBy('question_id');
+                $statusByKey = $patient->status->keyBy('key');
 
                 // Use indexed collections for efficient lookups
                 $name = optional($answersByQuestionId->get(1))->answer;
@@ -496,7 +516,7 @@ class NotificationService
                 $submitStatus = optional($statusByKey->get('submit_status'))->status;
                 $outcomeStatus = optional($statusByKey->get('outcome_status'))->status;
 
-                $doctor = $notification->patient->doctor;
+                $doctor = $patient->doctor;
                 $doctorDetails = [
                     'id' => optional($doctor)->id,
                     'name' => optional($doctor)->name,
@@ -510,12 +530,12 @@ class NotificationService
                 $doctorDetails = null;
             }
 
-            $patientDetails = $notification->patient ? [
-                'id' => strval($notification->patient_id),
+            $patientDetails = $patient ? [
+                'id' => strval($patient->id),
                 'name' => $name,
                 'hospital' => $hospital,
                 'governorate' => $governorate,
-                'doctor_id' => optional($notification->patient->doctor)->id,
+                'doctor_id' => optional($patient->doctor)->id,
                 'doctor' => $doctorDetails,
                 'sections' => [
                     'submit_status' => $submitStatus ?? false,

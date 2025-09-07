@@ -285,7 +285,7 @@ class ConsultationService
                 $user,
                 $doctorId,
                 $id,
-                $data['patient_id'] ?? null
+                $consultation->patient_id
             );
 
             Log::info('Consultation request updated successfully.', [
@@ -718,7 +718,7 @@ class ConsultationService
                     $user,
                     $consultation->doctor_id,
                     $consultation->id,
-                    $data['patient_id'] ?? null
+                    $consultation->patient_id
                 );
 
                 Log::info('New consultation reply added.', [

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Modules\Patients\Models\Patients;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -9,14 +10,14 @@ class Answers extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['patient_id', 'section_id', 'question_id', 'doctor_id', 'answer','answer_type'];
+    protected $fillable = ['patient_id', 'section_id', 'question_id', 'doctor_id', 'answer', 'answer_type'];
 
     protected $casts = [
         'answer' => 'array',
         'patient_id' => 'integer',
         'section_id' => 'integer',
         'question_id' => 'integer',
-        'doctor_id' => 'integer'
+        'doctor_id' => 'integer',
     ];
 
     public function patient()
@@ -31,7 +32,7 @@ class Answers extends Model
 
     public function question()
     {
-        return $this->belongsTo(Questions::class, 'question_id');
+        return $this->belongsTo(\App\Modules\Questions\Models\Questions::class, 'question_id');
     }
 
     public function doctor()

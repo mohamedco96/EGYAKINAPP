@@ -73,25 +73,34 @@
         .scrollable-content {
             scrollbar-width: auto;
             scrollbar-color: #3b82f6 #e5e7eb;
+            overflow-y: scroll !important; /* Force scrollbar to always show */
         }
         
         .scrollable-content::-webkit-scrollbar {
             width: 12px;
+            -webkit-appearance: none;
         }
         
         .scrollable-content::-webkit-scrollbar-track {
             background: #e5e7eb;
             border-radius: 6px;
+            -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.1);
         }
         
         .scrollable-content::-webkit-scrollbar-thumb {
             background: #3b82f6;
             border-radius: 6px;
             border: 2px solid #e5e7eb;
+            -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.1);
         }
         
         .scrollable-content::-webkit-scrollbar-thumb:hover {
             background: #2563eb;
+        }
+        
+        /* Ensure scrollbar is always visible */
+        .scrollable-content::-webkit-scrollbar-thumb:window-inactive {
+            background: #3b82f6;
         }
     </style>
 </head>

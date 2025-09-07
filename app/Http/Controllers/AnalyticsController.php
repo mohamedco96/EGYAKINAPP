@@ -97,7 +97,6 @@ class AnalyticsController extends Controller
         return [
             'male' => $genderAnswers->get('male', collect())->count(),
             'female' => $genderAnswers->get('female', collect())->count(),
-            'other' => $genderAnswers->get('other', collect())->count(),
         ];
     }
 
@@ -255,42 +254,58 @@ class AnalyticsController extends Controller
 
     private function getOutcomeStats()
     {
+        $totalPatients = Patients::where('hidden', false)->count();
+
         // Patient count in patient_statuses with key outcome_status
-        $outcomeStats = PatientStatus::where('key', 'outcome_status')
+        $outcomeStatuses = PatientStatus::where('key', 'outcome_status')
             ->whereHas('patient', function ($query) {
                 $query->where('hidden', false);
             })
-            ->get()
-            ->groupBy('status')
-            ->map(function ($group) {
-                return $group->count();
+            ->get();
+
+        $outcomeStats = $outcomeStatuses->groupBy('status')
+            ->map(function ($group) use ($totalPatients) {
+                $count = $group->count();
+                $percentage = $totalPatients > 0 ? round(($count / $totalPatients) * 100, 2) : 0;
+
+                return [
+                    'count' => $count,
+                    'percentage' => $percentage,
+                ];
             });
 
-        // Also get survivor/death breakdown if available
-        $survivorDeathStats = PatientStatus::where('key', 'outcome_status')
-            ->whereHas('patient', function ($query) {
-                $query->where('hidden', false);
-            })
-            ->get()
-            ->groupBy(function ($status) {
-                $statusValue = strtolower($status->status ?? '');
-                if (str_contains($statusValue, 'death') || str_contains($statusValue, 'died') || str_contains($statusValue, 'dead')) {
-                    return 'Death';
-                } elseif (str_contains($statusValue, 'survivor') || str_contains($statusValue, 'alive') || str_contains($statusValue, 'recovered')) {
-                    return 'Survivor';
-                } else {
-                    return 'Other';
-                }
-            })
-            ->map(function ($group) {
-                return $group->count();
+        // Also get survivor/death breakdown
+        $survivorDeathStats = $outcomeStatuses->groupBy(function ($status) {
+            $statusValue = strtolower($status->status ?? '');
+            if (str_contains($statusValue, 'death') || str_contains($statusValue, 'died') || str_contains($statusValue, 'dead')) {
+                return 'Death';
+            } elseif (str_contains($statusValue, 'survivor') || str_contains($statusValue, 'alive') || str_contains($statusValue, 'recovered')) {
+                return 'Survivor';
+            } else {
+                return 'Other';
+            }
+        })
+            ->map(function ($group) use ($totalPatients) {
+                $count = $group->count();
+                $percentage = $totalPatients > 0 ? round(($count / $totalPatients) * 100, 2) : 0;
+
+                return [
+                    'count' => $count,
+                    'percentage' => $percentage,
+                ];
             });
 
-        return array_merge($outcomeStats->toArray(), $survivorDeathStats->toArray());
+        return [
+            'outcome_statuses' => $outcomeStats->toArray(),
+            'survivor_death' => $survivorDeathStats->toArray(),
+            'total_patients' => $totalPatients,
+        ];
     }
 
     private function getFinalStatusStats()
     {
+        $totalPatients = Patients::where('hidden', false)->count();
+
         // Patient count in patient_statuses with key submit_status
         $finalStatusStats = PatientStatus::where('key', 'submit_status')
             ->whereHas('patient', function ($query) {
@@ -298,10 +313,19 @@ class AnalyticsController extends Controller
             })
             ->get()
             ->groupBy('status')
-            ->map(function ($group) {
-                return $group->count();
+            ->map(function ($group) use ($totalPatients) {
+                $count = $group->count();
+                $percentage = $totalPatients > 0 ? round(($count / $totalPatients) * 100, 2) : 0;
+
+                return [
+                    'count' => $count,
+                    'percentage' => $percentage,
+                ];
             });
 
-        return $finalStatusStats->toArray();
+        return [
+            'submit_statuses' => $finalStatusStats->toArray(),
+            'total_patients' => $totalPatients,
+        ];
     }
 }

@@ -325,10 +325,27 @@
                     <i class="fas fa-heartbeat mr-2 text-green-600"></i>
                     Patient Outcomes
                 </h3>
-                @if(count($analytics['outcome_stats']) > 0)
-                    <div class="chart-fixed-height">
-                        <canvas id="outcomeChart"></canvas>
+                @if(isset($analytics['outcome_stats']['outcome_statuses']) && count($analytics['outcome_stats']['outcome_statuses']) > 0)
+                    <div class="mb-4">
+                        <h4 class="text-md font-medium text-gray-700 mb-3">Outcome Status</h4>
+                        <div class="space-y-2">
+                            @foreach($analytics['outcome_stats']['outcome_statuses'] as $status => $data)
+                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                    <span class="text-sm text-gray-700">{{ $status }}</span>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded">{{ $data['count'] }}</span>
+                                        <span class="text-xs text-gray-500">({{ $data['percentage'] }}%)</span>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
                     </div>
+                    
+                    @if(isset($analytics['outcome_stats']['survivor_death']) && count($analytics['outcome_stats']['survivor_death']) > 0)
+                        <div class="chart-fixed-height">
+                            <canvas id="outcomeChart"></canvas>
+                        </div>
+                    @endif
                 @else
                     <p class="text-gray-500 text-center py-4">No outcome data available</p>
                 @endif
@@ -338,14 +355,29 @@
             <div class="bg-white rounded-xl p-6 shadow-lg card-hover">
                 <h3 class="text-xl font-semibold mb-4 text-gray-800">
                     <i class="fas fa-clipboard-check mr-2 text-blue-600"></i>
-                    Final Status
+                    Submit Status
                 </h3>
-                @if(count($analytics['final_status_stats']) > 0)
+                @if(isset($analytics['final_status_stats']['submit_statuses']) && count($analytics['final_status_stats']['submit_statuses']) > 0)
+                    <div class="mb-4">
+                        <h4 class="text-md font-medium text-gray-700 mb-3">Submit Status</h4>
+                        <div class="space-y-2">
+                            @foreach($analytics['final_status_stats']['submit_statuses'] as $status => $data)
+                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                    <span class="text-sm text-gray-700">{{ $status }}</span>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded">{{ $data['count'] }}</span>
+                                        <span class="text-xs text-gray-500">({{ $data['percentage'] }}%)</span>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    
                     <div class="chart-fixed-height">
                         <canvas id="finalStatusChart"></canvas>
                     </div>
                 @else
-                    <p class="text-gray-500 text-center py-4">No final status data available</p>
+                    <p class="text-gray-500 text-center py-4">No submit status data available</p>
                 @endif
             </div>
         </div>
@@ -364,14 +396,13 @@
         new Chart(genderCtx, {
             type: 'doughnut',
             data: {
-                labels: ['Male', 'Female', 'Other'],
+                labels: ['Male', 'Female'],
                 datasets: [{
                     data: [
                         {{ $analytics['gender_stats']['male'] }},
-                        {{ $analytics['gender_stats']['female'] }},
-                        {{ $analytics['gender_stats']['other'] }}
+                        {{ $analytics['gender_stats']['female'] }}
                     ],
-                    backgroundColor: ['#3B82F6', '#EC4899', '#8B5CF6'],
+                    backgroundColor: ['#3B82F6', '#EC4899'],
                     borderWidth: 0
                 }]
             },
@@ -453,17 +484,21 @@
             }
         });
 
-        @if(count($analytics['outcome_stats']) > 0)
-        // Outcome Chart
+        @if(isset($analytics['outcome_stats']['survivor_death']) && count($analytics['outcome_stats']['survivor_death']) > 0)
+        // Outcome Chart - Survivor/Death breakdown
         const outcomeCtx = document.getElementById('outcomeChart').getContext('2d');
+        const outcomeData = @json($analytics['outcome_stats']['survivor_death']);
+        const outcomeLabels = Object.keys(outcomeData);
+        const outcomeCounts = outcomeLabels.map(label => outcomeData[label].count);
+        
         new Chart(outcomeCtx, {
             type: 'pie',
             data: {
-                labels: {!! json_encode(array_keys($analytics['outcome_stats'])) !!},
+                labels: outcomeLabels,
                 datasets: [{
-                    data: {!! json_encode(array_values($analytics['outcome_stats'])) !!},
+                    data: outcomeCounts,
                     backgroundColor: [
-                        '#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'
+                        '#10B981', '#EF4444', '#F59E0B', '#3B82F6', '#8B5CF6', '#EC4899'
                     ],
                     borderWidth: 2,
                     borderColor: '#ffffff'
@@ -485,21 +520,35 @@
                                 size: 11
                             }
                         }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label;
+                                const count = context.parsed;
+                                const percentage = outcomeData[label].percentage;
+                                return `${label}: ${count} (${percentage}%)`;
+                            }
+                        }
                     }
                 }
             }
         });
         @endif
 
-        @if(count($analytics['final_status_stats']) > 0)
+        @if(isset($analytics['final_status_stats']['submit_statuses']) && count($analytics['final_status_stats']['submit_statuses']) > 0)
         // Final Status Chart
         const finalStatusCtx = document.getElementById('finalStatusChart').getContext('2d');
+        const finalStatusData = @json($analytics['final_status_stats']['submit_statuses']);
+        const finalStatusLabels = Object.keys(finalStatusData);
+        const finalStatusCounts = finalStatusLabels.map(label => finalStatusData[label].count);
+        
         new Chart(finalStatusCtx, {
             type: 'polarArea',
             data: {
-                labels: {!! json_encode(array_keys($analytics['final_status_stats'])) !!},
+                labels: finalStatusLabels,
                 datasets: [{
-                    data: {!! json_encode(array_values($analytics['final_status_stats'])) !!},
+                    data: finalStatusCounts,
                     backgroundColor: [
                         'rgba(59, 130, 246, 0.8)',
                         'rgba(16, 185, 129, 0.8)',
@@ -528,6 +577,16 @@
                             usePointStyle: true,
                             font: {
                                 size: 11
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label;
+                                const count = context.parsed;
+                                const percentage = finalStatusData[label].percentage;
+                                return `${label}: ${count} (${percentage}%)`;
                             }
                         }
                     }

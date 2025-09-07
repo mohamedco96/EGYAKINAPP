@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Modules\Achievements\Controllers\AchievementController as ModuleAchievementController;
 use App\Modules\Achievements\Requests\StoreAchievementRequest;
 use App\Modules\Achievements\Requests\UpdateAchievementRequest;
@@ -54,7 +55,10 @@ class AchievementController extends Controller
 
     public function getUserAchievements($user)
     {
-        return $this->achievementController->getUserAchievements($user);
+        // Resolve the user from the route parameter (could be ID or other identifier)
+        $userModel = User::findOrFail($user);
+
+        return $this->achievementController->getUserAchievements($userModel);
     }
 
     public function checkAndAssignAchievementsForAllUsers(Request $request)

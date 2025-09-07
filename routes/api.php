@@ -1,23 +1,19 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AchievementController;
 use App\Modules\Auth\Controllers\AuthController;
-use App\Modules\Auth\Controllers\ForgetPasswordController;
-use App\Modules\Auth\Controllers\ResetPasswordController;
 use App\Modules\Auth\Controllers\EmailVerificationController;
+use App\Modules\Auth\Controllers\ForgetPasswordController;
 use App\Modules\Auth\Controllers\OtpController;
-use App\Http\Controllers\PatientHistoryController;
-use App\Http\Controllers\ProductController;
-use App\Modules\Patients\Controllers\PatientsController;
-use App\Modules\Sections\Controllers\SectionsController;
-use App\Modules\Achievements\Controllers\AchievementController;
-use App\Modules\Settings\Controllers\SettingsController;
+use App\Modules\Auth\Controllers\ResetPasswordController;
 use App\Modules\Chat\Controllers\ChatController;
+use App\Modules\Patients\Controllers\PatientsController;
+use App\Modules\Recommendations\Controllers\RecommendationController;
 use App\Modules\RolePermission\Controllers\RolePermissionController;
+use App\Modules\Sections\Controllers\SectionsController;
+use App\Modules\Settings\Controllers\SettingsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\GroupController;
-use App\Modules\Recommendations\Controllers\RecommendationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,7 +33,7 @@ use App\Modules\Recommendations\Controllers\RecommendationController;
 // Version 1 Routes (api/v1/...)
 Route::prefix('v1')->group(function () {
     // Load all V1 routes from the separate file
-    require __DIR__ . '/api/v1.php';
+    require __DIR__.'/api/v1.php';
 });
 
 // Future versions can be added here:
@@ -93,7 +89,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/uploadSyndicateCard', [AuthController::class, 'uploadSyndicateCard']);
     Route::post('/storeFCM', [\App\Modules\Notifications\Controllers\NotificationController::class, 'storeFCM']);
     Route::post('/decryptedPassword', [AuthController::class, 'decryptedPassword']);
-    
 
     Route::post('/emailverification', [OtpController::class, 'verifyOtp']);
     Route::post('/sendverificationmail', [OtpController::class, 'sendOtp']);
@@ -222,7 +217,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/polls/{pollId}/options/{optionId}/voters', 'PollController@getVotersByOption');
     Route::post('/polls/{pollId}/options', 'PollController@addPollOption');
 
-
     // Groups
     Route::post('/groups', 'GroupController@create');
     Route::post('/groups/{id}', 'GroupController@update');
@@ -244,7 +238,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::post('/AIconsultation/{patientId}', [ChatController::class, 'sendConsultation']);
     Route::get('/AIconsultation-history/{patientId}', [ChatController::class, 'getConsultationHistory']);
-    
 
     // Recommendations
     Route::get('/recommendations/{patient_id}', [RecommendationController::class, 'index']);

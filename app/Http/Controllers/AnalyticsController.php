@@ -108,15 +108,18 @@ class AnalyticsController extends Controller
                 CASE 
                     WHEN JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
                         AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) != ""
+                        AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) IS NOT NULL
                     THEN TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]"))
                     WHEN answers.answer IS NOT NULL 
                         AND TRIM(answers.answer) != ""
+                        AND TRIM(answers.answer) IS NOT NULL
                     THEN answers.answer
                     ELSE "Unknown"
                 END as department_name,
                 COUNT(*) as count
             ')
             ->groupBy('department_name')
+            ->havingRaw('department_name != ""')
             ->pluck('count', 'department_name');
 
         return $departmentStats->toArray();
@@ -200,15 +203,18 @@ class AnalyticsController extends Controller
                 CASE 
                     WHEN JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
                         AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) != ""
+                        AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) IS NOT NULL
                     THEN TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]"))
                     WHEN answers.answer IS NOT NULL 
                         AND TRIM(answers.answer) != ""
+                        AND TRIM(answers.answer) IS NOT NULL
                     THEN answers.answer
                     ELSE "Unknown"
                 END as diagnosis_name,
                 COUNT(*) as count
             ')
             ->groupBy('diagnosis_name')
+            ->havingRaw('diagnosis_name != ""')
             ->pluck('count', 'diagnosis_name');
 
         return $diagnosisStats->toArray();
@@ -226,15 +232,18 @@ class AnalyticsController extends Controller
                 CASE 
                     WHEN JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
                         AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) != ""
+                        AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) IS NOT NULL
                     THEN TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]"))
                     WHEN answers.answer IS NOT NULL 
                         AND TRIM(answers.answer) != ""
+                        AND TRIM(answers.answer) IS NOT NULL
                     THEN answers.answer
                     ELSE "Unknown"
                 END as aki_cause,
                 COUNT(*) as count
             ')
             ->groupBy('aki_cause')
+            ->havingRaw('aki_cause != ""')
             ->pluck('count', 'aki_cause');
 
         return $akiStats->toArray();
@@ -278,15 +287,18 @@ class AnalyticsController extends Controller
                 CASE 
                     WHEN JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
                         AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) != ""
+                        AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) IS NOT NULL
                     THEN TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]"))
                     WHEN answers.answer IS NOT NULL 
                         AND TRIM(answers.answer) != ""
+                        AND TRIM(answers.answer) IS NOT NULL
                     THEN answers.answer
                     ELSE "Unknown"
                 END as outcome_value,
                 COUNT(*) as count
             ')
             ->groupBy('outcome_value')
+            ->havingRaw('outcome_value != ""')
             ->get()
             ->mapWithKeys(function ($item) use ($totalPatients) {
                 $percentage = $totalPatients > 0 ? round(($item->count / $totalPatients) * 100, 2) : 0;

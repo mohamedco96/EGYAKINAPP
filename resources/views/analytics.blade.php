@@ -8,35 +8,89 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        /* Smooth scrolling optimization */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            -webkit-overflow-scrolling: touch;
+            overflow-x: hidden;
+        }
+        
+        /* Optimize animations for better performance */
+        * {
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+        }
+        
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
+        
         .card-hover {
-            transition: all 0.3s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            will-change: transform;
         }
+        
         .card-hover:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1), 0 5px 10px -5px rgba(0, 0, 0, 0.04);
         }
+        
         .stat-card {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         }
+        
         .stat-card-blue {
             background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
         }
+        
         .stat-card-green {
             background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
         }
+        
         .stat-card-purple {
             background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
         }
+        
         .stat-card-orange {
             background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
         }
+        
         .chart-container {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Fixed height for charts to prevent layout shifts */
+        .chart-fixed-height {
+            height: 300px;
+        }
+        
+        /* Optimize scrollable areas */
+        .scrollable-content {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e0 #f7fafc;
+        }
+        
+        .scrollable-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .scrollable-content::-webkit-scrollbar-track {
+            background: #f7fafc;
+            border-radius: 3px;
+        }
+        
+        .scrollable-content::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 3px;
+        }
+        
+        .scrollable-content::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
         }
     </style>
 </head>
@@ -124,7 +178,9 @@
                     <i class="fas fa-chart-pie mr-2 text-blue-600"></i>
                     Gender Distribution
                 </h3>
-                <canvas id="genderChart" width="400" height="300"></canvas>
+                <div class="chart-fixed-height">
+                    <canvas id="genderChart"></canvas>
+                </div>
             </div>
 
             <!-- DM vs HTN Chart -->
@@ -133,7 +189,9 @@
                     <i class="fas fa-chart-bar mr-2 text-green-600"></i>
                     DM vs HTN Statistics
                 </h3>
-                <canvas id="dmHtnChart" width="400" height="300"></canvas>
+                <div class="chart-fixed-height">
+                    <canvas id="dmHtnChart"></canvas>
+                </div>
             </div>
         </div>
 
@@ -196,7 +254,7 @@
                     Provisional Diagnosis
                 </h3>
                 @if(count($analytics['provisional_diagnosis_stats']) > 0)
-                    <div class="space-y-3 max-h-64 overflow-y-auto">
+                    <div class="space-y-3 max-h-64 overflow-y-auto scrollable-content">
                         @foreach($analytics['provisional_diagnosis_stats'] as $diagnosis => $count)
                             <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
                                 <span class="text-sm text-gray-700">{{ Str::limit($diagnosis, 30) }}</span>
@@ -216,7 +274,7 @@
                     Cause of AKI
                 </h3>
                 @if(count($analytics['cause_of_aki_stats']) > 0)
-                    <div class="space-y-3 max-h-64 overflow-y-auto">
+                    <div class="space-y-3 max-h-64 overflow-y-auto scrollable-content">
                         @foreach($analytics['cause_of_aki_stats'] as $cause => $count)
                             <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
                                 <span class="text-sm text-gray-700">{{ Str::limit($cause, 30) }}</span>
@@ -239,7 +297,9 @@
                     Patient Outcomes
                 </h3>
                 @if(count($analytics['outcome_stats']) > 0)
-                    <canvas id="outcomeChart" width="400" height="300"></canvas>
+                    <div class="chart-fixed-height">
+                        <canvas id="outcomeChart"></canvas>
+                    </div>
                 @else
                     <p class="text-gray-500 text-center py-4">No outcome data available</p>
                 @endif
@@ -252,7 +312,9 @@
                     Final Status
                 </h3>
                 @if(count($analytics['final_status_stats']) > 0)
-                    <canvas id="finalStatusChart" width="400" height="300"></canvas>
+                    <div class="chart-fixed-height">
+                        <canvas id="finalStatusChart"></canvas>
+                    </div>
                 @else
                     <p class="text-gray-500 text-center py-4">No final status data available</p>
                 @endif
@@ -287,12 +349,18 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: {
+                    duration: 1000
+                },
                 plugins: {
                     legend: {
                         position: 'bottom',
                         labels: {
-                            padding: 20,
-                            usePointStyle: true
+                            padding: 15,
+                            usePointStyle: true,
+                            font: {
+                                size: 12
+                            }
                         }
                     }
                 }
@@ -314,13 +382,16 @@
                         {{ $analytics['htn_stats']['no'] }}
                     ],
                     backgroundColor: ['#10B981', '#F59E0B', '#EF4444', '#6B7280'],
-                    borderRadius: 8,
+                    borderRadius: 6,
                     borderSkipped: false,
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: {
+                    duration: 1000
+                },
                 plugins: {
                     legend: {
                         display: false
@@ -331,11 +402,22 @@
                         beginAtZero: true,
                         grid: {
                             color: 'rgba(0,0,0,0.1)'
+                        },
+                        ticks: {
+                            font: {
+                                size: 11
+                            }
                         }
                     },
                     x: {
                         grid: {
                             display: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 11
+                            },
+                            maxRotation: 45
                         }
                     }
                 }
@@ -361,12 +443,18 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: {
+                    duration: 1000
+                },
                 plugins: {
                     legend: {
                         position: 'bottom',
                         labels: {
-                            padding: 15,
-                            usePointStyle: true
+                            padding: 12,
+                            usePointStyle: true,
+                            font: {
+                                size: 11
+                            }
                         }
                     }
                 }
@@ -400,18 +488,29 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: {
+                    duration: 1000
+                },
                 plugins: {
                     legend: {
                         position: 'bottom',
                         labels: {
-                            padding: 15,
-                            usePointStyle: true
+                            padding: 12,
+                            usePointStyle: true,
+                            font: {
+                                size: 11
+                            }
                         }
                     }
                 },
                 scales: {
                     r: {
-                        beginAtZero: true
+                        beginAtZero: true,
+                        ticks: {
+                            font: {
+                                size: 10
+                            }
+                        }
                     }
                 }
             }

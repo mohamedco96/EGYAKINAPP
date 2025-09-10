@@ -28,7 +28,7 @@ class ReachingSpecificPoints extends Notification
         //$this->message = 'Use the below code for verification process';
         $this->subject = 'Congrats from EGYAKIN';
         $this->fromEmail = 'noreply@egyakin.com';
-        $this->mailer = 'smtp';
+        $this->mailer = 'brevo-api';
         $this->score = $score;
     }
 
@@ -49,7 +49,7 @@ class ReachingSpecificPoints extends Notification
     {
 
         return (new MailMessage)
-            ->mailer('smtp')
+            ->mailer('brevo-api')
             ->subject($this->subject)
             ->greeting('Hello Doctor '.$notifiable->name)
             ->line('Congrats! You have earned 50 points.')

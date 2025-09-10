@@ -30,7 +30,7 @@ class ReminderNotification extends Notification
         //$this->message = 'Use the below code for verification process';
         $this->subject = 'Reminder from EGYAKIN';
         $this->fromEmail = 'noreply@egyakin.com';
-        $this->mailer = 'smtp';
+        $this->mailer = 'brevo-api';
         $this->patient = $patient;
         $this->events = $events;
 

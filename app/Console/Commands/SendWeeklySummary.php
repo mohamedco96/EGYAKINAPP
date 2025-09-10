@@ -3,9 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Mail\WeeklySummaryMail;
+use App\Services\BrevoApiService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class SendWeeklySummary extends Command
 {
@@ -21,7 +21,7 @@ class SendWeeklySummary extends Command
      *
      * @var string
      */
-    protected $description = 'Send weekly summary email to admin with platform analytics and insights';
+    protected $description = 'Send weekly summary email to admin with platform analytics and insights via Brevo API';
 
     /**
      * Execute the console command.
@@ -43,21 +43,59 @@ class SendWeeklySummary extends Command
 
             $this->info("📧 Preparing to send weekly summary to: {$adminEmail}");
 
-            // Create and send the mailable
+            // Create the mailable to get the content
             $mailable = new WeeklySummaryMail();
 
             $this->info('📊 Generating summary data and insights...');
 
-            Mail::to($adminEmail)->send($mailable);
+            // Get the email content from the mailable
+            $envelope = $mailable->envelope();
+            $content = $mailable->content();
 
-            $this->info("✅ Weekly summary sent successfully to {$adminEmail}");
+            // Generate HTML content from the view
+            $htmlContent = view($content->view, $content->with)->render();
 
-            Log::info('Weekly summary sent successfully', [
-                'recipient' => $adminEmail,
-                'timestamp' => now()->toISOString(),
-            ]);
+            // Generate text content (simplified version)
+            $textContent = $this->generateTextContent($mailable);
 
-            return Command::SUCCESS;
+            // Send via Brevo API
+            $brevoService = new BrevoApiService();
+
+            $this->info('📡 Sending via Brevo API...');
+
+            $result = $brevoService->sendEmail(
+                $adminEmail,
+                $envelope->subject,
+                $htmlContent,
+                $textContent,
+                [
+                    'name' => config('mail.from.name'),
+                    'email' => config('mail.from.address'),
+                ]
+            );
+
+            if ($result['success']) {
+                $this->info("✅ Weekly summary sent successfully to {$adminEmail}");
+                $this->info("📧 Message ID: {$result['message_id']}");
+
+                Log::info('Weekly summary sent successfully via Brevo API', [
+                    'recipient' => $adminEmail,
+                    'message_id' => $result['message_id'],
+                    'timestamp' => now()->toISOString(),
+                ]);
+
+                return Command::SUCCESS;
+            } else {
+                $this->error('❌ Brevo API failed to send weekly summary: '.($result['error'] ?? 'Unknown error'));
+
+                Log::error('Weekly summary failed via Brevo API', [
+                    'recipient' => $adminEmail,
+                    'error' => $result['error'] ?? 'Unknown error',
+                    'timestamp' => now()->toISOString(),
+                ]);
+
+                return Command::FAILURE;
+            }
 
         } catch (\Exception $e) {
             $this->error('❌ Failed to send weekly summary: '.$e->getMessage());
@@ -70,5 +108,82 @@ class SendWeeklySummary extends Command
 
             return Command::FAILURE;
         }
+    }
+
+    /**
+     * Generate text content for the email
+     */
+    private function generateTextContent(WeeklySummaryMail $mailable): string
+    {
+        $data = $mailable->summaryData;
+
+        // Check if there's an error in the data
+        if (isset($data['error'])) {
+            return "
+EGYAKIN Weekly Summary - {$data['week_period']}
+
+═══════════════════════════════════════════════════════════════
+
+❌ ERROR GENERATING SUMMARY DATA
+
+{$data['error']}
+
+═══════════════════════════════════════════════════════════════
+
+Generated on: {$data['week_period']}
+
+Best regards,
+EGYAKIN Development Team
+            ";
+        }
+
+        return "
+EGYAKIN Weekly Summary - {$data['week_period']}
+
+═══════════════════════════════════════════════════════════════
+
+📊 CURRENT WEEK STATISTICS
+• New Users: {$data['current_week']['new_users']}
+• New Doctors: {$data['current_week']['new_doctors']}
+• New Patients: {$data['current_week']['new_patients']}
+• New Consultations: {$data['current_week']['new_consultations']}
+• New AI Consultations: {$data['current_week']['new_ai_consultations']}
+• New Posts: {$data['current_week']['new_posts']}
+• New Groups: {$data['current_week']['new_groups']}
+• Total Likes: {$data['current_week']['total_likes']}
+• Total Comments: {$data['current_week']['total_comments']}
+
+📈 GROWTH COMPARISON (vs Last Week)
+• Users: {$data['growth']['new_users']}%
+• Doctors: {$data['growth']['new_doctors']}%
+• Patients: {$data['growth']['new_patients']}%
+• Consultations: {$data['growth']['new_consultations']}%
+• AI Consultations: {$data['growth']['new_ai_consultations']}%
+• Posts: {$data['growth']['new_posts']}%
+• Groups: {$data['growth']['new_groups']}%
+
+🏆 TOP PERFORMERS THIS WEEK
+• Most Active Doctors: ".count($data['top_performers']['most_active_doctors']).' doctors
+• Doctors with Patients: '.count($data['top_performers']['doctors_with_patients']).' doctors
+• Doctors with Posts: '.count($data['top_performers']['doctors_with_posts']).' doctors
+• Popular Posts: '.count($data['top_performers']['popular_posts']).' posts
+• Active Groups: '.count($data['top_performers']['active_groups'])." groups
+
+📊 SYSTEM OVERVIEW
+• Total Users: {$data['system_overview']['total_users']}
+• Total Doctors: {$data['system_overview']['total_doctors']}
+• Total Patients: {$data['system_overview']['total_patients']}
+• Total Consultations: {$data['system_overview']['total_consultations']}
+• Total AI Consultations: {$data['system_overview']['total_ai_consultations']}
+• Total Posts: {$data['system_overview']['total_posts']}
+• Total Groups: {$data['system_overview']['total_groups']}
+
+═══════════════════════════════════════════════════════════════
+
+Generated on: {$data['week_period']}
+
+Best regards,
+EGYAKIN Development Team
+        ";
     }
 }

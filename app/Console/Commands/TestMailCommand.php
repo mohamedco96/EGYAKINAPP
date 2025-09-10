@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Mail\BrevoApiMail;
 use App\Mail\BrevoMail;
 use App\Mail\DailyReportMail;
-use App\Mail\TestMail;
 use App\Mail\VerifyEmail;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -157,8 +156,19 @@ class TestMailCommand extends Command
         $subject = $subject ?? 'EGYAKIN Mail Test - '.now()->format('Y-m-d H:i:s');
         $body = $body ?? $this->getDefaultTestBody();
 
-        $testMail = new TestMail($subject, $body);
-        Mail::to($email)->send($testMail);
+        // Use Brevo API for simple test
+        $htmlContent = $this->getDefaultTestHtmlContent($subject, $body);
+        $textContent = $body;
+
+        $brevoMail = new BrevoMail($email, $subject, $htmlContent, $textContent);
+        $result = $brevoMail->sendViaBrevoApi();
+
+        if (! $result['success']) {
+            throw new \Exception('Brevo API Error: '.($result['error'] ?? 'Unknown error'));
+        }
+
+        $this->info('📡 Brevo API Response:');
+        $this->line('   • Message ID: '.($result['message_id'] ?? 'N/A'));
     }
 
     /**
@@ -168,7 +178,25 @@ class TestMailCommand extends Command
     {
         $dailyReport = new DailyReportMail();
 
-        Mail::to($email)->send($dailyReport);
+        // Get the email content from the mailable
+        $envelope = $dailyReport->envelope();
+        $content = $dailyReport->content();
+
+        // Generate HTML content from the view
+        $htmlContent = view($content->view, $content->with)->render();
+
+        // Generate text content (simplified version)
+        $textContent = $this->getDailyReportTextContent($dailyReport);
+
+        $brevoMail = new BrevoMail($email, $envelope->subject, $htmlContent, $textContent);
+        $result = $brevoMail->sendViaBrevoApi();
+
+        if (! $result['success']) {
+            throw new \Exception('Brevo API Error: '.($result['error'] ?? 'Unknown error'));
+        }
+
+        $this->info('📡 Brevo API Response:');
+        $this->line('   • Message ID: '.($result['message_id'] ?? 'N/A'));
     }
 
     /**
@@ -179,7 +207,25 @@ class TestMailCommand extends Command
         $verificationUrl = url('/verify-email?token=test-token-'.time());
         $verifyEmail = new VerifyEmail($verificationUrl);
 
-        Mail::to($email)->send($verifyEmail);
+        // Get the email content from the mailable
+        $envelope = $verifyEmail->envelope();
+        $content = $verifyEmail->content();
+
+        // Generate HTML content from the view
+        $htmlContent = view($content->view, $content->with)->render();
+
+        // Generate text content (simplified version)
+        $textContent = $this->getVerifyEmailTextContent($verificationUrl);
+
+        $brevoMail = new BrevoMail($email, $envelope->subject, $htmlContent, $textContent);
+        $result = $brevoMail->sendViaBrevoApi();
+
+        if (! $result['success']) {
+            throw new \Exception('Brevo API Error: '.($result['error'] ?? 'Unknown error'));
+        }
+
+        $this->info('📡 Brevo API Response:');
+        $this->line('   • Message ID: '.($result['message_id'] ?? 'N/A'));
     }
 
     /**
@@ -224,5 +270,116 @@ If you received this email, your mail configuration is working correctly!
 Best regards,
 EGYAKIN Team
         ';
+    }
+
+    /**
+     * Get default test HTML content
+     */
+    private function getDefaultTestHtmlContent($subject, $body)
+    {
+        return '
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>'.$subject.'</title>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+                .content { background: #f8f9fa; padding: 20px; border-radius: 0 0 8px 8px; }
+                .footer { text-align: center; margin-top: 20px; color: #666; font-size: 14px; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>🏥 EGYAKIN Mail Test</h1>
+            </div>
+            <div class="content">
+                '.nl2br(htmlspecialchars($body)).'
+            </div>
+            <div class="footer">
+                <p>Best regards,<br><strong>EGYAKIN Development Team</strong></p>
+            </div>
+        </body>
+        </html>';
+    }
+
+    /**
+     * Get daily report text content
+     */
+    private function getDailyReportTextContent($dailyReport)
+    {
+        $data = $dailyReport->reportData;
+
+        return "
+EGYAKIN Daily Report - {$data['date']}
+
+═══════════════════════════════════════════════════════════════
+
+📊 USER STATISTICS
+• New Registrations: {$data['users']['new_registrations']}
+• Total Users: {$data['users']['total_users']}
+• Doctors: {$data['users']['doctors']}
+• Regular Users: {$data['users']['regular_users']}
+• Verified Users: {$data['users']['verified_users']}
+• Blocked Users: {$data['users']['blocked_users']}
+
+👥 PATIENT STATISTICS
+• New Patients: {$data['patients']['new_patients']}
+• Total Patients: {$data['patients']['total_patients']}
+• Hidden Patients: {$data['patients']['hidden_patients']}
+• Submitted Patients: {$data['patients']['submitted_patients']}
+• Outcome Patients: {$data['patients']['outcome_patients']}
+
+💬 CONSULTATION STATISTICS
+• New Consultations: {$data['consultations']['new_consultations']}
+• Pending Consultations: {$data['consultations']['pending_consultations']}
+• Completed Consultations: {$data['consultations']['completed_consultations']}
+• Open Consultations: {$data['consultations']['open_consultations']}
+• AI Consultations: {$data['consultations']['ai_consultations']}
+• New AI Consultations: {$data['consultations']['new_ai_consultations']}
+
+📝 FEED ACTIVITY
+• New Posts: {$data['feed']['new_posts']}
+• Total Posts: {$data['feed']['total_posts']}
+• Posts with Media: {$data['feed']['posts_with_media']}
+• Group Posts: {$data['feed']['group_posts']}
+
+👥 GROUP STATISTICS
+• New Groups: {$data['groups']['new_groups']}
+• Total Groups: {$data['groups']['total_groups']}
+• Private Groups: {$data['groups']['private_groups']}
+• Public Groups: {$data['groups']['public_groups']}
+
+═══════════════════════════════════════════════════════════════
+
+Generated on: {$data['date']}
+Report Period: {$data['period']}
+
+Best regards,
+EGYAKIN Development Team
+        ";
+    }
+
+    /**
+     * Get verify email text content
+     */
+    private function getVerifyEmailTextContent($verificationUrl)
+    {
+        return "
+EGYAKIN Email Verification
+
+Hello!
+
+Please verify your email address by clicking the link below:
+
+{$verificationUrl}
+
+If you did not create an account with EGYAKIN, please ignore this email.
+
+Best regards,
+EGYAKIN Development Team
+        ";
     }
 }

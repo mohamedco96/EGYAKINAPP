@@ -5,11 +5,10 @@ namespace App\Modules\Auth\Controllers;
 use App\Http\Controllers\Controller;
 use App\Mail\VerifyEmail;
 use App\Models\User;
+use App\Services\BrevoApiService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\URL;
-use Mailgun\Mailgun;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\URL;
 
 class EmailVerificationController extends Controller
 {
@@ -20,10 +19,10 @@ class EmailVerificationController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'User not authenticated'
+                'message' => 'User not authenticated',
             ], 401);
         }
 
@@ -37,21 +36,18 @@ class EmailVerificationController extends Controller
         );
 
         try {
-            // Option 1: Using Laravel Mail (recommended)
-            $this->sendViaLaravelMail($user, $verificationUrl);
-            
-            // OR Option 2: Using Mailgun API directly
-            // $this->sendViaMailgunApi($user, $verificationUrl);
+            // Send via Brevo API
+            $this->sendViaBrevoApi($user, $verificationUrl);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Verification email sent successfully'
+                'message' => 'Verification email sent successfully',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to send verification email',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -63,54 +59,54 @@ class EmailVerificationController extends Controller
     {
         $user = User::findOrFail($id);
 
-        if (!$request->hasValidSignature()) {
+        if (! $request->hasValidSignature()) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Invalid or expired verification link'
+                'message' => 'Invalid or expired verification link',
             ], 401);
         }
 
-        if (!$user->hasVerifiedEmail()) {
+        if (! $user->hasVerifiedEmail()) {
             $user->markEmailAsVerified();
         }
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Email verified successfully'
+            'message' => 'Email verified successfully',
         ]);
     }
 
     /**
-     * Method 1: Send using Laravel's Mail facade (recommended)
+     * Send using Brevo API
      */
-    protected function sendViaLaravelMail($user, $verificationUrl)
+    protected function sendViaBrevoApi($user, $verificationUrl)
     {
-        Mail::to($user->email)->send(new VerifyEmail($verificationUrl));
-        
-        // For better performance, queue the email:
-        // Mail::to($user->email)->queue(new VerifyEmail($verificationUrl));
-    }
+        $brevoService = new BrevoApiService();
 
-    /**
-     * Method 2: Send using Mailgun API directly
-     */
-    protected function sendViaMailgunApi($user, $verificationUrl)
-    {
-        $mg = Mailgun::create(config('services.mailgun.secret'));
-        
-        $domain = config('services.mailgun.domain');
-        $fromEmail = config('mail.from.address');
-        $fromName = config('mail.from.name');
+        // Create the VerifyEmail mailable to get content
+        $verifyEmail = new VerifyEmail($verificationUrl);
+        $envelope = $verifyEmail->envelope();
+        $content = $verifyEmail->content();
 
-        $mg->messages()->send($domain, [
-            'from'    => "{$fromName} <{$fromEmail}>",
-            'to'      => "{$user->name} <{$user->email}>",
-            'subject' => 'Verify Your Email Address',
-            'html'    => view('emails.verify', [
-                'user' => $user,
-                'url' => $verificationUrl
-            ])->render(),
-            'text'    => "Please verify your email by visiting: {$verificationUrl}"
-        ]);
+        // Generate HTML content from the view
+        $htmlContent = view($content->view, $content->with)->render();
+
+        // Generate text content
+        $textContent = "Please verify your email address by clicking the link below:\n\n{$verificationUrl}\n\nIf you did not create an account with EGYAKIN, please ignore this email.\n\nBest regards,\nEGYAKIN Development Team";
+
+        $result = $brevoService->sendEmail(
+            $user->email,
+            $envelope->subject,
+            $htmlContent,
+            $textContent,
+            [
+                'name' => config('mail.from.name'),
+                'email' => config('mail.from.address'),
+            ]
+        );
+
+        if (! $result['success']) {
+            throw new \Exception('Brevo API Error: '.($result['error'] ?? 'Unknown error'));
+        }
     }
 }

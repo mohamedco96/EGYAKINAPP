@@ -29,7 +29,7 @@ class ResetPasswordVerificationNotification extends Notification
         $this->message = 'Use the below code for resetting your password';
         $this->subject = 'EGYAKIN Reset Mail Password';
         $this->fromEmail = 'noreply@egyakin.com';
-        $this->mailer = 'smtp';
+        $this->mailer = 'brevo-api';
         $this->otp = new Otp;
 
     }

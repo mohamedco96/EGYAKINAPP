@@ -32,13 +32,13 @@ class EmailVerificationNotification extends Notification implements ShouldQueue
             $this->message = 'Use the below code for verification process';
             $this->subject = 'EGYAKIN Mail Verification';
             $this->fromEmail = config('mail.from.address');
-            $this->domain = config('services.mailgun.domain', 'egyakin.com');
+            $this->domain = config('mail.from.address', 'noreply@egyakin.com');
             $this->otp = new Otp;
 
             Log::info('EmailVerificationNotification initialized:', [
                 'fromEmail' => $this->fromEmail,
                 'domain' => $this->domain,
-                'mailgun_domain_config' => config('services.mailgun.domain'),
+                'brevo_api_configured' => config('services.brevo.api_key') ? 'Yes' : 'No',
                 'mail_from_config' => config('mail.from.address'),
             ]);
         } catch (\Exception $e) {

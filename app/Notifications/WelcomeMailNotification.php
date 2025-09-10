@@ -26,7 +26,7 @@ class WelcomeMailNotification extends Notification
         //$this->message = 'Use the below code for verification process';
         $this->subject = 'Greetings from EGYAKIN';
         $this->fromEmail = 'noreply@egyakin.com';
-        $this->mailer = 'smtp';
+        $this->mailer = 'brevo-api';
     }
 
     /**

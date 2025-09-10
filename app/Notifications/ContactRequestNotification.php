@@ -27,7 +27,7 @@ class ContactRequestNotification extends Notification
     {
         $this->subject = 'New Contact Request';
         $this->fromEmail = 'noreply@egyakin.com';
-        $this->mailer = 'smtp';
+        $this->mailer = 'brevo-api';
         $this->recipientEmails = $recipientEmails;
         $this->mesaage = $message;
     }
@@ -49,7 +49,7 @@ class ContactRequestNotification extends Notification
     {
 
         return (new MailMessage)
-            ->mailer('smtp')
+            ->mailer('brevo-api')
             ->subject($this->subject)
             ->greeting('Hello Doctor Mostafa')
             ->line('Dr.'.$notifiable->name.' who works at '.$notifiable->workingplace.' has raised a new contact request.')

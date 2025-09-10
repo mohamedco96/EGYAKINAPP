@@ -97,8 +97,8 @@ php artisan reports:send-daily
 php artisan reports:send-weekly
 
 # Test with custom email
-php artisan reports:send-daily --email=test@example.com
-php artisan reports:send-weekly --email=test@example.com
+php artisan reports:send-daily --email=mohamedco215@gmail.com
+php artisan reports:send-weekly --email=mohamedco215@gmail.com
 ```
 
 #### For Production:

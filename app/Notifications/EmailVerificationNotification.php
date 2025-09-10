@@ -2,7 +2,6 @@
 
 namespace App\Notifications;
 
-use App\Notifications\Channels\MailgunChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -227,54 +226,6 @@ EGYAKIN Development Team
 
 If you did not create an account with EGYAKIN, please ignore this email.
         ';
-    }
-
-    /**
-     * Send the notification using Mailgun API (Legacy method - kept for compatibility).
-     */
-    public function toMailgun(object $notifiable)
-    {
-        try {
-            Log::info('Preparing to send verification email:', [
-                'notifiable_email' => $notifiable->email,
-                'notifiable_name' => $notifiable->name,
-                'domain' => $this->domain,
-            ]);
-
-            $otp = $this->otp->generate($notifiable->email, 'numeric', 4, 10);
-            Log::info('OTP generated successfully', ['email' => $notifiable->email]);
-
-            $emailContent = "Hello {$notifiable->name},\n\n";
-            $emailContent .= "{$this->message}\n";
-            $emailContent .= "Your verification code: {$otp->token}\n";
-            $emailContent .= "This code will expire in 10 minutes\n";
-            $emailContent .= 'If you did not request this, please ignore this email.';
-
-            Log::info('Attempting to send email via Mailgun', [
-                'domain' => $this->domain,
-                'from' => "EGYAKIN <{$this->fromEmail}>",
-                'to' => "{$notifiable->name} <{$notifiable->email}>",
-            ]);
-
-            $result = app(MailgunChannel::class)->mailgun->messages()->send($this->domain, [
-                'from' => "EGYAKIN <{$this->fromEmail}>",
-                'to' => "{$notifiable->name} <{$notifiable->email}>",
-                'subject' => $this->subject,
-                'text' => $emailContent,
-            ]);
-
-            Log::info('Email sent successfully via Mailgun', ['result' => $result]);
-
-            return $result;
-
-        } catch (\Exception $e) {
-            Log::error('Failed to send verification email:', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'notifiable_email' => $notifiable->email,
-            ]);
-            throw $e;
-        }
     }
 
     /**

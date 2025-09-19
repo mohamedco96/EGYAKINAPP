@@ -139,7 +139,7 @@ class ResetPasswordVerificationNotification extends Notification
                 }
                 
                 .header {
-                    background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                     color: white;
                     padding: 50px 30px;
                     text-align: center;
@@ -213,14 +213,14 @@ class ResetPasswordVerificationNotification extends Notification
                 
                 .otp-container {
                     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-                    border: 3px solid #e53e3e;
+                    border: 3px solid #667eea;
                     border-radius: 20px;
                     padding: 40px 30px;
                     margin: 40px 0;
                     text-align: center;
                     position: relative;
                     overflow: hidden;
-                    box-shadow: 0 10px 30px rgba(229, 62, 62, 0.15);
+                    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.15);
                 }
                 
                 .otp-container::before {
@@ -251,20 +251,20 @@ class ResetPasswordVerificationNotification extends Notification
                 .otp-code {
                     font-size: 48px;
                     font-weight: 800;
-                    color: #e53e3e;
+                    color: #667eea;
                     letter-spacing: 12px;
                     margin: 20px 0;
-                    text-shadow: 0 4px 8px rgba(229, 62, 62, 0.3);
+                    text-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
                     animation: glow 2s ease-in-out infinite alternate;
-                    background: linear-gradient(135deg, #e53e3e, #c53030);
+                    background: linear-gradient(135deg, #667eea, #764ba2);
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;
                     background-clip: text;
                 }
                 
                 @keyframes glow {
-                    from { text-shadow: 0 4px 8px rgba(229, 62, 62, 0.3); }
-                    to { text-shadow: 0 6px 12px rgba(229, 62, 62, 0.5), 0 0 25px rgba(229, 62, 62, 0.2); }
+                    from { text-shadow: 0 4px 8px rgba(102, 126, 234, 0.3); }
+                    to { text-shadow: 0 6px 12px rgba(102, 126, 234, 0.5), 0 0 25px rgba(102, 126, 234, 0.2); }
                 }
                 
                 .otp-timer {
@@ -315,7 +315,7 @@ class ResetPasswordVerificationNotification extends Notification
                 }
                 
                 .cta-button {
-                    background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                     color: white;
                     padding: 18px 40px;
                     border-radius: 50px;
@@ -324,7 +324,7 @@ class ResetPasswordVerificationNotification extends Notification
                     font-weight: 600;
                     font-size: 16px;
                     transition: all 0.3s ease;
-                    box-shadow: 0 6px 20px rgba(229, 62, 62, 0.4);
+                    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
                     position: relative;
                     overflow: hidden;
                 }
@@ -346,7 +346,7 @@ class ResetPasswordVerificationNotification extends Notification
                 
                 .cta-button:hover {
                     transform: translateY(-3px);
-                    box-shadow: 0 8px 25px rgba(229, 62, 62, 0.6);
+                    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
                 }
                 
                 .footer {
@@ -413,10 +413,6 @@ class ResetPasswordVerificationNotification extends Notification
                     <div class="security-note">
                         <strong>Security & Privacy</strong>
                         <p>This password reset code is unique to your account and will expire automatically. If you did not request this password reset, please ignore this email and your account will remain secure.</p>
-                    </div>
-                    
-                    <div class="cta-section">
-                        <a href="https://test.egyakin.com/reset-password" class="cta-button">Reset Password</a>
                     </div>
                     
                     <p style="text-align: center; color: #6c757d; margin-top: 20px;">

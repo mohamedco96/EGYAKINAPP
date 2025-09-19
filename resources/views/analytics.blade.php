@@ -1,10 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="{{ $isDark ? 'dark' : '' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EGYAKIN Analytics Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -64,6 +69,11 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
+        .dark .chart-container {
+            background: rgba(31, 41, 55, 0.95);
+            border: 1px solid rgba(75, 85, 99, 0.3);
+        }
+        
         /* Fixed height for charts to prevent layout shifts */
         .chart-fixed-height {
             height: 300px;
@@ -104,7 +114,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
     <!-- Warning Message -->
     <div class="bg-red-600 text-white py-3">
         <div class="container mx-auto px-6">
@@ -129,9 +139,20 @@
                     </h1>
                     <p class="text-xl opacity-90">Comprehensive Medical Data Analytics</p>
                 </div>
-                <div class="text-right">
-                    <p class="text-lg opacity-90">{{ date('F j, Y') }}</p>
-                    <p class="text-sm opacity-75">Real-time Data Insights</p>
+                <div class="flex items-center space-x-6">
+                    <!-- Dark Mode Toggle -->
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-sun text-yellow-300"></i>
+                        <button onclick="toggleDarkMode()" class="relative inline-flex h-6 w-11 items-center rounded-full bg-white bg-opacity-20 transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2">
+                            <span class="sr-only">Toggle dark mode</span>
+                            <span id="toggle-dot" class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {{ $isDark ? 'translate-x-6' : 'translate-x-1' }}"></span>
+                        </button>
+                        <i class="fas fa-moon text-blue-200"></i>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-lg opacity-90">{{ date('F j, Y') }}</p>
+                        <p class="text-sm opacity-75">Real-time Data Insights</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -213,8 +234,8 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <!-- Gender Distribution Chart -->
             <div class="chart-container rounded-xl p-6 shadow-lg">
-                <h3 class="text-xl font-semibold mb-4 text-gray-800">
-                    <i class="fas fa-chart-pie mr-2 text-blue-600"></i>
+                <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
+                    <i class="fas fa-chart-pie mr-2 text-blue-600 dark:text-blue-400"></i>
                     Gender Distribution
                 </h3>
                 <div class="chart-fixed-height">
@@ -224,8 +245,8 @@
 
             <!-- DM vs HTN Chart -->
             <div class="chart-container rounded-xl p-6 shadow-lg">
-                <h3 class="text-xl font-semibold mb-4 text-gray-800">
-                    <i class="fas fa-chart-bar mr-2 text-green-600"></i>
+                <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
+                    <i class="fas fa-chart-bar mr-2 text-green-600 dark:text-green-400"></i>
                     DM vs HTN Statistics
                 </h3>
                 <div class="chart-fixed-height">
@@ -237,9 +258,9 @@
         <!-- Medical Conditions Section -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <!-- Dialysis Percentage -->
-            <div class="bg-white rounded-xl p-6 shadow-lg card-hover">
-                <h3 class="text-xl font-semibold mb-4 text-gray-800">
-                    <i class="fas fa-percentage mr-2 text-red-600"></i>
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg card-hover transition-colors duration-300">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
+                    <i class="fas fa-percentage mr-2 text-red-600 dark:text-red-400"></i>
                     Dialysis Percentage
                 </h3>
                 <div class="flex items-center justify-center">
@@ -252,16 +273,16 @@
                                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
                         </svg>
                         <div class="absolute inset-0 flex items-center justify-center">
-                            <span class="text-2xl font-bold text-gray-800">{{ $analytics['dialysis_percentage'] }}%</span>
+                            <span class="text-2xl font-bold text-gray-800 dark:text-gray-200">{{ $analytics['dialysis_percentage'] }}%</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Department Statistics -->
-            <div class="bg-white rounded-xl p-6 shadow-lg card-hover">
-                <h3 class="text-xl font-semibold mb-4 text-gray-800">
-                    <i class="fas fa-hospital mr-2 text-purple-600"></i>
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg card-hover transition-colors duration-300">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
+                    <i class="fas fa-hospital mr-2 text-purple-600 dark:text-purple-400"></i>
                     Department Distribution
                 </h3>
                 @if(count($analytics['department_stats']) > 0)
@@ -269,19 +290,19 @@
                         @foreach($analytics['department_stats'] as $department => $count)
                             @if(!empty($department) && $department !== null && trim($department) !== '' && $department !== 'null')
                                 <div class="flex items-center justify-between">
-                                    <span class="text-gray-700">{{ $department }}</span>
+                                    <span class="text-gray-700 dark:text-gray-300">{{ $department }}</span>
                                     <div class="flex items-center">
                                         <div class="w-24 bg-gray-200 rounded-full h-2 mr-3">
                                             <div class="bg-purple-600 h-2 rounded-full" style="width: {{ ($count / max($analytics['department_stats'])) * 100 }}%"></div>
                                         </div>
-                                        <span class="text-sm font-semibold text-gray-600">{{ $count }}</span>
+                                        <span class="text-sm font-semibold text-gray-600 dark:text-gray-400">{{ $count }}</span>
                                     </div>
                                 </div>
                             @endif
                         @endforeach
                     </div>
                 @else
-                    <p class="text-gray-500 text-center py-4">No department data available</p>
+                    <p class="text-gray-500 dark:text-gray-400 text-center py-4">No department data available</p>
                 @endif
             </div>
         </div>
@@ -289,46 +310,46 @@
         <!-- Diagnosis and Outcomes Section -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <!-- Provisional Diagnosis -->
-            <div class="bg-white rounded-xl p-6 shadow-lg card-hover">
-                <h3 class="text-xl font-semibold mb-4 text-gray-800">
-                    <i class="fas fa-stethoscope mr-2 text-indigo-600"></i>
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg card-hover transition-colors duration-300">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
+                    <i class="fas fa-stethoscope mr-2 text-indigo-600 dark:text-indigo-400"></i>
                     Provisional Diagnosis
                 </h3>
                 @if(count($analytics['provisional_diagnosis_stats']) > 0)
                     <div class="space-y-3 max-h-64 overflow-y-auto scrollable-content">
                         @foreach($analytics['provisional_diagnosis_stats'] as $diagnosis => $count)
                             @if(!empty($diagnosis) && $diagnosis !== null && trim($diagnosis) !== '' && $diagnosis !== 'null')
-                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                    <span class="text-sm text-gray-700">{{ Str::limit($diagnosis, 30) }}</span>
+                                <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded transition-colors duration-300">
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ Str::limit($diagnosis, 30) }}</span>
                                     <span class="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2 py-1 rounded">{{ $count }}</span>
                                 </div>
                             @endif
                         @endforeach
                     </div>
                 @else
-                    <p class="text-gray-500 text-center py-4">No diagnosis data available</p>
+                    <p class="text-gray-500 dark:text-gray-400 text-center py-4">No diagnosis data available</p>
                 @endif
             </div>
 
             <!-- Cause of AKI -->
-            <div class="bg-white rounded-xl p-6 shadow-lg card-hover">
-                <h3 class="text-xl font-semibold mb-4 text-gray-800">
-                    <i class="fas fa-exclamation-triangle mr-2 text-orange-600"></i>
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg card-hover transition-colors duration-300">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
+                    <i class="fas fa-exclamation-triangle mr-2 text-orange-600 dark:text-orange-400"></i>
                     Cause of AKI
                 </h3>
                 @if(count($analytics['cause_of_aki_stats']) > 0)
                     <div class="space-y-3 max-h-64 overflow-y-auto scrollable-content">
                         @foreach($analytics['cause_of_aki_stats'] as $cause => $count)
                             @if(!empty($cause) && $cause !== null && trim($cause) !== '' && $cause !== 'null')
-                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                    <span class="text-sm text-gray-700">{{ Str::limit($cause, 30) }}</span>
+                                <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded transition-colors duration-300">
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ Str::limit($cause, 30) }}</span>
                                     <span class="bg-orange-100 text-orange-800 text-xs font-semibold px-2 py-1 rounded">{{ $count }}</span>
                                 </div>
                             @endif
                         @endforeach
                     </div>
                 @else
-                    <p class="text-gray-500 text-center py-4">No AKI cause data available</p>
+                    <p class="text-gray-500 dark:text-gray-400 text-center py-4">No AKI cause data available</p>
                 @endif
             </div>
         </div>
@@ -336,9 +357,9 @@
         <!-- Outcomes Section -->
         <div class="grid grid-cols-1 gap-8">
             <!-- Patient Outcomes -->
-            <div class="bg-white rounded-xl p-6 shadow-lg card-hover">
-                <h3 class="text-xl font-semibold mb-4 text-gray-800">
-                    <i class="fas fa-heartbeat mr-2 text-green-600"></i>
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg card-hover transition-colors duration-300">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
+                    <i class="fas fa-heartbeat mr-2 text-green-600 dark:text-green-400"></i>
                     Patient Outcomes & Status
                 </h3>
                 
@@ -359,15 +380,15 @@
                 <!-- Outcome Values from Question ID 79 -->
                 @if(isset($analytics['outcome_stats']['outcome_values']) && count($analytics['outcome_stats']['outcome_values']) > 0)
                     <div class="mb-4">
-                        <h4 class="text-md font-medium text-gray-700 mb-3">Outcome Values</h4>
+                        <h4 class="text-md font-medium text-gray-700 dark:text-gray-300 mb-3">Outcome Values</h4>
                         <div class="space-y-2 mb-4">
                             @foreach($analytics['outcome_stats']['outcome_values'] as $outcome => $data)
                                 @if(!empty($outcome) && $outcome !== null && trim($outcome) !== '' && $outcome !== 'null')
-                                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                        <span class="text-sm text-gray-700">{{ $outcome }}</span>
+                                    <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded transition-colors duration-300">
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">{{ $outcome }}</span>
                                         <div class="flex items-center space-x-2">
                                             <span class="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded">{{ $data['count'] }}</span>
-                                            <span class="text-xs text-gray-500">({{ $data['percentage'] }}%)</span>
+                                            <span class="text-xs text-gray-500 dark:text-gray-400">({{ $data['percentage'] }}%)</span>
                                         </div>
                                     </div>
                                 @endif
@@ -379,14 +400,14 @@
                         </div>
                     </div>
                 @else
-                    <p class="text-gray-500 text-center py-4">No outcome data available</p>
+                    <p class="text-gray-500 dark:text-gray-400 text-center py-4">No outcome data available</p>
                 @endif
             </div>
         </div>
     </div>
 
     <!-- Footer -->
-    <footer class="bg-gray-800 text-white py-6 mt-12">
+    <footer class="bg-gray-800 dark:bg-gray-900 text-white py-6 mt-12 transition-colors duration-300">
         <div class="container mx-auto px-6 text-center">
             <p>&copy; {{ date('Y') }} EGYAKIN. All rights reserved. | Medical Analytics Dashboard</p>
         </div>
@@ -539,6 +560,31 @@
             }
         });
         @endif
+
+        // Dark Mode Toggle Function
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const toggleDot = document.getElementById('toggle-dot');
+            const isDark = html.classList.contains('dark');
+            
+            if (isDark) {
+                html.classList.remove('dark');
+                toggleDot.classList.remove('translate-x-6');
+                toggleDot.classList.add('translate-x-1');
+                // Update URL to reflect light mode
+                const url = new URL(window.location);
+                url.searchParams.delete('dark');
+                window.history.replaceState({}, '', url);
+            } else {
+                html.classList.add('dark');
+                toggleDot.classList.remove('translate-x-1');
+                toggleDot.classList.add('translate-x-6');
+                // Update URL to reflect dark mode
+                const url = new URL(window.location);
+                url.searchParams.set('dark', 'true');
+                window.history.replaceState({}, '', url);
+            }
+        }
 
     </script>
 </body>

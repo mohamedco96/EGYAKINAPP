@@ -14,7 +14,10 @@ class AnalyticsController extends Controller
         // Get analytics data
         $analytics = $this->getAnalyticsData();
 
-        return view('analytics', compact('analytics'));
+        // Get dark mode parameter (default is false for white mode)
+        $isDark = request()->boolean('dark', false);
+
+        return view('analytics', compact('analytics', 'isDark'));
     }
 
     private function getAnalyticsData()

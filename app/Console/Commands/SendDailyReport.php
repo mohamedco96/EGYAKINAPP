@@ -14,7 +14,7 @@ class SendDailyReport extends Command
      *
      * @var string
      */
-    protected $signature = 'reports:send-daily {--email= : Override admin email address}';
+    protected $signature = 'reports:send-daily {--email= : Override admin email address} {--mail-list : Send to all emails in mail list}';
 
     /**
      * The console command description.
@@ -31,17 +31,17 @@ class SendDailyReport extends Command
         $this->info('🚀 Starting daily report generation...');
 
         try {
-            // Get admin email from config or command option
-            $adminEmail = $this->option('email') ?: config('mail.admin_email');
+            // Get recipients - either single email or mail list
+            $recipients = $this->getRecipients();
 
-            if (empty($adminEmail)) {
-                $this->error('❌ Admin email not configured. Please set ADMIN_EMAIL in your .env file or use --email option.');
-                Log::error('Daily report failed: Admin email not configured');
+            if (empty($recipients)) {
+                $this->error('❌ No recipients configured. Please set ADMIN_EMAIL or DAILY_REPORT_MAIL_LIST in your .env file or use --email option.');
+                Log::error('Daily report failed: No recipients configured');
 
                 return Command::FAILURE;
             }
 
-            $this->info("📧 Preparing to send daily report to: {$adminEmail}");
+            $this->info('📧 Preparing to send daily report to '.count($recipients).' recipient(s)');
 
             // Create the mailable to get the content
             $mailable = new DailyReportMail();
@@ -58,39 +58,59 @@ class SendDailyReport extends Command
             // Generate text content (simplified version)
             $textContent = $this->generateTextContent($mailable);
 
-            // Send via Brevo API
+            // Send via Brevo API to all recipients
             $brevoService = new BrevoApiService();
+            $successCount = 0;
+            $failureCount = 0;
+            $messageIds = [];
 
             $this->info('📡 Sending via Brevo API...');
 
-            $result = $brevoService->sendEmail(
-                $adminEmail,
-                $envelope->subject,
-                $htmlContent,
-                $textContent,
-                [
-                    'name' => config('mail.from.name'),
-                    'email' => config('mail.from.address'),
-                ]
-            );
+            foreach ($recipients as $recipient) {
+                $this->info("📧 Sending to: {$recipient}");
 
-            if ($result['success']) {
-                $this->info("✅ Daily report sent successfully to {$adminEmail}");
-                $this->info("📧 Message ID: {$result['message_id']}");
+                $result = $brevoService->sendEmail(
+                    $recipient,
+                    $envelope->subject,
+                    $htmlContent,
+                    $textContent,
+                    [
+                        'name' => config('mail.from.name'),
+                        'email' => config('mail.from.address'),
+                    ]
+                );
+
+                if ($result['success']) {
+                    $successCount++;
+                    $messageIds[] = $result['message_id'];
+                    $this->info("✅ Sent to {$recipient} - Message ID: {$result['message_id']}");
+                } else {
+                    $failureCount++;
+                    $this->error("❌ Failed to send to {$recipient}: ".($result['error'] ?? 'Unknown error'));
+                }
+            }
+
+            if ($successCount > 0) {
+                $this->info("✅ Daily report sent successfully to {$successCount} recipient(s)");
+                if ($failureCount > 0) {
+                    $this->info("❌ Failed to send to {$failureCount} recipient(s)");
+                }
 
                 Log::info('Daily report sent successfully via Brevo API', [
-                    'recipient' => $adminEmail,
-                    'message_id' => $result['message_id'],
+                    'recipients' => $recipients,
+                    'success_count' => $successCount,
+                    'failure_count' => $failureCount,
+                    'message_ids' => $messageIds,
                     'timestamp' => now()->toISOString(),
                 ]);
 
-                return Command::SUCCESS;
+                return $failureCount > 0 ? Command::FAILURE : Command::SUCCESS;
             } else {
-                $this->error('❌ Brevo API failed to send daily report: '.($result['error'] ?? 'Unknown error'));
+                $this->error('❌ Failed to send daily report to all recipients');
 
                 Log::error('Daily report failed via Brevo API', [
-                    'recipient' => $adminEmail,
-                    'error' => $result['error'] ?? 'Unknown error',
+                    'recipients' => $recipients,
+                    'failure_count' => $failureCount,
                     'timestamp' => now()->toISOString(),
                 ]);
 
@@ -186,5 +206,38 @@ Report Period: {$data['period']}
 Best regards,
 EGYAKIN Development Team
         ";
+    }
+
+    /**
+     * Get recipients for daily report
+     */
+    private function getRecipients(): array
+    {
+        // If --email option is provided, use single email
+        if ($this->option('email')) {
+            return [$this->option('email')];
+        }
+
+        // If --mail-list option is provided, use mail list
+        if ($this->option('mail-list')) {
+            $mailList = config('mail.daily_report_mail_list');
+            if (empty($mailList)) {
+                $this->error('❌ Daily report mail list not configured. Please set DAILY_REPORT_MAIL_LIST in your .env file.');
+
+                return [];
+            }
+
+            return is_string($mailList) ? explode(',', $mailList) : $mailList;
+        }
+
+        // Default: use admin email
+        $adminEmail = config('mail.admin_email');
+        if (empty($adminEmail)) {
+            $this->error('❌ Admin email not configured. Please set ADMIN_EMAIL in your .env file.');
+
+            return [];
+        }
+
+        return [$adminEmail];
     }
 }

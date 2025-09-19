@@ -121,6 +121,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Daily Report Mail List
+    |--------------------------------------------------------------------------
+    |
+    | This option controls the list of email addresses that will receive
+    | daily reports. You can set this as a comma-separated string or
+    | as an array in your .env file.
+    |
+    */
+
+    'daily_report_mail_list' => env('DAILY_REPORT_MAIL_LIST', 'mohamedco215@gmail.com'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Markdown Mail Settings
     |--------------------------------------------------------------------------
     |

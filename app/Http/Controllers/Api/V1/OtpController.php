@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Auth\Controllers\OtpController as ModuleOtpController;
+use App\Modules\Auth\Requests\VerifyOtpRequest;
 use Illuminate\Http\Request;
 
 class OtpController extends Controller
@@ -15,7 +16,7 @@ class OtpController extends Controller
         $this->otpController = $otpController;
     }
 
-    public function verifyOtp(Request $request)
+    public function verifyOtp(VerifyOtpRequest $request)
     {
         return $this->otpController->verifyOtp($request);
     }

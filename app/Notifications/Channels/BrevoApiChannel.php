@@ -33,18 +33,31 @@ class BrevoApiChannel
                 return;
             }
 
-            // Send via Brevo API
-            $result = $this->brevoService->sendEmail(
-                $message['to'],
-                $message['subject'],
-                $message['htmlContent'],
-                $message['textContent'] ?? null,
-                $message['from'] ?? null
-            );
+            // Send via Brevo API - handle both single email and multiple recipients
+            if (is_array($message['to'])) {
+                // Multiple recipients - use the new method
+                $result = $this->brevoService->sendEmailToMultipleRecipients(
+                    $message['to'],
+                    $message['subject'],
+                    $message['htmlContent'],
+                    $message['textContent'] ?? null,
+                    $message['from'] ?? null
+                );
+            } else {
+                // Single recipient - use original method
+                $result = $this->brevoService->sendEmail(
+                    $message['to'],
+                    $message['subject'],
+                    $message['htmlContent'],
+                    $message['textContent'] ?? null,
+                    $message['from'] ?? null
+                );
+            }
 
             if ($result['success']) {
                 Log::info('Brevo API notification sent successfully', [
                     'to' => $message['to'],
+                    'recipients_count' => is_array($message['to']) ? count($message['to']) : 1,
                     'subject' => $message['subject'],
                     'message_id' => $result['message_id'],
                     'notification' => get_class($notification),
@@ -52,6 +65,7 @@ class BrevoApiChannel
             } else {
                 Log::error('Brevo API notification failed', [
                     'to' => $message['to'],
+                    'recipients_count' => is_array($message['to']) ? count($message['to']) : 1,
                     'subject' => $message['subject'],
                     'error' => $result['error'],
                     'notification' => get_class($notification),

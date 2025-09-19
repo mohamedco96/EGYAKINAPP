@@ -102,6 +102,45 @@ class Kernel extends ConsoleKernel
                 ->emailOutputOnFailure(config('mail.admin_email'))
                 ->appendOutputTo(storage_path('logs/scheduled_cleanup.log'));
         }
+
+        // Job Monitoring - Check every 15 minutes
+        $schedule->command('jobs:monitor')
+            ->everyFifteenMinutes()
+            ->withoutOverlapping(10) // Prevent overlapping runs, timeout after 10 minutes
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/job_monitoring.log'))
+            ->onFailure(function () {
+                Log::error('Job monitoring scheduled task failed', [
+                    'timestamp' => now()->toISOString(),
+                    'command' => 'jobs:monitor',
+                ]);
+            });
+
+        // Job Monitoring with Alerts - Check every hour for critical issues
+        $schedule->command('jobs:monitor --alert')
+            ->hourly()
+            ->withoutOverlapping(15) // Prevent overlapping runs, timeout after 15 minutes
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/job_monitoring.log'))
+            ->onFailure(function () {
+                Log::error('Job monitoring alert scheduled task failed', [
+                    'timestamp' => now()->toISOString(),
+                    'command' => 'jobs:monitor --alert',
+                ]);
+            });
+
+        // Job Monitoring Cleanup - Run daily at 3 AM
+        $schedule->command('jobs:monitor --cleanup')
+            ->dailyAt('03:00')
+            ->withoutOverlapping(30) // Prevent overlapping runs, timeout after 30 minutes
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/job_monitoring.log'))
+            ->onFailure(function () {
+                Log::error('Job monitoring cleanup scheduled task failed', [
+                    'timestamp' => now()->toISOString(),
+                    'command' => 'jobs:monitor --cleanup',
+                ]);
+            });
     }
 
     /**

@@ -62,7 +62,6 @@ class OutcomeController extends Controller
             // Update the sections table
             DB::table('sections')->where('patient_id', $patientId)->update(['outcome_status' => true]);
 
-
             // Scoring system
             $incrementAmount = 1;
             $action = 'Add Outcome';
@@ -77,7 +76,7 @@ class OutcomeController extends Controller
                 // Load user object
                 $user = Auth::user();
                 // Send notification
-                $user->notify(new ReachingSpecificPoints($score));
+                $user->notify(new ReachingSpecificPoints($score->score));
                 $score->threshold = 0;
             }
 
@@ -90,7 +89,6 @@ class OutcomeController extends Controller
                 'action' => $action,
                 'timestamp' => now(),
             ]);
-
 
             // Send notification if necessary
             $patientDoctor = PatientHistory::where('id', $patientId)->first();
@@ -132,7 +130,7 @@ class OutcomeController extends Controller
     public function show($patient_id)
     {
         $Outcome = Outcome::where('patient_id', $patient_id)
-            ->select('doctor_id', 'outcome_of_the_patient', 'creatinine_on_discharge','duration_of_admission', 'final_status', 'other', 'updated_at')
+            ->select('doctor_id', 'outcome_of_the_patient', 'creatinine_on_discharge', 'duration_of_admission', 'final_status', 'other', 'updated_at')
             ->with('doctor:id,name,lname')
             ->first();
 

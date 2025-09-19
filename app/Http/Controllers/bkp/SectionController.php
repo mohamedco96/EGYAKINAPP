@@ -15,13 +15,12 @@ use App\Models\Risk;
 use App\Models\Score;
 use App\Models\ScoreHistory;
 use App\Models\Section;
-use App\Notifications\ReachingSpecificPoints;
-use Illuminate\Support\Facades\DB;
 use App\Models\SectionFieldMapping;
-use Illuminate\Support\Facades\Log;
 use App\Models\SectionsInfo;
+use App\Notifications\ReachingSpecificPoints;
 use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class SectionController extends Controller
 {
@@ -69,7 +68,7 @@ class SectionController extends Controller
 
         $patient_name = PatientHistory::where('id', $patient_id)->value('name');
         $doctor_Id = PatientHistory::where('id', $patient_id)->value('doctor_id');
-        if (!$sections) {
+        if (! $sections) {
             return response()->json([
                 'value' => false,
                 'message' => 'Sections not found for the given patient ID.',
@@ -121,7 +120,6 @@ class SectionController extends Controller
         }
     }
 
-
     public function showSection($section_id, $patient_id)
     {
 
@@ -151,7 +149,6 @@ class SectionController extends Controller
         }
     }
 
-
     public function update(UpdateSectionRequest $request, $section_id, $patient_id)
     {
         try {
@@ -169,8 +166,9 @@ class SectionController extends Controller
             ];
 
             // Check if the section ID has a corresponding model mapping
-            if (!isset($modelMappings[$section_id])) {
+            if (! isset($modelMappings[$section_id])) {
                 Log::error("No model mapping found for section ID {$section_id}.");
+
                 return response()->json([
                     'value' => false,
                     'message' => 'No model mapping found for the specified section ID.',
@@ -183,6 +181,7 @@ class SectionController extends Controller
             // If no field mappings found, return an error response
             if ($fieldMappings->isEmpty()) {
                 Log::error("No field mappings found for section ID {$section_id}.");
+
                 return response()->json([
                     'value' => false,
                     'message' => 'No field mappings found for the specified section.',
@@ -208,10 +207,11 @@ class SectionController extends Controller
             ];
 
             Log::info("Section updated successfully for section ID {$section_id} and patient ID {$patient_id}.");
+
             return response()->json($response, 200);
         } catch (\Exception $e) {
             // Log any unexpected errors
-            Log::error('Error updating section: ' . $e->getMessage());
+            Log::error('Error updating section: '.$e->getMessage());
 
             // Return error response
             return response()->json([
@@ -477,7 +477,7 @@ class SectionController extends Controller
     {
         $patient = Section::where('patient_id', $patient_id)->first();
 
-        if (!$patient) {
+        if (! $patient) {
             $response = [
                 'value' => false,
                 'message' => 'Patient not found',
@@ -504,7 +504,7 @@ class SectionController extends Controller
             // Load user object
             $user = Auth::user();
             // Send notification
-            $user->notify(new ReachingSpecificPoints($score));
+            $user->notify(new ReachingSpecificPoints($score->score));
             $score->threshold = 0;
         }
 
@@ -525,7 +525,6 @@ class SectionController extends Controller
 
         return response()->json($response, 201);
     }
-
 
     /**
      * Remove the specified resource from storage.

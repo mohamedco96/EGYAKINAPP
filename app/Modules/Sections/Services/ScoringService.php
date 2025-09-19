@@ -11,13 +11,11 @@ use Illuminate\Support\Facades\Log;
 class ScoringService
 {
     private const FINAL_SUBMIT_SCORE = 4;
+
     private const NOTIFICATION_THRESHOLD = 50;
 
     /**
      * Process final submit scoring for a patient.
-     *
-     * @param int $patientId
-     * @return void
      */
     public function processFinalSubmitScoring(int $patientId): void
     {
@@ -25,8 +23,9 @@ class ScoringService
             $doctorId = Auth::id();
             $user = Auth::user();
 
-            if (!$doctorId || !$user) {
+            if (! $doctorId || ! $user) {
                 Log::warning('No authenticated user found for scoring');
+
                 return;
             }
 
@@ -34,12 +33,12 @@ class ScoringService
             $score = Score::firstOrNew(['doctor_id' => $doctorId]);
             $score->score += self::FINAL_SUBMIT_SCORE;
             $score->threshold += self::FINAL_SUBMIT_SCORE;
-            
+
             $newThreshold = $score->threshold;
 
             // Send notification if score threshold reaches 50 or its multiples
             if ($newThreshold >= self::NOTIFICATION_THRESHOLD) {
-                $user->notify(new ReachingSpecificPoints($score));
+                $user->notify(new ReachingSpecificPoints($score->score));
                 $score->threshold = 0;
             }
 
@@ -48,29 +47,23 @@ class ScoringService
             // Log score history
             $this->logScoreHistory($doctorId, self::FINAL_SUBMIT_SCORE, 'Final Submit', $patientId);
 
-            Log::info("Final submit scoring processed successfully", [
+            Log::info('Final submit scoring processed successfully', [
                 'doctor_id' => $doctorId,
                 'patient_id' => $patientId,
                 'score_added' => self::FINAL_SUBMIT_SCORE,
-                'new_total_score' => $score->score
+                'new_total_score' => $score->score,
             ]);
 
         } catch (\Exception $e) {
-            Log::error("Error processing final submit scoring", [
+            Log::error('Error processing final submit scoring', [
                 'patient_id' => $patientId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
 
     /**
      * Log score history entry.
-     *
-     * @param int $doctorId
-     * @param int $scoreAmount
-     * @param string $action
-     * @param int $patientId
-     * @return void
      */
     private function logScoreHistory(int $doctorId, int $scoreAmount, string $action, int $patientId): void
     {

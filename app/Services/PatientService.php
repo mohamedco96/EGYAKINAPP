@@ -400,7 +400,9 @@ class PatientService
 
         if ($newThreshold >= 50) {
             $user = User::find($doctorId);
-            // Notification logic would go here
+            if ($user) {
+                $user->notify(new \App\Notifications\ReachingSpecificPoints($score->score));
+            }
             $score->threshold = 0;
         }
 

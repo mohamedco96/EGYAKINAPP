@@ -68,16 +68,21 @@ class ContactRequestNotification extends Notification
         $htmlContent = $this->getHtmlContent($notifiable);
         $textContent = $this->getTextContent($notifiable);
 
-        // Get recipients - either the notifiable email or admin mail list
+        // Get recipients - prioritize ADMIN_MAIL_LIST from .env
         $recipients = [];
 
-        if (! empty($this->recipientEmails)) {
-            // Use provided recipient emails
+        // Always try to use admin mail list from .env first
+        $adminEmails = MailListService::getAdminMailList();
+
+        if (! empty($adminEmails)) {
+            // Use admin mail list from .env (highest priority)
+            $recipients = $adminEmails;
+        } elseif (! empty($this->recipientEmails)) {
+            // Fallback to provided recipient emails
             $recipients = $this->recipientEmails;
         } else {
-            // Use admin mail list or fallback to notifiable email
-            $adminEmails = MailListService::getAdminMailList();
-            $recipients = ! empty($adminEmails) ? $adminEmails : [$notifiable->email];
+            // Final fallback to notifiable email
+            $recipients = [$notifiable->email];
         }
 
         return [

@@ -3,7 +3,6 @@
 namespace App\Modules\Contacts\Services;
 
 use App\Notifications\ContactRequestNotification;
-use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
 class ContactNotificationService
@@ -13,9 +12,10 @@ class ContactNotificationService
      */
     public function sendContactNotification(string $message): void
     {
-        $emailAddresses = ['mostafa_abdelsalam@egyakin.com', 'Darsh1980@mans.edu.eg'];
+        // Pass empty array - ContactRequestNotification will automatically use ADMIN_MAIL_LIST from .env
+        $emailAddresses = [];
         $user = Auth::user();
-        
+
         if ($user) {
             $user->notify(new ContactRequestNotification($emailAddresses, $message));
         }

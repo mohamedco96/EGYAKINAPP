@@ -29,7 +29,8 @@ class TestAllMails extends Command
                             {email : Email address to send test emails to}
                             {--type=all : Type of mail to test (all, mailable, notification, specific)}
                             {--specific= : Specific mail class to test}
-                            {--brevo : Use Brevo API for sending}';
+                            {--brevo : Use Brevo API for sending}
+                            {--dry-run : Validate templates without sending emails}';
 
     /**
      * The console command description.
@@ -47,11 +48,15 @@ class TestAllMails extends Command
         $type = $this->option('type');
         $specific = $this->option('specific');
         $useBrevo = $this->option('brevo');
+        $dryRun = $this->option('dry-run');
 
         $this->info('🚀 Starting EGYAKIN Mail Template Testing');
         $this->info("📧 Testing email: {$email}");
         $this->info("🔧 Type: {$type}");
         $this->info('📡 Method: '.($useBrevo ? 'Brevo API' : 'Laravel Mail'));
+        if ($dryRun) {
+            $this->warn('🔍 DRY RUN MODE: Templates will be validated but NO emails will be sent');
+        }
 
         // Create a test user
         $testUser = $this->createTestUser($email);
@@ -64,13 +69,13 @@ class TestAllMails extends Command
 
         switch ($type) {
             case 'all':
-                $results = $this->testAllMails($testUser, $useBrevo);
+                $results = $this->testAllMails($testUser, $useBrevo, $dryRun);
                 break;
             case 'mailable':
-                $results = $this->testMailableClasses($testUser, $useBrevo);
+                $results = $this->testMailableClasses($testUser, $useBrevo, $dryRun);
                 break;
             case 'notification':
-                $results = $this->testNotificationClasses($testUser, $useBrevo);
+                $results = $this->testNotificationClasses($testUser, $useBrevo, $dryRun);
                 break;
             case 'specific':
                 if (! $specific) {
@@ -78,7 +83,7 @@ class TestAllMails extends Command
 
                     return Command::FAILURE;
                 }
-                $results = $this->testSpecificMail($testUser, $specific, $useBrevo);
+                $results = $this->testSpecificMail($testUser, $specific, $useBrevo, $dryRun);
                 break;
             default:
                 $this->error('❌ Invalid type. Use: all, mailable, notification, or specific');
@@ -114,20 +119,20 @@ class TestAllMails extends Command
     /**
      * Test all mail types
      */
-    private function testAllMails(User $testUser, bool $useBrevo): array
+    private function testAllMails(User $testUser, bool $useBrevo, bool $dryRun = false): array
     {
         $results = ['success' => 0, 'failed' => 0, 'details' => []];
 
         $this->info('📋 Testing all mail templates...');
 
         // Test Mailable classes
-        $mailableResults = $this->testMailableClasses($testUser, $useBrevo);
+        $mailableResults = $this->testMailableClasses($testUser, $useBrevo, $dryRun);
         $results['success'] += $mailableResults['success'];
         $results['failed'] += $mailableResults['failed'];
         $results['details'] = array_merge($results['details'], $mailableResults['details']);
 
         // Test Notification classes
-        $notificationResults = $this->testNotificationClasses($testUser, $useBrevo);
+        $notificationResults = $this->testNotificationClasses($testUser, $useBrevo, $dryRun);
         $results['success'] += $notificationResults['success'];
         $results['failed'] += $notificationResults['failed'];
         $results['details'] = array_merge($results['details'], $notificationResults['details']);
@@ -138,7 +143,7 @@ class TestAllMails extends Command
     /**
      * Test Mailable classes
      */
-    private function testMailableClasses(User $testUser, bool $useBrevo): array
+    private function testMailableClasses(User $testUser, bool $useBrevo, bool $dryRun = false): array
     {
         $results = ['success' => 0, 'failed' => 0, 'details' => []];
 
@@ -155,7 +160,9 @@ class TestAllMails extends Command
             try {
                 $this->info("  📤 Testing {$name}...");
 
-                if ($useBrevo) {
+                if ($dryRun) {
+                    $result = $this->validateMailable($class, $testUser);
+                } elseif ($useBrevo) {
                     $result = $this->sendViaBrevo($class, $testUser);
                 } else {
                     $result = $this->sendViaLaravel($class, $testUser);
@@ -198,7 +205,7 @@ class TestAllMails extends Command
     /**
      * Test Notification classes
      */
-    private function testNotificationClasses(User $testUser, bool $useBrevo): array
+    private function testNotificationClasses(User $testUser, bool $useBrevo, bool $dryRun = false): array
     {
         $results = ['success' => 0, 'failed' => 0, 'details' => []];
 
@@ -217,7 +224,9 @@ class TestAllMails extends Command
             try {
                 $this->info("  📤 Testing {$name}...");
 
-                if ($useBrevo) {
+                if ($dryRun) {
+                    $result = $this->validateNotification($class, $testUser);
+                } elseif ($useBrevo) {
                     $result = $this->sendNotificationViaBrevo($class, $testUser);
                 } else {
                     $result = $this->sendNotificationViaLaravel($class, $testUser);
@@ -260,7 +269,7 @@ class TestAllMails extends Command
     /**
      * Test specific mail class
      */
-    private function testSpecificMail(User $testUser, string $className, bool $useBrevo): array
+    private function testSpecificMail(User $testUser, string $className, bool $useBrevo, bool $dryRun = false): array
     {
         $results = ['success' => 0, 'failed' => 0, 'details' => []];
 
@@ -287,13 +296,17 @@ class TestAllMails extends Command
 
         try {
             if ($classType === 'mailable') {
-                if ($useBrevo) {
+                if ($dryRun) {
+                    $result = $this->validateMailable($fullClassName, $testUser);
+                } elseif ($useBrevo) {
                     $result = $this->sendViaBrevo($fullClassName, $testUser);
                 } else {
                     $result = $this->sendViaLaravel($fullClassName, $testUser);
                 }
             } else {
-                if ($useBrevo) {
+                if ($dryRun) {
+                    $result = $this->validateNotification($fullClassName, $testUser);
+                } elseif ($useBrevo) {
                     $result = $this->sendNotificationViaBrevo($fullClassName, $testUser);
                 } else {
                     $result = $this->sendNotificationViaLaravel($fullClassName, $testUser);
@@ -410,7 +423,24 @@ class TestAllMails extends Command
     private function sendNotificationViaBrevo(string $notificationClass, User $testUser): array
     {
         try {
-            $notification = new $notificationClass();
+            // Handle notifications that require constructor parameters
+            if ($notificationClass === 'App\\Notifications\\ReminderNotification') {
+                // Create mock patient and events objects for testing
+                $mockPatient = (object) ['name' => 'Test Patient'];
+                $mockEvents = (object) ['created_at' => now()->format('Y-m-d H:i:s')];
+                $notification = new $notificationClass($mockPatient, $mockEvents);
+            } elseif ($notificationClass === 'App\\Notifications\\ReachingSpecificPoints') {
+                // Create mock score for testing
+                $mockScore = 100;
+                $notification = new $notificationClass($mockScore);
+            } elseif ($notificationClass === 'App\\Notifications\\ContactRequestNotification') {
+                // Create mock recipient emails and message for testing
+                $mockRecipientEmails = ['test@example.com'];
+                $mockMessage = 'Test contact request message';
+                $notification = new $notificationClass($mockRecipientEmails, $mockMessage);
+            } else {
+                $notification = new $notificationClass();
+            }
 
             if (method_exists($notification, 'toBrevoApi')) {
                 $data = $notification->toBrevoApi($testUser);
@@ -450,7 +480,24 @@ class TestAllMails extends Command
     private function sendNotificationViaLaravel(string $notificationClass, User $testUser): array
     {
         try {
-            $notification = new $notificationClass();
+            // Handle notifications that require constructor parameters
+            if ($notificationClass === 'App\\Notifications\\ReminderNotification') {
+                // Create mock patient and events objects for testing
+                $mockPatient = (object) ['name' => 'Test Patient'];
+                $mockEvents = (object) ['created_at' => now()->format('Y-m-d H:i:s')];
+                $notification = new $notificationClass($mockPatient, $mockEvents);
+            } elseif ($notificationClass === 'App\\Notifications\\ReachingSpecificPoints') {
+                // Create mock score for testing
+                $mockScore = 100;
+                $notification = new $notificationClass($mockScore);
+            } elseif ($notificationClass === 'App\\Notifications\\ContactRequestNotification') {
+                // Create mock recipient emails and message for testing
+                $mockRecipientEmails = ['test@example.com'];
+                $mockMessage = 'Test contact request message';
+                $notification = new $notificationClass($mockRecipientEmails, $mockMessage);
+            } else {
+                $notification = new $notificationClass();
+            }
 
             Notification::send($testUser, $notification);
 
@@ -502,6 +549,92 @@ class TestAllMails extends Command
             $this->info('🎉 All mail templates tested successfully!');
         } else {
             $this->warn("⚠️  {$results['failed']} mail template(s) failed. Check the errors above.");
+        }
+    }
+
+    /**
+     * Validate mailable without sending
+     */
+    private function validateMailable(string $mailableClass, User $testUser): array
+    {
+        try {
+            // Handle VerifyEmail class which requires a verification URL
+            if ($mailableClass === VerifyEmail::class) {
+                $mailable = new VerifyEmail('https://test.egyakin.com/verify?token=test123');
+            } else {
+                $mailable = new $mailableClass();
+            }
+
+            // Validate that we can get the envelope and content
+            $envelope = $mailable->envelope();
+            $content = $mailable->content();
+
+            // Try to render the view to check for errors
+            $htmlContent = view($content->view, array_merge($content->with ?? [], ['data' => $mailable->reportData ?? []]))->render();
+
+            return [
+                'success' => true,
+                'message_id' => 'DRY-RUN-MAILABLE-'.now()->timestamp,
+                'validation' => 'Template structure and content validated successfully',
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Validate notification without sending
+     */
+    private function validateNotification(string $notificationClass, User $testUser): array
+    {
+        try {
+            // Handle notifications that require constructor parameters
+            if ($notificationClass === 'App\\Notifications\\ReminderNotification') {
+                // Create mock patient and events objects for testing
+                $mockPatient = (object) ['name' => 'Test Patient'];
+                $mockEvents = (object) ['created_at' => now()->format('Y-m-d H:i:s')];
+                $notification = new $notificationClass($mockPatient, $mockEvents);
+            } elseif ($notificationClass === 'App\\Notifications\\ReachingSpecificPoints') {
+                // Create mock score for testing
+                $mockScore = 100;
+                $notification = new $notificationClass($mockScore);
+            } elseif ($notificationClass === 'App\\Notifications\\ContactRequestNotification') {
+                // Create mock recipient emails and message for testing
+                $mockRecipientEmails = ['test@example.com'];
+                $mockMessage = 'Test contact request message';
+                $notification = new $notificationClass($mockRecipientEmails, $mockMessage);
+            } else {
+                $notification = new $notificationClass();
+            }
+
+            // Validate that we can get the Brevo API data
+            if (method_exists($notification, 'toBrevoApi')) {
+                $data = $notification->toBrevoApi($testUser);
+
+                // Validate required fields
+                if (! isset($data['to']) || ! isset($data['subject']) || ! isset($data['htmlContent'])) {
+                    throw new \Exception('Missing required fields in toBrevoApi response');
+                }
+
+                return [
+                    'success' => true,
+                    'message_id' => 'DRY-RUN-NOTIFICATION-'.now()->timestamp,
+                    'validation' => 'Notification structure and content validated successfully',
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'error' => 'Notification does not support Brevo API',
+                ];
+            }
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
         }
     }
 }

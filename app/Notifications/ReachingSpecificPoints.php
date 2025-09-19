@@ -10,7 +10,7 @@ class ReachingSpecificPoints extends Notification
 {
     use Queueable;
 
-    public $mesaage;
+    public $message;
 
     public $subject;
 
@@ -18,7 +18,7 @@ class ReachingSpecificPoints extends Notification
 
     public $mailer;
 
-    protected $score;
+    public $score;
 
     /**
      * Create a new notification instance.
@@ -53,7 +53,7 @@ class ReachingSpecificPoints extends Notification
             ->subject($this->subject)
             ->greeting('Hello Doctor '.$notifiable->name)
             ->line('Congrats! You have earned 50 points.')
-            ->line('Your score is '.$this->score->score.' points overall. Keep up your outstanding work.')
+            ->line('Your score is '.$this->score.' points overall. Keep up your outstanding work.')
             ->line('Thank you for using our application!')
             ->line('Sincerely,')
             ->salutation('EGYAKIN Scientific Team.');
@@ -160,7 +160,7 @@ class ReachingSpecificPoints extends Notification
                 
                 <div class="score-display">
                     <h3>Your Total Score</h3>
-                    <div style="font-size: 36px; margin: 10px 0;">'.$this->score->score.' points</div>
+                    <div style="font-size: 36px; margin: 10px 0;">'.$this->score.' points</div>
                     <p>Keep up your outstanding work!</p>
                 </div>
                 
@@ -191,7 +191,7 @@ Hello Doctor '.$notifiable->name.'!
 ACHIEVEMENT UNLOCKED!
 Congratulations! You have earned 50 points for your outstanding contribution to the EGYAKIN medical community.
 
-Your Total Score: '.$this->score->score.' points
+Your Total Score: '.$this->score.' points
 
 Keep up your outstanding work!
 

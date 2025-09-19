@@ -2,7 +2,6 @@
 
 namespace App\Modules\Patients\Models;
 
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,7 +19,7 @@ class PatientStatus extends Model
         'doctor_id',
         'patient_id',
         'key',
-        'key',
+        'status',
         'created_at',
         'updated_at',
     ];
@@ -33,9 +32,8 @@ class PatientStatus extends Model
     protected $casts = [
         'status' => 'boolean',
         'doctor_id' => 'integer',
-        'patient_id' => 'integer'
+        'patient_id' => 'integer',
     ];
-
 
     public function patient(): BelongsTo
     {

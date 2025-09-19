@@ -14,8 +14,24 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         // $schedule->command('inspire')->hourly();
-        // Run the command every minute
-        $schedule->command('reminder:send')->daily();
+        // Patient Outcome Reminder System - Check every 6 hours for patients needing outcome reminders
+        $schedule->command('reminder:send')
+            ->everySixHours()
+            ->withoutOverlapping(60) // Prevent overlapping runs, timeout after 1 hour
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/reminder_emails.log'))
+            ->onFailure(function () {
+                Log::error('Reminder email scheduled job failed', [
+                    'timestamp' => now()->toISOString(),
+                    'command' => 'reminder:send',
+                ]);
+            })
+            ->onSuccess(function () {
+                Log::info('Reminder email scheduled job completed successfully', [
+                    'timestamp' => now()->toISOString(),
+                    'command' => 'reminder:send',
+                ]);
+            });
 
         // === EMAIL REPORTING SYSTEM ===
 

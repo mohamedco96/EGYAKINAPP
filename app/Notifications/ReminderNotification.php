@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\Answers;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -22,6 +23,8 @@ class ReminderNotification extends Notification
 
     protected $events;
 
+    protected $patientName;
+
     /**
      * Create a new notification instance.
      */
@@ -34,6 +37,8 @@ class ReminderNotification extends Notification
         $this->patient = $patient;
         $this->events = $events;
 
+        // Get patient name from answers table where question_id = 1
+        $this->patientName = $this->getPatientNameFromAnswers();
     }
 
     /**
@@ -392,7 +397,7 @@ class ReminderNotification extends Notification
                         <h3>Patient Information</h3>
                         <div class="info-row">
                             <span class="info-label">Patient Name:</span>
-                            <span class="info-value">'.htmlspecialchars($this->patient->name).'</span>
+                            <span class="info-value">'.htmlspecialchars($this->patientName).'</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Added Since:</span>
@@ -439,7 +444,7 @@ Hello Doctor '.$notifiable->name.'! 👋
 ⚠️ URGENT ACTION REQUIRED: The patient outcome has not yet been submitted. Please update it immediately to ensure proper patient care documentation.
 
 📋 Patient Information:
-- Patient Name: '.$this->patient->name.'
+- Patient Name: '.$this->patientName.'
 - Added Since: '.$this->events->created_at.'
 - Status: Outcome Pending
 
@@ -456,6 +461,57 @@ EGYAKIN Scientific Team
 
 This is an automated reminder. Please ensure patient outcomes are submitted promptly to maintain quality care standards.
         ';
+    }
+
+    /**
+     * Get patient name from answers table where question_id = 1
+     */
+    private function getPatientNameFromAnswers(): string
+    {
+        try {
+            // Get the patient ID from either the patient object or events object
+            $patientId = null;
+
+            if ($this->patient && isset($this->patient->id)) {
+                $patientId = $this->patient->id;
+            } elseif ($this->events && isset($this->events->patient_id)) {
+                $patientId = $this->events->patient_id;
+            }
+
+            if (! $patientId) {
+                return 'Unknown Patient';
+            }
+
+            // Get the patient name from answers table where question_id = 1
+            $answer = Answers::where('patient_id', $patientId)
+                ->where('question_id', 1)
+                ->first();
+
+            if ($answer && ! empty($answer->answer)) {
+                // Handle if answer is stored as JSON array or plain text
+                if (is_array($answer->answer)) {
+                    return $answer->answer[0] ?? 'Unknown Patient';
+                } elseif (is_string($answer->answer)) {
+                    // Try to decode JSON if it's a JSON string
+                    $decoded = json_decode($answer->answer, true);
+                    if (is_array($decoded)) {
+                        return $decoded[0] ?? $answer->answer;
+                    }
+
+                    return $answer->answer;
+                }
+            }
+
+            return 'Unknown Patient';
+        } catch (\Exception $e) {
+            // Log the error but don't fail the notification
+            \Log::warning('Failed to get patient name from answers', [
+                'patient_id' => $patientId ?? null,
+                'error' => $e->getMessage(),
+            ]);
+
+            return 'Unknown Patient';
+        }
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Answers;
 use App\Modules\Patients\Models\Patients;
 use App\Modules\Patients\Models\PatientStatus;
 use App\Notifications\ReminderNotification;
@@ -156,9 +157,27 @@ class TestReminderEmails extends Command
                 'updated_at' => $submitTime,
             ]);
 
+            // Create patient name answer (question_id = 1)
+            $patientName = 'Test Patient '.$patient->id;
+            Answers::updateOrCreate(
+                [
+                    'patient_id' => $patient->id,
+                    'question_id' => 1,
+                    'doctor_id' => $doctor->id,
+                ],
+                [
+                    'section_id' => 1, // Assuming section 1 exists
+                    'answer' => $patientName,
+                    'type' => 'text',
+                    'created_at' => $submitTime,
+                    'updated_at' => $submitTime,
+                ]
+            );
+
             $this->info('✅ Created submit_status record:');
             $this->info("   👨‍⚕️ Doctor ID: {$doctor->id} ({$doctor->name})");
             $this->info("   🏥 Patient ID: {$patient->id}");
+            $this->info("   👤 Patient Name: {$patientName} (from answers table, question_id=1)");
             $this->info("   ⏰ Created: {$submitTime->format('Y-m-d H:i:s')} ({$submitTime->diffForHumans()})");
             $this->info('   📝 Key: submit_status, Status: true');
 

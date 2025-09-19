@@ -266,11 +266,19 @@ class TestAllMails extends Command
 
         $this->info("🎯 Testing specific mail class: {$className}");
 
+        // Convert string class name to actual class
+        $fullClassName = "App\\Mail\\{$className}";
+        if (! class_exists($fullClassName)) {
+            $this->error("❌ Class {$fullClassName} not found");
+
+            return $results;
+        }
+
         try {
             if ($useBrevo) {
-                $result = $this->sendViaBrevo($className, $testUser);
+                $result = $this->sendViaBrevo($fullClassName, $testUser);
             } else {
-                $result = $this->sendViaLaravel($className, $testUser);
+                $result = $this->sendViaLaravel($fullClassName, $testUser);
             }
 
             if ($result['success']) {
@@ -312,10 +320,11 @@ class TestAllMails extends Command
     private function sendViaBrevo(string $mailableClass, User $testUser): array
     {
         try {
-            $mailable = new $mailableClass();
-
+            // Handle VerifyEmail class which requires a verification URL
             if ($mailableClass === VerifyEmail::class) {
                 $mailable = new VerifyEmail('https://test.egyakin.com/verify?token=test123');
+            } else {
+                $mailable = new $mailableClass();
             }
 
             $envelope = $mailable->envelope();
@@ -355,10 +364,11 @@ class TestAllMails extends Command
     private function sendViaLaravel(string $mailableClass, User $testUser): array
     {
         try {
-            $mailable = new $mailableClass();
-
+            // Handle VerifyEmail class which requires a verification URL
             if ($mailableClass === VerifyEmail::class) {
                 $mailable = new VerifyEmail('https://test.egyakin.com/verify?token=test123');
+            } else {
+                $mailable = new $mailableClass();
             }
 
             Mail::to($testUser->email)->send($mailable);

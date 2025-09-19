@@ -14,16 +14,13 @@ Complete email configuration and management documentation.
 - [`ALL_EMAILS_BREVO_UPDATE.md`](email/brevo/ALL_EMAILS_BREVO_UPDATE.md) - Brevo email system updates
 
 #### **Email Setup** (`docs/email/setup/`)
-- [`MAIL_SETUP_GUIDE.md`](email/setup/MAIL_SETUP_GUIDE.md) - Complete mail configuration guide
 - [`EMAIL_REPORTING_SETUP.md`](email/setup/EMAIL_REPORTING_SETUP.md) - Daily/weekly report system
-- [`DAILY_REPORT_MAIL_LIST_SETUP.md`](email/setup/DAILY_REPORT_MAIL_LIST_SETUP.md) - Multiple recipient configuration
-- [`EMAIL_CONFIG_OPTIMIZATION.md`](email/setup/EMAIL_CONFIG_OPTIMIZATION.md) - Performance optimization
-- [`EMAIL_TESTING_GUIDE.md`](email/setup/EMAIL_TESTING_GUIDE.md) - Email testing procedures
-- [`GODADDY_EMAIL_SOLUTIONS.md`](email/setup/GODADDY_EMAIL_SOLUTIONS.md) - GoDaddy-specific email solutions
-- [`SERVER_EMAIL_FIX.md`](email/setup/SERVER_EMAIL_FIX.md) - Server email configuration fixes
 
-#### **Email Troubleshooting** (`docs/email/troubleshooting/`)
-- [`SERVER_SMTP_TROUBLESHOOTING.md`](email/troubleshooting/SERVER_SMTP_TROUBLESHOOTING.md) - SMTP troubleshooting guide
+#### **Essential Email Documentation** (`docs/email/`)
+- [`MAIL_TEMPLATES_COMPLETE_GUIDE.md`](email/MAIL_TEMPLATES_COMPLETE_GUIDE.md) - All 10 mail templates
+- [`MAIL_LIST_SYSTEM.md`](email/MAIL_LIST_SYSTEM.md) - Unified ADMIN_MAIL_LIST management
+- [`MAIL_TESTING_QUICK_REFERENCE.md`](email/MAIL_TESTING_QUICK_REFERENCE.md) - Testing commands
+- [`PATIENT_OUTCOME_REMINDER_SYSTEM.md`](email/PATIENT_OUTCOME_REMINDER_SYSTEM.md) - Automated reminders
 
 ### 🚀 **Deployment** (`docs/deployment/`)
 Server deployment and hosting configuration documentation.

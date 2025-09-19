@@ -266,19 +266,38 @@ class TestAllMails extends Command
 
         $this->info("🎯 Testing specific mail class: {$className}");
 
-        // Convert string class name to actual class
-        $fullClassName = "App\\Mail\\{$className}";
-        if (! class_exists($fullClassName)) {
-            $this->error("❌ Class {$fullClassName} not found");
+        // Try to find the class in both Mail and Notifications namespaces
+        $mailableClassName = "App\\Mail\\{$className}";
+        $notificationClassName = "App\\Notifications\\{$className}";
+
+        $fullClassName = null;
+        $classType = null;
+
+        if (class_exists($mailableClassName)) {
+            $fullClassName = $mailableClassName;
+            $classType = 'mailable';
+        } elseif (class_exists($notificationClassName)) {
+            $fullClassName = $notificationClassName;
+            $classType = 'notification';
+        } else {
+            $this->error("❌ Class {$className} not found in App\\Mail\\ or App\\Notifications\\");
 
             return $results;
         }
 
         try {
-            if ($useBrevo) {
-                $result = $this->sendViaBrevo($fullClassName, $testUser);
+            if ($classType === 'mailable') {
+                if ($useBrevo) {
+                    $result = $this->sendViaBrevo($fullClassName, $testUser);
+                } else {
+                    $result = $this->sendViaLaravel($fullClassName, $testUser);
+                }
             } else {
-                $result = $this->sendViaLaravel($fullClassName, $testUser);
+                if ($useBrevo) {
+                    $result = $this->sendNotificationViaBrevo($fullClassName, $testUser);
+                } else {
+                    $result = $this->sendNotificationViaLaravel($fullClassName, $testUser);
+                }
             }
 
             if ($result['success']) {

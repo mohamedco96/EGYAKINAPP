@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Notifications\Models\AppNotification;
 use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Notifications\Services\NotificationService;
+use App\Notifications\WelcomeMailNotification;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
@@ -46,6 +47,22 @@ class AuthService
 
             // Retrieve the user from the database to get default values
             $user = User::find($user->id);
+
+            // Send welcome email notification
+            try {
+                $user->notify(new WelcomeMailNotification());
+                Log::info('Welcome email sent successfully', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Failed to send welcome email', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'error' => $e->getMessage(),
+                ]);
+                // Don't fail registration if email sending fails
+            }
 
             // Generate token
             $token = $user->createToken('auth_token')->plainTextToken;

@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Mail\WeeklySummaryMail;
 use App\Services\BrevoApiService;
+use App\Services\MailListService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -14,7 +15,7 @@ class SendWeeklySummary extends Command
      *
      * @var string
      */
-    protected $signature = 'reports:send-weekly {--email= : Override admin email address}';
+    protected $signature = 'reports:send-weekly {--email= : Override admin email address} {--mail-list : Send to all emails in mail list}';
 
     /**
      * The console command description.
@@ -31,17 +32,17 @@ class SendWeeklySummary extends Command
         $this->info('📈 Starting weekly summary generation...');
 
         try {
-            // Get admin email from config or command option
-            $adminEmail = $this->option('email') ?: config('mail.admin_email');
+            // Get recipients - either single email or mail list
+            $recipients = $this->getRecipients();
 
-            if (empty($adminEmail)) {
-                $this->error('❌ Admin email not configured. Please set ADMIN_EMAIL in your .env file or use --email option.');
-                Log::error('Weekly summary failed: Admin email not configured');
+            if (empty($recipients)) {
+                $this->error('❌ No recipients configured. Please set ADMIN_EMAIL or ADMIN_MAIL_LIST in your .env file or use --email option.');
+                Log::error('Weekly summary failed: No recipients configured');
 
                 return Command::FAILURE;
             }
 
-            $this->info("📧 Preparing to send weekly summary to: {$adminEmail}");
+            $this->info('📧 Preparing to send weekly summary to '.count($recipients).' recipient(s)');
 
             // Create the mailable to get the content
             $mailable = new WeeklySummaryMail();
@@ -62,9 +63,11 @@ class SendWeeklySummary extends Command
             $brevoService = new BrevoApiService();
 
             $this->info('📡 Sending via Brevo API...');
+            $this->info('📧 Recipients: '.implode(', ', $recipients));
 
-            $result = $brevoService->sendEmail(
-                $adminEmail,
+            // Send one email with all recipients
+            $result = $brevoService->sendEmailToMultipleRecipients(
+                $recipients,
                 $envelope->subject,
                 $htmlContent,
                 $textContent,
@@ -75,11 +78,11 @@ class SendWeeklySummary extends Command
             );
 
             if ($result['success']) {
-                $this->info("✅ Weekly summary sent successfully to {$adminEmail}");
+                $this->info('✅ Weekly summary sent successfully to '.count($recipients).' recipients');
                 $this->info("📧 Message ID: {$result['message_id']}");
 
                 Log::info('Weekly summary sent successfully via Brevo API', [
-                    'recipient' => $adminEmail,
+                    'recipients' => $recipients,
                     'message_id' => $result['message_id'],
                     'timestamp' => now()->toISOString(),
                 ]);
@@ -89,7 +92,7 @@ class SendWeeklySummary extends Command
                 $this->error('❌ Brevo API failed to send weekly summary: '.($result['error'] ?? 'Unknown error'));
 
                 Log::error('Weekly summary failed via Brevo API', [
-                    'recipient' => $adminEmail,
+                    'recipients' => $recipients,
                     'error' => $result['error'] ?? 'Unknown error',
                     'timestamp' => now()->toISOString(),
                 ]);
@@ -185,5 +188,38 @@ Generated on: {$data['week_period']}
 Best regards,
 EGYAKIN Development Team
         ";
+    }
+
+    /**
+     * Get recipients for weekly summary
+     */
+    private function getRecipients(): array
+    {
+        // If --email option is provided, use single email
+        if ($this->option('email')) {
+            return [$this->option('email')];
+        }
+
+        // If --mail-list option is provided, use mail list
+        if ($this->option('mail-list')) {
+            $recipients = MailListService::getAdminMailList();
+            if (empty($recipients)) {
+                $this->error('❌ Admin mail list not configured. Please set ADMIN_MAIL_LIST in your .env file.');
+
+                return [];
+            }
+
+            return $recipients;
+        }
+
+        // Default: use admin email
+        $adminEmail = config('mail.admin_email');
+        if (empty($adminEmail)) {
+            $this->error('❌ Admin email not configured. Please set ADMIN_EMAIL in your .env file.');
+
+            return [];
+        }
+
+        return [$adminEmail];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Services\MailListService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -67,8 +68,20 @@ class ContactRequestNotification extends Notification
         $htmlContent = $this->getHtmlContent($notifiable);
         $textContent = $this->getTextContent($notifiable);
 
+        // Get recipients - either the notifiable email or admin mail list
+        $recipients = [];
+
+        if (! empty($this->recipientEmails)) {
+            // Use provided recipient emails
+            $recipients = $this->recipientEmails;
+        } else {
+            // Use admin mail list or fallback to notifiable email
+            $adminEmails = MailListService::getAdminMailList();
+            $recipients = ! empty($adminEmails) ? $adminEmails : [$notifiable->email];
+        }
+
         return [
-            'to' => $notifiable->email,
+            'to' => $recipients,
             'subject' => $this->subject,
             'htmlContent' => $htmlContent,
             'textContent' => $textContent,

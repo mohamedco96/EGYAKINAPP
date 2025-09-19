@@ -130,7 +130,18 @@ return [
     |
     */
 
-    'daily_report_mail_list' => env('DAILY_REPORT_MAIL_LIST', 'mohamedco215@gmail.com'),
+    /*
+    |--------------------------------------------------------------------------
+    | EGYAKIN Admin Mail List
+    |--------------------------------------------------------------------------
+    |
+    | Configure the admin mail list for all system notifications.
+    | Multiple emails can be separated by commas.
+    | Used for: Daily Reports, Weekly Summaries, Contact Requests, etc.
+    |
+    */
+
+    'admin_mail_list' => env('ADMIN_MAIL_LIST', 'mohamedco215@gmail.com'),
 
     /*
     |--------------------------------------------------------------------------

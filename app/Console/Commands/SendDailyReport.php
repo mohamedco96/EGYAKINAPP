@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Mail\DailyReportMail;
 use App\Services\BrevoApiService;
+use App\Services\MailListService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -35,7 +36,7 @@ class SendDailyReport extends Command
             $recipients = $this->getRecipients();
 
             if (empty($recipients)) {
-                $this->error('❌ No recipients configured. Please set ADMIN_EMAIL or DAILY_REPORT_MAIL_LIST in your .env file or use --email option.');
+                $this->error('❌ No recipients configured. Please set ADMIN_EMAIL or ADMIN_MAIL_LIST in your .env file or use --email option.');
                 Log::error('Daily report failed: No recipients configured');
 
                 return Command::FAILURE;
@@ -65,29 +66,27 @@ class SendDailyReport extends Command
             $messageIds = [];
 
             $this->info('📡 Sending via Brevo API...');
+            $this->info('📧 Recipients: '.implode(', ', $recipients));
 
-            foreach ($recipients as $recipient) {
-                $this->info("📧 Sending to: {$recipient}");
+            // Send one email with all recipients
+            $result = $brevoService->sendEmailToMultipleRecipients(
+                $recipients,
+                $envelope->subject,
+                $htmlContent,
+                $textContent,
+                [
+                    'name' => config('mail.from.name'),
+                    'email' => config('mail.from.address'),
+                ]
+            );
 
-                $result = $brevoService->sendEmail(
-                    $recipient,
-                    $envelope->subject,
-                    $htmlContent,
-                    $textContent,
-                    [
-                        'name' => config('mail.from.name'),
-                        'email' => config('mail.from.address'),
-                    ]
-                );
-
-                if ($result['success']) {
-                    $successCount++;
-                    $messageIds[] = $result['message_id'];
-                    $this->info("✅ Sent to {$recipient} - Message ID: {$result['message_id']}");
-                } else {
-                    $failureCount++;
-                    $this->error("❌ Failed to send to {$recipient}: ".($result['error'] ?? 'Unknown error'));
-                }
+            if ($result['success']) {
+                $successCount = count($recipients);
+                $messageIds[] = $result['message_id'];
+                $this->info('✅ Sent to '.count($recipients)." recipients - Message ID: {$result['message_id']}");
+            } else {
+                $failureCount = count($recipients);
+                $this->error('❌ Failed to send to all recipients: '.($result['error'] ?? 'Unknown error'));
             }
 
             if ($successCount > 0) {
@@ -218,16 +217,16 @@ EGYAKIN Development Team
             return [$this->option('email')];
         }
 
-        // If --mail-list option is provided, use mail list
+        // If --mail-list option is provided, use admin mail list
         if ($this->option('mail-list')) {
-            $mailList = config('mail.daily_report_mail_list');
-            if (empty($mailList)) {
-                $this->error('❌ Daily report mail list not configured. Please set DAILY_REPORT_MAIL_LIST in your .env file.');
+            $recipients = MailListService::getAdminMailList();
+            if (empty($recipients)) {
+                $this->error('❌ Admin mail list not configured. Please set ADMIN_MAIL_LIST in your .env file.');
 
                 return [];
             }
 
-            return is_string($mailList) ? explode(',', $mailList) : $mailList;
+            return $recipients;
         }
 
         // Default: use admin email

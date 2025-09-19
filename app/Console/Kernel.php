@@ -54,8 +54,8 @@ class Kernel extends ConsoleKernel
                 ]);
             });
 
-        // Weekly Summary - Send every Monday at 09:00 AM
-        $schedule->command('reports:send-weekly')
+        // Weekly Summary - Send every Monday at 09:00 AM to mail list
+        $schedule->command('reports:send-weekly --mail-list')
             ->weeklyOn(1, '09:00') // Monday at 09:00 AM
             ->withoutOverlapping(60) // Prevent overlapping runs, timeout after 1 hour
             ->runInBackground()

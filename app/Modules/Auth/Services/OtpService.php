@@ -3,6 +3,7 @@
 namespace App\Modules\Auth\Services;
 
 use App\Models\User;
+use App\Notifications\EmailVerificationNotification;
 use App\Services\BrevoApiService;
 use Otp;
 
@@ -41,57 +42,29 @@ class OtpService
     }
 
     /**
-     * Send OTP verification email
+     * Send OTP verification email using enhanced notification
      */
     public function sendOtpEmail(User $user): bool
     {
         try {
-            // Generate new OTP
+            // Generate new OTP (this will be used by the notification)
             $otp = $this->generateOtp($user);
 
-            // Prepare email content
-            $subject = 'Your Verification Code';
-            $text = "Hello {$user->name},\n\n"
-                  ."Your OTP verification code is: {$otp}\n\n"
-                  ."This code will expire in 10 minutes.\n\n"
-                  ."If you didn't request this code, please ignore this email.";
+            // Send enhanced verification notification
+            $user->notify(new EmailVerificationNotification());
 
-            $html = '<html><body>'
-                  .'<h2>Email Verification</h2>'
-                  ."<p>Hello {$user->name},</p>"
-                  ."<p>Your OTP verification code is: <strong>{$otp}</strong></p>"
-                  .'<p>This code will expire in 10 minutes.</p>'
-                  ."<p>If you didn't request this code, please ignore this email.</p>"
-                  .'</body></html>';
-
-            // Send email using Brevo API
-            $result = $this->brevoService->sendEmail(
-                $user->email,
-                $subject,
-                $html,
-                $text,
-                $this->from
-            );
-
-            if ($result['success']) {
-                // Log the result
-                logger()->info('OTP email sent via Brevo API', [
-                    'user' => $user->id,
-                    'message_id' => $result['message_id'],
-                ]);
-
-                return true;
-            } else {
-                logger()->error('Brevo API failed to send OTP email', [
-                    'user' => $user->id,
-                    'error' => $result['error'] ?? 'Unknown error',
-                ]);
-
-                return false;
-            }
-        } catch (\Exception $e) {
-            logger()->error('Failed to send OTP email', [
+            // Log the result
+            logger()->info('Enhanced OTP email sent successfully', [
                 'user' => $user->id,
+                'email' => $user->email,
+                'otp_generated' => $otp,
+            ]);
+
+            return true;
+        } catch (\Exception $e) {
+            logger()->error('Failed to send enhanced OTP email', [
+                'user' => $user->id,
+                'email' => $user->email,
                 'error' => $e->getMessage(),
             ]);
 

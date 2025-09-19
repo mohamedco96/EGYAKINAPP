@@ -39,6 +39,25 @@ class Kernel extends ConsoleKernel
                 ]);
             });
 
+        // Test Daily Report - Send every 5 minutes for testing
+        $schedule->command('reports:send-daily --email=mohamedco215@gmail.com')
+            ->everyFiveMinutes()
+            ->withoutOverlapping(5) // Prevent overlapping runs, timeout after 5 minutes
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/cron.log'))
+            ->onFailure(function () {
+                Log::error('Test daily report scheduled job failed', [
+                    'timestamp' => now()->toISOString(),
+                    'scheduled_time' => 'every 5 minutes',
+                ]);
+            })
+            ->onSuccess(function () {
+                Log::info('Test daily report scheduled job completed successfully', [
+                    'timestamp' => now()->toISOString(),
+                    'scheduled_time' => 'every 5 minutes',
+                ]);
+            });
+
         // Weekly Summary - Send every Monday at 09:00 AM
         $schedule->command('reports:send-weekly')
             ->weeklyOn(1, '09:00') // Monday at 09:00 AM

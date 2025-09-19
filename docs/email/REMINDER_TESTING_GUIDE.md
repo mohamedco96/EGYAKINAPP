@@ -60,6 +60,7 @@ php artisan reminder:test --hours=1 --create-test-data --dry-run
 ✅ Created submit_status record:
    👨‍⚕️ Doctor ID: 1 (Dr. Test)
    🏥 Patient ID: 123
+   👤 Patient Name: Test Patient 123 (from answers table, question_id=1)
    ⏰ Created: 2025-09-19 21:00:00 (2 hours ago)
    📝 Key: submit_status, Status: true
 📊 Found 1 patient(s) needing outcome reminders

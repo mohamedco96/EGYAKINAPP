@@ -22,7 +22,7 @@ class EmailVerificationController extends Controller
         if (! $user) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'User not authenticated',
+                'message' => __('api.user_not_authenticated'),
             ], 401);
         }
 
@@ -41,12 +41,12 @@ class EmailVerificationController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Verification email sent successfully',
+                'message' => __('api.verification_email_sent_successfully'),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to send verification email',
+                'message' => __('api.failed_to_send_verification_email'),
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -62,7 +62,7 @@ class EmailVerificationController extends Controller
         if (! $request->hasValidSignature()) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Invalid or expired verification link',
+                'message' => __('api.invalid_or_expired_verification_link'),
             ], 401);
         }
 
@@ -72,7 +72,7 @@ class EmailVerificationController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Email verified successfully',
+            'message' => __('api.email_verified_successfully'),
         ]);
     }
 

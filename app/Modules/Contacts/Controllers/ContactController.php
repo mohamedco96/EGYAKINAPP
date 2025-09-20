@@ -5,13 +5,14 @@ namespace App\Modules\Contacts\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Contacts\Requests\StoreContactRequest;
 use App\Modules\Contacts\Requests\UpdateContactRequest;
-use App\Modules\Contacts\Services\ContactService;
 use App\Modules\Contacts\Services\ContactNotificationService;
+use App\Modules\Contacts\Services\ContactService;
 use Illuminate\Http\JsonResponse;
 
 class ContactController extends Controller
 {
     protected $contactService;
+
     protected $notificationService;
 
     public function __construct(
@@ -39,7 +40,7 @@ class ContactController extends Controller
         } else {
             $response = [
                 'value' => false,
-                'message' => 'No Contact was found',
+                'message' => __('api.no_contact_found'),
             ];
 
             return response()->json($response, 404);
@@ -59,14 +60,14 @@ class ContactController extends Controller
 
             $response = [
                 'value' => true,
-                'message' => 'Contact Created Successfully',
+                'message' => __('api.contact_created_successfully'),
             ];
 
             return response()->json($response, 200);
         } else {
             $response = [
                 'value' => false,
-                'message' => 'No Contact was found',
+                'message' => __('api.no_contact_found'),
             ];
 
             return response()->json($response, 404);
@@ -90,7 +91,7 @@ class ContactController extends Controller
         } else {
             $response = [
                 'value' => false,
-                'message' => 'No Contact was found',
+                'message' => __('api.no_contact_found'),
             ];
 
             return response()->json($response, 404);
@@ -108,14 +109,14 @@ class ContactController extends Controller
             $response = [
                 'value' => true,
                 'data' => $contact,
-                'message' => 'Contact Updated Successfully',
+                'message' => __('api.contact_updated_successfully'),
             ];
 
             return response()->json($response, 201);
         } else {
             $response = [
                 'value' => false,
-                'message' => 'No Contact was found',
+                'message' => __('api.no_contact_found'),
             ];
 
             return response()->json($response, 404);
@@ -139,7 +140,7 @@ class ContactController extends Controller
         } else {
             $response = [
                 'value' => false,
-                'message' => 'No Contact was found',
+                'message' => __('api.no_contact_found'),
             ];
 
             return response()->json($response, 404);

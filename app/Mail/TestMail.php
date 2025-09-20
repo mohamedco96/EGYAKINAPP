@@ -21,7 +21,7 @@ class TestMail extends Mailable
      */
     public function __construct($subject = null, $body = null)
     {
-        $this->subject = $subject ?? 'EGYAKIN Mail Test - '.now()->format('Y-m-d H:i:s');
+        $this->subject = $subject ?? __('api.test_email_subject', ['timestamp' => now()->format('Y-m-d H:i:s')]);
         $this->body = $body ?? $this->getDefaultBody();
     }
 
@@ -64,6 +64,6 @@ class TestMail extends Mailable
      */
     private function getDefaultBody()
     {
-        return 'This is a test email from EGYAKIN application to verify mail configuration.';
+        return __('api.test_email_body');
     }
 }

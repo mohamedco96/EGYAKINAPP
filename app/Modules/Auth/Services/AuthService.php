@@ -74,7 +74,7 @@ class AuthService
 
             return [
                 'value' => true,
-                'message' => 'User Created Successfully',
+                'message' => __('api.user_created_successfully'),
                 'token' => $token,
                 'data' => $user,
             ];
@@ -98,7 +98,7 @@ class AuthService
 
             return [
                 'value' => false,
-                'message' => 'Too many login attempts. Please try again later.',
+                'message' => __('api.too_many_login_attempts'),
                 'status_code' => 429,
             ];
         }
@@ -111,7 +111,7 @@ class AuthService
 
             return [
                 'value' => false,
-                'message' => 'Invalid credentials',
+                'message' => __('api.invalid_credentials'),
                 'status_code' => 401,
             ];
         }
@@ -142,7 +142,7 @@ class AuthService
 
         return [
             'value' => true,
-            'message' => 'User Logged In Successfully',
+            'message' => __('api.user_logged_in_successfully'),
             'token' => $token,
             'data' => $user,
             'status_code' => 200,
@@ -165,7 +165,7 @@ class AuthService
 
         return [
             'value' => true,
-            'message' => 'User Logged Out Successfully',
+            'message' => __('api.user_logged_out_successfully'),
             'status_code' => 200,
         ];
     }
@@ -184,7 +184,7 @@ class AuthService
 
             return [
                 'value' => false,
-                'message' => 'Current password is incorrect',
+                'message' => __('api.current_password_incorrect'),
                 'status_code' => 400,
             ];
         }
@@ -199,7 +199,7 @@ class AuthService
 
             return [
                 'value' => true,
-                'message' => 'Password changed successfully',
+                'message' => __('api.password_changed_successfully'),
                 'status_code' => 200,
             ];
         });
@@ -238,7 +238,7 @@ class AuthService
 
             return [
                 'value' => true,
-                'message' => 'Profile image uploaded successfully.',
+                'message' => __('api.profile_image_uploaded_successfully'),
                 'image' => $imageUrl,
                 'status_code' => 200,
             ];
@@ -265,7 +265,7 @@ class AuthService
 
             return [
                 'value' => true,
-                'message' => 'User syndicate card uploaded successfully.',
+                'message' => __('api.syndicate_card_uploaded_successfully'),
                 'image' => $imageUrl,
                 'status_code' => 200,
             ];
@@ -300,7 +300,7 @@ class AuthService
 
             return [
                 'value' => true,
-                'message' => 'User Updated Successfully',
+                'message' => __('api.user_updated_successfully'),
                 'status_code' => 200,
             ];
         });
@@ -318,7 +318,7 @@ class AuthService
 
             return [
                 'value' => false,
-                'message' => 'No User was found',
+                'message' => __('api.no_user_found'),
                 'status_code' => 404,
             ];
         }
@@ -336,7 +336,7 @@ class AuthService
 
         return [
             'value' => true,
-            'message' => 'User Updated Successfully',
+            'message' => __('api.user_updated_successfully'),
             'data' => $user,
             'status_code' => 200,
         ];
@@ -352,7 +352,7 @@ class AuthService
         if ($users->isEmpty()) {
             return [
                 'value' => false,
-                'message' => 'No user was found',
+                'message' => __('api.no_user_found'),
                 'status_code' => 404,
             ];
         }
@@ -410,7 +410,7 @@ class AuthService
 
             return [
                 'value' => false,
-                'message' => 'No user was found',
+                'message' => __('api.no_user_found'),
                 'status_code' => 404,
             ];
         }
@@ -426,7 +426,7 @@ class AuthService
         if (! $user) {
             return [
                 'value' => false,
-                'message' => 'No user was found',
+                'message' => __('api.no_user_found'),
                 'status_code' => 404,
             ];
         }
@@ -532,7 +532,7 @@ class AuthService
 
             return [
                 'value' => false,
-                'message' => 'Failed to retrieve patients',
+                'message' => __('api.failed_to_retrieve_patients'),
                 'status_code' => 500,
             ];
         }
@@ -595,7 +595,7 @@ class AuthService
 
             return [
                 'value' => false,
-                'message' => 'Failed to retrieve score history.',
+                'message' => __('api.failed_to_retrieve_score_history'),
                 'status_code' => 500,
             ];
         }
@@ -611,7 +611,7 @@ class AuthService
         if (! $user) {
             return [
                 'value' => false,
-                'message' => 'No User was found',
+                'message' => __('api.no_user_found'),
                 'status_code' => 404,
             ];
         }
@@ -625,7 +625,7 @@ class AuthService
 
             return [
                 'value' => true,
-                'message' => 'User Deleted Successfully',
+                'message' => __('api.user_deleted_successfully'),
                 'status_code' => 200,
             ];
         });

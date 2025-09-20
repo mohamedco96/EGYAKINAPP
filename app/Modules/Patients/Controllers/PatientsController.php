@@ -5,27 +5,33 @@ namespace App\Modules\Patients\Controllers;
 use App\Events\SearchResultsUpdated;
 use App\Http\Controllers\Controller;
 use App\Modules\Patients\Requests\UpdatePatientsRequest;
-use App\Modules\Patients\Services\PatientService;
-use App\Services\HomeDataService;
-use App\Services\SearchService;
-use App\Services\QuestionService;
-use App\Services\FileUploadService;
 use App\Modules\Patients\Services\PatientFilterService;
-use App\Services\PdfGenerationService;
+use App\Modules\Patients\Services\PatientService;
 use App\Modules\Questions\Models\Questions;
+use App\Services\FileUploadService;
+use App\Services\HomeDataService;
+use App\Services\PdfGenerationService;
+use App\Services\QuestionService;
+use App\Services\SearchService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class PatientsController extends Controller
 {
     protected $patientService;
+
     protected $homeDataService;
+
     protected $searchService;
+
     protected $questionService;
+
     protected $fileUploadService;
+
     protected $patientFilterService;
+
     protected $pdfGenerationService;
 
     public function __construct(
@@ -56,10 +62,9 @@ class PatientsController extends Controller
         ]);
 
         $result = $this->fileUploadService->uploadFile($request->file('file'));
-        
+
         return response()->json($result, $result['success'] ? 200 : 400);
     }
-
 
     public function uploadFileNew(Request $request)
     {
@@ -76,6 +81,7 @@ class PatientsController extends Controller
             ], 400);
         }
     }
+
     /**
      * Display a listing of the resource.
      */
@@ -83,12 +89,13 @@ class PatientsController extends Controller
     {
         try {
             $homeData = $this->homeDataService->getHomeData();
+
             return response()->json($homeData, 200);
         } catch (\Exception $e) {
             Log::error('Error retrieving home data.', [
                 'user_id' => optional(auth()->user())->id,
                 'exception' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
@@ -111,14 +118,14 @@ class PatientsController extends Controller
             ];
 
             Log::info('Successfully retrieved all patients for doctor.', [
-                'doctor_id' => optional(auth()->user())->id
+                'doctor_id' => optional(auth()->user())->id,
             ]);
 
             return response()->json($response, 200);
         } catch (\Exception $e) {
             Log::error('Error retrieving all patients for doctor.', [
-                'doctor_id' => optional(auth()->user())->id, 
-                'exception' => $e
+                'doctor_id' => optional(auth()->user())->id,
+                'exception' => $e,
             ]);
 
             return response()->json(['error' => 'Failed to retrieve all patients for doctor.'], 500);
@@ -129,11 +136,11 @@ class PatientsController extends Controller
     {
         try {
             $paginatedPatients = $this->patientFilterService->getDoctorPatients(false);
-            
+
             $user = auth()->user();
             $userPatientCount = $user->patients()->count();
             $scoreValue = optional($user->score)->score ?? 0;
-            $isVerified = (bool)$user->email_verified_at;
+            $isVerified = (bool) $user->email_verified_at;
 
             $response = [
                 'value' => true,
@@ -144,14 +151,14 @@ class PatientsController extends Controller
             ];
 
             Log::info('Successfully retrieved current doctor patients.', [
-                'doctor_id' => optional(auth()->user())->id
+                'doctor_id' => optional(auth()->user())->id,
             ]);
 
             return response()->json($response, 200);
         } catch (\Exception $e) {
             Log::error('Error retrieving current doctor patients.', [
-                'doctor_id' => optional(auth()->user())->id, 
-                'exception' => $e
+                'doctor_id' => optional(auth()->user())->id,
+                'exception' => $e,
             ]);
 
             return response()->json(['error' => 'Failed to retrieve current doctor patients.'], 500);
@@ -169,20 +176,19 @@ class PatientsController extends Controller
             ];
 
             Log::info('Successfully retrieved doctor profile patients.', [
-                'doctor_id' => optional(auth()->user())->id
+                'doctor_id' => optional(auth()->user())->id,
             ]);
 
             return response()->json($response, 200);
         } catch (\Exception $e) {
             Log::error('Error retrieving doctor profile patients.', [
-                'doctor_id' => optional(auth()->user())->id, 
-                'exception' => $e
+                'doctor_id' => optional(auth()->user())->id,
+                'exception' => $e,
             ]);
 
             return response()->json(['error' => 'Failed to retrieve doctor profile patients.'], 500);
         }
     }
-
 
     /**
      * Store a newly created resource in storage.
@@ -191,15 +197,16 @@ class PatientsController extends Controller
     {
         try {
             $response = $this->patientService->createPatient($request->all());
+
             return response()->json($response, 200);
         } catch (\Exception $e) {
-            Log::error("Error while storing patient: " . $e->getMessage(), [
-                'request' => $request->all()
+            Log::error('Error while storing patient: '.$e->getMessage(), [
+                'request' => $request->all(),
             ]);
-            
+
             return response()->json([
                 'value' => false,
-                'message' => 'Error: ' . $e->getMessage(),
+                'message' => __('api.error_occurred', ['message' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -211,28 +218,30 @@ class PatientsController extends Controller
     {
         // Check if the section exists
         $sectionExists = Questions::where('section_id', $section_id)->exists();
-        if (!$sectionExists) {
+        if (! $sectionExists) {
             return response()->json([
                 'value' => false,
-                'message' => "Section not found",
+                'message' => __('api.section_not_found'),
             ], 404);
         }
 
-        if (!$this->patientService->patientExists($patient_id)) {
+        if (! $this->patientService->patientExists($patient_id)) {
             return response()->json([
                 'value' => false,
-                'message' => "Patient not found",
+                'message' => __('api.patient_not_found'),
             ], 404);
         }
 
         try {
             $response = $this->patientService->updatePatientSection($request->all(), $section_id, $patient_id);
+
             return response()->json($response, 200);
         } catch (\Exception $e) {
-            Log::error("Error while updating patient: " . $e->getMessage());
+            Log::error('Error while updating patient: '.$e->getMessage());
+
             return response()->json([
                 'value' => false,
-                'message' => 'Error: ' . $e->getMessage(),
+                'message' => __('api.error_occurred', ['message' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -244,6 +253,7 @@ class PatientsController extends Controller
     {
         try {
             $response = $this->patientService->deletePatient($id);
+
             return response()->json($response, 200);
         } catch (\Exception $e) {
             Log::error('Error deleting patient', [
@@ -253,7 +263,7 @@ class PatientsController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'Error occurred while deleting patient: ' . $e->getMessage(),
+                'message' => 'Error occurred while deleting patient: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -273,6 +283,7 @@ class PatientsController extends Controller
 
             if (empty($patientQuery) && empty($doseQuery)) {
                 Log::info('No search term provided.');
+
                 return response()->json([
                     'value' => true,
                     'data' => [
@@ -300,7 +311,7 @@ class PatientsController extends Controller
             }
 
             Log::info('Successfully retrieved data for the search term.', ['search_term' => $patientQuery]);
-            
+
             return response()->json([
                 'value' => true,
                 'data' => [
@@ -333,6 +344,7 @@ class PatientsController extends Controller
 
             if (empty($patientQuery) && empty($doseQuery)) {
                 Log::info('No search term provided.');
+
                 return response()->json([
                     'value' => true,
                     'data' => [
@@ -343,7 +355,7 @@ class PatientsController extends Controller
             }
 
             Log::info('Successfully retrieved data for the search term.', ['search_term' => $patientQuery]);
-            
+
             return response()->json([
                 'value' => true,
                 'data' => $searchResults,
@@ -431,7 +443,7 @@ class PatientsController extends Controller
             if ($result['success']) {
                 return response()->json([
                     'pdf_url' => $result['pdf_url'],
-                    'data' => $result['data']
+                    'data' => $result['data'],
                 ]);
             } else {
                 return response()->json([
@@ -440,14 +452,14 @@ class PatientsController extends Controller
                 ], 500);
             }
         } catch (\Exception $e) {
-            Log::error("Error while generating PDF: " . $e->getMessage());
+            Log::error('Error while generating PDF: '.$e->getMessage());
+
             return response()->json([
                 'value' => false,
-                'message' => 'Error: ' . $e->getMessage(),
+                'message' => __('api.error_occurred', ['message' => $e->getMessage()]),
             ], 500);
         }
     }
-
 
     public function patientFilterConditions()
     {
@@ -455,7 +467,8 @@ class PatientsController extends Controller
             $data = $this->questionService->getFilterConditions();
 
             if (empty($data)) {
-                Log::info("No questions found for filter conditions.");
+                Log::info('No questions found for filter conditions.');
+
                 return response()->json([
                     'value' => false,
                     'message' => 'No questions found.',
@@ -467,16 +480,17 @@ class PatientsController extends Controller
                 'data' => $data,
             ];
 
-            Log::info("Questions filter conditions retrieved successfully.", ['question_count' => count($data)]);
+            Log::info('Questions filter conditions retrieved successfully.', ['question_count' => count($data)]);
+
             return response()->json($response, 200);
         } catch (\Exception $e) {
-            Log::error("Error while fetching questions filter conditions: " . $e->getMessage(), [
-                'exception' => $e
+            Log::error('Error while fetching questions filter conditions: '.$e->getMessage(), [
+                'exception' => $e,
             ]);
 
             return response()->json([
                 'value' => false,
-                'message' => 'Error: ' . $e->getMessage(),
+                'message' => __('api.error_occurred', ['message' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -489,22 +503,22 @@ class PatientsController extends Controller
 
             // Extract filter parameters (excluding pagination)
             $filterParams = $request->except(['page', 'per_page', 'sort', 'direction', 'offset', 'limit']);
-            
+
             // Cache the latest filter parameters for this user (for export functionality)
-            $userFilterCacheKey = 'latest_filter_params_user_' . auth()->id();
+            $userFilterCacheKey = 'latest_filter_params_user_'.auth()->id();
             Cache::put($userFilterCacheKey, $filterParams, now()->addHours(24));
 
             $result = $this->patientFilterService->filterPatients($request->all(), $perPage, $page);
 
             Log::info('Successfully retrieved filtered patients.', [
                 'filter_count' => count($filterParams),
-                'user_id' => auth()->id()
+                'user_id' => auth()->id(),
             ]);
 
             return response()->json([
                 'value' => true,
                 'data' => $result['data'],
-                'pagination' => $result['pagination']
+                'pagination' => $result['pagination'],
             ], 200);
         } catch (\Exception $e) {
             Log::error('Error retrieving filtered patients.', ['exception' => $e]);
@@ -520,28 +534,28 @@ class PatientsController extends Controller
     {
         try {
             // Get the latest filter parameters used by this user from cache
-            $userFilterCacheKey = 'latest_filter_params_user_' . auth()->id();
+            $userFilterCacheKey = 'latest_filter_params_user_'.auth()->id();
             $filterParams = Cache::get($userFilterCacheKey, []);
-            
+
             // If no cached filters found, return error
             if (empty($filterParams)) {
                 return response()->json([
                     'value' => false,
-                    'message' => 'No recent filter criteria found. Please apply filters first using the filteredPatients endpoint.'
+                    'message' => 'No recent filter criteria found. Please apply filters first using the filteredPatients endpoint.',
                 ], 400);
             }
 
             // Generate cache key from filter parameters
-            $cacheKey = 'filtered_patients_export_' . md5(json_encode($filterParams)) . '_' . auth()->id();
-            
+            $cacheKey = 'filtered_patients_export_'.md5(json_encode($filterParams)).'_'.auth()->id();
+
             // Cache the filter parameters for tracking
-            Cache::put($cacheKey . '_filters', $filterParams, now()->addHours(24));
-            
+            Cache::put($cacheKey.'_filters', $filterParams, now()->addHours(24));
+
             Log::info('Starting filtered patients export with cached filters', [
                 'user_id' => auth()->id(),
                 'filter_count' => count($filterParams),
                 'filter_params' => $filterParams,
-                'cache_key' => $cacheKey
+                'cache_key' => $cacheKey,
             ]);
 
             // Get all filtered patients (without pagination)
@@ -551,12 +565,12 @@ class PatientsController extends Controller
             if ($patients->isEmpty()) {
                 return response()->json([
                     'value' => false,
-                    'message' => 'No patients found matching the cached filter criteria.'
+                    'message' => 'No patients found matching the cached filter criteria.',
                 ], 404);
             }
 
             // Get all questions for CSV headers
-            $questions = Cache::remember('all_questions_export', now()->addHour(), function() {
+            $questions = Cache::remember('all_questions_export', now()->addHour(), function () {
                 return \App\Models\Questions::query()
                     ->select(['id', 'question'])
                     ->orderBy('id')
@@ -564,9 +578,12 @@ class PatientsController extends Controller
             });
 
             // Create the export class
-            $export = new class($patients, $questions, $filterParams) implements \Maatwebsite\Excel\Concerns\FromCollection, \Maatwebsite\Excel\Concerns\WithHeadings, \Maatwebsite\Excel\Concerns\WithMapping {
+            $export = new class($patients, $questions, $filterParams) implements \Maatwebsite\Excel\Concerns\FromCollection, \Maatwebsite\Excel\Concerns\WithHeadings, \Maatwebsite\Excel\Concerns\WithMapping
+            {
                 private $patients;
+
                 private $questions;
+
                 private $filterParams;
 
                 public function __construct($patients, $questions, $filterParams)
@@ -591,7 +608,7 @@ class PatientsController extends Controller
                         'Hospital',
                         'Submit Status',
                         'Outcome Status',
-                        'Last Updated'
+                        'Last Updated',
                     ];
 
                     // Add question headers
@@ -606,7 +623,7 @@ class PatientsController extends Controller
                 {
                     // Ensure patient data is properly structured
                     $patient = is_array($patient) ? $patient : [];
-                    
+
                     $data = [
                         $patient['id'] ?? '',
                         $patient['doctor_id'] ?? '',
@@ -615,7 +632,7 @@ class PatientsController extends Controller
                         $patient['hospital'] ?? '',
                         isset($patient['sections']['submit_status']) && $patient['sections']['submit_status'] ? 'Yes' : 'No',
                         isset($patient['sections']['outcome_status']) && $patient['sections']['outcome_status'] ? 'Yes' : 'No',
-                        $patient['updated_at'] ?? ''
+                        $patient['updated_at'] ?? '',
                     ];
 
                     // Add answer data for each question
@@ -626,19 +643,19 @@ class PatientsController extends Controller
                             foreach ($patient['answers'] as $patientAnswer) {
                                 if ($patientAnswer['question_id'] == $question->id) {
                                     $rawAnswer = $patientAnswer['answer'] ?? '';
-                                    
+
                                     // Handle different answer types
                                     if (is_array($rawAnswer)) {
                                         // If it's an array, join the values
                                         $answer = implode(', ', array_map('strval', $rawAnswer));
-                                    } else if (is_string($rawAnswer)) {
+                                    } elseif (is_string($rawAnswer)) {
                                         // If it's a string, use it directly
                                         $answer = $rawAnswer;
                                     } else {
                                         // For any other type, convert to string
                                         $answer = (string) $rawAnswer;
                                     }
-                                    
+
                                     // Remove quotes if present (only for strings)
                                     if (is_string($answer)) {
                                         $answer = trim($answer, '"');
@@ -663,24 +680,24 @@ class PatientsController extends Controller
             Storage::disk('public')->makeDirectory('exports');
 
             // Store the Excel file
-            \Maatwebsite\Excel\Facades\Excel::store($export, 'exports/' . $filename, 'public');
+            \Maatwebsite\Excel\Facades\Excel::store($export, 'exports/'.$filename, 'public');
 
             // Construct the full URL for the exported file
-            $fileUrl = config('app.url') . '/storage/exports/' . $filename;
+            $fileUrl = config('app.url').'/storage/exports/'.$filename;
 
             // Cache the export result for future reference
-            Cache::put($cacheKey . '_result', [
+            Cache::put($cacheKey.'_result', [
                 'filename' => $filename,
                 'file_url' => $fileUrl,
                 'patient_count' => $patients->count(),
-                'created_at' => now()->toISOString()
+                'created_at' => now()->toISOString(),
             ], now()->addHours(24));
 
             Log::info('Successfully exported filtered patients to CSV', [
                 'file_url' => $fileUrl,
                 'patient_count' => $patients->count(),
                 'filter_count' => $filterCount,
-                'user_id' => auth()->id()
+                'user_id' => auth()->id(),
             ]);
 
             return response()->json([
@@ -689,20 +706,20 @@ class PatientsController extends Controller
                 'file_url' => $fileUrl,
                 'patient_count' => $patients->count(),
                 'filter_count' => $filterCount,
-                'cache_key' => $cacheKey
+                'cache_key' => $cacheKey,
             ], 200);
 
         } catch (\Exception $e) {
-            Log::error('Error exporting filtered patients to CSV: ' . $e->getMessage(), [
+            Log::error('Error exporting filtered patients to CSV: '.$e->getMessage(), [
                 'user_id' => auth()->id(),
-                'cached_filter_params' => Cache::get('latest_filter_params_user_' . auth()->id(), []),
+                'cached_filter_params' => Cache::get('latest_filter_params_user_'.auth()->id(), []),
                 'exception' => $e,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json([
                 'value' => false,
-                'message' => 'Failed to export data: ' . $e->getMessage()
+                'message' => 'Failed to export data: '.$e->getMessage(),
             ], 500);
         }
     }

@@ -31,7 +31,7 @@ class ReminderNotification extends Notification
     public function __construct($patient, $events)
     {
         //$this->message = 'Use the below code for verification process';
-        $this->subject = 'Reminder from EGYAKIN';
+        $this->subject = __('api.reminder_from_egyakin');
         $this->fromEmail = 'noreply@egyakin.com';
         $this->mailer = 'brevo-api';
         $this->patient = $patient;
@@ -58,12 +58,12 @@ class ReminderNotification extends Notification
     {
         return (new MailMessage)
             ->subject($this->subject)
-            ->greeting('Hello Doctor '.$notifiable->name)
-            ->line('The Patient "'.$this->patient->name.'" outcome has not yet been submitted, please update it right now.')
-            ->line('Your Patient was added since '.$this->events->created_at)
-            ->line('Thank you for using our application!')
-            ->line('Sincerely,')
-            ->salutation('EGYAKIN Scientific Team.');
+            ->greeting(__('api.hello_doctor', ['name' => $notifiable->name]))
+            ->line(__('api.patient_outcome_not_submitted', ['patient' => $this->patientName]))
+            ->line(__('api.patient_added_since', ['date' => $this->events->created_at]))
+            ->line(__('api.thank_you_using_application'))
+            ->line(__('api.sincerely'))
+            ->salutation(__('api.egyakin_scientific_team'));
     }
 
     /**
@@ -386,45 +386,45 @@ class ReminderNotification extends Notification
                 </div>
                 
                 <div class="content">
-                    <div class="greeting">Hello Doctor '.htmlspecialchars($notifiable->name).'! 👋</div>
+                    <div class="greeting">'.__('api.hello_doctor', ['name' => htmlspecialchars($notifiable->name)]).' 👋</div>
                     
                     <div class="urgent-notice">
-                        <strong>Urgent Action Required</strong>
-                        <p>The patient outcome has not yet been submitted. Please update it immediately to ensure proper patient care documentation.</p>
+                        <strong>'.__('api.urgent_action_required').'</strong>
+                        <p>'.__('api.patient_outcome_pending_message').'</p>
                     </div>
                     
                     <div class="patient-info">
-                        <h3>Patient Information</h3>
+                        <h3>'.__('api.patient_information').'</h3>
                         <div class="info-row">
-                            <span class="info-label">Patient Name:</span>
+                            <span class="info-label">'.__('api.patient_name').':</span>
                             <span class="info-value">'.htmlspecialchars($this->patientName).'</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Added Since:</span>
+                            <span class="info-label">'.__('api.added_since').':</span>
                             <span class="info-value">'.$this->events->created_at.'</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Status:</span>
-                            <span class="status-badge">Outcome Pending</span>
+                            <span class="info-label">'.__('api.status').':</span>
+                            <span class="status-badge">'.__('api.outcome_pending').'</span>
                         </div>
                     </div>
                     
                     <div class="intro-text">
-                        As part of our commitment to quality patient care, we need to ensure all patient outcomes are properly documented and submitted. This helps maintain accurate medical records and improves patient care quality.
+                        '.__('api.quality_care_commitment').'
                     </div>
                     
 
                     
                     <p style="text-align: center; color: #6c757d; margin-top: 20px;">
-                        Thank you for your attention to this matter and for using EGYAKIN! 🚀
+                        '.__('api.thank_you_attention').'
                     </p>
                 </div>
                 
                 <div class="footer">
-                    <p>Best regards,<br>
-                    <strong>EGYAKIN Scientific Team</strong></p>
+                    <p>'.__('api.best_regards').'<br>
+                    <strong>'.__('api.egyakin_scientific_team').'</strong></p>
                     
-                    <p><small>This is an automated reminder. Please ensure patient outcomes are submitted promptly to maintain quality care standards.</small></p>
+                    <p><small>'.__('api.automated_reminder').'</small></p>
                 </div>
             </div>
         </body>
@@ -439,27 +439,27 @@ class ReminderNotification extends Notification
         return '
 EGYAKIN Patient Outcome Reminder
 
-Hello Doctor '.$notifiable->name.'! 👋
+'.__('api.hello_doctor', ['name' => $notifiable->name]).' 👋
 
-⚠️ URGENT ACTION REQUIRED: The patient outcome has not yet been submitted. Please update it immediately to ensure proper patient care documentation.
+⚠️ '.__('api.urgent_action_required').': '.__('api.patient_outcome_pending_message').'
 
-📋 Patient Information:
-- Patient Name: '.$this->patientName.'
-- Added Since: '.$this->events->created_at.'
-- Status: Outcome Pending
+📋 '.__('api.patient_information').':
+- '.__('api.patient_name').': '.$this->patientName.'
+- '.__('api.added_since').': '.$this->events->created_at.'
+- '.__('api.status').': '.__('api.outcome_pending').'
 
-As part of our commitment to quality patient care, we need to ensure all patient outcomes are properly documented and submitted. This helps maintain accurate medical records and improves patient care quality.
+'.__('api.quality_care_commitment').'
 
 Please log into your EGYAKIN account and update the patient outcome as soon as possible.
 
 Visit: https://test.egyakin.com
 
-Thank you for your attention to this matter and for using EGYAKIN! 🚀
+'.__('api.thank_you_attention').'
 
-Best regards,
-EGYAKIN Scientific Team
+'.__('api.best_regards').',
+'.__('api.egyakin_scientific_team').'
 
-This is an automated reminder. Please ensure patient outcomes are submitted promptly to maintain quality care standards.
+'.__('api.automated_reminder').'
         ';
     }
 
@@ -479,7 +479,7 @@ This is an automated reminder. Please ensure patient outcomes are submitted prom
             }
 
             if (! $patientId) {
-                return 'Unknown Patient';
+                return __('api.unknown_patient');
             }
 
             // Get the patient name from answers table where question_id = 1
@@ -490,7 +490,7 @@ This is an automated reminder. Please ensure patient outcomes are submitted prom
             if ($answer && ! empty($answer->answer)) {
                 // Handle if answer is stored as JSON array or plain text
                 if (is_array($answer->answer)) {
-                    return $answer->answer[0] ?? 'Unknown Patient';
+                    return $answer->answer[0] ?? __('api.unknown_patient');
                 } elseif (is_string($answer->answer)) {
                     // Try to decode JSON if it's a JSON string
                     $decoded = json_decode($answer->answer, true);
@@ -502,7 +502,7 @@ This is an automated reminder. Please ensure patient outcomes are submitted prom
                 }
             }
 
-            return 'Unknown Patient';
+            return __('api.unknown_patient');
         } catch (\Exception $e) {
             // Log the error but don't fail the notification
             \Log::warning('Failed to get patient name from answers', [
@@ -510,7 +510,7 @@ This is an automated reminder. Please ensure patient outcomes are submitted prom
                 'error' => $e->getMessage(),
             ]);
 
-            return 'Unknown Patient';
+            return __('api.unknown_patient');
         }
     }
 

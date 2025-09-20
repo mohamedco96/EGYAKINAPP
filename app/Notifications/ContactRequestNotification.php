@@ -26,7 +26,7 @@ class ContactRequestNotification extends Notification
      */
     public function __construct(array $recipientEmails, string $message)
     {
-        $this->subject = 'New Contact Request';
+        $this->subject = __('api.new_contact_request');
         $this->fromEmail = 'noreply@egyakin.com';
         $this->mailer = 'brevo-api';
         $this->recipientEmails = $recipientEmails;
@@ -52,12 +52,12 @@ class ContactRequestNotification extends Notification
         return (new MailMessage)
             ->mailer('brevo-api')
             ->subject($this->subject)
-            ->greeting('Hello Doctor Mostafa')
-            ->line('Dr.'.$notifiable->name.' who works at '.$notifiable->workingplace.' has raised a new contact request.')
-            ->line('<< '.$this->message.' >>')
-            ->line('He can be reached by Email: '.$notifiable->email.' or Phone: '.$notifiable->phone)
-            ->line('Sincerely,')
-            ->salutation('EGYAKIN Scientific Team.');
+            ->greeting(__('api.hello_doctor_mostafa'))
+            ->line(__('api.contact_request_message', ['name' => $notifiable->name, 'workplace' => $notifiable->workingplace]))
+            ->line(__('api.contact_message', ['message' => $this->message]))
+            ->line(__('api.contact_reach_info', ['email' => $notifiable->email, 'phone' => $notifiable->phone]))
+            ->line(__('api.sincerely'))
+            ->salutation(__('api.egyakin_scientific_team'));
     }
 
     /**

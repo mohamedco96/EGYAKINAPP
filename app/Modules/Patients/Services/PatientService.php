@@ -73,7 +73,7 @@ class PatientService
                 'id' => $patient->id,
                 'name' => $patientName,
                 'submit_status' => false,
-                'message' => 'Patient Created Successfully',
+                'message' => __('api.patient_created_successfully'),
             ];
         });
     }
@@ -107,7 +107,7 @@ class PatientService
 
             return [
                 'value' => true,
-                'message' => 'Section updated successfully.',
+                'message' => __('api.section_updated_successfully'),
             ];
         });
     }
@@ -138,7 +138,7 @@ class PatientService
 
             return [
                 'value' => true,
-                'message' => 'Patient and related data deleted successfully',
+                'message' => __('api.patient_deleted_successfully'),
             ];
         });
     }

@@ -40,7 +40,7 @@ class WeeklySummaryMail extends Mailable
         $weekEnd = Carbon::now()->endOfWeek()->format('M j, Y');
 
         return new Envelope(
-            subject: "EGYAKIN Weekly Summary - {$weekStart} - {$weekEnd}",
+            subject: __('api.weekly_summary_subject', ['week_start' => $weekStart, 'week_end' => $weekEnd]),
         );
     }
 

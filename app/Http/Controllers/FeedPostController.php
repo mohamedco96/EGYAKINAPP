@@ -51,7 +51,7 @@ class FeedPostController extends Controller
                 return response()->json([
                     'value' => true,
                     'data' => [],
-                    'message' => 'No feed posts found',
+                    'message' => __('api.no_feed_posts_found'),
                 ]);
             }
             Log::info('Fetched all feed posts');
@@ -59,7 +59,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $posts,
-                'message' => 'Feed posts retrieved successfully',
+                'message' => __('api.feed_posts_retrieved_successfully'),
             ]);
         } catch (\Exception $e) {
             Log::error('Error fetching feed posts: '.$e->getMessage());
@@ -67,7 +67,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while retrieving feed posts',
+                'message' => __('api.error_retrieving_feed_posts'),
             ], 500);
         }
     }
@@ -153,7 +153,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $feedPosts,
-                'message' => 'Feed posts retrieved successfully',
+                'message' => __('api.feed_posts_retrieved_successfully'),
             ]);
         } catch (\Exception $e) {
             Log::error("Error fetching feed posts for doctor ID $doctorId: ".$e->getMessage());
@@ -161,7 +161,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while retrieving feed posts',
+                'message' => __('api.error_retrieving_feed_posts'),
             ], 500);
         }
     }
@@ -230,7 +230,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $feedPosts,
-                'message' => 'Doctor Posts retrieved successfully',
+                'message' => __('api.feed_posts_retrieved_successfully'),
             ]);
         } catch (\Exception $e) {
             Log::error("Error fetching Doctor posts for doctor ID $doctorId: ".$e->getMessage());
@@ -238,7 +238,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while retrieving feed posts',
+                'message' => __('api.error_retrieving_feed_posts'),
             ], 500);
         }
     }
@@ -251,7 +251,7 @@ class FeedPostController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'Doctor ID is required',
+                'message' => __('validation.required', ['attribute' => 'Doctor ID']),
             ], 400);
         }
 
@@ -328,7 +328,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $feedPosts,
-                'message' => 'Doctor saved posts retrieved successfully',
+                'message' => __('api.feed_posts_retrieved_successfully'),
             ]);
         } catch (\Exception $e) {
             Log::error("Error fetching saved posts for doctor ID $doctorId: ".$e->getMessage());
@@ -336,7 +336,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while retrieving saved posts',
+                'message' => __('api.error_retrieving_feed_posts'),
             ], 500);
         }
     }
@@ -396,7 +396,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $post,
-                'message' => 'Post retrieved successfully',
+                'message' => __('api.feed_posts_retrieved_successfully'),
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::warning("Post ID $id not found");
@@ -404,7 +404,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'Post not found',
+                'message' => __('api.post_not_found'),
             ], 404);
         } catch (\Exception $e) {
             Log::error("Error fetching post ID $id: ".$e->getMessage());
@@ -412,7 +412,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while retrieving the post',
+                'message' => __('api.error_retrieving_feed_posts'),
             ], 500);
         }
     }
@@ -431,7 +431,7 @@ class FeedPostController extends Controller
                 return response()->json([
                     'value' => false,
                     'data' => [],
-                    'message' => 'No likes found for this post',
+                    'message' => __('api.no_feed_posts_found'),
                 ]);
             }
 
@@ -454,7 +454,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $paginatedDoctorData,
-                'message' => 'Post likes retrieved successfully',
+                'message' => __('api.feed_posts_retrieved_successfully'),
             ]);
         } catch (\Exception $e) {
             Log::error("Error fetching likes for post ID $postId: ".$e->getMessage());
@@ -462,7 +462,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while retrieving post likes',
+                'message' => __('api.error_retrieving_feed_posts'),
             ], 500);
         }
     }
@@ -551,7 +551,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $paginatedResponse,
-                'message' => 'Post comments retrieved successfully',
+                'message' => __('api.post_comments_retrieved_successfully'),
             ]);
         } catch (\Exception $e) {
             Log::error("Error fetching comments for post ID $postId: ".$e->getMessage());
@@ -559,7 +559,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while retrieving post comments',
+                'message' => __('api.error_retrieving_post_comments'),
             ], 500);
         }
     }
@@ -656,7 +656,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $post->load('poll.options'),
-                'message' => 'Post created successfully',
+                'message' => __('api.post_created_successfully'),
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
@@ -671,7 +671,7 @@ class FeedPostController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'Error creating post: '.$e->getMessage(),
+                'message' => __('api.error_creating_post', ['message' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -823,7 +823,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $post->load('poll.options'),
-                'message' => 'Post updated successfully',
+                'message' => __('api.post_updated_successfully'),
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             DB::rollBack();
@@ -831,7 +831,7 @@ class FeedPostController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'Post not found',
+                'message' => __('api.post_not_found'),
             ], 404);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -839,7 +839,7 @@ class FeedPostController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while updating the post: '.$e->getMessage(),
+                'message' => __('api.error_updating_post', ['message' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -1140,7 +1140,7 @@ class FeedPostController extends Controller
 
                 return response()->json([
                     'value' => false,
-                    'message' => 'Unauthorized action',
+                    'message' => __('api.unauthorized'),
                 ], 403);
             }
 
@@ -1183,7 +1183,7 @@ class FeedPostController extends Controller
 
                 return response()->json([
                     'value' => true,
-                    'message' => 'Post deleted successfully',
+                    'message' => __('api.post_deleted_successfully'),
                 ]);
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -1194,14 +1194,14 @@ class FeedPostController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'Post not found',
+                'message' => __('api.post_not_found'),
             ], 404);
         } catch (\Exception $e) {
             Log::error("Error deleting post ID $id: ".$e->getMessage());
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while deleting the post',
+                'message' => __('api.error_deleting_post'),
             ], 500);
         }
     }
@@ -1238,7 +1238,7 @@ class FeedPostController extends Controller
 
                     return response()->json([
                         'value' => false,
-                        'message' => 'Post already liked',
+                        'message' => __('api.post_liked_successfully'),
                     ], 400);
                 }
 
@@ -1272,8 +1272,8 @@ class FeedPostController extends Controller
 
                         if (! empty($tokens)) {
                             $this->notificationService->sendPushNotification(
-                                'Post was liked 📣',
-                                'Dr. '.ucfirst(Auth::user()->name).' liked your post',
+                                __('api.post_was_liked'),
+                                __('api.doctor_liked_post', ['name' => ucfirst(Auth::user()->name)]),
                                 $tokens
                             );
                         }
@@ -1285,7 +1285,7 @@ class FeedPostController extends Controller
                     return response()->json([
                         'value' => true,
                         'data' => $newLike,
-                        'message' => 'Post liked successfully',
+                        'message' => __('api.post_liked_successfully'),
                     ]);
                 } catch (\Exception $e) {
                     DB::rollBack();
@@ -1300,7 +1300,7 @@ class FeedPostController extends Controller
 
                     return response()->json([
                         'value' => true,
-                        'message' => 'Post unliked successfully',
+                        'message' => __('api.post_unliked_successfully'),
                     ]);
                 }
 
@@ -1308,7 +1308,7 @@ class FeedPostController extends Controller
 
                 return response()->json([
                     'value' => false,
-                    'message' => 'Like not found',
+                    'message' => __('api.resource_not_found'),
                 ], 404);
             }
 
@@ -1317,21 +1317,21 @@ class FeedPostController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'Post not found or not accessible',
+                'message' => __('api.post_not_found'),
             ], 404);
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::warning('Invalid input for like/unlike: '.json_encode($e->errors()));
 
             return response()->json([
                 'value' => false,
-                'message' => 'Invalid input. Status must be "like" or "unlike".',
+                'message' => __('api.validation_failed'),
             ], 422);
         } catch (\Exception $e) {
             Log::error("Error processing like/unlike for post ID $postId: ".$e->getMessage());
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while processing the request',
+                'message' => __('api.server_error'),
             ], 500);
         }
     }
@@ -1357,7 +1357,7 @@ class FeedPostController extends Controller
 
                     return response()->json([
                         'value' => false,
-                        'message' => 'Post already saved',
+                        'message' => __('api.post_saved_successfully'),
                     ], 400);
                 }
 
@@ -1372,7 +1372,7 @@ class FeedPostController extends Controller
                 return response()->json([
                     'value' => true,
                     'data' => $newSave,
-                    'message' => 'Post saved successfully',
+                    'message' => __('api.post_saved_successfully'),
                 ]);
 
                 // Handle Unsave
@@ -1383,7 +1383,7 @@ class FeedPostController extends Controller
 
                     return response()->json([
                         'value' => true,
-                        'message' => 'Post unsaved successfully',
+                        'message' => __('api.post_unsaved_successfully'),
                     ]);
                 }
 
@@ -1391,14 +1391,14 @@ class FeedPostController extends Controller
 
                 return response()->json([
                     'value' => false,
-                    'message' => 'Save not found',
+                    'message' => __('api.resource_not_found'),
                 ], 404);
             } else {
                 Log::warning("Invalid status for post save/unsave: $status");
 
                 return response()->json([
                     'value' => false,
-                    'message' => 'Invalid status. Use "save" or "unsave".',
+                    'message' => __('api.validation_failed'),
                 ], 400);
             }
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -1406,14 +1406,14 @@ class FeedPostController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'Post not found',
+                'message' => __('api.post_not_found'),
             ], 404);
         } catch (\Exception $e) {
             Log::error("Error processing save/unsave for post ID $postId: ".$e->getMessage());
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while processing the request',
+                'message' => __('api.server_error'),
             ], 500);
         }
     }
@@ -1459,8 +1459,8 @@ class FeedPostController extends Controller
 
                 if (! empty($tokens)) {
                     $this->notificationService->sendPushNotification(
-                        'New Comment was added 📣',
-                        'Dr. '.ucfirst(Auth::user()->name).' commented on your post ',
+                        __('api.new_comment_added'),
+                        __('api.doctor_commented_on_post', ['name' => ucfirst(Auth::user()->name)]),
                         $tokens
                     );
                 }
@@ -1469,14 +1469,14 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $comment,
-                'message' => 'Comment added successfully',
+                'message' => __('api.comment_added_successfully'),
             ]);
         } catch (\Exception $e) {
             Log::error("Error adding comment to post ID $postId: ".$e->getMessage());
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while adding the comment',
+                'message' => __('api.error_adding_comment'),
             ], 500);
         }
     }
@@ -1496,7 +1496,7 @@ class FeedPostController extends Controller
 
                 return response()->json([
                     'value' => false,
-                    'message' => 'Unauthorized action',
+                    'message' => __('api.unauthorized'),
                 ], 403);
             }
 
@@ -1505,21 +1505,21 @@ class FeedPostController extends Controller
 
             return response()->json([
                 'value' => true,
-                'message' => 'Comment deleted successfully',
+                'message' => __('api.comment_added_successfully'),
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::warning("Comment ID $commentId not found for deletion");
 
             return response()->json([
                 'value' => false,
-                'message' => 'Comment not found',
+                'message' => __('api.resource_not_found'),
             ], 404);
         } catch (\Exception $e) {
             Log::error("Error deleting comment ID $commentId: ".$e->getMessage());
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while deleting the comment',
+                'message' => __('api.error_adding_comment'),
             ], 500);
         }
     }
@@ -1538,7 +1538,7 @@ class FeedPostController extends Controller
 
                 return response()->json([
                     'value' => false,
-                    'message' => 'No comment was found with ID: '.$commentId,
+                    'message' => __('api.resource_not_found'),
                 ], 404);
             }
 
@@ -1554,7 +1554,7 @@ class FeedPostController extends Controller
 
                     return response()->json([
                         'value' => false,
-                        'message' => 'Comment already liked',
+                        'message' => __('api.comment_liked_successfully'),
                     ], 400);
                 }
 
@@ -1587,8 +1587,8 @@ class FeedPostController extends Controller
 
                     if (! empty($tokens)) {
                         $this->notificationService->sendPushNotification(
-                            'Comment was liked 👍',
-                            'Dr. '.ucfirst(Auth::user()->name).' liked your comment',
+                            __('api.comment_was_liked'),
+                            __('api.doctor_liked_comment', ['name' => ucfirst(Auth::user()->name)]),
                             $tokens
                         );
                     }
@@ -1599,7 +1599,7 @@ class FeedPostController extends Controller
                 return response()->json([
                     'value' => true,
                     'data' => $newLike,
-                    'message' => 'Comment liked successfully',
+                    'message' => __('api.comment_liked_successfully'),
                 ]);
 
                 // Handle Unlike
@@ -1610,7 +1610,7 @@ class FeedPostController extends Controller
 
                     return response()->json([
                         'value' => true,
-                        'message' => 'Comment unliked successfully',
+                        'message' => __('api.comment_unliked_successfully'),
                     ]);
                 }
 
@@ -1618,14 +1618,14 @@ class FeedPostController extends Controller
 
                 return response()->json([
                     'value' => false,
-                    'message' => 'Like not found',
+                    'message' => __('api.resource_not_found'),
                 ], 404);
             } else {
                 Log::warning("Invalid status for comment like/unlike: $status");
 
                 return response()->json([
                     'value' => false,
-                    'message' => 'Invalid status. Use "like" or "unlike".',
+                    'message' => __('api.validation_failed'),
                 ], 400);
             }
         } catch (\Exception $e) {
@@ -1633,7 +1633,7 @@ class FeedPostController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while processing the request',
+                'message' => __('api.server_error'),
             ], 500);
         }
     }
@@ -1655,7 +1655,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'Query parameter is required',
+                'message' => __('validation.required', ['attribute' => 'Query parameter']),
             ], 400);
         }
 
@@ -1668,7 +1668,7 @@ class FeedPostController extends Controller
                 return response()->json([
                     'value' => true,
                     'data' => [],
-                    'message' => 'No hashtags found',
+                    'message' => __('api.no_feed_posts_found'),
                 ]);
             }
 
@@ -1677,7 +1677,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $hashtags,
-                'message' => 'Hashtags retrieved successfully',
+                'message' => __('api.feed_posts_retrieved_successfully'),
             ]);
         } catch (\Exception $e) {
             Log::error("Error searching hashtags for query $query: ".$e->getMessage());
@@ -1685,7 +1685,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while searching for hashtags',
+                'message' => __('api.error_retrieving_feed_posts'),
             ], 500);
         }
     }
@@ -1703,7 +1703,7 @@ class FeedPostController extends Controller
                 return response()->json([
                     'value' => true,
                     'data' => [],
-                    'message' => 'No posts found for this hashtag',
+                    'message' => __('api.no_feed_posts_found'),
                 ]);
             }
 
@@ -1766,7 +1766,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $posts,
-                'message' => 'Posts retrieved successfully',
+                'message' => __('api.feed_posts_retrieved_successfully'),
             ]);
         } catch (\Exception $e) {
             Log::error("Error fetching posts for hashtag ID $hashtagId: ".$e->getMessage());
@@ -1774,7 +1774,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while retrieving posts',
+                'message' => __('api.error_retrieving_feed_posts'),
             ], 500);
         }
     }
@@ -1800,7 +1800,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $emptyPaginator,
-                'message' => 'No query provided',
+                'message' => __('validation.required', ['attribute' => 'Query']),
             ]);
         }
 
@@ -1865,7 +1865,7 @@ class FeedPostController extends Controller
                 return response()->json([
                     'value' => true,
                     'data' => $posts,
-                    'message' => 'No posts found',
+                    'message' => __('api.no_feed_posts_found'),
                 ]);
             }
 
@@ -1874,7 +1874,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $posts,
-                'message' => 'Posts retrieved successfully',
+                'message' => __('api.feed_posts_retrieved_successfully'),
             ]);
         } catch (\Exception $e) {
             Log::error("Error searching posts for query $query: ".$e->getMessage());
@@ -1882,7 +1882,7 @@ class FeedPostController extends Controller
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while searching for posts',
+                'message' => __('api.error_retrieving_feed_posts'),
             ], 500);
         }
     }

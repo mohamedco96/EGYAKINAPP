@@ -291,8 +291,8 @@ class PatientService
             ]);
         }
 
-        $title = 'New Patient Created 🏥';
-        $body = 'Dr. '.ucfirst($user->name).' added a new patient: '.($patientName ?? 'Unknown');
+        $title = __('api.new_patient_created');
+        $body = __('api.doctor_added_new_patient', ['name' => ucfirst($user->name), 'patient' => ($patientName ?? 'Unknown')]);
         $tokens = FcmToken::whereIn('doctor_id', $adminUsers)->pluck('token')->toArray();
 
         if (! empty($tokens)) {

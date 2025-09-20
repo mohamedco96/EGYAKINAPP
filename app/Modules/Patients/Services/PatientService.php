@@ -304,8 +304,8 @@ class PatientService
         AppNotification::insert($notificationsToInsert);
 
         // Send push notifications to admins
-        $title = 'New Patient Created 🏥';
-        $body = 'Dr. '.ucfirst($user->name).' added a new patient: '.($patientName ?? 'Unknown');
+        $title = __('api.new_patient_created');
+        $body = __('api.doctor_added_new_patient', ['name' => ucfirst($user->name), 'patient' => ($patientName ?? 'Unknown')]);
         $tokens = FcmToken::whereIn('doctor_id', $adminUsers)->pluck('token')->toArray();
 
         if (! empty($tokens)) {
@@ -366,8 +366,8 @@ class PatientService
             AppNotification::insert($notificationsToInsert);
 
             // Send push notifications to admins
-            $title = 'Outcome Submitted ✅';
-            $body = 'Dr. '.ucfirst($user->name).' submitted outcome for: '.$patientName;
+            $title = __('api.outcome_submitted');
+            $body = __('api.doctor_submitted_outcome', ['name' => ucfirst($user->name), 'patient' => $patientName]);
             $tokens = FcmToken::whereIn('doctor_id', $adminUsers)->pluck('token')->toArray();
 
             if (! empty($tokens)) {

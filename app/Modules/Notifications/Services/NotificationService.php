@@ -154,8 +154,8 @@ class NotificationService
     public function sendAllPushNotification(): array
     {
         try {
-            $title = 'EgyAkin v1.0.9 is Here! ✨';
-            $body = 'Kidney community is here! Post, explore #DialysisSupport, join groups, and enjoy a smoother experience.🔄 Update now for the latest features! 🚀';
+            $title = __('api.app_update_title');
+            $body = __('api.app_update_body');
 
             return $this->sendToAllTokens($title, $body);
         } catch (\Exception $e) {

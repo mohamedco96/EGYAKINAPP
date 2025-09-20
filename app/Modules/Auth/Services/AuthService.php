@@ -763,8 +763,8 @@ class AuthService
 
         AppNotification::insert($notifications);
 
-        $title = 'New Syndicate Card Pending Approval 📋';
-        $body = 'Dr. '.$user->name.' has uploaded a new Syndicate Card for approval.';
+        $title = __('api.syndicate_card_pending_approval');
+        $body = __('api.doctor_uploaded_syndicate_card', ['name' => $user->name]);
 
         // Get tokens from eager loaded relationship
         $tokens = $doctors->pluck('fcmTokens.*.token')
@@ -786,13 +786,13 @@ class AuthService
 
         switch ($status) {
             case 'Required':
-                $titleMessage = 'Syndicate Card Rejected ❌';
-                $bodyMessage = 'Your Syndicate Card was rejected. Please upload the correct one.';
+                $titleMessage = __('api.syndicate_card_rejected');
+                $bodyMessage = __('api.syndicate_card_rejected_message');
                 break;
 
             case 'Verified':
-                $titleMessage = 'Syndicate Card Approved ✅';
-                $bodyMessage = 'Congratulations! 🎉 Your Syndicate Card has been approved.';
+                $titleMessage = __('api.syndicate_card_approved');
+                $bodyMessage = __('api.syndicate_card_approved_message');
                 break;
 
             default:

@@ -211,7 +211,7 @@ class NotificationController extends Controller
             // Return success response
             return response()->json([
                 'value' => true,
-                'message' => 'FCM token stored successfully',
+                'message' => __('api.fcm_token_stored_successfully'),
             ], 201);
         } catch (QueryException $e) {
             // Check for duplicate token error
@@ -225,7 +225,7 @@ class NotificationController extends Controller
                 // Return error response for duplicate token
                 return response()->json([
                     'value' => false,
-                    'message' => 'The FCM token already exists.',
+                    'message' => __('api.fcm_token_already_exists'),
                 ], 409);
             }
 
@@ -239,7 +239,7 @@ class NotificationController extends Controller
             // Return general error response
             return response()->json([
                 'value' => false,
-                'message' => 'Failed to store FCM token. Please try again later.',
+                'message' => __('api.failed_to_store_fcm_token'),
             ], 500);
         } catch (\Exception $e) {
             // Log any other exceptions that occur
@@ -252,7 +252,7 @@ class NotificationController extends Controller
             // Return general error response
             return response()->json([
                 'value' => false,
-                'message' => 'Failed to store FCM token. Please try again later.',
+                'message' => __('api.failed_to_store_fcm_token'),
             ], 500);
         }
     }
@@ -276,7 +276,7 @@ class NotificationController extends Controller
         } catch (\Exception $e) {
             Log::error('Error occurred while fetching notifications: '.$e->getMessage());
 
-            return response()->json(['value' => false, 'message' => 'Failed to fetch notifications'], 500);
+            return response()->json(['value' => false, 'message' => __('api.failed_to_fetch_notifications')], 500);
         }
     }
 
@@ -346,7 +346,7 @@ class NotificationController extends Controller
             // Log error
             Log::error('Error occurred while fetching new notifications: '.$e->getMessage());
 
-            return response()->json(['value' => false, 'message' => 'Failed to fetch new notifications'], 500);
+            return response()->json(['value' => false, 'message' => __('api.failed_to_fetch_new_notifications')], 500);
         }
     }
 

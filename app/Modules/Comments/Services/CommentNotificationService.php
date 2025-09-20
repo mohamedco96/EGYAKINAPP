@@ -69,8 +69,8 @@ class CommentNotificationService
             if (! empty($tokens)) {
                 $commentingUser = Auth::user();
                 $this->notificationService->sendPushNotification(
-                    'New Patient Comment 💬',
-                    'Dr. '.ucfirst($commentingUser->name).' commented on your patient',
+                    __('api.new_patient_comment'),
+                    __('api.doctor_commented_on_patient', ['name' => ucfirst($commentingUser->name)]),
                     $tokens
                 );
             }

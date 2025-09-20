@@ -73,7 +73,7 @@ class GroupController extends Controller
                 // Handle upload error
                 return response()->json([
                     'value' => false,
-                    'message' => 'Header picture upload failed.',
+                    'message' => __('api.header_picture_upload_failed'),
                 ], 500);
             }
         }
@@ -90,7 +90,7 @@ class GroupController extends Controller
                 // Handle upload error
                 return response()->json([
                     'value' => false,
-                    'message' => 'Group image upload failed.',
+                    'message' => __('api.group_image_upload_failed'),
                 ], 500);
             }
         }
@@ -123,7 +123,7 @@ class GroupController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $group,
-                'message' => 'Group created successfully',
+                'message' => __('api.group_created_successfully'),
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -136,7 +136,7 @@ class GroupController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while creating the group',
+                'message' => __('api.error_creating_group'),
             ], 500);
         }
     }
@@ -220,7 +220,7 @@ class GroupController extends Controller
                 return response()->json([
                     'value' => true,
                     'data' => $group,
-                    'message' => 'Group updated successfully',
+                    'message' => __('api.group_updated_successfully'),
                 ], 200);
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -236,7 +236,7 @@ class GroupController extends Controller
             // Return error response
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found',
+                'message' => __('api.group_not_found'),
             ], 404);
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Log validation errors
@@ -248,7 +248,7 @@ class GroupController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'Validation failed',
+                'message' => __('api.validation_failed'),
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
@@ -261,7 +261,7 @@ class GroupController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while updating the group',
+                'message' => __('api.error_updating_group'),
             ], 500);
         }
     }
@@ -305,7 +305,7 @@ class GroupController extends Controller
             // Return success response
             return response()->json([
                 'value' => true,
-                'message' => 'Group deleted successfully',
+                'message' => __('api.group_deleted_successfully'),
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             // Log the error
@@ -317,7 +317,7 @@ class GroupController extends Controller
             // Return error response
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found',
+                'message' => __('api.group_not_found'),
             ], 404);
         }
     }
@@ -342,7 +342,7 @@ class GroupController extends Controller
         if (! $group) {
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found',
+                'message' => __('api.group_not_found'),
             ], 404);
         }
 
@@ -395,8 +395,8 @@ class GroupController extends Controller
 
                         if (! empty($tokens)) {
                             $this->notificationService->sendPushNotification(
-                                'New Invitation was created 📣',
-                                'Dr. '.ucfirst(Auth::user()->name).' invited you to his group',
+                                __('api.new_invitation_created'),
+                                __('api.doctor_invited_to_group', ['name' => ucfirst(Auth::user()->name)]),
                                 $tokens
                             );
                         }
@@ -446,8 +446,8 @@ class GroupController extends Controller
 
                         if (! empty($tokens)) {
                             $this->notificationService->sendPushNotification(
-                                'New Invitation was created 📣',
-                                'Dr. '.ucfirst(Auth::user()->name).' invited you to his group',
+                                __('api.new_invitation_created'),
+                                __('api.doctor_invited_to_group', ['name' => ucfirst(Auth::user()->name)]),
                                 $tokens
                             );
                         }
@@ -460,7 +460,7 @@ class GroupController extends Controller
             // Return success response with details of successful and failed invites
             return response()->json([
                 'value' => true,
-                'message' => 'Invitations processed',
+                'message' => __('api.invitations_processed'),
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -474,7 +474,7 @@ class GroupController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while processing invitations',
+                'message' => __('api.error_processing_invitations'),
             ], 500);
         }
     }
@@ -514,7 +514,7 @@ class GroupController extends Controller
 
                 return response()->json([
                     'value' => false,
-                    'message' => 'Invalid invitation',
+                    'message' => __('api.invalid_invitation'),
                 ], 400);
             }
 
@@ -550,8 +550,8 @@ class GroupController extends Controller
 
                         if (! empty($tokens)) {
                             $this->notificationService->sendPushNotification(
-                                'Group Invitation Accepted 🎉',
-                                'Dr. '.ucfirst(Auth::user()->name).' accepted your group invitation',
+                                __('api.group_invitation_accepted'),
+                                __('api.doctor_accepted_invitation', ['name' => ucfirst(Auth::user()->name)]),
                                 $tokens
                             );
                         }
@@ -590,7 +590,7 @@ class GroupController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found',
+                'message' => __('api.group_not_found'),
             ], 404);
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::warning('Invitation handling validation failed', [
@@ -601,7 +601,7 @@ class GroupController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'Validation failed',
+                'message' => __('api.validation_failed'),
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
@@ -613,7 +613,7 @@ class GroupController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while handling the invitation',
+                'message' => __('api.error_handling_invitation'),
             ], 500);
         }
     }
@@ -657,7 +657,7 @@ class GroupController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $group,
-                'message' => 'Group details retrieved successfully',
+                'message' => __('api.group_details_retrieved_successfully'),
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             // Log the error
@@ -669,7 +669,7 @@ class GroupController extends Controller
             // Return error response
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found',
+                'message' => __('api.group_not_found'),
             ], 404);
         }
     }
@@ -700,7 +700,7 @@ class GroupController extends Controller
             if (! $group->doctors()->where('doctor_id', $doctorId)->exists()) {
                 return response()->json([
                     'value' => false,
-                    'message' => 'Member not found in the group',
+                    'message' => __('api.member_not_found_in_group'),
                 ], 404);
             }
 
@@ -717,7 +717,7 @@ class GroupController extends Controller
             // Return success response
             return response()->json([
                 'value' => true,
-                'message' => 'Member removed successfully',
+                'message' => __('api.member_removed_successfully'),
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             // Log the error
@@ -729,7 +729,7 @@ class GroupController extends Controller
             // Return error response
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found',
+                'message' => __('api.group_not_found'),
             ], 404);
         }
     }
@@ -782,7 +782,7 @@ class GroupController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $members,
-                'message' => 'Members search results',
+                'message' => __('api.members_search_results'),
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             // Log the error
@@ -794,7 +794,7 @@ class GroupController extends Controller
             // Return error response
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found',
+                'message' => __('api.group_not_found'),
             ], 404);
         }
     }
@@ -871,7 +871,7 @@ class GroupController extends Controller
                     'members' => $members,
                     'pending_invitations' => $pendingInvitations,
                 ],
-                'message' => 'Community members and pending invitations fetched successfully',
+                'message' => __('api.community_members_fetched_successfully'),
             ], 200);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -883,7 +883,7 @@ class GroupController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found',
+                'message' => __('api.group_not_found'),
             ], 404);
         } catch (\Exception $e) {
             // Log the error
@@ -895,7 +895,7 @@ class GroupController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while fetching members and invitations',
+                'message' => __('api.error_fetching_members_invitations'),
             ], 500);
         }
     }
@@ -1002,7 +1002,7 @@ class GroupController extends Controller
                     'group' => $group,
                     'posts' => $feedPosts,
                 ],
-                'message' => 'Group details with paginated posts fetched successfully',
+                'message' => __('api.group_details_posts_fetched_successfully'),
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             // Log the error
@@ -1014,7 +1014,7 @@ class GroupController extends Controller
             // Return error response
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found',
+                'message' => __('api.group_not_found'),
             ], 404);
         }
     }
@@ -1048,7 +1048,7 @@ class GroupController extends Controller
 
                         return response()->json([
                             'value' => false,
-                            'message' => 'You are already a member of this group',
+                            'message' => __('api.already_member_of_group'),
                         ], 400);
 
                     case 'pending':
@@ -1122,7 +1122,7 @@ class GroupController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found',
+                'message' => __('api.group_not_found'),
             ], 404);
         }
     }
@@ -1149,8 +1149,8 @@ class GroupController extends Controller
 
             if (! empty($tokens)) {
                 $this->notificationService->sendPushNotification(
-                    'New Join Request 📣',
-                    'Dr. '.ucfirst(Auth::user()->name).' requested to join group',
+                    __('api.new_join_request'),
+                    __('api.doctor_requested_to_join', ['name' => ucfirst(Auth::user()->name)]),
                     $tokens
                 );
             }
@@ -1180,7 +1180,7 @@ class GroupController extends Controller
 
                 return response()->json([
                     'value' => false,
-                    'message' => 'You are not a member of this group',
+                    'message' => __('api.not_member_of_group'),
                 ], 400);
             }
 
@@ -1196,7 +1196,7 @@ class GroupController extends Controller
             // Return success response
             return response()->json([
                 'value' => true,
-                'message' => 'Left group successfully',
+                'message' => __('api.left_group_successfully'),
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             // Log the error
@@ -1208,7 +1208,7 @@ class GroupController extends Controller
             // Return error response
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found',
+                'message' => __('api.group_not_found'),
             ], 404);
         }
     }
@@ -1253,7 +1253,7 @@ class GroupController extends Controller
         return response()->json([
             'value' => true,
             'data' => $myGroups,
-            'message' => 'User groups fetched successfully',
+            'message' => __('api.user_groups_fetched_successfully'),
         ], 200);
     }
 
@@ -1296,7 +1296,7 @@ class GroupController extends Controller
         return response()->json([
             'value' => true,
             'data' => $groups,
-            'message' => 'All groups fetched successfully',
+            'message' => __('api.all_groups_fetched_successfully'),
         ], 200);
     }
 
@@ -1415,7 +1415,7 @@ class GroupController extends Controller
                     'latest_groups' => $latestGroups,
                     'random_posts' => $randomPosts,
                 ],
-                'message' => 'Latest groups and random posts fetched successfully',
+                'message' => __('api.latest_groups_posts_fetched_successfully'),
             ], 200);
         } catch (\Exception $e) {
             // Log the error
@@ -1427,7 +1427,7 @@ class GroupController extends Controller
             // Return error response
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while fetching data',
+                'message' => __('api.error_fetching_data'),
             ], 500);
         }
     }
@@ -1484,7 +1484,7 @@ class GroupController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $invitations,
-                'message' => 'Group invitations fetched successfully',
+                'message' => __('api.group_invitations_fetched_successfully'),
             ], 200);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -1495,7 +1495,7 @@ class GroupController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'Doctor not found',
+                'message' => __('api.doctor_not_found'),
             ], 404);
         } catch (\Exception $e) {
             // Log the error
@@ -1506,7 +1506,7 @@ class GroupController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while fetching group invitations',
+                'message' => __('api.error_fetching_group_invitations'),
             ], 500);
         }
     }
@@ -1560,7 +1560,7 @@ class GroupController extends Controller
                     ],
                     'invitations' => $invitations,
                 ],
-                'message' => 'Group invitations fetched successfully',
+                'message' => __('api.group_invitations_fetched_successfully'),
             ], 200);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -1571,7 +1571,7 @@ class GroupController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'Group not found',
+                'message' => __('api.group_not_found'),
             ], 404);
         } catch (\Exception $e) {
             // Log the error
@@ -1582,7 +1582,7 @@ class GroupController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'An error occurred while fetching group invitations',
+                'message' => __('api.error_fetching_group_invitations'),
             ], 500);
         }
     }

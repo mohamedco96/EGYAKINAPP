@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\EmailVerificationController;
 use App\Http\Controllers\Api\V1\FeedPostController;
 use App\Http\Controllers\Api\V1\ForgetPasswordController;
 use App\Http\Controllers\Api\V1\GroupController;
+use App\Http\Controllers\Api\V1\LocalizationTestController;
 use App\Http\Controllers\Api\V1\MainController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OtpController;
@@ -24,6 +25,7 @@ use App\Http\Controllers\Api\V1\ResetPasswordController;
 use App\Http\Controllers\Api\V1\RolePermissionController;
 use App\Http\Controllers\Api\V1\SectionsController;
 use App\Http\Controllers\Api\V1\SettingsController;
+use App\Http\Controllers\Api\V1\UserLocaleController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -41,6 +43,12 @@ use Illuminate\Support\Facades\Route;
 // Public routes for V1
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// Localization test routes (for development and testing)
+Route::get('/localization/test', [LocalizationTestController::class, 'test']);
+Route::post('/localization/login', [LocalizationTestController::class, 'login']);
+Route::post('/localization/patient', [LocalizationTestController::class, 'createPatient']);
+Route::post('/localization/points', [LocalizationTestController::class, 'awardPoints']);
 Route::post('/forgotpassword', [ForgetPasswordController::class, 'forgotPassword']);
 Route::post('/resetpasswordverification', [ResetPasswordController::class, 'resetpasswordverification']);
 Route::post('/resetpassword', [ResetPasswordController::class, 'resetpassword']);
@@ -81,6 +89,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/uploadSyndicateCard', [AuthController::class, 'uploadSyndicateCard']);
     Route::post('/storeFCM', [NotificationController::class, 'storeFCM']);
     Route::post('/decryptedPassword', [AuthController::class, 'decryptedPassword']);
+
+    // User locale/language preference routes
+    Route::post('/user/locale', [UserLocaleController::class, 'updateLocale']);
+    Route::get('/user/locale', [UserLocaleController::class, 'getLocale']);
+    Route::get('/user/locale/test', [UserLocaleController::class, 'testLocaleResponse']);
 
     // OTP routes
     Route::post('/emailverification', [OtpController::class, 'verifyOtp']);

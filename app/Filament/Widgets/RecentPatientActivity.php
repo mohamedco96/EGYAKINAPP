@@ -9,9 +9,11 @@ use Filament\Widgets\TableWidget as BaseWidget;
 
 class RecentPatientActivity extends BaseWidget
 {
-    protected static ?int $sort = 5;
+    protected static ?int $sort = 12;
 
-    protected int | string | array $columnSpan = 'full';
+    protected static ?string $heading = 'Recent Patient Registrations';
+
+    protected int|string|array $columnSpan = 'full';
 
     public function table(Table $table): Table
     {
@@ -45,4 +47,4 @@ class RecentPatientActivity extends BaseWidget
             ->defaultSort('created_at', 'desc')
             ->poll('10s');
     }
-} 
+}

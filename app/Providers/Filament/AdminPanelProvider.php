@@ -2,28 +2,20 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\ConsultationTrendsChart;
+use App\Filament\Widgets\CoreMedicalOverview;
+use App\Filament\Widgets\QuickActionsWidget;
+use App\Filament\Widgets\RecentActivityTable;
+use App\Modules\Achievements\Filament\Resources\AchievementResource;
+use App\Modules\Doses\Resources\DoseResource;
+use App\Modules\Patients\Resources\PatientsResource;
+use App\Modules\Patients\Resources\PatientStatusesResource;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Filament\Widgets;
-use App\Modules\Patients\Widgets\PatientTypeOverview;
-use App\Modules\Patients\Widgets\PatientChart;
-use App\Modules\Patients\Resources\PatientsResource;
-use App\Modules\Patients\Resources\PatientStatusesResource;
-use App\Modules\Achievements\Filament\Resources\AchievementResource;
-use App\Modules\Doses\Resources\DoseResource;
-use App\Filament\Widgets\ConsultationOverview;
-use App\Filament\Widgets\DoctorPerformanceOverview;
-use App\Modules\Patients\Widgets\PatientStatusOverview;
-use App\Filament\Widgets\RecentPatientActivity;
-use App\Filament\Widgets\FeedPostsOverview;
-use App\Filament\Widgets\GroupsOverview;
-use App\Filament\Widgets\RecentFeedPosts;
-use App\Filament\Widgets\RecentGroups;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -53,22 +45,14 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
-                Pages\Dashboard::class,
+                \App\Filament\Pages\Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                PatientTypeOverview::class,
-                PatientChart::class,
-                ConsultationOverview::class,
-                DoctorPerformanceOverview::class,
-                PatientStatusOverview::class,
-                RecentPatientActivity::class,
-                FeedPostsOverview::class,
-                GroupsOverview::class,
-                RecentFeedPosts::class,
-                RecentGroups::class,
-                Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class,
+                CoreMedicalOverview::class,
+                ConsultationTrendsChart::class,
+                RecentActivityTable::class,
+                QuickActionsWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

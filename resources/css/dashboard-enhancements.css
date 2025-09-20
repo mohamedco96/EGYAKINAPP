@@ -1,0 +1,85 @@
+/* Enhanced Dashboard Styles */
+
+/* Smooth transitions for all interactive elements */
+.fi-stats-overview-widget .fi-stats-overview-widget-stat {
+    transition: all 0.3s ease;
+}
+
+.fi-stats-overview-widget .fi-stats-overview-widget-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced gradient backgrounds for stats */
+.fi-stats-overview-widget-stat[class*="bg-gradient"] {
+    position: relative;
+    overflow: hidden;
+}
+
+.fi-stats-overview-widget-stat[class*="bg-gradient"]::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
+    pointer-events: none;
+}
+
+/* Chart container enhancements */
+.fi-wi-chart {
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease;
+}
+
+.fi-wi-chart:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* Table enhancements */
+.fi-ta-table {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* Quick actions hover effects */
+.quick-actions-grid a {
+    transition: all 0.2s ease;
+}
+
+.quick-actions-grid a:hover {
+    transform: translateX(4px);
+}
+
+/* Loading states */
+.fi-widget[wire\\:loading] {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .fi-stats-overview-widget {
+        grid-template-columns: 1fr;
+    }
+
+    .fi-stats-overview-widget .fi-stats-overview-widget-stat {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Dark mode enhancements */
+@media (prefers-color-scheme: dark) {
+    .fi-wi-chart {
+        background: rgba(17, 24, 39, 0.8);
+        backdrop-filter: blur(10px);
+    }
+
+    .fi-stats-overview-widget-stat {
+        background: rgba(17, 24, 39, 0.6);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(75, 85, 99, 0.3);
+    }
+}

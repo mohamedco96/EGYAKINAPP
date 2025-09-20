@@ -8,11 +8,15 @@ use Illuminate\Support\Facades\DB;
 
 class ConsultationOverview extends ChartWidget
 {
-    protected static ?string $heading = 'Consultation Statistics';
-    protected static ?string $description = 'Track consultation patterns and completion rates';
+    protected static ?string $heading = 'Monthly Consultation Overview';
+
+    protected static ?string $description = 'Consultation patterns for current month';
+
     protected static string $color = 'success';
-    protected static ?string $pollingInterval = '15s';
-    protected static ?int $sort = 3;
+
+    protected static ?string $pollingInterval = '30s';
+
+    protected static ?int $sort = 10;
 
     protected function getData(): array
     {
@@ -84,4 +88,4 @@ class ConsultationOverview extends ChartWidget
             ],
         ];
     }
-} 
+}

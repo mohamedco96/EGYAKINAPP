@@ -71,18 +71,40 @@ class ContactRequestNotification extends Notification
         // Get recipients - prioritize ADMIN_MAIL_LIST from .env
         $recipients = [];
 
-        // Always try to use admin mail list from .env first
-        $adminEmails = MailListService::getAdminMailList();
+        // Initialize variables for debugging
+        $adminEmails = [];
 
-        if (! empty($adminEmails)) {
-            // Use admin mail list from .env (highest priority)
-            $recipients = $adminEmails;
-        } elseif (! empty($this->recipientEmails)) {
-            // Fallback to provided recipient emails
-            $recipients = $this->recipientEmails;
+        // For testing, prioritize provided recipient emails first
+        if (! empty($this->recipientEmails)) {
+            // Use provided recipient emails (for testing)
+            $recipients = is_array($this->recipientEmails) ? $this->recipientEmails : [$this->recipientEmails];
         } else {
-            // Final fallback to notifiable email
-            $recipients = [$notifiable->email];
+            // Try to use admin mail list from .env
+            $adminEmails = MailListService::getAdminMailList();
+            if (! empty($adminEmails)) {
+                $recipients = is_array($adminEmails) ? $adminEmails : [$adminEmails];
+            } else {
+                // Final fallback to notifiable email
+                $recipients = [$notifiable->email];
+            }
+        }
+
+        // Ensure all recipients are valid email addresses
+        $recipients = array_filter($recipients, function ($email) {
+            return ! empty($email) && filter_var(trim($email), FILTER_VALIDATE_EMAIL);
+        });
+
+        // If no valid recipients, fallback to test email
+        if (empty($recipients)) {
+            $recipients = ['mohamedco215@gmail.com'];
+        }
+
+        // Log final recipients for debugging if needed
+        if (config('app.debug')) {
+            \Log::debug('ContactRequestNotification recipients', [
+                'final_recipients' => $recipients,
+                'count' => count($recipients),
+            ]);
         }
 
         return [

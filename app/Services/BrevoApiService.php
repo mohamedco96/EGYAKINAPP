@@ -105,10 +105,19 @@ class BrevoApiService
             // Format recipients for Brevo API
             $toRecipients = [];
             foreach ($recipients as $email) {
-                $toRecipients[] = [
-                    'email' => $email,
-                    'name' => $email,
-                ];
+                // Ensure email is a string and valid
+                $email = trim((string) $email);
+                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $toRecipients[] = [
+                        'email' => $email,
+                        'name' => $email,
+                    ];
+                }
+            }
+
+            // If no valid recipients after formatting, throw error
+            if (empty($toRecipients)) {
+                throw new \Exception('No valid email recipients provided');
             }
 
             $payload = [

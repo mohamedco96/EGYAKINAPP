@@ -35,7 +35,7 @@ class NotificationController extends Controller
 
         $this->messaging->send($message);
 
-        return response()->json(['status' => 'Message sent successfully']);
+        return response()->json(['status' => __('api.message_sent_successfully')]);
     }
 
     /**
@@ -55,9 +55,9 @@ class NotificationController extends Controller
             $tokens = FcmToken::pluck('token')->toArray();
 
             if (empty($tokens)) {
-                Log::info('No FCM tokens found.');
+                Log::info(__('api.no_fcm_tokens_found'));
 
-                return response()->json(['status' => 'No tokens found'], 404);
+                return response()->json(['status' => __('api.no_tokens_found')], 404);
             }
 
             $title = $request->input('title');
@@ -80,14 +80,14 @@ class NotificationController extends Controller
                 'tokens_count' => count($tokens),
             ]);
 
-            return response()->json(['status' => 'Message sent successfully to all tokens'], 200);
+            return response()->json(['status' => __('api.message_sent_to_all_tokens')], 200);
         } catch (\Exception $e) {
             Log::error('Exception occurred while sending message.', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTrace(),
             ]);
 
-            return response()->json(['status' => 'Failed to send message. Please try again later.'], 500);
+            return response()->json(['status' => __('api.failed_to_send_message')], 500);
         }
     }
 
@@ -98,9 +98,9 @@ class NotificationController extends Controller
             //            $tokens = FcmToken::pluck('token')->toArray();
 
             if (empty($tokens)) {
-                Log::info('No FCM tokens found.');
+                Log::info(__('api.no_fcm_tokens_found'));
 
-                return response()->json(['status' => 'No tokens found'], 404);
+                return response()->json(['status' => __('api.no_tokens_found')], 404);
             }
 
             //            $title = $request->input('title');
@@ -123,14 +123,14 @@ class NotificationController extends Controller
                 'tokens_count' => count($tokens),
             ]);
 
-            return response()->json(['status' => 'Message sent successfully to all tokens'], 200);
+            return response()->json(['status' => __('api.message_sent_to_all_tokens')], 200);
         } catch (\Exception $e) {
             Log::error('Exception occurred while sending message.', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTrace(),
             ]);
 
-            return response()->json(['status' => 'Failed to send message. Please try again later.'], 500);
+            return response()->json(['status' => __('api.failed_to_send_message')], 500);
         }
     }
 
@@ -147,9 +147,9 @@ class NotificationController extends Controller
             $tokens = FcmToken::pluck('token')->toArray();
 
             if (empty($tokens)) {
-                Log::info('No FCM tokens found.');
+                Log::info(__('api.no_fcm_tokens_found'));
 
-                return response()->json(['status' => 'No tokens found'], 404);
+                return response()->json(['status' => __('api.no_tokens_found')], 404);
             }
 
             $notification = Notification::create($title, $body);
@@ -169,14 +169,14 @@ class NotificationController extends Controller
                 'tokens_count' => count($tokens),
             ]);
 
-            return response()->json(['status' => 'Message sent successfully to all tokens'], 200);
+            return response()->json(['status' => __('api.message_sent_to_all_tokens')], 200);
         } catch (\Exception $e) {
             Log::error('Exception occurred while sending message.', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTrace(),
             ]);
 
-            return response()->json(['status' => 'Failed to send message. Please try again later.'], 500);
+            return response()->json(['status' => __('api.failed_to_send_message')], 500);
         }
     }
 

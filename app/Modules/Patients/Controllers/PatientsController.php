@@ -128,7 +128,7 @@ class PatientsController extends Controller
                 'exception' => $e,
             ]);
 
-            return response()->json(['error' => 'Failed to retrieve all patients for doctor.'], 500);
+            return response()->json(['error' => __('api.failed_to_retrieve_all_patients')], 500);
         }
     }
 
@@ -161,7 +161,7 @@ class PatientsController extends Controller
                 'exception' => $e,
             ]);
 
-            return response()->json(['error' => 'Failed to retrieve current doctor patients.'], 500);
+            return response()->json(['error' => __('api.failed_to_retrieve_current_doctor_patients')], 500);
         }
     }
 
@@ -186,7 +186,7 @@ class PatientsController extends Controller
                 'exception' => $e,
             ]);
 
-            return response()->json(['error' => 'Failed to retrieve doctor profile patients.'], 500);
+            return response()->json(['error' => __('api.failed_to_retrieve_doctor_profile_patients')], 500);
         }
     }
 

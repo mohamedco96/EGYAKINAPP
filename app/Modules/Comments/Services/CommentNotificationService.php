@@ -51,8 +51,8 @@ class CommentNotificationService
     private function createCommentNotification(Comment $comment, int $patientDoctorId, int $commentingDoctorId): void
     {
         try {
-            AppNotification::create([
-                'content' => 'New comment was created',
+            AppNotification::createLocalized([
+                'localization_key' => 'api.notification_new_comment',
                 'read' => false,
                 'type' => 'Comment',
                 'patient_id' => $comment->patient_id,

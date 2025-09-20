@@ -800,10 +800,11 @@ class AuthService
         }
 
         // Create notification
-        AppNotification::create([
+        AppNotification::createLocalized([
             'doctor_id' => $user->id,
             'type' => 'Other',
-            'content' => $bodyMessage,
+            'localization_key' => 'api.notification_syndicate_card_status',
+            'localization_params' => ['message' => $bodyMessage],
             'type_doctor_id' => $user->id,
         ]);
 

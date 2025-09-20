@@ -37,7 +37,7 @@ class NotificationService
                 'token' => substr($deviceToken, 0, 10).'...',
             ]);
 
-            return ['success' => true, 'message' => 'Message sent successfully'];
+            return ['success' => true, 'message' => __('api.message_sent_successfully_service')];
         } catch (\Exception $e) {
             Log::error('Failed to send single notification', [
                 'title' => $title,
@@ -59,7 +59,7 @@ class NotificationService
             if (empty($tokens)) {
                 Log::info('No FCM tokens found for broadcast');
 
-                return ['success' => false, 'status' => 'No tokens found'];
+                return ['success' => false, 'status' => __('api.no_tokens_found_service')];
             }
 
             $notification = Notification::create($title, $body);
@@ -102,7 +102,7 @@ class NotificationService
             if (empty($tokens)) {
                 Log::info('No FCM tokens provided for push notification');
 
-                return ['success' => false, 'status' => 'No tokens found'];
+                return ['success' => false, 'status' => __('api.no_tokens_found_service')];
             }
 
             // Validate and filter tokens
@@ -110,7 +110,7 @@ class NotificationService
             if (empty($validTokens)) {
                 Log::warning('No valid FCM tokens found after validation');
 
-                return ['success' => false, 'status' => 'No valid tokens found'];
+                return ['success' => false, 'status' => __('api.no_valid_tokens_found')];
             }
 
             $notification = Notification::create($title, $body);
@@ -134,7 +134,7 @@ class NotificationService
 
             return [
                 'success' => true,
-                'status' => 'Message sent successfully',
+                'status' => __('api.message_sent_successfully_service'),
                 'tokens_count' => count($validTokens),
             ];
         } catch (\Exception $e) {
@@ -211,7 +211,7 @@ class NotificationService
             return [
                 'value' => true,
                 'data' => $notification,
-                'message' => 'Notification created successfully',
+                'message' => __('api.notification_created_successfully'),
             ];
         } catch (\Exception $e) {
             Log::error('Failed to create notification', [
@@ -234,7 +234,7 @@ class NotificationService
             if (! $notification) {
                 return [
                     'value' => false,
-                    'message' => 'Notification not found',
+                    'message' => __('api.notification_not_found'),
                 ];
             }
 
@@ -398,7 +398,7 @@ class NotificationService
             if (! $notification) {
                 return [
                     'value' => false,
-                    'message' => 'Notification not found',
+                    'message' => __('api.notification_not_found'),
                 ];
             }
 
@@ -467,7 +467,7 @@ class NotificationService
             if (! $notification) {
                 return [
                     'value' => false,
-                    'message' => 'Notification not found',
+                    'message' => __('api.notification_not_found'),
                 ];
             }
 

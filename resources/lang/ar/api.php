@@ -279,4 +279,79 @@ return [
 
     // General API Messages
     'points_awarded' => 'تم منح النقاط بنجاح',
+
+    // Database Notification Messages
+    'notification_post_liked' => 'د. :name أعجب بمنشورك',
+    'notification_post_commented' => 'د. :name علق على منشورك',
+    'notification_comment_liked' => 'د. :name أعجب بتعليقك',
+    'notification_group_invitation' => 'د. :name دعاك إلى مجموعته',
+    'notification_group_invitation_accepted' => 'د. :name قبل دعوتك للمجموعة',
+    'notification_group_join_request' => 'د. :name طلب الانضمام إلى المجموعة',
+    'notification_new_patient' => 'د. :name أنشأ مريضاً جديداً: :patient',
+    'notification_outcome_created' => 'تم إنشاء النتيجة',
+    'notification_new_comment' => 'تم إنشاء تعليق جديد',
+    'notification_consultation_request' => 'د. :name يطلب مشورتك لمريضه',
+    'notification_consultation_reply' => 'د. :name رد على طلب استشارتك. 📩',
+    'notification_syndicate_card_status' => ':message',
+
+    // Notification API Messages
+    'notifications_retrieved_successfully' => 'تم استرداد الإشعارات بنجاح',
+    'new_notifications_retrieved_successfully' => 'تم استرداد الإشعارات الجديدة بنجاح',
+    'notification_marked_as_read' => 'تم تمييز الإشعار كمقروء',
+    'notification_not_found' => 'الإشعار غير موجود',
+    'failed_to_mark_notification_as_read' => 'فشل في تمييز الإشعار كمقروء',
+    'all_notifications_marked_as_read' => 'تم تمييز جميع الإشعارات كمقروءة',
+    'no_notifications_to_mark' => 'لا توجد إشعارات لتمييزها كمقروءة',
+    'failed_to_mark_all_notifications_as_read' => 'فشل في تمييز جميع الإشعارات كمقروءة',
+
+    // Notification Controller Messages
+    'message_sent_successfully' => 'تم إرسال الرسالة بنجاح',
+    'no_tokens_found' => 'لم يتم العثور على رموز',
+    'message_sent_to_all_tokens' => 'تم إرسال الرسالة بنجاح إلى جميع الرموز',
+    'failed_to_send_message' => 'فشل في إرسال الرسالة. يرجى المحاولة مرة أخرى لاحقاً.',
+    'no_fcm_tokens_found' => 'لم يتم العثور على رموز FCM.',
+
+    // Consultation Messages
+    'new_consultation_request_created' => 'تم إنشاء طلب استشارة جديد 📣',
+    'doctor_seeking_advice' => 'د. :name يطلب مشورتك لمريضه',
+    'new_reply_on_consultation' => 'رد جديد على طلب استشارة 🔔',
+    'doctor_replied_to_consultation' => 'د. :name رد على طلب استشارتك. 📩',
+
+    // Test Messages
+    'test_localized_notification_created' => 'تم إنشاء إشعار اختباري مترجم بنجاح',
+    'failed_to_create_test_notification' => 'فشل في إنشاء إشعار اختباري',
+
+    // Group Messages
+    'invitation_status_updated' => 'تم :status الدعوة بنجاح',
+    'joined_group_successfully' => 'تم الانضمام للمجموعة بنجاح',
+    'join_request_sent' => 'تم إرسال طلب الانضمام، في انتظار الموافقة',
+
+    // Upload Messages
+    'header_picture_upload_failed' => 'فشل تحميل صورة الرأس.',
+    'group_image_upload_failed' => 'فشل تحميل صورة المجموعة.',
+
+    // Error Messages
+    'group_not_found' => 'المجموعة غير موجودة',
+    'doctor_not_found' => 'الطبيب غير موجود',
+    'post_creation_failed' => 'فشل في إنشاء المنشور',
+    'media_upload_failed' => 'فشل تحميل الوسائط.',
+
+    // Notification Service Messages
+    'message_sent_successfully_service' => 'تم إرسال الرسالة بنجاح',
+    'no_tokens_found_service' => 'لم يتم العثور على رموز',
+    'no_valid_tokens_found' => 'لم يتم العثور على رموز صالحة',
+    'notification_created_successfully' => 'تم إنشاء الإشعار بنجاح',
+    'notification_not_found' => 'الإشعار غير موجود',
+    'notification_updated_successfully' => 'تم تحديث الإشعار بنجاح',
+    'all_notifications_marked_as_read' => 'تم تمييز جميع الإشعارات كمقروءة',
+    'notification_deleted_successfully' => 'تم حذف الإشعار بنجاح',
+    'invalid_fcm_token_format' => 'تنسيق رمز FCM غير صالح.',
+    'invalid_device_id_format' => 'تنسيق معرف الجهاز غير صالح.',
+    'failed_to_store_fcm_token' => 'فشل في حفظ رمق FCM.',
+    'token_or_device_id_required' => 'يجب توفير الرمز أو معرف الجهاز',
+
+    // Patient Controller Messages
+    'failed_to_retrieve_all_patients' => 'فشل في استرداد جميع المرضى للطبيب.',
+    'failed_to_retrieve_current_doctor_patients' => 'فشل في استرداد مرضى الطبيب الحالي.',
+    'failed_to_retrieve_doctor_profile_patients' => 'فشل في استرداد مرضى ملف الطبيب.',
 ];

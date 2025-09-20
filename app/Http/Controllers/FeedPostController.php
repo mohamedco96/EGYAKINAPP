@@ -881,7 +881,7 @@ class FeedPostController extends Controller
             $group = Group::with('doctors')->find($validatedData['group_id']);
 
             if (! $group) {
-                throw new \Exception('Group not found', 404);
+                throw new \Exception(__('api.group_not_found'), 404);
             }
 
             if ($group->privacy === 'private' && ! $group->doctors->contains(Auth::id())) {
@@ -906,7 +906,7 @@ class FeedPostController extends Controller
                         Log::info('Media Paths: ', $mediaPaths);
                     }
                 } else {
-                    throw new \Exception('Media upload failed.', 500);
+                    throw new \Exception(__('api.media_upload_failed'), 500);
                 }
             }
 
@@ -968,7 +968,7 @@ class FeedPostController extends Controller
         ]);
 
         if (! $post) {
-            throw new \Exception('Post creation failed');
+            throw new \Exception(__('api.post_creation_failed'));
         }
 
         return $post;
@@ -1255,11 +1255,12 @@ class FeedPostController extends Controller
 
                     // Create notification for post owner if not the same user
                     if ($postOwner->id !== Auth::id()) {
-                        AppNotification::create([
+                        AppNotification::createLocalized([
                             'doctor_id' => $postOwner->id,
                             'type' => 'PostLike',
                             'type_id' => $post->id,
-                            'content' => sprintf('Dr. %s liked your post', Auth::user()->name.' '.Auth::user()->lname),
+                            'localization_key' => 'api.notification_post_liked',
+                            'localization_params' => ['name' => Auth::user()->name.' '.Auth::user()->lname],
                             'type_doctor_id' => Auth::id(),
                             'created_at' => now(),
                             'updated_at' => now(),
@@ -1440,11 +1441,12 @@ class FeedPostController extends Controller
             $postOwner = $post->doctor;
 
             if ($postOwner->id !== Auth::id()) {
-                AppNotification::create([
+                AppNotification::createLocalized([
                     'doctor_id' => $postOwner->id,
                     'type' => 'PostComment',
                     'type_id' => $post->id,
-                    'content' => sprintf('Dr. %s commented on your post', Auth::user()->name.' '.Auth::user()->lname),
+                    'localization_key' => 'api.notification_post_commented',
+                    'localization_params' => ['name' => Auth::user()->name.' '.Auth::user()->lname],
                     'type_doctor_id' => Auth::id(),
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -1570,11 +1572,12 @@ class FeedPostController extends Controller
                 $commentOwner = $comment->doctor;
 
                 if ($commentOwner->id !== Auth::id()) {
-                    AppNotification::create([
+                    AppNotification::createLocalized([
                         'doctor_id' => $commentOwner->id,
                         'type' => 'CommentLike',
                         'type_id' => $comment->feed_post_id,
-                        'content' => sprintf('Dr. %s liked your comment', Auth::user()->name.' '.Auth::user()->lname),
+                        'localization_key' => 'api.notification_comment_liked',
+                        'localization_params' => ['name' => Auth::user()->name.' '.Auth::user()->lname],
                         'type_doctor_id' => Auth::id(),
                         'created_at' => now(),
                         'updated_at' => now(),

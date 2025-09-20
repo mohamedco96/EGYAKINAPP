@@ -279,4 +279,79 @@ return [
 
     // General API Messages
     'points_awarded' => 'Points awarded successfully',
+
+    // Database Notification Messages
+    'notification_post_liked' => 'Dr. :name liked your post',
+    'notification_post_commented' => 'Dr. :name commented on your post',
+    'notification_comment_liked' => 'Dr. :name liked your comment',
+    'notification_group_invitation' => 'Dr. :name invited you to his group',
+    'notification_group_invitation_accepted' => 'Dr. :name accepted your group invitation',
+    'notification_group_join_request' => 'Dr. :name requested to join group',
+    'notification_new_patient' => 'Dr. :name created a new patient: :patient',
+    'notification_outcome_created' => 'Outcome was created',
+    'notification_new_comment' => 'New comment was created',
+    'notification_consultation_request' => 'Dr. :name is seeking your advice for his patient',
+    'notification_consultation_reply' => 'Dr. :name has replied to your consultation request. 📩',
+    'notification_syndicate_card_status' => ':message',
+
+    // Notification API Messages
+    'notifications_retrieved_successfully' => 'Notifications retrieved successfully',
+    'new_notifications_retrieved_successfully' => 'New notifications retrieved successfully',
+    'notification_marked_as_read' => 'Notification marked as read',
+    'notification_not_found' => 'Notification not found',
+    'failed_to_mark_notification_as_read' => 'Failed to mark notification as read',
+    'all_notifications_marked_as_read' => 'All notifications marked as read',
+    'no_notifications_to_mark' => 'No notifications to mark as read',
+    'failed_to_mark_all_notifications_as_read' => 'Failed to mark all notifications as read',
+
+    // Notification Controller Messages
+    'message_sent_successfully' => 'Message sent successfully',
+    'no_tokens_found' => 'No tokens found',
+    'message_sent_to_all_tokens' => 'Message sent successfully to all tokens',
+    'failed_to_send_message' => 'Failed to send message. Please try again later.',
+    'no_fcm_tokens_found' => 'No FCM tokens found.',
+
+    // Consultation Messages
+    'new_consultation_request_created' => 'New consultation request was created 📣',
+    'doctor_seeking_advice' => 'Dr. :name is seeking your advice for his patient',
+    'new_reply_on_consultation' => 'New Reply on Consultation Request 🔔',
+    'doctor_replied_to_consultation' => 'Dr. :name has replied to your consultation request. 📩',
+
+    // Test Messages
+    'test_localized_notification_created' => 'Test localized notification created successfully',
+    'failed_to_create_test_notification' => 'Failed to create test notification',
+
+    // Group Messages
+    'invitation_status_updated' => 'Invitation :status successfully',
+    'joined_group_successfully' => 'Joined group successfully',
+    'join_request_sent' => 'Join request sent, waiting for approval',
+
+    // Upload Messages
+    'header_picture_upload_failed' => 'Header picture upload failed.',
+    'group_image_upload_failed' => 'Group image upload failed.',
+
+    // Error Messages
+    'group_not_found' => 'Group not found',
+    'doctor_not_found' => 'Doctor not found',
+    'post_creation_failed' => 'Post creation failed',
+    'media_upload_failed' => 'Media upload failed.',
+
+    // Notification Service Messages
+    'message_sent_successfully_service' => 'Message sent successfully',
+    'no_tokens_found_service' => 'No tokens found',
+    'no_valid_tokens_found' => 'No valid tokens found',
+    'notification_created_successfully' => 'Notification created successfully',
+    'notification_not_found' => 'Notification not found',
+    'notification_updated_successfully' => 'Notification updated successfully',
+    'all_notifications_marked_as_read' => 'All notifications marked as read',
+    'notification_deleted_successfully' => 'Notification deleted successfully',
+    'invalid_fcm_token_format' => 'Invalid FCM token format.',
+    'invalid_device_id_format' => 'Invalid device ID format.',
+    'failed_to_store_fcm_token' => 'Failed to store FCM token.',
+    'token_or_device_id_required' => 'Either token or device ID must be provided',
+
+    // Patient Controller Messages
+    'failed_to_retrieve_all_patients' => 'Failed to retrieve all patients for doctor.',
+    'failed_to_retrieve_current_doctor_patients' => 'Failed to retrieve current doctor patients.',
+    'failed_to_retrieve_doctor_profile_patients' => 'Failed to retrieve doctor profile patients.',
 ];

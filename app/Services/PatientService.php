@@ -282,10 +282,14 @@ class PatientService
         }
 
         foreach ($adminUsers as $adminId) {
-            AppNotification::create([
+            AppNotification::createLocalized([
                 'doctor_id' => $adminId,
                 'type' => 'New Patient',
-                'content' => sprintf('Dr. %s created a new patient: %s', $user->name.' '.$user->lname, $patientName ?? 'Unknown'),
+                'localization_key' => 'api.notification_new_patient',
+                'localization_params' => [
+                    'name' => $user->name.' '.$user->lname,
+                    'patient' => $patientName ?? 'Unknown',
+                ],
                 'patient_id' => $patientId,
                 'type_doctor_id' => $user->id,
             ]);

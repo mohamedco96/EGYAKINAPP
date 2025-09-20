@@ -26,7 +26,7 @@ class FcmTokenService
 
                 return [
                     'value' => false,
-                    'message' => 'Invalid FCM token format.',
+                    'message' => __('api.invalid_fcm_token_format'),
                 ];
             }
 
@@ -39,7 +39,7 @@ class FcmTokenService
 
                 return [
                     'value' => false,
-                    'message' => 'Invalid device ID format.',
+                    'message' => __('api.invalid_device_id_format'),
                 ];
             }
 
@@ -94,7 +94,7 @@ class FcmTokenService
 
             return [
                 'value' => false,
-                'message' => 'Failed to store FCM token.',
+                'message' => __('api.failed_to_store_fcm_token'),
             ];
         }
     }
@@ -168,7 +168,7 @@ class FcmTokenService
             if (! $token && ! $deviceId) {
                 return [
                     'value' => false,
-                    'message' => 'Either token or device ID must be provided',
+                    'message' => __('api.token_or_device_id_required'),
                 ];
             }
 

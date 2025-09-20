@@ -2,11 +2,11 @@
 
 namespace App\Modules\Consultations\Services;
 
+use App\Models\User;
+use App\Modules\Consultations\Models\Consultation;
 use App\Modules\Notifications\Models\AppNotification;
 use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Notifications\Services\NotificationService;
-use App\Modules\Consultations\Models\Consultation;
-use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
 class ConsultationNotificationService
@@ -26,18 +26,19 @@ class ConsultationNotificationService
         $user = Auth::user();
 
         foreach ($doctors as $doctorId) {
-            AppNotification::create([
+            AppNotification::createLocalized([
                 'doctor_id' => $doctorId,
                 'type' => 'Consultation',
                 'type_id' => $consultation->id,
-                'content' => 'Dr. ' . $user->name . ' is seeking your advice for his patient',
+                'localization_key' => 'api.notification_consultation_request',
+                'localization_params' => ['name' => $user->name],
                 'type_doctor_id' => Auth::id(),
-                'patient_id' => $patientId
+                'patient_id' => $patientId,
             ]);
         }
 
-        $title = 'New consultation request was created 📣';
-        $body = 'Dr. ' . $user->name . ' is seeking your advice for his patient';
+        $title = __('api.new_consultation_request_created');
+        $body = __('api.doctor_seeking_advice', ['name' => $user->name]);
         $tokens = FcmToken::whereIn('doctor_id', $doctors)
             ->pluck('token')
             ->toArray();
@@ -51,18 +52,19 @@ class ConsultationNotificationService
     public function sendConsultationReplyNotification(User $user, int $doctorId, int $consultationId, ?int $patientId): void
     {
         // Create a new notification for the doctor who created the consultation request
-        AppNotification::create([
+        AppNotification::createLocalized([
             'doctor_id' => $doctorId,
             'type' => 'Consultation',
             'type_id' => $consultationId,
-            'content' => 'Dr. ' . $user->name . ' has replied to your consultation request. 📩',
+            'localization_key' => 'api.notification_consultation_reply',
+            'localization_params' => ['name' => $user->name],
             'type_doctor_id' => $user->id,
-            'patient_id' => $patientId
+            'patient_id' => $patientId,
         ]);
 
         // Prepare and send push notifications to relevant doctors
-        $title = 'New Reply on Consultation Request 🔔';
-        $body = 'Dr. ' . $user->name . ' has replied to your consultation request. 📩';
+        $title = __('api.new_reply_on_consultation');
+        $body = __('api.doctor_replied_to_consultation', ['name' => $user->name]);
         $tokens = FcmToken::whereIn('doctor_id', [$doctorId])
             ->pluck('token')
             ->toArray();

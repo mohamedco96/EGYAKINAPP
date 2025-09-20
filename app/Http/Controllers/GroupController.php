@@ -181,7 +181,7 @@ class GroupController extends Controller
                     if ($uploadResponse->getData()->value) {
                         $headerPicturePath = $uploadResponse->getData()->image;  // Update the uploaded image URL
                     } else {
-                        throw new \Exception('Header picture upload failed.');
+                        throw new \Exception(__('api.header_picture_upload_failed'));
                     }
                 }
 
@@ -194,7 +194,7 @@ class GroupController extends Controller
                     if ($uploadResponse->getData()->value) {
                         $groupImagePath = $uploadResponse->getData()->image;  // Update the uploaded image URL
                     } else {
-                        throw new \Exception('Group image upload failed.');
+                        throw new \Exception(__('api.group_image_upload_failed'));
                     }
                 }
 
@@ -376,11 +376,12 @@ class GroupController extends Controller
                     $group->doctors()->updateExistingPivot($doctorId, ['status' => 'invited']);
 
                     if ($doctorId !== Auth::id()) {
-                        AppNotification::create([
+                        AppNotification::createLocalized([
                             'doctor_id' => $doctorId,
                             'type' => 'group_invitation',
                             'type_id' => $groupId,
-                            'content' => sprintf('Dr. %s Invited you to his group', Auth::user()->name.' '.Auth::user()->lname),
+                            'localization_key' => 'api.notification_group_invitation',
+                            'localization_params' => ['name' => Auth::user()->name.' '.Auth::user()->lname],
                             'type_doctor_id' => Auth::id(),
                             'created_at' => now(),
                             'updated_at' => now(),
@@ -427,11 +428,12 @@ class GroupController extends Controller
                     ]);
 
                     if ($doctorId !== Auth::id()) {
-                        AppNotification::create([
+                        AppNotification::createLocalized([
                             'doctor_id' => $doctorId,
                             'type' => 'group_invitation',
                             'type_id' => $groupId,
-                            'content' => sprintf('Dr. %s Invited you to his group', Auth::user()->name.' '.Auth::user()->lname),
+                            'localization_key' => 'api.notification_group_invitation',
+                            'localization_params' => ['name' => Auth::user()->name.' '.Auth::user()->lname],
                             'type_doctor_id' => Auth::id(),
                             'created_at' => now(),
                             'updated_at' => now(),
@@ -533,11 +535,12 @@ class GroupController extends Controller
                 if ($validated['status'] === 'accepted') {
                     // Send notification to group owner
                     if ($group->owner_id !== $userId) {
-                        AppNotification::create([
+                        AppNotification::createLocalized([
                             'doctor_id' => $group->owner_id,
                             'type' => 'group_invitation_accepted',
                             'type_id' => $groupId,
-                            'content' => sprintf('Dr. %s accepted your group invitation', Auth::user()->name.' '.Auth::user()->lname),
+                            'localization_key' => 'api.notification_group_invitation_accepted',
+                            'localization_params' => ['name' => Auth::user()->name.' '.Auth::user()->lname],
                             'type_doctor_id' => $userId,
                             'created_at' => now(),
                             'updated_at' => now(),
@@ -575,7 +578,7 @@ class GroupController extends Controller
 
                 return response()->json([
                     'value' => true,
-                    'message' => sprintf('Invitation %s successfully', $validated['status']),
+                    'message' => __('api.invitation_status_updated', ['status' => $validated['status']]),
                 ], 200);
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -1085,8 +1088,8 @@ class GroupController extends Controller
                         return response()->json([
                             'value' => true,
                             'message' => ($newStatus === 'joined')
-                                ? 'Joined group successfully'
-                                : 'Join request sent, waiting for approval',
+                                ? __('api.joined_group_successfully')
+                                : __('api.join_request_sent'),
                         ], 200);
                 }
             }
@@ -1110,8 +1113,8 @@ class GroupController extends Controller
             return response()->json([
                 'value' => true,
                 'message' => ($status === 'joined')
-                    ? 'Joined group successfully'
-                    : 'Join request sent, waiting for approval',
+                    ? __('api.joined_group_successfully')
+                    : __('api.join_request_sent'),
             ], 200);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -1130,11 +1133,12 @@ class GroupController extends Controller
     private function sendJoinRequestNotification($group, $userId)
     {
         if ($group->owner_id !== Auth::id()) {
-            AppNotification::create([
+            AppNotification::createLocalized([
                 'doctor_id' => $group->owner_id,
                 'type' => 'group_join_request',
                 'type_id' => $group->id,
-                'content' => sprintf('Dr. %s requested to join group', Auth::user()->name.' '.Auth::user()->lname),
+                'localization_key' => 'api.notification_group_join_request',
+                'localization_params' => ['name' => Auth::user()->name.' '.Auth::user()->lname],
                 'type_doctor_id' => Auth::id(),
                 'created_at' => now(),
                 'updated_at' => now(),

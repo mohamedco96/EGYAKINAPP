@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\FeedPostController;
 use App\Http\Controllers\Api\V1\ForgetPasswordController;
 use App\Http\Controllers\Api\V1\GroupController;
 use App\Http\Controllers\Api\V1\LocalizationTestController;
+use App\Http\Controllers\Api\V1\LocalizedNotificationController;
 use App\Http\Controllers\Api\V1\MainController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OtpController;
@@ -94,6 +95,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/user/locale', [UserLocaleController::class, 'updateLocale']);
     Route::get('/user/locale', [UserLocaleController::class, 'getLocale']);
     Route::get('/user/locale/test', [UserLocaleController::class, 'testLocaleResponse']);
+
+    // Localized notifications routes
+    Route::get('/notifications/localized', [LocalizedNotificationController::class, 'getAllNotifications']);
+    Route::get('/notifications/localized/new', [LocalizedNotificationController::class, 'getNewNotifications']);
+    Route::post('/notifications/localized/{id}/read', [LocalizedNotificationController::class, 'markAsRead']);
+    Route::post('/notifications/localized/read-all', [LocalizedNotificationController::class, 'markAllAsRead']);
+    Route::post('/notifications/localized/test', [LocalizedNotificationController::class, 'testCreateLocalizedNotification']);
 
     // OTP routes
     Route::post('/emailverification', [OtpController::class, 'verifyOtp']);

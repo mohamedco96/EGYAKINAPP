@@ -29,7 +29,7 @@ class ConsultationTrendsChart extends ChartWidget
             $consultationsData = Consultation::select(
                 DB::raw('DATE(created_at) as date'),
                 DB::raw('COUNT(*) as total'),
-                DB::raw('SUM(CASE WHEN status = "complete" THEN 1 ELSE 0 END) as completed'),
+                DB::raw('SUM(CASE WHEN status = "replied" THEN 1 ELSE 0 END) as completed'),
                 DB::raw('SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending')
             )
                 ->whereBetween('created_at', [$startDate, $endDate])

@@ -68,7 +68,7 @@ class RecentActivityTable extends BaseWidget
         // Get recent patients
         $patients = Patients::select(
             DB::raw("'New Patient' as type"),
-            DB::raw("CONCAT('Patient registered: ', name) as description"),
+            DB::raw("CONCAT('Patient registered: ID #', id) as description"),
             'created_at',
             DB::raw("'patient' as source_type"),
             'id as source_id'
@@ -78,12 +78,12 @@ class RecentActivityTable extends BaseWidget
         // Get recent consultations
         $consultations = Consultation::select(
             DB::raw("CASE 
-                WHEN status = 'complete' THEN 'Completed'
+                WHEN status = 'replied' THEN 'Completed'
                 ELSE 'Consultation'
             END as type"),
             DB::raw("CONCAT('Consultation ', 
                 CASE 
-                    WHEN status = 'complete' THEN 'completed'
+                    WHEN status = 'replied' THEN 'completed'
                     WHEN status = 'pending' THEN 'requested'
                     ELSE status
                 END

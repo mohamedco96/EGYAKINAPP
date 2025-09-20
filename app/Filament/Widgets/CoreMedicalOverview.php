@@ -20,13 +20,13 @@ class CoreMedicalOverview extends BaseWidget
         // Cache expensive queries for 5 minutes
         $stats = Cache::remember('dashboard_core_stats', 300, function () {
             $totalPatients = Patients::count();
-            $activePatients = Patients::where('status', 'active')->count();
+            $activePatients = Patients::where('hidden', false)->count();
             $newPatientsToday = Patients::whereDate('created_at', today())->count();
             $newPatientsThisWeek = Patients::whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count();
 
             $totalConsultations = Consultation::count();
             $pendingConsultations = Consultation::where('status', 'pending')->count();
-            $completedToday = Consultation::where('status', 'complete')->whereDate('created_at', today())->count();
+            $completedToday = Consultation::where('status', 'replied')->whereDate('created_at', today())->count();
 
             $activeDoctors = User::whereHas('roles', function ($query) {
                 $query->where('name', 'doctor');

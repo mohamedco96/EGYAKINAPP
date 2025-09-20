@@ -24,20 +24,25 @@ class RecentPatientActivity extends BaseWidget
                     ->limit(5)
             )
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                Tables\Columns\TextColumn::make('id')
+                    ->label('Patient ID')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('doctor.name')
+                    ->label('Assigned Doctor')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Registered')
                     ->dateTime()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('status')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'active' => 'success',
-                        'inactive' => 'danger',
-                        default => 'gray',
-                    })
+                Tables\Columns\IconColumn::make('hidden')
+                    ->label('Status')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-eye-slash')
+                    ->falseIcon('heroicon-o-eye')
+                    ->trueColor('danger')
+                    ->falseColor('success')
                     ->sortable(),
             ])
             ->actions([

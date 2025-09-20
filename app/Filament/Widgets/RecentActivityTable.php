@@ -2,17 +2,15 @@
 
 namespace App\Filament\Widgets;
 
-use App\Modules\Consultations\Models\Consultation;
 use App\Modules\Patients\Models\Patients;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 
 class RecentActivityTable extends BaseWidget
 {
-    protected static ?string $heading = 'Recent Activity';
+    protected static ?string $heading = 'Recent Patient Registrations';
 
     protected static ?int $sort = 3;
 
@@ -21,82 +19,59 @@ class RecentActivityTable extends BaseWidget
     public function table(Table $table): Table
     {
         return $table
-            ->query($this->getRecentActivityQuery())
+            ->query($this->getRecentPatientsQuery())
             ->columns([
-                Tables\Columns\TextColumn::make('type')
+                Tables\Columns\TextColumn::make('id')
+                    ->label('Patient ID')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'New Patient' => 'success',
-                        'Consultation' => 'info',
-                        'Completed' => 'primary',
-                        default => 'gray',
-                    })
-                    ->icon(fn (string $state): string => match ($state) {
-                        'New Patient' => 'heroicon-m-user-plus',
-                        'Consultation' => 'heroicon-m-chat-bubble-left-right',
-                        'Completed' => 'heroicon-m-check-circle',
-                        default => 'heroicon-m-information-circle',
-                    }),
+                    ->color('primary')
+                    ->prefix('#'),
 
-                Tables\Columns\TextColumn::make('description')
+                Tables\Columns\TextColumn::make('doctor.name')
+                    ->label('Assigned Doctor')
                     ->searchable()
-                    ->limit(50)
+                    ->limit(30)
                     ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
                         $state = $column->getState();
 
-                        return strlen($state) > 50 ? $state : null;
+                        return strlen($state) > 30 ? $state : null;
                     }),
 
+                Tables\Columns\IconColumn::make('hidden')
+                    ->label('Status')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-eye-slash')
+                    ->falseIcon('heroicon-o-eye')
+                    ->trueColor('danger')
+                    ->falseColor('success')
+                    ->tooltip(fn ($state) => $state ? 'Hidden' : 'Active'),
+
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Time')
+                    ->label('Registered')
                     ->dateTime('M j, g:i A')
                     ->sortable()
                     ->since()
                     ->tooltip(fn ($state) => $state?->format('F j, Y \a\t g:i A')),
             ])
+            ->actions([
+                Tables\Actions\ViewAction::make()
+                    ->url(fn (Patients $record): string => "/admin/patients/{$record->id}/edit"),
+            ])
             ->defaultSort('created_at', 'desc')
             ->paginated(false)
             ->poll('30s')
             ->striped()
-            ->emptyStateHeading('No recent activity')
-            ->emptyStateDescription('Recent patient registrations and consultations will appear here.')
-            ->emptyStateIcon('heroicon-o-clock');
+            ->emptyStateHeading('No recent patients')
+            ->emptyStateDescription('Recent patient registrations will appear here.')
+            ->emptyStateIcon('heroicon-o-users');
     }
 
-    protected function getRecentActivityQuery(): Builder
+    protected function getRecentPatientsQuery(): Builder
     {
-        // Get recent patients
-        $patients = Patients::select(
-            DB::raw("'New Patient' as type"),
-            DB::raw("CONCAT('Patient registered: ID #', id) as description"),
-            'created_at',
-            DB::raw("'patient' as source_type"),
-            'id as source_id'
-        )
-            ->whereDate('created_at', '>=', now()->subDays(7));
-
-        // Get recent consultations
-        $consultations = Consultation::select(
-            DB::raw("CASE 
-                WHEN status = 'replied' THEN 'Completed'
-                ELSE 'Consultation'
-            END as type"),
-            DB::raw("CONCAT('Consultation ', 
-                CASE 
-                    WHEN status = 'replied' THEN 'completed'
-                    WHEN status = 'pending' THEN 'requested'
-                    ELSE status
-                END
-            ) as description"),
-            'created_at',
-            DB::raw("'consultation' as source_type"),
-            'id as source_id'
-        )
-            ->whereDate('created_at', '>=', now()->subDays(7));
-
-        // Union the queries and return as a builder
-        return $patients->union($consultations)
-            ->orderBy('created_at', 'desc')
+        return Patients::query()
+            ->with('doctor')
+            ->whereDate('created_at', '>=', now()->subDays(7))
+            ->latest()
             ->limit(10);
     }
 }

@@ -6,6 +6,7 @@ use App\Filament\Widgets\ConsultationTrendsChart;
 use App\Filament\Widgets\CoreMedicalOverview;
 use App\Filament\Widgets\QuickActionsWidget;
 use App\Filament\Widgets\RecentActivityTable;
+use App\Filament\Widgets\RecentConsultationsTable;
 use Filament\Pages\Dashboard as BaseDashboard;
 
 class Dashboard extends BaseDashboard
@@ -20,6 +21,7 @@ class Dashboard extends BaseDashboard
             CoreMedicalOverview::class,
             ConsultationTrendsChart::class,
             RecentActivityTable::class,
+            RecentConsultationsTable::class,
             QuickActionsWidget::class,
         ];
     }

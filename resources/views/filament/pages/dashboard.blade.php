@@ -38,9 +38,10 @@
             </div>
         </div>
 
-        {{-- Recent Activity Table --}}
-        <div class="grid grid-cols-1 gap-6">
+        {{-- Recent Activity Tables --}}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             @livewire(\App\Filament\Widgets\RecentActivityTable::class)
+            @livewire(\App\Filament\Widgets\RecentConsultationsTable::class)
         </div>
 
         {{-- Footer Info --}}

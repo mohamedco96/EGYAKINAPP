@@ -6,6 +6,7 @@ use App\Filament\Widgets\ConsultationTrendsChart;
 use App\Filament\Widgets\CoreMedicalOverview;
 use App\Filament\Widgets\QuickActionsWidget;
 use App\Filament\Widgets\RecentActivityTable;
+use App\Filament\Widgets\RecentConsultationsTable;
 use App\Modules\Achievements\Filament\Resources\AchievementResource;
 use App\Modules\Doses\Resources\DoseResource;
 use App\Modules\Patients\Resources\PatientsResource;
@@ -52,6 +53,7 @@ class AdminPanelProvider extends PanelProvider
                 CoreMedicalOverview::class,
                 ConsultationTrendsChart::class,
                 RecentActivityTable::class,
+                RecentConsultationsTable::class,
                 QuickActionsWidget::class,
             ])
             ->middleware([

@@ -2,13 +2,11 @@
 
 namespace App\Modules\Achievements\Services;
 
+use App\Models\User;
 use App\Modules\Achievements\Models\Achievement;
 use App\Modules\Notifications\Models\AppNotification;
-use App\Models\User;
-use App\Modules\Notifications\Models\FcmToken;
-use App\Modules\Notifications\Services\NotificationService;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
 
 class AchievementService
 {
@@ -27,17 +25,18 @@ class AchievementService
         try {
             $achievements = Achievement::all();
             Log::info('Listing all achievements', ['achievement_count' => $achievements->count()]);
-            
+
             return [
                 'value' => true,
                 'data' => $achievements,
-                'message' => 'Achievements retrieved successfully'
+                'message' => 'Achievements retrieved successfully',
             ];
         } catch (\Exception $e) {
             Log::error('Error retrieving achievements', ['error' => $e->getMessage()]);
+
             return [
                 'value' => false,
-                'message' => 'Failed to retrieve achievements'
+                'message' => 'Failed to retrieve achievements',
             ];
         }
     }
@@ -64,13 +63,14 @@ class AchievementService
             return [
                 'value' => true,
                 'data' => $achievement,
-                'message' => 'Achievement created successfully'
+                'message' => 'Achievement created successfully',
             ];
         } catch (\Exception $e) {
             Log::error('Error creating achievement', ['error' => $e->getMessage()]);
+
             return [
                 'value' => false,
-                'message' => 'Failed to create achievement'
+                'message' => 'Failed to create achievement',
             ];
         }
     }
@@ -83,28 +83,31 @@ class AchievementService
         try {
             $achievement = Achievement::find($id);
 
-            if (!$achievement) {
+            if (! $achievement) {
                 Log::warning('Achievement not found', ['achievement_id' => $id]);
+
                 return [
                     'value' => false,
-                    'message' => 'Achievement not found'
+                    'message' => 'Achievement not found',
                 ];
             }
 
             Log::info('Achievement retrieved', ['achievement_id' => $id]);
+
             return [
                 'value' => true,
                 'data' => $achievement,
-                'message' => 'Achievement retrieved successfully'
+                'message' => 'Achievement retrieved successfully',
             ];
         } catch (\Exception $e) {
             Log::error('Error retrieving achievement', [
                 'achievement_id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return [
                 'value' => false,
-                'message' => 'Failed to retrieve achievement'
+                'message' => 'Failed to retrieve achievement',
             ];
         }
     }
@@ -117,11 +120,12 @@ class AchievementService
         try {
             $achievement = Achievement::find($id);
 
-            if (!$achievement) {
+            if (! $achievement) {
                 Log::warning('Achievement not found for update', ['achievement_id' => $id]);
+
                 return [
                     'value' => false,
-                    'message' => 'Achievement not found'
+                    'message' => 'Achievement not found',
                 ];
             }
 
@@ -137,16 +141,17 @@ class AchievementService
             return [
                 'value' => true,
                 'data' => $achievement->fresh(),
-                'message' => 'Achievement updated successfully'
+                'message' => 'Achievement updated successfully',
             ];
         } catch (\Exception $e) {
             Log::error('Error updating achievement', [
                 'achievement_id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return [
                 'value' => false,
-                'message' => 'Failed to update achievement'
+                'message' => 'Failed to update achievement',
             ];
         }
     }
@@ -159,11 +164,12 @@ class AchievementService
         try {
             $achievement = Achievement::find($id);
 
-            if (!$achievement) {
+            if (! $achievement) {
                 Log::warning('Achievement not found for deletion', ['achievement_id' => $id]);
+
                 return [
                     'value' => false,
-                    'message' => 'Achievement not found'
+                    'message' => 'Achievement not found',
                 ];
             }
 
@@ -172,16 +178,17 @@ class AchievementService
 
             return [
                 'value' => true,
-                'message' => 'Achievement deleted successfully'
+                'message' => 'Achievement deleted successfully',
             ];
         } catch (\Exception $e) {
             Log::error('Error deleting achievement', [
                 'achievement_id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return [
                 'value' => false,
-                'message' => 'Failed to delete achievement'
+                'message' => 'Failed to delete achievement',
             ];
         }
     }
@@ -206,16 +213,47 @@ class AchievementService
             });
 
             Log::info('All users processed for achievements.');
-            
+
             return [
                 'value' => true,
-                'message' => 'Achievements processed for all users successfully'
+                'message' => 'Achievements processed for all users successfully',
             ];
         } catch (\Exception $e) {
             Log::error('Error processing achievements for all users', ['error' => $e->getMessage()]);
+
             return [
                 'value' => false,
-                'message' => 'Failed to process achievements for all users'
+                'message' => 'Failed to process achievements for all users',
+            ];
+        }
+    }
+
+    /**
+     * Check and assign achievements for a single user
+     */
+    public function checkAndAssignAchievementsForUser(User $user): array
+    {
+        try {
+            Log::info('Checking achievements for single user', ['user_id' => $user->id]);
+
+            $achievements = Achievement::all();
+            $this->processUserAchievements($user, $achievements);
+
+            Log::info('Achievements processed for single user', ['user_id' => $user->id]);
+
+            return [
+                'value' => true,
+                'message' => 'Achievements processed for user successfully',
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error processing achievements for single user', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'value' => false,
+                'message' => 'Failed to process achievements for user',
             ];
         }
     }
@@ -230,42 +268,43 @@ class AchievementService
 
             $achievedAchievements = $user->achievements()->wherePivot('achieved', 1)->get();
 
-            $transformedAchievements = $achievedAchievements->map(fn($achievement) => [
+            $transformedAchievements = $achievedAchievements->map(fn ($achievement) => [
                 'id' => $achievement->id,
                 'name' => $achievement->name,
                 'description' => $achievement->description,
                 'type' => $achievement->type,
-                'score' => (string)$achievement->score,
+                'score' => (string) $achievement->score,
                 'image' => $achievement->image,
                 'created_at' => $achievement->created_at,
                 'updated_at' => $achievement->updated_at,
                 'pivot' => [
-                    'user_id' => (string)$achievement->pivot->user_id,
-                    'achievement_id' => (string)$achievement->pivot->achievement_id,
-                    'achieved' => (string)$achievement->pivot->achieved,
+                    'user_id' => (string) $achievement->pivot->user_id,
+                    'achievement_id' => (string) $achievement->pivot->achievement_id,
+                    'achieved' => (string) $achievement->pivot->achieved,
                     'created_at' => $achievement->pivot->created_at,
                     'updated_at' => $achievement->pivot->updated_at,
-                ]
+                ],
             ]);
 
             Log::info('User achievements fetched', [
-                'user_id' => $user->id, 
-                'achievement_count' => $transformedAchievements->count()
+                'user_id' => $user->id,
+                'achievement_count' => $transformedAchievements->count(),
             ]);
 
             return [
                 'value' => true,
                 'data' => $transformedAchievements,
-                'message' => 'User achievements retrieved successfully'
+                'message' => 'User achievements retrieved successfully',
             ];
         } catch (\Exception $e) {
             Log::error('Error retrieving user achievements', [
                 'user_id' => $user->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return [
                 'value' => false,
-                'message' => 'Failed to retrieve user achievements'
+                'message' => 'Failed to retrieve user achievements',
             ];
         }
     }
@@ -281,7 +320,7 @@ class AchievementService
         Log::info('User data for achievement check', [
             'user_id' => $user->id,
             'score' => $userScore,
-            'patient_count' => $userPatientCount
+            'patient_count' => $userPatientCount,
         ]);
 
         $detachIds = [];
@@ -292,17 +331,17 @@ class AchievementService
             $qualifies = $this->qualifiesForAchievement($userScore, $userPatientCount, $achievement);
             $existingAchievement = $user->achievements->find($achievement->id);
 
-            if ($existingAchievement && !$qualifies) {
+            if ($existingAchievement && ! $qualifies) {
                 $detachIds[] = $achievement->id;
                 $achievementUpdates[] = ['achievement_id' => $achievement->id, 'status' => 'removed'];
-            } elseif ($qualifies && (!$existingAchievement || !$existingAchievement->pivot->achieved)) {
+            } elseif ($qualifies && (! $existingAchievement || ! $existingAchievement->pivot->achieved)) {
                 $attachData[$achievement->id] = ['achieved' => true];
                 $achievementUpdates[] = ['achievement_id' => $achievement->id, 'status' => 'achieved'];
 
-                if (!$existingAchievement) {
+                if (! $existingAchievement) {
                     Log::info('Notifying user about new achievement', [
                         'user_id' => $user->id,
-                        'achievement_id' => $achievement->id
+                        'achievement_id' => $achievement->id,
                     ]);
                     $this->notifyAchievement($user, $achievement);
                 }
@@ -318,12 +357,12 @@ class AchievementService
      */
     private function updateUserAchievements(User $user, array $detachIds, array $attachData): void
     {
-        if (!empty($detachIds)) {
+        if (! empty($detachIds)) {
             Log::info('Detaching achievements', ['user_id' => $user->id, 'detach_ids' => $detachIds]);
             $user->achievements()->detach($detachIds);
         }
 
-        if (!empty($attachData)) {
+        if (! empty($attachData)) {
             Log::info('Attaching achievements', ['user_id' => $user->id, 'attach_data' => $attachData]);
             $user->achievements()->syncWithoutDetaching($attachData);
         }
@@ -343,7 +382,7 @@ class AchievementService
         Log::info('Qualification check', [
             'achievement_id' => $achievement->id,
             'type' => $achievement->type,
-            'qualifies' => $result
+            'qualifies' => $result,
         ]);
 
         return $result;
@@ -359,7 +398,7 @@ class AchievementService
 
         Log::info('Preparing notification', [
             'user_id' => $user->id,
-            'achievement_id' => $achievement->id
+            'achievement_id' => $achievement->id,
         ]);
 
         $doctorIds = User::role(['Admin', 'Tester'])->pluck('id');
@@ -374,8 +413,9 @@ class AchievementService
      */
     private function generateNotificationBody(User $user, Achievement $achievement): string
     {
-        $body = 'Dr. ' . $user->name . ' achieved a new milestone: ' . $achievement->name;
+        $body = 'Dr. '.$user->name.' achieved a new milestone: '.$achievement->name;
         Log::info('Generated notification body', ['body' => $body]);
+
         return $body;
     }
 
@@ -384,11 +424,11 @@ class AchievementService
      */
     private function createAchievementNotification(array $doctorIds, string $doctorName, int $achievementId, int $doctorID): void
     {
-        $notifications = array_map(fn($doctorId) => [
+        $notifications = array_map(fn ($doctorId) => [
             'doctor_id' => $doctorId,
             'type' => 'Achievement',
             'type_id' => $achievementId,
-            'content' => 'Dr. ' . $doctorName . ' earned a new achievement.',
+            'content' => 'Dr. '.$doctorName.' earned a new achievement.',
             'type_doctor_id' => $doctorID,
             'created_at' => now(),
             'updated_at' => now(),

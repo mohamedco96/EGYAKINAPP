@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\ProcessAuditLog;
 use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -48,7 +49,7 @@ class AuditService
             $filteredNewValues = $this->filterSensitiveData($newValues);
             $filteredChangedAttributes = array_diff($changedAttributes, $this->getSensitiveFields());
 
-            return AuditLog::create([
+            $auditData = [
                 'event_type' => $eventType,
                 'auditable_type' => get_class($model),
                 'auditable_id' => $model->getKey(),
@@ -68,7 +69,16 @@ class AuditService
                 'device_type' => $this->detectDeviceType($request),
                 'platform' => $this->detectPlatform($request),
                 'performed_at' => now(),
-            ]);
+            ];
+
+            // Check if async processing is enabled
+            if (config('audit.performance.async_processing', true)) {
+                ProcessAuditLog::dispatch($auditData);
+
+                return null; // Return null for async processing
+            } else {
+                return AuditLog::create($auditData);
+            }
         } catch (\Exception $e) {
             Log::error('Failed to create audit log', [
                 'event_type' => $eventType,
@@ -91,7 +101,7 @@ class AuditService
             $request = request();
             $currentUser = $user ?? Auth::user();
 
-            return AuditLog::create([
+            $auditData = [
                 'event_type' => $eventType,
                 'user_id' => $currentUser?->id,
                 'user_type' => $currentUser ? get_class($currentUser) : null,
@@ -107,7 +117,16 @@ class AuditService
                 'device_type' => $this->detectDeviceType($request),
                 'platform' => $this->detectPlatform($request),
                 'performed_at' => now(),
-            ]);
+            ];
+
+            // Check if async processing is enabled
+            if (config('audit.performance.async_processing', true)) {
+                ProcessAuditLog::dispatch($auditData);
+
+                return null;
+            } else {
+                return AuditLog::create($auditData);
+            }
         } catch (\Exception $e) {
             Log::error('Failed to create auth audit log', [
                 'event_type' => $eventType,
@@ -133,7 +152,7 @@ class AuditService
             $request = request();
             $currentUser = $user ?? Auth::user();
 
-            return AuditLog::create([
+            $auditData = [
                 'event_type' => $eventType,
                 'auditable_type' => $relatedModel ? get_class($relatedModel) : null,
                 'auditable_id' => $relatedModel?->getKey(),
@@ -152,7 +171,16 @@ class AuditService
                 'device_type' => $this->detectDeviceType($request),
                 'platform' => $this->detectPlatform($request),
                 'performed_at' => now(),
-            ]);
+            ];
+
+            // Check if async processing is enabled
+            if (config('audit.performance.async_processing', true)) {
+                ProcessAuditLog::dispatch($auditData);
+
+                return null;
+            } else {
+                return AuditLog::create($auditData);
+            }
         } catch (\Exception $e) {
             Log::error('Failed to create custom audit log', [
                 'event_type' => $eventType,
@@ -178,7 +206,7 @@ class AuditService
                 'execution_time' => $this->getExecutionTime($request),
             ];
 
-            return AuditLog::create([
+            $auditData = [
                 'event_type' => 'api_request',
                 'user_id' => $currentUser?->id,
                 'user_type' => $currentUser ? get_class($currentUser) : null,
@@ -194,7 +222,16 @@ class AuditService
                 'device_type' => $this->detectDeviceType($request),
                 'platform' => $this->detectPlatform($request),
                 'performed_at' => now(),
-            ]);
+            ];
+
+            // Check if async processing is enabled
+            if (config('audit.performance.async_processing', true)) {
+                ProcessAuditLog::dispatch($auditData);
+
+                return null;
+            } else {
+                return AuditLog::create($auditData);
+            }
         } catch (\Exception $e) {
             Log::error('Failed to create API audit log', [
                 'url' => $request->fullUrl(),

@@ -102,46 +102,86 @@ class AuditMiddleware
      */
     protected function logRequestAsync(Request $request, Response $response, float $startTime): void
     {
-        // Use dispatch to queue the audit logging
-        dispatch(function () use ($request, $response, $startTime) {
-            try {
-                $executionTime = microtime(true) - $startTime;
+        // Extract serializable data from request and response
+        $requestData = [
+            'url' => $request->fullUrl(),
+            'method' => $request->method(),
+            'path' => $request->path(),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'headers' => $request->headers->all(),
+            'input' => $request->all(),
+            'route_name' => $request->route()?->getName(),
+            'route_action' => $request->route()?->getActionName(),
+        ];
 
-                // Determine event type based on request
-                $eventType = $this->determineEventType($request, $response);
+        $responseData = [
+            'status_code' => $response->getStatusCode(),
+            'content_length' => strlen($response->getContent()),
+            'headers' => $response->headers->all(),
+        ];
 
-                // Create metadata
-                $metadata = [
-                    'response_status' => $response->getStatusCode(),
-                    'execution_time' => $executionTime,
-                    'response_size' => strlen($response->getContent()),
-                ];
+        $executionTime = microtime(true) - $startTime;
+        $eventType = $this->determineEventType($request, $response);
+        $description = $this->generateDescription($request, $response);
 
-                // Add route information if available
-                if ($request->route()) {
-                    $metadata['route_name'] = $request->route()->getName();
-                    $metadata['route_action'] = $request->route()->getActionName();
-                }
+        // Create audit data for the job
+        $user = Auth::user();
+        $auditData = [
+            'event_type' => $eventType,
+            'user_id' => $user?->id,
+            'user_type' => $user ? get_class($user) : null,
+            'user_name' => $user?->name,
+            'user_email' => $user?->email,
+            'ip_address' => $requestData['ip'],
+            'user_agent' => $requestData['user_agent'],
+            'url' => $requestData['url'],
+            'method' => $requestData['method'],
+            'request_data' => $this->filterSensitiveData($requestData['input']),
+            'description' => $description,
+            'metadata' => [
+                'response_status' => $responseData['status_code'],
+                'execution_time' => $executionTime,
+                'response_size' => $responseData['content_length'],
+                'route_name' => $requestData['route_name'],
+                'route_action' => $requestData['route_action'],
+            ],
+            'session_id' => $request->session()?->getId(),
+            'device_type' => $this->detectDeviceType($request),
+            'platform' => $this->detectPlatform($request),
+            'performed_at' => now(),
+        ];
 
-                // Log based on request type
-                if (Str::startsWith($request->path(), 'api/')) {
-                    $this->auditService->logApiRequest($request, $response);
-                } else {
-                    $this->auditService->logCustomEvent(
-                        $eventType,
-                        $this->generateDescription($request, $response),
-                        $metadata
-                    );
-                }
-            } catch (\Exception $e) {
-                // Log error but don't fail the request
-                \Log::error('Audit middleware failed to log request', [
-                    'url' => $request->fullUrl(),
-                    'method' => $request->method(),
-                    'error' => $e->getMessage(),
-                ]);
+        // Dispatch the audit job
+        \App\Jobs\ProcessAuditLog::dispatch($auditData);
+    }
+
+    /**
+     * Filter sensitive data from request input.
+     */
+    protected function filterSensitiveData(array $data): array
+    {
+        $sensitiveFields = [
+            'password',
+            'password_confirmation',
+            'current_password',
+            'new_password',
+            'token',
+            'api_token',
+            'access_token',
+            'refresh_token',
+            'secret',
+            'api_key',
+            'private_key',
+        ];
+
+        foreach ($sensitiveFields as $field) {
+            if (isset($data[$field])) {
+                $data[$field] = '[FILTERED]';
             }
-        })->onQueue('audit');
+        }
+
+        return $data;
     }
 
     /**
@@ -191,5 +231,45 @@ class AuditMiddleware
         };
 
         return "{$userName} {$action} {$path} (Status: {$statusCode})";
+    }
+
+    /**
+     * Detect device type from request.
+     */
+    protected function detectDeviceType(Request $request): ?string
+    {
+        $userAgent = $request->userAgent();
+
+        if (Str::contains($userAgent, ['Mobile', 'Android', 'iPhone', 'iPad'])) {
+            return 'mobile';
+        }
+
+        if (Str::contains($userAgent, ['Postman', 'curl', 'HTTPie', 'Insomnia'])) {
+            return 'api';
+        }
+
+        return 'web';
+    }
+
+    /**
+     * Detect platform from request.
+     */
+    protected function detectPlatform(Request $request): ?string
+    {
+        $userAgent = $request->userAgent();
+
+        if (Str::contains($userAgent, 'iPhone') || Str::contains($userAgent, 'iPad')) {
+            return 'iOS';
+        }
+
+        if (Str::contains($userAgent, 'Android')) {
+            return 'Android';
+        }
+
+        if (Str::contains($userAgent, ['Windows', 'Macintosh', 'Linux'])) {
+            return 'Desktop';
+        }
+
+        return 'Unknown';
     }
 }

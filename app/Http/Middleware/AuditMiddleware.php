@@ -74,6 +74,11 @@ class AuditMiddleware
             return true;
         }
 
+        // Skip if this is a console/artisan command
+        if (app()->runningInConsole()) {
+            return true;
+        }
+
         return false;
     }
 
@@ -146,7 +151,7 @@ class AuditMiddleware
                 'route_name' => $requestData['route_name'],
                 'route_action' => $requestData['route_action'],
             ],
-            'session_id' => $request->session()?->getId(),
+            'session_id' => $this->getSessionId($request),
             'device_type' => $this->detectDeviceType($request),
             'platform' => $this->detectPlatform($request),
             'performed_at' => now(),
@@ -271,5 +276,26 @@ class AuditMiddleware
         }
 
         return 'Unknown';
+    }
+
+    /**
+     * Safely get session ID from request.
+     */
+    protected function getSessionId(Request $request): ?string
+    {
+        try {
+            // Check if session is available and started
+            if ($request->hasSession() && $request->session()->isStarted()) {
+                return $request->session()->getId();
+            }
+        } catch (\Exception $e) {
+            // Session not available or not started, return null
+            \Log::debug('Session not available for audit logging', [
+                'error' => $e->getMessage(),
+                'url' => $request->fullUrl(),
+            ]);
+        }
+
+        return null;
     }
 }

@@ -65,7 +65,7 @@ class AuditService
                 'old_values' => $filteredOldValues,
                 'new_values' => $filteredNewValues,
                 'changed_attributes' => $filteredChangedAttributes,
-                'session_id' => $request?->session()?->getId(),
+                'session_id' => $this->getSessionId($request),
                 'device_type' => $this->detectDeviceType($request),
                 'platform' => $this->detectPlatform($request),
                 'performed_at' => now(),
@@ -113,7 +113,7 @@ class AuditService
                 'method' => $request?->method(),
                 'request_data' => $this->getFilteredRequestData($request),
                 'metadata' => $metadata,
-                'session_id' => $request?->session()?->getId(),
+                'session_id' => $this->getSessionId($request),
                 'device_type' => $this->detectDeviceType($request),
                 'platform' => $this->detectPlatform($request),
                 'performed_at' => now(),
@@ -167,7 +167,7 @@ class AuditService
                 'request_data' => $this->getFilteredRequestData($request),
                 'description' => $description,
                 'metadata' => $metadata,
-                'session_id' => $request?->session()?->getId(),
+                'session_id' => $this->getSessionId($request),
                 'device_type' => $this->detectDeviceType($request),
                 'platform' => $this->detectPlatform($request),
                 'performed_at' => now(),
@@ -352,6 +352,31 @@ class AuditService
     {
         if (defined('LARAVEL_START')) {
             return microtime(true) - LARAVEL_START;
+        }
+
+        return null;
+    }
+
+    /**
+     * Safely get session ID from request.
+     */
+    protected function getSessionId(?Request $request): ?string
+    {
+        if (! $request) {
+            return null;
+        }
+
+        try {
+            // Check if session is available and started
+            if ($request->hasSession() && $request->session()->isStarted()) {
+                return $request->session()->getId();
+            }
+        } catch (\Exception $e) {
+            // Session not available or not started, return null
+            Log::debug('Session not available for audit logging', [
+                'error' => $e->getMessage(),
+                'url' => $request->fullUrl(),
+            ]);
         }
 
         return null;

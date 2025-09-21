@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('achievements', function (Blueprint $table) {
-            $table->string('type')->default('score')->after('description');
+            if (! Schema::hasColumn('achievements', 'type')) {
+                $table->string('type')->default('score')->after('description');
+            }
         });
     }
 
@@ -22,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('achievements', function (Blueprint $table) {
-            $table->dropColumn('type');
+            if (Schema::hasColumn('achievements', 'type')) {
+                $table->dropColumn('type');
+            }
         });
     }
 };

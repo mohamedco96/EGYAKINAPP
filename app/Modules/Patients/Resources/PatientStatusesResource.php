@@ -76,7 +76,7 @@ class PatientStatusesResource extends Resource
                     ->icon('heroicon-m-user')
                     ->weight('medium'),
 
-                Tables\Columns\TextColumn::make('doctor.name')
+                Tables\Columns\TextColumn::make('patient.doctor.name')
                     ->label('Assigned Doctor')
                     ->searchable()
                     ->sortable()
@@ -89,77 +89,106 @@ class PatientStatusesResource extends Resource
                     })
                     ->icon('heroicon-m-user-circle'),
 
-                Tables\Columns\TextColumn::make('section_name')
-                    ->label('Section')
+                Tables\Columns\TextColumn::make('all_sections_status')
+                    ->label('All Sections Status')
                     ->getStateUsing(function ($record) {
-                        if (str_starts_with($record->key, 'section_')) {
-                            $sectionId = str_replace('section_', '', $record->key);
-
-                            return Cache::remember("section_name_{$sectionId}", 3600, function () use ($sectionId) {
-                                $section = SectionsInfo::find($sectionId);
-
-                                return $section?->section_name ?? "Section {$sectionId}";
-                            });
-                        }
-
-                        return ucfirst(str_replace('_', ' ', $record->key));
-                    })
-                    ->searchable()
-                    ->badge()
-                    ->color('info')
-                    ->icon('heroicon-m-folder'),
-
-                Tables\Columns\IconColumn::make('status')
-                    ->label('Status')
-                    ->boolean()
-                    ->trueIcon('heroicon-m-check-circle')
-                    ->falseIcon('heroicon-m-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('danger')
-                    ->tooltip(fn ($state) => $state ? 'Completed' : 'Pending')
-                    ->alignCenter(),
-
-                Tables\Columns\TextColumn::make('status_badge')
-                    ->label('Progress')
-                    ->getStateUsing(fn ($record) => $record->status ? 'Completed' : 'Pending')
-                    ->badge()
-                    ->color(fn ($record) => $record->status ? 'success' : 'warning')
-                    ->icon(fn ($record) => $record->status ? 'heroicon-m-check' : 'heroicon-m-clock'),
-
-                Tables\Columns\TextColumn::make('all_sections')
-                    ->label('All Patient Sections')
-                    ->getStateUsing(function ($record) {
-                        return Cache::remember("patient_sections_{$record->patient_id}", 300, function () use ($record) {
+                        return Cache::remember("patient_all_sections_{$record->patient_id}", 300, function () use ($record) {
                             $sections = PatientStatus::where('patient_id', $record->patient_id)
                                 ->where('key', 'LIKE', 'section_%')
-                                ->get()
-                                ->map(function ($section) {
-                                    $sectionId = str_replace('section_', '', $section->key);
-                                    $sectionInfo = SectionsInfo::find($sectionId);
-                                    $name = $sectionInfo?->section_name ?? "Section {$sectionId}";
-                                    $status = $section->status ? '✅' : '❌';
+                                ->orderBy('key')
+                                ->get();
 
-                                    return "{$status} {$name}";
-                                });
+                            $sectionStatuses = [];
+                            foreach ($sections as $section) {
+                                $sectionId = str_replace('section_', '', $section->key);
+                                $sectionInfo = SectionsInfo::find($sectionId);
+                                $name = $sectionInfo?->section_name ?? "Section {$sectionId}";
+                                $status = $section->status ? '✅' : '❌';
+                                $statusText = $section->status ? 'Completed' : 'Pending';
+                                
+                                $sectionStatuses[] = [
+                                    'icon' => $status,
+                                    'name' => $name,
+                                    'status' => $statusText,
+                                    'completed' => $section->status
+                                ];
+                            }
 
-                            return $sections->join(' | ');
+                            return $sectionStatuses;
                         });
                     })
-                    ->html()
-                    ->limit(100)
-                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
-                        return $column->getState();
+                    ->formatStateUsing(function ($state) {
+                        if (!is_array($state)) return 'No sections';
+                        
+                        $html = '<div class="space-y-1">';
+                        foreach ($state as $section) {
+                            $colorClass = $section['completed'] ? 'text-green-600 bg-green-50' : 'text-orange-600 bg-orange-50';
+                            $html .= '<div class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ' . $colorClass . ' mr-1 mb-1">';
+                            $html .= '<span>' . $section['icon'] . '</span>';
+                            $html .= '<span>' . $section['name'] . '</span>';
+                            $html .= '</div>';
+                        }
+                        $html .= '</div>';
+                        
+                        return $html;
                     })
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->html()
+                    ->wrap(),
 
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Last Updated')
+                Tables\Columns\TextColumn::make('completion_summary')
+                    ->label('Summary')
+                    ->getStateUsing(function ($record) {
+                        return Cache::remember("patient_completion_{$record->patient_id}", 300, function () use ($record) {
+                            $sections = PatientStatus::where('patient_id', $record->patient_id)
+                                ->where('key', 'LIKE', 'section_%')
+                                ->get();
+
+                            $total = $sections->count();
+                            $completed = $sections->where('status', true)->count();
+                            $percentage = $total > 0 ? round(($completed / $total) * 100) : 0;
+
+                            return [
+                                'completed' => $completed,
+                                'total' => $total,
+                                'percentage' => $percentage
+                            ];
+                        });
+                    })
+                    ->formatStateUsing(function ($state) {
+                        if (!is_array($state)) return 'N/A';
+                        
+                        $color = match (true) {
+                            $state['percentage'] >= 80 => 'success',
+                            $state['percentage'] >= 50 => 'warning',
+                            default => 'danger'
+                        };
+                        
+                        return '<div class="text-center">
+                            <div class="font-semibold text-' . $color . '-600">' . $state['percentage'] . '%</div>
+                            <div class="text-xs text-gray-500">' . $state['completed'] . '/' . $state['total'] . ' completed</div>
+                        </div>';
+                    })
+                    ->html()
+                    ->alignCenter(),
+
+                Tables\Columns\TextColumn::make('last_activity')
+                    ->label('Last Activity')
+                    ->getStateUsing(function ($record) {
+                        $lastUpdate = PatientStatus::where('patient_id', $record->patient_id)
+                            ->where('key', 'LIKE', 'section_%')
+                            ->latest('updated_at')
+                            ->first();
+                            
+                        return $lastUpdate?->updated_at;
+                    })
                     ->dateTime('M j, Y g:i A')
                     ->sortable()
-                    ->tooltip(fn ($record) => $record->updated_at?->format('F j, Y \a\t g:i:s A'))
                     ->since()
                     ->color('gray')
-                    ->size('sm'),
+                    ->size('sm')
+                    ->tooltip(function ($state) {
+                        return $state?->format('F j, Y \a\t g:i:s A');
+                    }),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('patient_id')
@@ -255,52 +284,141 @@ class PatientStatusesResource extends Resource
                     ->url(fn ($record) => route('filament.admin.resources.patients.view', ['record' => $record->patient_id]))
                     ->openUrlInNewTab(),
 
-                Tables\Actions\Action::make('toggleStatus')
-                    ->label('Toggle Status')
-                    ->icon('heroicon-o-arrow-path')
+                Tables\Actions\Action::make('manageSections')
+                    ->label('Manage Sections')
+                    ->icon('heroicon-o-cog-6-tooth')
                     ->color('warning')
-                    ->action(function ($record) {
-                        $record->update(['status' => ! $record->status]);
+                    ->form([
+                        Forms\Components\Repeater::make('sections')
+                            ->label('Patient Sections')
+                            ->schema([
+                                Forms\Components\TextInput::make('section_name')
+                                    ->label('Section')
+                                    ->disabled(),
+                                Forms\Components\Toggle::make('status')
+                                    ->label('Completed')
+                                    ->inline(false),
+                            ])
+                            ->defaultItems(0)
+                            ->addable(false)
+                            ->deletable(false)
+                            ->reorderable(false),
+                    ])
+                    ->fillForm(function ($record) {
+                        $sections = PatientStatus::where('patient_id', $record->patient_id)
+                            ->where('key', 'LIKE', 'section_%')
+                            ->orderBy('key')
+                            ->get()
+                            ->map(function ($section) {
+                                $sectionId = str_replace('section_', '', $section->key);
+                                $sectionInfo = SectionsInfo::find($sectionId);
+                                $name = $sectionInfo?->section_name ?? "Section {$sectionId}";
+                                
+                                return [
+                                    'section_id' => $section->id,
+                                    'section_name' => $name,
+                                    'status' => $section->status,
+                                ];
+                            })
+                            ->toArray();
+
+                        return ['sections' => $sections];
+                    })
+                    ->action(function ($record, $data) {
+                        foreach ($data['sections'] as $index => $sectionData) {
+                            $sections = PatientStatus::where('patient_id', $record->patient_id)
+                                ->where('key', 'LIKE', 'section_%')
+                                ->orderBy('key')
+                                ->get();
+                                
+                            if (isset($sections[$index])) {
+                                $sections[$index]->update(['status' => $sectionData['status']]);
+                            }
+                        }
+
+                        // Clear cache
+                        Cache::forget("patient_all_sections_{$record->patient_id}");
+                        Cache::forget("patient_completion_{$record->patient_id}");
+
                         \Filament\Notifications\Notification::make()
                             ->success()
-                            ->title('Status Updated')
-                            ->body('Section status has been toggled successfully.')
+                            ->title('Sections Updated')
+                            ->body('Patient sections have been updated successfully.')
                             ->send();
                     })
-                    ->requiresConfirmation(),
+                    ->modalWidth('2xl'),
+
+                Tables\Actions\Action::make('markAllCompleted')
+                    ->label('Complete All')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->action(function ($record) {
+                        PatientStatus::where('patient_id', $record->patient_id)
+                            ->where('key', 'LIKE', 'section_%')
+                            ->update(['status' => true]);
+
+                        // Clear cache
+                        Cache::forget("patient_all_sections_{$record->patient_id}");
+                        Cache::forget("patient_completion_{$record->patient_id}");
+
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('All Sections Completed')
+                            ->body('All sections for this patient have been marked as completed.')
+                            ->send();
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Complete All Sections')
+                    ->modalDescription('Are you sure you want to mark all sections as completed for this patient?'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('markCompleted')
-                        ->label('Mark as Completed')
-                        ->icon('heroicon-o-check')
+                    Tables\Actions\BulkAction::make('markAllPatientsCompleted')
+                        ->label('Complete All Sections for Selected Patients')
+                        ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->action(function ($records) {
                             foreach ($records as $record) {
-                                $record->update(['status' => true]);
+                                PatientStatus::where('patient_id', $record->patient_id)
+                                    ->where('key', 'LIKE', 'section_%')
+                                    ->update(['status' => true]);
+                                    
+                                // Clear cache
+                                Cache::forget("patient_all_sections_{$record->patient_id}");
+                                Cache::forget("patient_completion_{$record->patient_id}");
                             }
+                            
                             \Filament\Notifications\Notification::make()
                                 ->success()
-                                ->title('Sections Updated')
-                                ->body('Selected sections marked as completed.')
+                                ->title('Patients Updated')
+                                ->body('All sections for selected patients have been marked as completed.')
                                 ->send();
                         })
+                        ->requiresConfirmation()
                         ->deselectRecordsAfterCompletion(),
 
-                    Tables\Actions\BulkAction::make('markPending')
-                        ->label('Mark as Pending')
+                    Tables\Actions\BulkAction::make('markAllPatientsPending')
+                        ->label('Mark All Sections as Pending for Selected Patients')
                         ->icon('heroicon-o-clock')
                         ->color('warning')
                         ->action(function ($records) {
                             foreach ($records as $record) {
-                                $record->update(['status' => false]);
+                                PatientStatus::where('patient_id', $record->patient_id)
+                                    ->where('key', 'LIKE', 'section_%')
+                                    ->update(['status' => false]);
+                                    
+                                // Clear cache
+                                Cache::forget("patient_all_sections_{$record->patient_id}");
+                                Cache::forget("patient_completion_{$record->patient_id}");
                             }
+                            
                             \Filament\Notifications\Notification::make()
                                 ->success()
-                                ->title('Sections Updated')
-                                ->body('Selected sections marked as pending.')
+                                ->title('Patients Updated')
+                                ->body('All sections for selected patients have been marked as pending.')
                                 ->send();
                         })
+                        ->requiresConfirmation()
                         ->deselectRecordsAfterCompletion(),
                 ]),
             ])
@@ -316,11 +434,13 @@ class PatientStatusesResource extends Resource
 
     protected static function getTableQuery(): Builder
     {
-        return parent::getTableQuery()
-            ->with(['patient.doctor', 'doctor'])
+        // Get unique patients who have section statuses
+        return PatientStatus::query()
+            ->select('patient_id')
             ->where('key', 'LIKE', 'section_%')
-            ->orderBy('patient_id', 'asc')
-            ->orderBy('key', 'asc');
+            ->with(['patient.doctor'])
+            ->groupBy('patient_id')
+            ->orderBy('patient_id', 'asc');
     }
 
     public static function getRelations(): array

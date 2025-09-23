@@ -19,6 +19,7 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Facades\Excel;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use App\Jobs\ExportPatientsJob;
 
 class PatientsResource extends Resource
 {
@@ -195,8 +196,6 @@ class PatientsResource extends Resource
                     ->color('info')
                     ->url(fn ($record) => static::getUrl('view', ['record' => $record])),
 
-                Tables\Actions\EditAction::make(),
-
                 Tables\Actions\Action::make('exportPatient')
                     ->label('Export')
                     ->icon('heroicon-o-document-arrow-down')
@@ -210,24 +209,12 @@ class PatientsResource extends Resource
                     ->label('Export All Patients')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('primary')
+                    ->requiresConfirmation()
+                    ->modalHeading('Export All Patients')
+                    ->modalDescription('This will export all patient data including answers to all questions. The process may take a few minutes for large datasets.')
+                    ->modalSubmitActionLabel('Start Export')
                     ->action(function () {
-                        $result = static::exportAllPatients();
-
-                        if ($result['success']) {
-                            Notification::make()
-                                ->success()
-                                ->title('Export Started')
-                                ->body('Your export is being downloaded.')
-                                ->send();
-
-                            return redirect($result['file_url']);
-                        }
-
-                        Notification::make()
-                            ->title('Export Failed')
-                            ->body($result['message'])
-                            ->danger()
-                            ->send();
+                        return static::startOptimizedExport();
                     }),
 
                 Tables\Actions\Action::make('clearCache')
@@ -304,7 +291,6 @@ class PatientsResource extends Resource
             'index' => Pages\ListPatients::route('/'),
             'create' => Pages\CreatePatients::route('/create'),
             'view' => Pages\ViewPatient::route('/{record}'),
-            'edit' => Pages\EditPatients::route('/{record}/edit'),
         ];
     }
 
@@ -369,11 +355,79 @@ class PatientsResource extends Resource
         }
     }
 
-    public static function exportAllPatients()
+    public static function startOptimizedExport()
+    {
+        try {
+            $timestamp = time() . '_' . uniqid();
+            $filename = "patients_export_{$timestamp}.xlsx";
+            $userId = auth()->id();
+
+            // Check patient count to determine processing method
+            $patientCount = Patients::count();
+            
+            if ($patientCount > 1000) {
+                // Use background job for large datasets
+                Cache::put('export_progress_' . $filename, [
+                    'percentage' => 0,
+                    'message' => 'Starting background export...',
+                    'updated_at' => now()
+                ], 3600);
+
+                ExportPatientsJob::dispatch($filename, 100, $userId);
+
+                Notification::make()
+                    ->success()
+                    ->title('Export Started')
+                    ->body('Large dataset detected. Export is processing in background. You will be notified when ready.')
+                    ->actions([
+                        \Filament\Notifications\Actions\Action::make('checkProgress')
+                            ->label('Check Progress')
+                            ->url('/export/progress/' . $filename, shouldOpenInNewTab: true)
+                    ])
+                    ->persistent()
+                    ->send();
+
+                return;
+            } else {
+                // Process immediately for smaller datasets
+                $result = static::exportAllPatientsSync();
+                
+                if ($result['success']) {
+                    Notification::make()
+                        ->success()
+                        ->title('Export Completed')
+                        ->body('Your export is ready for download.')
+                        ->actions([
+                            \Filament\Notifications\Actions\Action::make('download')
+                                ->label('Download')
+                                ->url($result['file_url'], shouldOpenInNewTab: true)
+                        ])
+                        ->send();
+                } else {
+                    Notification::make()
+                        ->danger()
+                        ->title('Export Failed')
+                        ->body($result['message'])
+                        ->send();
+                }
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Error starting optimized export: ' . $e->getMessage());
+            
+            Notification::make()
+                ->danger()
+                ->title('Export Failed')
+                ->body('Failed to start export: ' . $e->getMessage())
+                ->send();
+        }
+    }
+
+    public static function exportAllPatientsSync()
     {
         try {
             $questions = Cache::remember('all_questions', 3600, function () {
-                return Questions::select(['id', 'question'])->get();
+                return Questions::select(['id', 'question'])->orderBy('id')->get();
             });
 
             $export = new class($questions) implements FromCollection, WithHeadings, WithMapping
@@ -388,37 +442,69 @@ class PatientsResource extends Resource
                 public function collection()
                 {
                     return Patients::with(['answers' => function ($query) {
-                        $query->select(['id', 'patient_id', 'question_id', 'answer']);
-                    }])->get();
+                        $query->select(['id', 'patient_id', 'question_id', 'answer'])
+                              ->orderBy('question_id');
+                    }])
+                    ->select(['id', 'doctor_id', 'created_at', 'updated_at'])
+                    ->orderBy('id')
+                    ->get();
                 }
 
                 public function headings(): array
                 {
-                    $headings = ['ID', 'Doctor ID'];
-                    foreach ($this->questions as $question) {
-                        $headings[] = $question->question;
-                    }
+                    $headings = [
+                        'Patient ID',
+                        'Doctor ID',
+                        'Registration Date',
+                        'Last Updated'
+                    ];
 
+                    foreach ($this->questions as $question) {
+                        $headings[] = substr(preg_replace('/[^\w\s-]/', '', $question->question), 0, 100);
+                    }
                     return $headings;
                 }
 
-                public function map($record): array
+                public function map($patient): array
                 {
-                    $data = [$record->id, $record->doctor_id];
+                    $data = [
+                        $patient->id,
+                        $patient->doctor_id,
+                        $patient->created_at?->format('Y-m-d H:i:s'),
+                        $patient->updated_at?->format('Y-m-d H:i:s')
+                    ];
+
+                    // Create lookup for faster access
+                    $answerLookup = $patient->answers->keyBy('question_id');
+
                     foreach ($this->questions as $question) {
-                        $data[] = $record->answers->firstWhere('question_id', $question->id)?->answer;
+                        $answer = $answerLookup->get($question->id);
+                        
+                        if ($answer && $answer->answer) {
+                            if (is_array($answer->answer)) {
+                                $filteredAnswer = array_filter($answer->answer, function($value) {
+                                    return !is_null($value) && $value !== '';
+                                });
+                                $data[] = !empty($filteredAnswer) ? implode(', ', $filteredAnswer) : '';
+                            } else {
+                                $data[] = (string) $answer->answer;
+                            }
+                        } else {
+                            $data[] = '';
+                        }
                     }
 
                     return $data;
                 }
             };
 
-            $timestamp = time().'_'.uniqid();
+            $timestamp = time() . '_' . uniqid();
             $filename = "patients_export_{$timestamp}.xlsx";
-            Excel::store($export, 'exports/'.$filename, 'public');
-            $fileUrl = config('app.url').'/storage/exports/'.$filename;
+            
+            Excel::store($export, 'exports/' . $filename, 'public');
+            $fileUrl = config('app.url') . '/storage/exports/' . $filename;
 
-            Log::info('Successfully exported all patients to Excel.', ['file_url' => $fileUrl]);
+            Log::info('Successfully exported all patients to Excel (sync).', ['file_url' => $fileUrl]);
 
             return [
                 'success' => true,
@@ -427,11 +513,11 @@ class PatientsResource extends Resource
             ];
 
         } catch (\Exception $e) {
-            Log::error('Error exporting patients to Excel: '.$e->getMessage());
+            Log::error('Error exporting patients to Excel (sync): ' . $e->getMessage());
 
             return [
                 'success' => false,
-                'message' => 'Failed to export data: '.$e->getMessage(),
+                'message' => 'Failed to export data: ' . $e->getMessage(),
             ];
         }
     }

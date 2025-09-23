@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\ExportController;
 use App\Mail\DailyReportMail;
 use App\Mail\WeeklySummaryMail;
 use App\Modules\Chat\Controllers\ChatController;
@@ -43,6 +44,13 @@ Route::get('/search', function () {
 });
 
 Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics');
+
+// Export routes
+Route::middleware(['auth'])->group(function () {
+    Route::post('/export/patients/start', [ExportController::class, 'startPatientsExport'])->name('export.patients.start');
+    Route::get('/export/progress/{filename}', [ExportController::class, 'checkExportProgress'])->name('export.progress');
+    Route::get('/export/download/{filename}', [ExportController::class, 'downloadExport'])->name('export.download');
+});
 
 Route::get('/post/{id}', function ($id) {
     // Check if the request is from a mobile device

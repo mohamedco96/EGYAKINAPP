@@ -3,7 +3,7 @@
 namespace App\Modules\Patients\Resources\PatientsResource\Pages;
 
 use App\Modules\Patients\Resources\PatientsResource;
-use Filament\Actions;
+use App\Modules\Patients\Widgets\PatientsStatsWidget;
 use Filament\Resources\Pages\ListRecords;
 
 class ListPatients extends ListRecords
@@ -13,7 +13,29 @@ class ListPatients extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            // New patient button removed as requested
         ];
+    }
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            PatientsStatsWidget::class,
+        ];
+    }
+
+    public function getTitle(): string
+    {
+        return 'Patient Management';
+    }
+
+    public function getHeading(): string
+    {
+        return 'Patient Management';
+    }
+
+    public function getSubheading(): ?string
+    {
+        return 'Manage patient records, track progress, and monitor completion rates.';
     }
 }

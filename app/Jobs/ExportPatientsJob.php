@@ -22,10 +22,13 @@ class ExportPatientsJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $timeout = 300; // 5 minutes timeout
+
     public $tries = 3;
 
     protected $filename;
+
     protected $chunkSize;
+
     protected $userId;
 
     public function __construct(string $filename, int $chunkSize = 100, ?int $userId = null)
@@ -41,11 +44,11 @@ class ExportPatientsJob implements ShouldQueue
             Log::info('Starting patient export job', [
                 'filename' => $this->filename,
                 'chunk_size' => $this->chunkSize,
-                'user_id' => $this->userId
+                'user_id' => $this->userId,
             ]);
 
             // Get questions with caching
-            $questions = Cache::remember('export_questions_' . md5('all'), 3600, function () {
+            $questions = Cache::remember('export_questions_'.md5('all'), 3600, function () {
                 return Questions::select(['id', 'question'])->orderBy('id')->get();
             });
 
@@ -53,6 +56,7 @@ class ExportPatientsJob implements ShouldQueue
             $export = new class($questions, $this->chunkSize) implements FromCollection, WithHeadings, WithMapping
             {
                 private $questions;
+
                 private $chunkSize;
 
                 public function __construct($questions, $chunkSize)
@@ -65,15 +69,15 @@ class ExportPatientsJob implements ShouldQueue
                 {
                     // Use chunking for memory efficiency
                     $patients = collect();
-                    
+
                     Patients::with(['answers' => function ($query) {
                         $query->select(['id', 'patient_id', 'question_id', 'answer'])
-                              ->orderBy('question_id');
+                            ->orderBy('question_id');
                     }])
-                    ->select(['id', 'doctor_id', 'created_at', 'updated_at'])
-                    ->chunk($this->chunkSize, function ($chunk) use ($patients) {
-                        $patients->push(...$chunk);
-                    });
+                        ->select(['id', 'doctor_id', 'created_at', 'updated_at'])
+                        ->chunk($this->chunkSize, function ($chunk) use ($patients) {
+                            $patients->push(...$chunk);
+                        });
 
                     return $patients;
                 }
@@ -84,7 +88,7 @@ class ExportPatientsJob implements ShouldQueue
                         'Patient ID',
                         'Doctor ID',
                         'Registration Date',
-                        'Last Updated'
+                        'Last Updated',
                     ];
 
                     foreach ($this->questions as $question) {
@@ -100,7 +104,7 @@ class ExportPatientsJob implements ShouldQueue
                         $patient->id,
                         $patient->doctor_id,
                         $patient->created_at?->format('Y-m-d H:i:s'),
-                        $patient->updated_at?->format('Y-m-d H:i:s')
+                        $patient->updated_at?->format('Y-m-d H:i:s'),
                     ];
 
                     // Create a lookup array for faster access
@@ -108,13 +112,13 @@ class ExportPatientsJob implements ShouldQueue
 
                     foreach ($this->questions as $question) {
                         $answer = $answerLookup->get($question->id);
-                        
+
                         if ($answer && $answer->answer) {
                             if (is_array($answer->answer)) {
-                                $filteredAnswer = array_filter($answer->answer, function($value) {
-                                    return !is_null($value) && $value !== '';
+                                $filteredAnswer = array_filter($answer->answer, function ($value) {
+                                    return ! is_null($value) && $value !== '';
                                 });
-                                $data[] = !empty($filteredAnswer) ? implode(', ', $filteredAnswer) : '';
+                                $data[] = ! empty($filteredAnswer) ? implode(', ', $filteredAnswer) : '';
                             } else {
                                 $data[] = (string) $answer->answer;
                             }
@@ -135,30 +139,30 @@ class ExportPatientsJob implements ShouldQueue
 
             // Generate file with progress tracking
             $this->updateProgress(10, 'Preparing export data...');
-            
-            Excel::store($export, 'exports/' . $this->filename, 'public');
-            
+
+            Excel::store($export, 'exports/'.$this->filename, 'public');
+
             $this->updateProgress(90, 'Finalizing export...');
 
             // Verify file was created
-            if (Storage::disk('public')->exists('exports/' . $this->filename)) {
-                $fileSize = Storage::disk('public')->size('exports/' . $this->filename);
-                
+            if (Storage::disk('public')->exists('exports/'.$this->filename)) {
+                $fileSize = Storage::disk('public')->size('exports/'.$this->filename);
+
                 Log::info('Patient export completed successfully', [
                     'filename' => $this->filename,
                     'file_size' => $fileSize,
-                    'user_id' => $this->userId
+                    'user_id' => $this->userId,
                 ]);
 
                 $this->updateProgress(100, 'Export completed successfully!');
-                
+
                 // Cache the export result for 1 hour
-                Cache::put('export_result_' . $this->filename, [
+                Cache::put('export_result_'.$this->filename, [
                     'status' => 'completed',
                     'filename' => $this->filename,
                     'file_size' => $fileSize,
-                    'download_url' => config('app.url') . '/storage/exports/' . $this->filename,
-                    'created_at' => now()
+                    'download_url' => config('app.url').'/storage/exports/'.$this->filename,
+                    'created_at' => now(),
                 ], 3600);
 
             } else {
@@ -169,15 +173,15 @@ class ExportPatientsJob implements ShouldQueue
             Log::error('Patient export job failed', [
                 'filename' => $this->filename,
                 'error' => $e->getMessage(),
-                'user_id' => $this->userId
+                'user_id' => $this->userId,
             ]);
 
-            $this->updateProgress(0, 'Export failed: ' . $e->getMessage());
-            
-            Cache::put('export_result_' . $this->filename, [
+            $this->updateProgress(0, 'Export failed: '.$e->getMessage());
+
+            Cache::put('export_result_'.$this->filename, [
                 'status' => 'failed',
                 'error' => $e->getMessage(),
-                'created_at' => now()
+                'created_at' => now(),
             ], 3600);
 
             throw $e;
@@ -186,10 +190,10 @@ class ExportPatientsJob implements ShouldQueue
 
     private function updateProgress(int $percentage, string $message): void
     {
-        Cache::put('export_progress_' . $this->filename, [
+        Cache::put('export_progress_'.$this->filename, [
             'percentage' => $percentage,
             'message' => $message,
-            'updated_at' => now()
+            'updated_at' => now(),
         ], 3600);
     }
 
@@ -198,13 +202,13 @@ class ExportPatientsJob implements ShouldQueue
         Log::error('Patient export job failed completely', [
             'filename' => $this->filename,
             'error' => $exception->getMessage(),
-            'user_id' => $this->userId
+            'user_id' => $this->userId,
         ]);
 
-        Cache::put('export_result_' . $this->filename, [
+        Cache::put('export_result_'.$this->filename, [
             'status' => 'failed',
             'error' => $exception->getMessage(),
-            'created_at' => now()
+            'created_at' => now(),
         ], 3600);
     }
 }

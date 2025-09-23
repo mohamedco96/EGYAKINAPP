@@ -2,6 +2,7 @@
 
 namespace App\Modules\Patients\Resources;
 
+use App\Jobs\ExportPatientsJob;
 use App\Modules\Patients\Models\Patients;
 use App\Modules\Patients\Resources\PatientsResource\Pages;
 use App\Modules\Questions\Models\Questions;
@@ -19,7 +20,6 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Facades\Excel;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
-use App\Jobs\ExportPatientsJob;
 
 class PatientsResource extends Resource
 {
@@ -56,41 +56,88 @@ class PatientsResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('id')
-                    ->label('Patient ID')
+                    ->label('ID')
                     ->searchable()
                     ->sortable()
                     ->badge()
                     ->color('primary')
-                    ->prefix('#'),
+                    ->prefix('#')
+                    ->size('sm')
+                    ->weight('bold'),
 
-                TextColumn::make('doctor.name')
-                    ->label('Assigned Doctor')
-                    ->searchable(['name', 'email'])
-                    ->sortable()
-                    ->limit(30)
-                    ->tooltip(function (TextColumn $column): ?string {
-                        $state = $column->getState();
+                Tables\Columns\Layout\Stack::make([
+                    TextColumn::make('doctor.name')
+                        ->searchable(['name', 'email'])
+                        ->sortable()
+                        ->limit(25)
+                        ->tooltip(function (TextColumn $column): ?string {
+                            $state = $column->getState();
 
-                        return strlen($state) > 30 ? $state : null;
-                    }),
+                            return strlen($state) > 25 ? $state : null;
+                        })
+                        ->placeholder('Unassigned')
+                        ->icon('heroicon-m-user-circle')
+                        ->iconColor('primary')
+                        ->weight('medium')
+                        ->size('sm'),
 
-                TextColumn::make('doctor.email')
-                    ->label('Doctor Email')
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->limit(25),
+                    TextColumn::make('doctor.email')
+                        ->searchable()
+                        ->limit(30)
+                        ->tooltip(function (TextColumn $column): ?string {
+                            $state = $column->getState();
 
-                TextColumn::make('answers_count')
-                    ->label('Completed Answers')
-                    ->badge()
-                    ->color(fn ($state) => $state > 100 ? 'success' : ($state > 50 ? 'warning' : 'danger'))
-                    ->counts('answers')
-                    ->sortable(),
+                            return strlen($state) > 30 ? $state : null;
+                        })
+                        ->placeholder('No email')
+                        ->icon('heroicon-m-envelope')
+                        ->iconColor('gray')
+                        ->size('xs')
+                        ->color('gray'),
+                ])
+                    ->space(1)
+                    ->label('Assigned Doctor'),
+
+                Tables\Columns\Layout\Stack::make([
+                    TextColumn::make('answers_count')
+                        ->badge()
+                        ->color(fn ($state) => match (true) {
+                            $state >= 50 => 'success',
+                            $state >= 20 => 'warning',
+                            default => 'danger',
+                        })
+                        ->suffix(' answers')
+                        ->counts('answers')
+                        ->sortable()
+                        ->size('sm'),
+
+                    TextColumn::make('completion_percentage')
+                        ->getStateUsing(function ($record) {
+                            $totalQuestions = Cache::remember('total_questions_count', 3600, fn () => Questions::count());
+                            if ($totalQuestions === 0) {
+                                return '0%';
+                            }
+
+                            $percentage = round(($record->answers_count / $totalQuestions) * 100, 1);
+
+                            return $percentage.'%';
+                        })
+                        ->badge()
+                        ->color(fn ($state) => match (true) {
+                            (float) str_replace('%', '', $state) >= 70 => 'success',
+                            (float) str_replace('%', '', $state) >= 30 => 'warning',
+                            default => 'danger',
+                        })
+                        ->size('xs')
+                        ->suffix(' complete'),
+                ])
+                    ->space(1)
+                    ->label('Progress')
+                    ->alignCenter(),
 
                 TextColumn::make('sections_answered')
-                    ->label('Sections Completed')
+                    ->label('Sections')
                     ->getStateUsing(function ($record) {
-                        // Get unique sections from answers
                         return Cache::remember("patient_{$record->id}_sections", 300, function () use ($record) {
                             return $record->answers()
                                 ->join('questions', 'answers.question_id', '=', 'questions.id')
@@ -99,55 +146,117 @@ class PatientsResource extends Resource
                         });
                     })
                     ->badge()
-                    ->color('info'),
+                    ->color('info')
+                    ->suffix(' sections')
+                    ->alignCenter()
+                    ->size('sm'),
 
-                Tables\Columns\IconColumn::make('hidden')
+                Tables\Columns\Layout\Stack::make([
+                    Tables\Columns\IconColumn::make('hidden')
+                        ->boolean()
+                        ->trueIcon('heroicon-m-eye-slash')
+                        ->falseIcon('heroicon-m-eye')
+                        ->trueColor('danger')
+                        ->falseColor('success')
+                        ->tooltip(fn ($state) => $state ? 'Hidden Patient' : 'Active Patient')
+                        ->size('sm'),
+
+                    TextColumn::make('status_text')
+                        ->getStateUsing(fn ($record) => $record->hidden ? 'Hidden' : 'Active')
+                        ->badge()
+                        ->color(fn ($record) => $record->hidden ? 'danger' : 'success')
+                        ->size('xs'),
+                ])
+                    ->space(1)
                     ->label('Status')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-eye-slash')
-                    ->falseIcon('heroicon-o-eye')
-                    ->trueColor('danger')
-                    ->falseColor('success')
-                    ->tooltip(fn ($state) => $state ? 'Hidden' : 'Active')
-                    ->sortable(),
+                    ->alignCenter(),
 
-                TextColumn::make('created_at')
+                Tables\Columns\Layout\Stack::make([
+                    TextColumn::make('created_at')
+                        ->dateTime('M j, Y')
+                        ->sortable()
+                        ->icon('heroicon-m-calendar-days')
+                        ->iconColor('primary')
+                        ->size('sm')
+                        ->weight('medium'),
+
+                    TextColumn::make('created_at')
+                        ->since()
+                        ->size('xs')
+                        ->color('gray')
+                        ->prefix('• '),
+                ])
+                    ->space(1)
                     ->label('Registered')
-                    ->dateTime('M j, Y g:i A')
-                    ->sortable()
-                    ->since()
-                    ->tooltip(fn ($state) => $state?->format('F j, Y \a\t g:i A')),
+                    ->tooltip(fn ($record) => $record->created_at?->format('F j, Y \a\t g:i A')),
 
                 TextColumn::make('updated_at')
-                    ->label('Last Updated')
-                    ->dateTime('M j, Y g:i A')
-                    ->sortable()
+                    ->label('Last Activity')
                     ->since()
+                    ->sortable()
+                    ->icon('heroicon-m-clock')
+                    ->iconColor('gray')
+                    ->size('sm')
+                    ->color('gray')
+                    ->tooltip(fn ($record) => $record->updated_at?->format('F j, Y \a\t g:i A'))
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('doctor_id')
-                    ->label('Doctor')
+                    ->label('Assigned Doctor')
                     ->relationship('doctor', 'name')
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    ->multiple()
+                    ->indicator('Doctor'),
 
                 Tables\Filters\TernaryFilter::make('hidden')
-                    ->label('Status')
-                    ->trueLabel('Hidden')
-                    ->falseLabel('Active')
-                    ->native(false),
+                    ->label('Patient Status')
+                    ->placeholder('All Patients')
+                    ->trueLabel('Hidden Patients')
+                    ->falseLabel('Active Patients')
+                    ->native(false)
+                    ->indicator('Status'),
 
-                Tables\Filters\Filter::make('answers_count')
+                Tables\Filters\Filter::make('registration_period')
+                    ->form([
+                        \Filament\Forms\Components\Grid::make(2)
+                            ->schema([
+                                \Filament\Forms\Components\DatePicker::make('registered_from')
+                                    ->label('Registered From')
+                                    ->placeholder('Select start date')
+                                    ->native(false),
+                                \Filament\Forms\Components\DatePicker::make('registered_until')
+                                    ->label('Registered Until')
+                                    ->placeholder('Select end date')
+                                    ->native(false),
+                            ]),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['registered_from'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                            )
+                            ->when(
+                                $data['registered_until'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                            );
+                    })
+                    ->indicator('Registration Period'),
+
+                Tables\Filters\Filter::make('answers_range')
                     ->form([
                         \Filament\Forms\Components\Grid::make(2)
                             ->schema([
                                 \Filament\Forms\Components\TextInput::make('min_answers')
-                                    ->label('Min Answers')
-                                    ->numeric(),
+                                    ->label('Minimum Answers')
+                                    ->numeric()
+                                    ->placeholder('e.g., 10'),
                                 \Filament\Forms\Components\TextInput::make('max_answers')
-                                    ->label('Max Answers')
-                                    ->numeric(),
+                                    ->label('Maximum Answers')
+                                    ->numeric()
+                                    ->placeholder('e.g., 100'),
                             ]),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
@@ -162,26 +271,85 @@ class PatientsResource extends Resource
                                 fn (Builder $query, $max): Builder => $query->withCount('answers')
                                     ->having('answers_count', '<=', $max),
                             );
-                    }),
+                    })
+                    ->indicator('Answer Count'),
 
-                Tables\Filters\Filter::make('created_at')
+                Tables\Filters\Filter::make('completion_rate')
                     ->form([
-                        \Filament\Forms\Components\DatePicker::make('created_from')
-                            ->label('Created From'),
-                        \Filament\Forms\Components\DatePicker::make('created_until')
-                            ->label('Created Until'),
+                        \Filament\Forms\Components\Select::make('completion_level')
+                            ->label('Completion Level')
+                            ->options([
+                                'high' => 'High (≥70%)',
+                                'medium' => 'Medium (30-69%)',
+                                'low' => 'Low (<30%)',
+                            ])
+                            ->placeholder('Select completion level'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when(
-                                $data['created_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
-                            )
-                            ->when(
-                                $data['created_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
-                            );
-                    }),
+                        if (! $data['completion_level']) {
+                            return $query;
+                        }
+
+                        $totalQuestions = Questions::count();
+                        if ($totalQuestions === 0) {
+                            return $query;
+                        }
+
+                        $operator = match ($data['completion_level']) {
+                            'high' => '>=',
+                            'medium' => '>=',
+                            'low' => '<',
+                            default => '>='
+                        };
+
+                        $threshold = match ($data['completion_level']) {
+                            'high' => round($totalQuestions * 0.7),
+                            'medium' => round($totalQuestions * 0.3),
+                            'low' => round($totalQuestions * 0.3),
+                            default => 0
+                        };
+
+                        return $query->withCount('answers')->having('answers_count', $operator, $threshold);
+                    })
+                    ->indicator('Completion'),
+
+                Tables\Filters\Filter::make('recent_activity')
+                    ->form([
+                        \Filament\Forms\Components\Select::make('activity_period')
+                            ->label('Recent Activity')
+                            ->options([
+                                '1' => 'Last 24 hours',
+                                '7' => 'Last week',
+                                '30' => 'Last month',
+                                '90' => 'Last 3 months',
+                            ])
+                            ->placeholder('Select time period'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (! $data['activity_period']) {
+                            return $query;
+                        }
+
+                        $days = (int) $data['activity_period'];
+
+                        return $query->where('updated_at', '>=', now()->subDays($days));
+                    })
+                    ->indicator('Recent Activity'),
+
+                Tables\Filters\SelectFilter::make('has_doctor')
+                    ->label('Doctor Assignment')
+                    ->options([
+                        'assigned' => 'Has Assigned Doctor',
+                        'unassigned' => 'No Doctor Assigned',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return match ($data['value'] ?? null) {
+                            'assigned' => $query->whereNotNull('doctor_id'),
+                            'unassigned' => $query->whereNull('doctor_id'),
+                            default => $query
+                        };
+                    })
+                    ->indicator('Assignment'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
@@ -221,9 +389,15 @@ class PatientsResource extends Resource
                     ->label('Clear Cache')
                     ->icon('heroicon-o-arrow-path')
                     ->color('warning')
+                    ->tooltip('Clear all patient-related cached data')
+                    ->requiresConfirmation()
+                    ->modalHeading('Clear Patient Cache')
+                    ->modalDescription('This will clear all cached statistics and patient data. Are you sure?')
                     ->action(function () {
                         Cache::forget('all_questions');
                         Cache::forget('patients_count');
+                        Cache::forget('patients_stats');
+                        Cache::forget('total_questions_count');
 
                         // Clear patient-specific caches
                         Patients::all()->each(function ($patient) {
@@ -235,6 +409,23 @@ class PatientsResource extends Resource
                             ->title('Cache Cleared')
                             ->body('All patient-related caches have been cleared.')
                             ->send();
+                    }),
+
+                Tables\Actions\Action::make('refreshStats')
+                    ->label('Refresh Statistics')
+                    ->icon('heroicon-o-chart-bar-square')
+                    ->color('info')
+                    ->tooltip('Refresh all statistics widgets')
+                    ->action(function () {
+                        Cache::forget('patients_stats');
+
+                        Notification::make()
+                            ->title('Statistics Refreshed')
+                            ->body('Patient statistics have been refreshed.')
+                            ->success()
+                            ->send();
+
+                        return redirect()->to(request()->url());
                     }),
             ])
             ->bulkActions([
@@ -260,7 +451,7 @@ class PatientsResource extends Resource
                 ]),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
+                // Create action removed as requested
             ])
             ->defaultSort('created_at', 'desc')
             ->persistSearchInSession()
@@ -268,7 +459,13 @@ class PatientsResource extends Resource
             ->persistSortInSession()
             ->persistFiltersInSession()
             ->striped()
-            ->poll('30s');
+            ->paginated([10, 25, 50, 100])
+            ->defaultPaginationPageOption(25)
+            ->poll('30s')
+            ->deferLoading()
+            ->emptyStateHeading('No patients found')
+            ->emptyStateDescription('Get started by creating your first patient record.')
+            ->emptyStateIcon('heroicon-o-users');
     }
 
     protected static function getTableQuery(): Builder
@@ -358,19 +555,19 @@ class PatientsResource extends Resource
     public static function startOptimizedExport()
     {
         try {
-            $timestamp = time() . '_' . uniqid();
+            $timestamp = time().'_'.uniqid();
             $filename = "patients_export_{$timestamp}.xlsx";
             $userId = auth()->id();
 
             // Check patient count to determine processing method
             $patientCount = Patients::count();
-            
+
             if ($patientCount > 1000) {
                 // Use background job for large datasets
-                Cache::put('export_progress_' . $filename, [
+                Cache::put('export_progress_'.$filename, [
                     'percentage' => 0,
                     'message' => 'Starting background export...',
-                    'updated_at' => now()
+                    'updated_at' => now(),
                 ], 3600);
 
                 ExportPatientsJob::dispatch($filename, 100, $userId);
@@ -382,7 +579,7 @@ class PatientsResource extends Resource
                     ->actions([
                         \Filament\Notifications\Actions\Action::make('checkProgress')
                             ->label('Check Progress')
-                            ->url('/export/progress/' . $filename, shouldOpenInNewTab: true)
+                            ->url('/export/progress/'.$filename, shouldOpenInNewTab: true),
                     ])
                     ->persistent()
                     ->send();
@@ -391,7 +588,7 @@ class PatientsResource extends Resource
             } else {
                 // Process immediately for smaller datasets
                 $result = static::exportAllPatientsSync();
-                
+
                 if ($result['success']) {
                     Notification::make()
                         ->success()
@@ -400,7 +597,7 @@ class PatientsResource extends Resource
                         ->actions([
                             \Filament\Notifications\Actions\Action::make('download')
                                 ->label('Download')
-                                ->url($result['file_url'], shouldOpenInNewTab: true)
+                                ->url($result['file_url'], shouldOpenInNewTab: true),
                         ])
                         ->send();
                 } else {
@@ -413,12 +610,12 @@ class PatientsResource extends Resource
             }
 
         } catch (\Exception $e) {
-            Log::error('Error starting optimized export: ' . $e->getMessage());
-            
+            Log::error('Error starting optimized export: '.$e->getMessage());
+
             Notification::make()
                 ->danger()
                 ->title('Export Failed')
-                ->body('Failed to start export: ' . $e->getMessage())
+                ->body('Failed to start export: '.$e->getMessage())
                 ->send();
         }
     }
@@ -443,11 +640,11 @@ class PatientsResource extends Resource
                 {
                     return Patients::with(['answers' => function ($query) {
                         $query->select(['id', 'patient_id', 'question_id', 'answer'])
-                              ->orderBy('question_id');
+                            ->orderBy('question_id');
                     }])
-                    ->select(['id', 'doctor_id', 'created_at', 'updated_at'])
-                    ->orderBy('id')
-                    ->get();
+                        ->select(['id', 'doctor_id', 'created_at', 'updated_at'])
+                        ->orderBy('id')
+                        ->get();
                 }
 
                 public function headings(): array
@@ -456,12 +653,13 @@ class PatientsResource extends Resource
                         'Patient ID',
                         'Doctor ID',
                         'Registration Date',
-                        'Last Updated'
+                        'Last Updated',
                     ];
 
                     foreach ($this->questions as $question) {
                         $headings[] = substr(preg_replace('/[^\w\s-]/', '', $question->question), 0, 100);
                     }
+
                     return $headings;
                 }
 
@@ -471,7 +669,7 @@ class PatientsResource extends Resource
                         $patient->id,
                         $patient->doctor_id,
                         $patient->created_at?->format('Y-m-d H:i:s'),
-                        $patient->updated_at?->format('Y-m-d H:i:s')
+                        $patient->updated_at?->format('Y-m-d H:i:s'),
                     ];
 
                     // Create lookup for faster access
@@ -479,13 +677,13 @@ class PatientsResource extends Resource
 
                     foreach ($this->questions as $question) {
                         $answer = $answerLookup->get($question->id);
-                        
+
                         if ($answer && $answer->answer) {
                             if (is_array($answer->answer)) {
-                                $filteredAnswer = array_filter($answer->answer, function($value) {
-                                    return !is_null($value) && $value !== '';
+                                $filteredAnswer = array_filter($answer->answer, function ($value) {
+                                    return ! is_null($value) && $value !== '';
                                 });
-                                $data[] = !empty($filteredAnswer) ? implode(', ', $filteredAnswer) : '';
+                                $data[] = ! empty($filteredAnswer) ? implode(', ', $filteredAnswer) : '';
                             } else {
                                 $data[] = (string) $answer->answer;
                             }
@@ -498,11 +696,11 @@ class PatientsResource extends Resource
                 }
             };
 
-            $timestamp = time() . '_' . uniqid();
+            $timestamp = time().'_'.uniqid();
             $filename = "patients_export_{$timestamp}.xlsx";
-            
-            Excel::store($export, 'exports/' . $filename, 'public');
-            $fileUrl = config('app.url') . '/storage/exports/' . $filename;
+
+            Excel::store($export, 'exports/'.$filename, 'public');
+            $fileUrl = config('app.url').'/storage/exports/'.$filename;
 
             Log::info('Successfully exported all patients to Excel (sync).', ['file_url' => $fileUrl]);
 
@@ -513,11 +711,11 @@ class PatientsResource extends Resource
             ];
 
         } catch (\Exception $e) {
-            Log::error('Error exporting patients to Excel (sync): ' . $e->getMessage());
+            Log::error('Error exporting patients to Excel (sync): '.$e->getMessage());
 
             return [
                 'success' => false,
-                'message' => 'Failed to export data: ' . $e->getMessage(),
+                'message' => 'Failed to export data: '.$e->getMessage(),
             ];
         }
     }

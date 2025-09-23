@@ -67,6 +67,7 @@ class PatientsResource extends Resource
 
                 Tables\Columns\Layout\Stack::make([
                     TextColumn::make('doctor.name')
+                        ->label('Assigned Doctor')
                         ->searchable(['name', 'email'])
                         ->sortable()
                         ->limit(25)
@@ -93,11 +94,11 @@ class PatientsResource extends Resource
                         ->size('xs')
                         ->color('gray'),
                 ])
-                    ->space(1)
-                    ->label('Assigned Doctor'),
+                    ->space(1),
 
                 Tables\Columns\Layout\Stack::make([
                     TextColumn::make('answers_count')
+                        ->label('Progress')
                         ->badge()
                         ->color(fn ($state) => match (true) {
                             $state >= 50 => 'success',
@@ -130,7 +131,6 @@ class PatientsResource extends Resource
                         ->suffix(' complete'),
                 ])
                     ->space(1)
-                    ->label('Progress')
                     ->alignCenter(),
 
                 TextColumn::make('sections_answered')
@@ -151,6 +151,7 @@ class PatientsResource extends Resource
 
                 Tables\Columns\Layout\Stack::make([
                     Tables\Columns\IconColumn::make('hidden')
+                        ->label('Status')
                         ->boolean()
                         ->trueIcon('heroicon-m-eye-slash')
                         ->falseIcon('heroicon-m-eye')
@@ -166,11 +167,11 @@ class PatientsResource extends Resource
                         ->size('xs'),
                 ])
                     ->space(1)
-                    ->label('Status')
                     ->alignCenter(),
 
                 Tables\Columns\Layout\Stack::make([
                     TextColumn::make('created_at')
+                        ->label('Registered')
                         ->dateTime('M j, Y')
                         ->sortable()
                         ->icon('heroicon-m-calendar-days')
@@ -184,7 +185,6 @@ class PatientsResource extends Resource
                         ->prefix('• '),
                 ])
                     ->space(1)
-                    ->label('Registered')
                     ->tooltip(fn ($record) => $record->created_at?->format('F j, Y \a\t g:i A')),
 
                 TextColumn::make('updated_at')

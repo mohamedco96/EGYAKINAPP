@@ -150,6 +150,7 @@ return [
             'health*',
             'ping*',
             'status*',
+            // 'api/*/upload*', // Uncomment to skip file upload endpoints
         ],
 
         /*

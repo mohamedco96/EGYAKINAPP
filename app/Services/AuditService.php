@@ -254,7 +254,37 @@ class AuditService
 
         $data = $request->all();
 
+        // Handle file uploads - convert to serializable format
+        $data = $this->processFileUploads($data);
+
         return $this->filterSensitiveData($data);
+    }
+
+    /**
+     * Process file uploads to make them serializable.
+     */
+    protected function processFileUploads(array $data): array
+    {
+        foreach ($data as $key => $value) {
+            if ($value instanceof \Illuminate\Http\UploadedFile) {
+                // Convert UploadedFile to serializable array
+                $data[$key] = [
+                    '_file_info' => [
+                        'original_name' => $value->getClientOriginalName(),
+                        'mime_type' => $value->getClientMimeType(),
+                        'size' => $value->getSize(),
+                        'extension' => $value->getClientOriginalExtension(),
+                        'is_valid' => $value->isValid(),
+                        'error' => $value->getError(),
+                    ],
+                ];
+            } elseif (is_array($value)) {
+                // Recursively process nested arrays
+                $data[$key] = $this->processFileUploads($value);
+            }
+        }
+
+        return $data;
     }
 
     /**

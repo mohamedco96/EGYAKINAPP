@@ -47,8 +47,8 @@ class AuditMiddleware
      */
     protected function shouldSkipAudit(Request $request): bool
     {
-        // Skip health checks and monitoring endpoints
-        $skipRoutes = [
+        // Get skip routes from configuration
+        $skipRoutes = config('audit.http.skip_routes', [
             'telescope*',
             'horizon*',
             '_debugbar*',
@@ -56,7 +56,7 @@ class AuditMiddleware
             'health*',
             'ping*',
             'status*',
-        ];
+        ]);
 
         foreach ($skipRoutes as $pattern) {
             if (Str::is($pattern, $request->path())) {
@@ -166,6 +166,9 @@ class AuditMiddleware
      */
     protected function filterSensitiveData(array $data): array
     {
+        // First process file uploads
+        $data = $this->processFileUploads($data);
+
         $sensitiveFields = [
             'password',
             'password_confirmation',
@@ -183,6 +186,33 @@ class AuditMiddleware
         foreach ($sensitiveFields as $field) {
             if (isset($data[$field])) {
                 $data[$field] = '[FILTERED]';
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Process file uploads to make them serializable.
+     */
+    protected function processFileUploads(array $data): array
+    {
+        foreach ($data as $key => $value) {
+            if ($value instanceof \Illuminate\Http\UploadedFile) {
+                // Convert UploadedFile to serializable array
+                $data[$key] = [
+                    '_file_info' => [
+                        'original_name' => $value->getClientOriginalName(),
+                        'mime_type' => $value->getClientMimeType(),
+                        'size' => $value->getSize(),
+                        'extension' => $value->getClientOriginalExtension(),
+                        'is_valid' => $value->isValid(),
+                        'error' => $value->getError(),
+                    ],
+                ];
+            } elseif (is_array($value)) {
+                // Recursively process nested arrays
+                $data[$key] = $this->processFileUploads($value);
             }
         }
 

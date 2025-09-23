@@ -77,7 +77,6 @@ class PatientsResource extends Resource
                         })
                         ->placeholder('Unassigned')
                         ->icon('heroicon-m-user-circle')
-                        ->iconColor('primary')
                         ->weight('medium')
                         ->size('sm'),
 
@@ -91,7 +90,6 @@ class PatientsResource extends Resource
                         })
                         ->placeholder('No email')
                         ->icon('heroicon-m-envelope')
-                        ->iconColor('gray')
                         ->size('xs')
                         ->color('gray'),
                 ])
@@ -176,7 +174,6 @@ class PatientsResource extends Resource
                         ->dateTime('M j, Y')
                         ->sortable()
                         ->icon('heroicon-m-calendar-days')
-                        ->iconColor('primary')
                         ->size('sm')
                         ->weight('medium'),
 
@@ -195,7 +192,6 @@ class PatientsResource extends Resource
                     ->since()
                     ->sortable()
                     ->icon('heroicon-m-clock')
-                    ->iconColor('gray')
                     ->size('sm')
                     ->color('gray')
                     ->tooltip(fn ($record) => $record->updated_at?->format('F j, Y \a\t g:i A'))

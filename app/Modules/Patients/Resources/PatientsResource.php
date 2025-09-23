@@ -182,10 +182,10 @@ class PatientsResource extends Resource
                         ->since()
                         ->size('xs')
                         ->color('gray')
-                        ->prefix('• '),
+                        ->prefix('• ')
+                        ->tooltip(fn ($record) => $record->created_at?->format('F j, Y \a\t g:i A')),
                 ])
-                    ->space(1)
-                    ->tooltip(fn ($record) => $record->created_at?->format('F j, Y \a\t g:i A')),
+                    ->space(1),
 
                 TextColumn::make('updated_at')
                     ->label('Last Activity')

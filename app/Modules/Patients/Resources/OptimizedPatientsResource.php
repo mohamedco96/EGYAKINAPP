@@ -20,7 +20,7 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Facades\Excel;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
-class PatientsResource extends Resource
+class OptimizedPatientsResource extends Resource
 {
     protected static ?string $model = Patients::class;
 
@@ -184,16 +184,10 @@ class PatientsResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
-                    ->label('Quick View')
-                    ->modalHeading(fn ($record) => "Patient #{$record->id} Overview")
+                    ->label('View Details')
+                    ->modalHeading(fn ($record) => "Patient #{$record->id} Details")
                     ->modalContent(view('filament.patients.view-modal'))
-                    ->modalWidth('6xl'),
-
-                Tables\Actions\Action::make('viewFull')
-                    ->label('Full Details')
-                    ->icon('heroicon-o-eye')
-                    ->color('info')
-                    ->url(fn ($record) => static::getUrl('view', ['record' => $record])),
+                    ->modalWidth('7xl'),
 
                 Tables\Actions\EditAction::make(),
 
@@ -303,7 +297,6 @@ class PatientsResource extends Resource
         return [
             'index' => Pages\ListPatients::route('/'),
             'create' => Pages\CreatePatients::route('/create'),
-            'view' => Pages\ViewPatient::route('/{record}'),
             'edit' => Pages\EditPatients::route('/{record}/edit'),
         ];
     }

@@ -71,6 +71,7 @@ class PatientsResource extends Resource
                     ->limit(30)
                     ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
+
                         return strlen($state) > 30 ? $state : null;
                     }),
 
@@ -81,6 +82,7 @@ class PatientsResource extends Resource
                     ->limit(35)
                     ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
+
                         return strlen($state) > 35 ? $state : null;
                     })
                     ->toggleable(isToggledHiddenByDefault: true),

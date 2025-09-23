@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Modules\Achievements\Models\Achievement;
+use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Patients\Models\Patients;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;

@@ -42,32 +42,49 @@ class ViewPatient extends ViewRecord
 
     protected function getViewData(): array
     {
-        $patient = $this->record->load(['answers.question', 'doctor']);
+        try {
+            $patient = $this->record->load(['answers.question', 'doctor']);
 
-        // Group answers by section
-        $answersBySection = $patient->answers
-            ->groupBy(function ($answer) {
-                return $answer->question->section_name ?? 'Uncategorized';
-            })
-            ->map(function ($sectionAnswers) {
-                return $sectionAnswers->sortBy('question.sort');
+            // Group answers by section with safety checks
+            $answersBySection = $patient->answers
+                ->filter(function ($answer) {
+                    // Only include answers that have a valid question
+                    return $answer->question !== null;
+                })
+                ->groupBy(function ($answer) {
+                    return $answer->question->section_name ?? 'Uncategorized';
+                })
+                ->map(function ($sectionAnswers) {
+                    return $sectionAnswers->sortBy(function ($answer) {
+                        return $answer->question->sort ?? 0;
+                    });
+                });
+
+            // Get completion statistics
+            $totalQuestions = Cache::remember('total_questions_count', 300, function () {
+                return Questions::count();
             });
 
-        // Get completion statistics
-        $totalQuestions = Cache::remember('total_questions_count', 300, function () {
-            return Questions::count();
-        });
+            $completionRate = $totalQuestions > 0
+                ? round(($patient->answers->count() / $totalQuestions) * 100, 1)
+                : 0;
 
-        $completionRate = $totalQuestions > 0
-            ? round(($patient->answers->count() / $totalQuestions) * 100, 1)
-            : 0;
-
-        return [
-            'patient' => $patient,
-            'answersBySection' => $answersBySection,
-            'totalQuestions' => $totalQuestions,
-            'completionRate' => $completionRate,
-            'sectionsCount' => $answersBySection->count(),
-        ];
+            return [
+                'patient' => $patient,
+                'answersBySection' => $answersBySection,
+                'totalQuestions' => $totalQuestions,
+                'completionRate' => $completionRate,
+                'sectionsCount' => $answersBySection->count(),
+            ];
+        } catch (\Exception $e) {
+            // Fallback data if there's an error
+            return [
+                'patient' => $this->record->load('doctor'),
+                'answersBySection' => collect(),
+                'totalQuestions' => 0,
+                'completionRate' => 0,
+                'sectionsCount' => 0,
+            ];
+        }
     }
 }

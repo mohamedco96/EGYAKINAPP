@@ -140,12 +140,27 @@
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <p class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                                                {{ $answer->question->question }}
+                                                {{ $answer->question->question ?? 'Question not found' }}
                                             </p>
                                             <div class="bg-gray-100 dark:bg-gray-600 rounded-lg p-3">
-                                                <p class="text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">
-                                                    {{ $answer->answer ?: 'No answer provided' }}
-                                                </p>
+                                                <div class="text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">
+                                                    @php
+                                                        $displayAnswer = 'No answer provided';
+                                                        if ($answer->answer) {
+                                                            if (is_array($answer->answer)) {
+                                                                $filteredAnswer = array_filter($answer->answer, function($value) {
+                                                                    return !is_null($value) && $value !== '';
+                                                                });
+                                                                $displayAnswer = !empty($filteredAnswer) ? implode(', ', $filteredAnswer) : 'No answer provided';
+                                                            } elseif (is_string($answer->answer) || is_numeric($answer->answer)) {
+                                                                $displayAnswer = (string) $answer->answer;
+                                                            } else {
+                                                                $displayAnswer = json_encode($answer->answer);
+                                                            }
+                                                        }
+                                                    @endphp
+                                                    {{ $displayAnswer }}
+                                                </div>
                                             </div>
                                             @if($answer->created_at)
                                                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">

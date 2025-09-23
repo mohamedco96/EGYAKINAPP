@@ -103,7 +103,22 @@
                                 {{ $answer->question->question ?? 'Question not found' }}
                             </p>
                             <p class="text-sm text-gray-600 dark:text-gray-400 break-words">
-                                {{ $answer->answer }}
+                                @php
+                                    $displayAnswer = 'No answer provided';
+                                    if ($answer->answer) {
+                                        if (is_array($answer->answer)) {
+                                            $filteredAnswer = array_filter($answer->answer, function($value) {
+                                                return !is_null($value) && $value !== '';
+                                            });
+                                            $displayAnswer = !empty($filteredAnswer) ? implode(', ', $filteredAnswer) : 'No answer provided';
+                                        } elseif (is_string($answer->answer) || is_numeric($answer->answer)) {
+                                            $displayAnswer = (string) $answer->answer;
+                                        } else {
+                                            $displayAnswer = json_encode($answer->answer);
+                                        }
+                                    }
+                                @endphp
+                                {{ $displayAnswer }}
                             </p>
                         </div>
                         <span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">

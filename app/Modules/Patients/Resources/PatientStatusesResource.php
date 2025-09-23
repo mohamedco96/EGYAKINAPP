@@ -45,6 +45,9 @@ class PatientStatusesResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('patient_id')
                     ->label('Patient ID')
+                    ->getStateUsing(function ($record) {
+                        return (string) $record->patient_id;
+                    })
                     ->searchable()
                     ->sortable()
                     ->badge()
@@ -100,47 +103,39 @@ class PatientStatusesResource extends Resource
                 Tables\Columns\TextColumn::make('all_sections_status')
                     ->label('All Sections Status')
                     ->getStateUsing(function ($record) {
+                        // Ensure we have a valid patient_id
+                        if (! isset($record->patient_id) || ! $record->patient_id) {
+                            return 'No sections';
+                        }
+
                         return Cache::remember("patient_all_sections_{$record->patient_id}", 300, function () use ($record) {
                             $sections = PatientStatus::where('patient_id', $record->patient_id)
                                 ->where('key', 'LIKE', 'section_%')
                                 ->orderBy('key')
                                 ->get();
 
-                            $sectionStatuses = [];
+                            if ($sections->isEmpty()) {
+                                return 'No sections';
+                            }
+
+                            $html = '<div class="space-y-1">';
                             foreach ($sections as $section) {
                                 $sectionId = str_replace('section_', '', $section->key);
                                 $sectionInfo = SectionsInfo::find($sectionId);
                                 $name = $sectionInfo?->section_name ?? "Section {$sectionId}";
                                 $status = $section->status ? '✅' : '❌';
-                                $statusText = $section->status ? 'Completed' : 'Pending';
+                                $completed = $section->status;
 
-                                $sectionStatuses[] = [
-                                    'icon' => $status,
-                                    'name' => $name,
-                                    'status' => $statusText,
-                                    'completed' => $section->status,
-                                ];
+                                $colorClass = $completed ? 'text-green-600 bg-green-50' : 'text-orange-600 bg-orange-50';
+                                $html .= '<div class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium '.$colorClass.' mr-1 mb-1">';
+                                $html .= '<span>'.$status.'</span>';
+                                $html .= '<span>'.$name.'</span>';
+                                $html .= '</div>';
                             }
-
-                            return $sectionStatuses;
-                        });
-                    })
-                    ->formatStateUsing(function ($state) {
-                        if (! is_array($state)) {
-                            return 'No sections';
-                        }
-
-                        $html = '<div class="space-y-1">';
-                        foreach ($state as $section) {
-                            $colorClass = $section['completed'] ? 'text-green-600 bg-green-50' : 'text-orange-600 bg-orange-50';
-                            $html .= '<div class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium '.$colorClass.' mr-1 mb-1">';
-                            $html .= '<span>'.$section['icon'].'</span>';
-                            $html .= '<span>'.$section['name'].'</span>';
                             $html .= '</div>';
-                        }
-                        $html .= '</div>';
 
-                        return $html;
+                            return $html;
+                        });
                     })
                     ->html()
                     ->wrap(),
@@ -157,28 +152,17 @@ class PatientStatusesResource extends Resource
                             $completed = $sections->where('status', true)->count();
                             $percentage = $total > 0 ? round(($completed / $total) * 100) : 0;
 
-                            return [
-                                'completed' => $completed,
-                                'total' => $total,
-                                'percentage' => $percentage,
-                            ];
+                            $color = match (true) {
+                                $percentage >= 80 => 'success',
+                                $percentage >= 50 => 'warning',
+                                default => 'danger'
+                            };
+
+                            return '<div class="text-center">
+                                <div class="font-semibold text-'.$color.'-600">'.$percentage.'%</div>
+                                <div class="text-xs text-gray-500">'.$completed.'/'.$total.' completed</div>
+                            </div>';
                         });
-                    })
-                    ->formatStateUsing(function ($state) {
-                        if (! is_array($state)) {
-                            return 'N/A';
-                        }
-
-                        $color = match (true) {
-                            $state['percentage'] >= 80 => 'success',
-                            $state['percentage'] >= 50 => 'warning',
-                            default => 'danger'
-                        };
-
-                        return '<div class="text-center">
-                            <div class="font-semibold text-'.$color.'-600">'.$state['percentage'].'%</div>
-                            <div class="text-xs text-gray-500">'.$state['completed'].'/'.$state['total'].' completed</div>
-                        </div>';
                     })
                     ->html()
                     ->alignCenter(),
@@ -191,15 +175,22 @@ class PatientStatusesResource extends Resource
                             ->latest('updated_at')
                             ->first();
 
-                        return $lastUpdate?->updated_at;
+                        if ($lastUpdate && $lastUpdate->updated_at) {
+                            return $lastUpdate->updated_at->since();
+                        }
+
+                        return 'No activity';
                     })
-                    ->dateTime('M j, Y g:i A')
                     ->sortable()
-                    ->since()
                     ->color('gray')
                     ->size('sm')
-                    ->tooltip(function ($state) {
-                        return $state?->format('F j, Y \a\t g:i:s A');
+                    ->tooltip(function ($record) {
+                        $lastUpdate = PatientStatus::where('patient_id', $record->patient_id)
+                            ->where('key', 'LIKE', 'section_%')
+                            ->latest('updated_at')
+                            ->first();
+
+                        return $lastUpdate?->updated_at?->format('F j, Y \a\t g:i:s A') ?? 'No activity';
                     }),
             ])
             ->filters([

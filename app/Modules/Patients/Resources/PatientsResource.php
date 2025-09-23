@@ -61,77 +61,40 @@ class PatientsResource extends Resource
                     ->sortable()
                     ->badge()
                     ->color('primary')
-                    ->prefix('#')
-                    ->size('sm')
-                    ->weight('bold'),
+                    ->prefix('#'),
 
-                Tables\Columns\Layout\Stack::make([
-                    TextColumn::make('doctor.name')
-                        ->label('Assigned Doctor')
-                        ->searchable(['name', 'email'])
-                        ->sortable()
-                        ->limit(25)
-                        ->tooltip(function (TextColumn $column): ?string {
-                            $state = $column->getState();
+                TextColumn::make('doctor.name')
+                    ->label('Doctor')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('Unassigned')
+                    ->limit(30)
+                    ->tooltip(function (TextColumn $column): ?string {
+                        $state = $column->getState();
+                        return strlen($state) > 30 ? $state : null;
+                    }),
 
-                            return strlen($state) > 25 ? $state : null;
-                        })
-                        ->placeholder('Unassigned')
-                        ->icon('heroicon-m-user-circle')
-                        ->weight('medium')
-                        ->size('sm'),
+                TextColumn::make('doctor.email')
+                    ->label('Doctor Email')
+                    ->searchable()
+                    ->placeholder('No email')
+                    ->limit(35)
+                    ->tooltip(function (TextColumn $column): ?string {
+                        $state = $column->getState();
+                        return strlen($state) > 35 ? $state : null;
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
 
-                    TextColumn::make('doctor.email')
-                        ->searchable()
-                        ->limit(30)
-                        ->tooltip(function (TextColumn $column): ?string {
-                            $state = $column->getState();
-
-                            return strlen($state) > 30 ? $state : null;
-                        })
-                        ->placeholder('No email')
-                        ->icon('heroicon-m-envelope')
-                        ->size('xs')
-                        ->color('gray'),
-                ])
-                    ->space(1),
-
-                Tables\Columns\Layout\Stack::make([
-                    TextColumn::make('answers_count')
-                        ->label('Progress')
-                        ->badge()
-                        ->color(fn ($state) => match (true) {
-                            $state >= 50 => 'success',
-                            $state >= 20 => 'warning',
-                            default => 'danger',
-                        })
-                        ->suffix(' answers')
-                        ->counts('answers')
-                        ->sortable()
-                        ->size('sm'),
-
-                    TextColumn::make('completion_percentage')
-                        ->getStateUsing(function ($record) {
-                            $totalQuestions = Cache::remember('total_questions_count', 3600, fn () => Questions::count());
-                            if ($totalQuestions === 0) {
-                                return '0%';
-                            }
-
-                            $percentage = round(($record->answers_count / $totalQuestions) * 100, 1);
-
-                            return $percentage.'%';
-                        })
-                        ->badge()
-                        ->color(fn ($state) => match (true) {
-                            (float) str_replace('%', '', $state) >= 70 => 'success',
-                            (float) str_replace('%', '', $state) >= 30 => 'warning',
-                            default => 'danger',
-                        })
-                        ->size('xs')
-                        ->suffix(' complete'),
-                ])
-                    ->space(1)
-                    ->alignCenter(),
+                TextColumn::make('answers_count')
+                    ->label('Answers')
+                    ->badge()
+                    ->color(fn ($state) => match (true) {
+                        $state >= 50 => 'success',
+                        $state >= 20 => 'warning',
+                        default => 'danger',
+                    })
+                    ->counts('answers')
+                    ->sortable(),
 
                 TextColumn::make('sections_answered')
                     ->label('Sections')
@@ -144,56 +107,27 @@ class PatientsResource extends Resource
                         });
                     })
                     ->badge()
-                    ->color('info')
-                    ->suffix(' sections')
-                    ->alignCenter()
-                    ->size('sm'),
+                    ->color('info'),
 
-                Tables\Columns\Layout\Stack::make([
-                    Tables\Columns\IconColumn::make('hidden')
-                        ->label('Status')
-                        ->boolean()
-                        ->trueIcon('heroicon-m-eye-slash')
-                        ->falseIcon('heroicon-m-eye')
-                        ->trueColor('danger')
-                        ->falseColor('success')
-                        ->tooltip(fn ($state) => $state ? 'Hidden Patient' : 'Active Patient')
-                        ->size('sm'),
+                Tables\Columns\IconColumn::make('hidden')
+                    ->label('Status')
+                    ->boolean()
+                    ->trueIcon('heroicon-m-eye-slash')
+                    ->falseIcon('heroicon-m-eye')
+                    ->trueColor('danger')
+                    ->falseColor('success')
+                    ->tooltip(fn ($state) => $state ? 'Hidden' : 'Active'),
 
-                    TextColumn::make('status_text')
-                        ->getStateUsing(fn ($record) => $record->hidden ? 'Hidden' : 'Active')
-                        ->badge()
-                        ->color(fn ($record) => $record->hidden ? 'danger' : 'success')
-                        ->size('xs'),
-                ])
-                    ->space(1)
-                    ->alignCenter(),
-
-                Tables\Columns\Layout\Stack::make([
-                    TextColumn::make('created_at')
-                        ->label('Registered')
-                        ->dateTime('M j, Y')
-                        ->sortable()
-                        ->icon('heroicon-m-calendar-days')
-                        ->size('sm')
-                        ->weight('medium'),
-
-                    TextColumn::make('created_at')
-                        ->since()
-                        ->size('xs')
-                        ->color('gray')
-                        ->prefix('• ')
-                        ->tooltip(fn ($record) => $record->created_at?->format('F j, Y \a\t g:i A')),
-                ])
-                    ->space(1),
+                TextColumn::make('created_at')
+                    ->label('Registered')
+                    ->dateTime('M j, Y')
+                    ->sortable()
+                    ->tooltip(fn ($record) => $record->created_at?->format('F j, Y \a\t g:i A')),
 
                 TextColumn::make('updated_at')
                     ->label('Last Activity')
                     ->since()
                     ->sortable()
-                    ->icon('heroicon-m-clock')
-                    ->size('sm')
-                    ->color('gray')
                     ->tooltip(fn ($record) => $record->updated_at?->format('F j, Y \a\t g:i A'))
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -450,18 +384,9 @@ class PatientsResource extends Resource
                 // Create action removed as requested
             ])
             ->defaultSort('created_at', 'desc')
-            ->persistSearchInSession()
-            ->persistColumnSearchesInSession()
-            ->persistSortInSession()
-            ->persistFiltersInSession()
             ->striped()
             ->paginated([10, 25, 50, 100])
-            ->defaultPaginationPageOption(25)
-            ->poll('30s')
-            ->deferLoading()
-            ->emptyStateHeading('No patients found')
-            ->emptyStateDescription('Get started by creating your first patient record.')
-            ->emptyStateIcon('heroicon-o-users');
+            ->defaultPaginationPageOption(25);
     }
 
     protected static function getTableQuery(): Builder

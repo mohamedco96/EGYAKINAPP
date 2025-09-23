@@ -36,7 +36,7 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            \App\Http\Middleware\AuditMiddleware::class, // Add after session middleware
+            // \App\Http\Middleware\AuditMiddleware::class, // DISABLED FOR DEV
         ],
 
         'api' => [
@@ -44,7 +44,7 @@ class Kernel extends HttpKernel
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\SetLocale::class,
-            \App\Http\Middleware\AuditMiddleware::class,
+            // \App\Http\Middleware\AuditMiddleware::class, // DISABLED FOR DEV
         ],
     ];
 

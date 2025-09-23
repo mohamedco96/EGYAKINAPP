@@ -284,6 +284,8 @@ return [
     'notification_post_liked' => 'Dr. :name liked your post',
     'notification_post_commented' => 'Dr. :name commented on your post',
     'notification_comment_liked' => 'Dr. :name liked your comment',
+    'notification_group_post_created' => 'Dr. :name posted in your group',
+    'notification_post_created' => 'Dr. :name added a new post',
     'notification_group_invitation' => 'Dr. :name invited you to his group',
     'notification_group_invitation_accepted' => 'Dr. :name accepted your group invitation',
     'notification_group_join_request' => 'Dr. :name requested to join group',

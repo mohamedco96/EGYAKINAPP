@@ -284,6 +284,8 @@ return [
     'notification_post_liked' => 'د. :name أعجب بمنشورك',
     'notification_post_commented' => 'د. :name علق على منشورك',
     'notification_comment_liked' => 'د. :name أعجب بتعليقك',
+    'notification_group_post_created' => 'د. :name نشر في مجموعتك',
+    'notification_post_created' => 'د. :name أضاف منشوراً جديداً',
     'notification_group_invitation' => 'د. :name دعاك إلى مجموعته',
     'notification_group_invitation_accepted' => 'د. :name قبل دعوتك للمجموعة',
     'notification_group_join_request' => 'د. :name طلب الانضمام إلى المجموعة',

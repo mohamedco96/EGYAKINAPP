@@ -1095,21 +1095,21 @@ class FeedPostController extends Controller
             return [];
         }
 
-        $notifications = $doctors->map(function ($doctorId) use ($post, $doctorName, $user) {
-            return [
+        // Create localized notifications for each doctor
+        foreach ($doctors as $doctorId) {
+            AppNotification::createLocalized([
                 'doctor_id' => $doctorId,
                 'type' => $post->group_id ? 'GroupPost' : 'Post',
                 'type_id' => $post->id,
-                'content' => $post->group_id
-                    ? sprintf('Dr. %s posted in your group', $doctorName)
-                    : sprintf('Dr. %s added a new post', $doctorName),
+                'localization_key' => $post->group_id
+                    ? 'api.notification_group_post_created'
+                    : 'api.notification_post_created',
+                'localization_params' => [
+                    'name' => $doctorName,
+                ],
                 'type_doctor_id' => $user->id,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
-        })->toArray();
-
-        AppNotification::insert($notifications);
+            ]);
+        }
 
         $tokens = FcmToken::whereIn('doctor_id', $doctors)
             ->pluck('token')

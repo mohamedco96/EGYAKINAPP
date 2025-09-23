@@ -238,13 +238,20 @@ class NotificationService
                 ];
             }
 
+            // Get localized content for the current user
+            $currentUser = auth()->user();
+            $userLocale = $currentUser ? $currentUser->locale : 'en';
+
+            $notificationData = $notification->toArray();
+            $notificationData['content'] = $notification->getLocalizedContent($userLocale);
+
             Log::info('Notification fetched successfully', [
                 'notification_id' => $id,
             ]);
 
             return [
                 'value' => true,
-                'data' => $notification,
+                'data' => $notificationData,
             ];
         } catch (\Exception $e) {
             Log::error('Failed to fetch notification', [
@@ -269,6 +276,19 @@ class NotificationService
 
             $unreadCount = $notifications->where('read', false)->count();
 
+            // Transform notifications to include localized content
+            $currentUser = auth()->user();
+            $userLocale = $currentUser ? $currentUser->locale : 'en';
+
+            $localizedNotifications = $notifications->map(function ($notification) use ($userLocale) {
+                // Create a copy of the notification attributes
+                $notificationData = $notification->toArray();
+                // Replace content with localized version
+                $notificationData['content'] = $notification->getLocalizedContent($userLocale);
+
+                return $notificationData;
+            });
+
             Log::info('User notifications fetched successfully', [
                 'doctor_id' => $doctorId,
                 'total_count' => $notifications->count(),
@@ -278,7 +298,7 @@ class NotificationService
             return [
                 'value' => true,
                 'unreadCount' => $unreadCount,
-                'data' => $notifications,
+                'data' => $localizedNotifications,
             ];
         } catch (\Exception $e) {
             Log::error('Failed to fetch user notifications', [
@@ -580,10 +600,14 @@ class NotificationService
                 ];
             }
 
+            // Get the current user's locale for localized content
+            $currentUser = auth()->user();
+            $userLocale = $currentUser ? $currentUser->locale : 'en';
+
             return [
                 'id' => $notification->id,
                 'read' => $notification->read,
-                'content' => $notification->content,
+                'content' => $notification->getLocalizedContent($userLocale),
                 'type' => $notification->type,
                 'type_id' => $notification->type_id,
                 'patient_id' => strval($notification->patient_id),

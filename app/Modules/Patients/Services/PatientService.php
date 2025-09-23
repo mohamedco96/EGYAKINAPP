@@ -287,21 +287,23 @@ class PatientService
             return;
         }
 
-        // Bulk insert notifications for admins
-        $notificationsToInsert = [];
+        // Create localized notifications for each admin based on their locale preference
         foreach ($adminUsers as $adminId) {
-            $notificationsToInsert[] = [
+            $admin = User::find($adminId);
+            $adminLocale = $admin ? $admin->locale : 'en';
+
+            AppNotification::createLocalized([
                 'doctor_id' => $adminId,
                 'type' => 'New Patient',
-                'content' => sprintf('Dr. %s created a new patient: %s', $user->name.' '.$user->lname, $patientName ?? 'Unknown'),
+                'localization_key' => 'api.notification_new_patient',
+                'localization_params' => [
+                    'name' => $user->name.' '.$user->lname,
+                    'patient' => $patientName ?? 'Unknown',
+                ],
                 'patient_id' => $patientId,
                 'type_doctor_id' => $user->id,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
+            ]);
         }
-
-        AppNotification::insert($notificationsToInsert);
 
         // Send push notifications to admins
         $title = __('api.new_patient_created');

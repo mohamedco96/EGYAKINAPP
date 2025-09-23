@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class PatientStatusesResource extends Resource
 {
@@ -76,11 +77,18 @@ class PatientStatusesResource extends Resource
                     ->icon('heroicon-m-user')
                     ->weight('medium'),
 
-                Tables\Columns\TextColumn::make('patient.doctor.name')
+                Tables\Columns\TextColumn::make('doctor_name')
                     ->label('Assigned Doctor')
+                    ->getStateUsing(function ($record) {
+                        return Cache::remember("patient_doctor_{$record->patient_id}", 300, function () use ($record) {
+                            $patient = \App\Modules\Patients\Models\Patients::with('doctor')
+                                ->find($record->patient_id);
+
+                            return $patient?->doctor?->name ?? 'Unassigned';
+                        });
+                    })
                     ->searchable()
                     ->sortable()
-                    ->placeholder('Unassigned')
                     ->limit(25)
                     ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
                         $state = $column->getState();
@@ -105,12 +113,12 @@ class PatientStatusesResource extends Resource
                                 $name = $sectionInfo?->section_name ?? "Section {$sectionId}";
                                 $status = $section->status ? '✅' : '❌';
                                 $statusText = $section->status ? 'Completed' : 'Pending';
-                                
+
                                 $sectionStatuses[] = [
                                     'icon' => $status,
                                     'name' => $name,
                                     'status' => $statusText,
-                                    'completed' => $section->status
+                                    'completed' => $section->status,
                                 ];
                             }
 
@@ -118,18 +126,20 @@ class PatientStatusesResource extends Resource
                         });
                     })
                     ->formatStateUsing(function ($state) {
-                        if (!is_array($state)) return 'No sections';
-                        
+                        if (! is_array($state)) {
+                            return 'No sections';
+                        }
+
                         $html = '<div class="space-y-1">';
                         foreach ($state as $section) {
                             $colorClass = $section['completed'] ? 'text-green-600 bg-green-50' : 'text-orange-600 bg-orange-50';
-                            $html .= '<div class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ' . $colorClass . ' mr-1 mb-1">';
-                            $html .= '<span>' . $section['icon'] . '</span>';
-                            $html .= '<span>' . $section['name'] . '</span>';
+                            $html .= '<div class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium '.$colorClass.' mr-1 mb-1">';
+                            $html .= '<span>'.$section['icon'].'</span>';
+                            $html .= '<span>'.$section['name'].'</span>';
                             $html .= '</div>';
                         }
                         $html .= '</div>';
-                        
+
                         return $html;
                     })
                     ->html()
@@ -150,22 +160,24 @@ class PatientStatusesResource extends Resource
                             return [
                                 'completed' => $completed,
                                 'total' => $total,
-                                'percentage' => $percentage
+                                'percentage' => $percentage,
                             ];
                         });
                     })
                     ->formatStateUsing(function ($state) {
-                        if (!is_array($state)) return 'N/A';
-                        
+                        if (! is_array($state)) {
+                            return 'N/A';
+                        }
+
                         $color = match (true) {
                             $state['percentage'] >= 80 => 'success',
                             $state['percentage'] >= 50 => 'warning',
                             default => 'danger'
                         };
-                        
+
                         return '<div class="text-center">
-                            <div class="font-semibold text-' . $color . '-600">' . $state['percentage'] . '%</div>
-                            <div class="text-xs text-gray-500">' . $state['completed'] . '/' . $state['total'] . ' completed</div>
+                            <div class="font-semibold text-'.$color.'-600">'.$state['percentage'].'%</div>
+                            <div class="text-xs text-gray-500">'.$state['completed'].'/'.$state['total'].' completed</div>
                         </div>';
                     })
                     ->html()
@@ -178,7 +190,7 @@ class PatientStatusesResource extends Resource
                             ->where('key', 'LIKE', 'section_%')
                             ->latest('updated_at')
                             ->first();
-                            
+
                         return $lastUpdate?->updated_at;
                     })
                     ->dateTime('M j, Y g:i A')
@@ -313,7 +325,7 @@ class PatientStatusesResource extends Resource
                                 $sectionId = str_replace('section_', '', $section->key);
                                 $sectionInfo = SectionsInfo::find($sectionId);
                                 $name = $sectionInfo?->section_name ?? "Section {$sectionId}";
-                                
+
                                 return [
                                     'section_id' => $section->id,
                                     'section_name' => $name,
@@ -330,7 +342,7 @@ class PatientStatusesResource extends Resource
                                 ->where('key', 'LIKE', 'section_%')
                                 ->orderBy('key')
                                 ->get();
-                                
+
                             if (isset($sections[$index])) {
                                 $sections[$index]->update(['status' => $sectionData['status']]);
                             }
@@ -382,12 +394,12 @@ class PatientStatusesResource extends Resource
                                 PatientStatus::where('patient_id', $record->patient_id)
                                     ->where('key', 'LIKE', 'section_%')
                                     ->update(['status' => true]);
-                                    
+
                                 // Clear cache
                                 Cache::forget("patient_all_sections_{$record->patient_id}");
                                 Cache::forget("patient_completion_{$record->patient_id}");
                             }
-                            
+
                             \Filament\Notifications\Notification::make()
                                 ->success()
                                 ->title('Patients Updated')
@@ -406,12 +418,12 @@ class PatientStatusesResource extends Resource
                                 PatientStatus::where('patient_id', $record->patient_id)
                                     ->where('key', 'LIKE', 'section_%')
                                     ->update(['status' => false]);
-                                    
+
                                 // Clear cache
                                 Cache::forget("patient_all_sections_{$record->patient_id}");
                                 Cache::forget("patient_completion_{$record->patient_id}");
                             }
-                            
+
                             \Filament\Notifications\Notification::make()
                                 ->success()
                                 ->title('Patients Updated')
@@ -434,11 +446,15 @@ class PatientStatusesResource extends Resource
 
     protected static function getTableQuery(): Builder
     {
-        // Get unique patients who have section statuses
+        // Create a custom query to get unique patients with section statuses
+        $patientIds = PatientStatus::where('key', 'LIKE', 'section_%')
+            ->distinct()
+            ->pluck('patient_id');
+
         return PatientStatus::query()
-            ->select('patient_id')
+            ->whereIn('patient_id', $patientIds)
             ->where('key', 'LIKE', 'section_%')
-            ->with(['patient.doctor'])
+            ->select('patient_id', DB::raw('MIN(id) as id'), DB::raw('MAX(updated_at) as updated_at'))
             ->groupBy('patient_id')
             ->orderBy('patient_id', 'asc');
     }

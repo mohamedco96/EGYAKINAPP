@@ -170,3 +170,17 @@ curl -X POST /api/v1/auth/upload-syndicate-card \
 ## ✅ ISSUE RESOLVED
 
 The `uploadSyndicateCard` method now works without throwing "Class not found" errors. The FcmToken model is properly loaded and all authentication and notification functionality is operational.
+
+### Additional Fixes Applied
+
+During the resolution process, additional Filament-related issues were discovered and fixed:
+
+#### User Model Import Issue
+- **Problem**: The `User.php` model had a `fcmTokens()` relationship that referenced `FcmToken` without the proper import
+- **Fix**: Added `use App\Modules\Notifications\Models\FcmToken;` to the imports section
+
+#### Filament Component Method Issues
+- **Problem**: Invalid method usage on Filament components (e.g., `Stack::tooltip()` doesn't exist)
+- **Fix**: Moved `->tooltip()` method from `Stack` component to the appropriate `TextColumn` within the stack
+
+These fixes ensure complete compatibility and prevent similar class loading issues in the future.

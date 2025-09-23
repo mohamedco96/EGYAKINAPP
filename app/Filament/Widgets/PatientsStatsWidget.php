@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Patients\Widgets;
+namespace App\Filament\Widgets;
 
 use App\Models\User;
 use App\Modules\Patients\Models\Patients;

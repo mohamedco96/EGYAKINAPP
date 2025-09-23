@@ -282,7 +282,7 @@ A comprehensive statistics widget displays:
 ### Files Created/Modified
 
 #### New Files
-1. `app/Modules/Patients/Widgets/PatientsStatsWidget.php` - Statistics widget
+1. `app/Filament/Widgets/PatientsStatsWidget.php` - Statistics widget (moved from modules)
 2. `resources/css/patients-enhancement.css` - Enhanced styling
 3. `docs/patients-page-enhancement.md` - This documentation
 

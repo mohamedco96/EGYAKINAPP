@@ -3,7 +3,7 @@
 namespace App\Modules\Patients\Resources\PatientsResource\Pages;
 
 use App\Modules\Patients\Resources\PatientsResource;
-use App\Modules\Patients\Widgets\PatientsStatsWidget;
+use App\Filament\Widgets\PatientsStatsWidget;
 use Filament\Resources\Pages\ListRecords;
 
 class ListPatients extends ListRecords

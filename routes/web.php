@@ -43,7 +43,7 @@ Route::get('/search', function () {
     return view('search');
 });
 
-Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics');
+Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics')->middleware('locale');
 
 // Export routes
 Route::middleware(['auth'])->group(function () {

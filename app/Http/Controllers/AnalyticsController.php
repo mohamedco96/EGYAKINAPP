@@ -11,13 +11,22 @@ class AnalyticsController extends Controller
 {
     public function index()
     {
+        // Check if user_id is provided and set locale accordingly
+        $userId = request()->get('user_id');
+        if ($userId) {
+            $user = User::find($userId);
+            if ($user && $user->locale && in_array($user->locale, ['en', 'ar'])) {
+                app()->setLocale($user->locale);
+            }
+        }
+
         // Get analytics data
         $analytics = $this->getAnalyticsData();
 
         // Get dark mode parameter (default is false for white mode)
         $isDark = request()->boolean('dark', false);
 
-        // Get current locale (already set by middleware)
+        // Get current locale (set by middleware or user preference above)
         $locale = app()->getLocale();
 
         return view('analytics', compact('analytics', 'isDark', 'locale'));

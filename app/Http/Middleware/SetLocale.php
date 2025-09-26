@@ -61,23 +61,11 @@ class SetLocale
             $user = Auth::guard('sanctum')->user();
         }
 
-        if ($user) {
-            Log::info('User authenticated in SetLocale middleware', [
-                'user_id' => $user->id,
-                'user_locale' => $user->locale ?? 'null',
-                'auth_guard' => Auth::getDefaultDriver(),
-            ]);
-
-            if ($user->locale) {
-                $userLocale = $user->locale;
-                if (in_array($userLocale, $supportedLocales)) {
-                    Log::info('Using user saved locale', ['locale' => $userLocale]);
-
-                    return $userLocale;
-                }
+        if ($user && $user->locale) {
+            $userLocale = $user->locale;
+            if (in_array($userLocale, $supportedLocales)) {
+                return $userLocale;
             }
-        } else {
-            Log::info('No authenticated user found in SetLocale middleware');
         }
 
         // Priority 3: Accept-Language header

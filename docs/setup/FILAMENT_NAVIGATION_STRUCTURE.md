@@ -138,8 +138,6 @@ Features:
 
 The following resource directories exist but are missing main resource files:
 - AllPatiensResource
-- AssessmentResource
-- CauseResource
 - ComplaintResource
 - DecisionResource
 - ExaminationResource

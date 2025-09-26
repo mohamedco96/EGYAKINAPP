@@ -947,7 +947,7 @@ class GroupController extends Controller
             $group->member_count = $memberCount; // Add member count to the group object
 
             // Check if user can access posts based on group privacy
-            if ($group->privacy === 'private' && (!$userGroupData || $userGroupData->status !== 'joined')) {
+            if ($group->privacy === 'private' && (! $userGroupData || $userGroupData->status !== 'joined')) {
                 // For private groups, only return group info without posts if user is not a member
                 return response()->json([
                     'value' => true,
@@ -1377,7 +1377,7 @@ class GroupController extends Controller
                 $group->member_count = (int) $memberCount; // Add member count to the group object
             }
 
-            // Fetch posts with necessary relationships and counts
+            // Fetch posts with necessary relationships and counts - only from public groups
             $randomPosts = FeedPost::with([
                 'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
                 'poll.options' => function ($query) use ($userId) {
@@ -1397,9 +1397,12 @@ class GroupController extends Controller
                     },
                 ])
                 ->whereNotNull('group_id') // Ensure group_id is not null
+                ->whereHas('group', function ($groupQuery) {
+                    $groupQuery->where('privacy', 'public'); // Only include posts from public groups
+                })
                 ->inRandomOrder() // Fetch posts randomly
                 ->with(['group' => function ($query) {
-                    $query->select('id', 'name'); // Include group name
+                    $query->select('id', 'name', 'privacy'); // Include group name and privacy
                 }])
                 ->paginate(10); // Paginate 10 posts per page
 

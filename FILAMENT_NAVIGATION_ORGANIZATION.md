@@ -29,9 +29,6 @@ This document outlines the improved organization of the Filament admin panel nav
 - **Score History** (ScoreHistoryResource) - Sort: 80
   - Icon: `heroicon-o-chart-bar`
   - Historical score tracking
-- **Patient Sections** (SectionResource) - Sort: 90
-  - Icon: `heroicon-o-document-check`
-  - Section completion tracking
 
 ### 3. 📊 Medical Data (Sort: 10-30)
 - **Questions** (QuestionsResource) - Sort: 10

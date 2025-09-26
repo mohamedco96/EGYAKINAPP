@@ -142,7 +142,6 @@ The following resource directories exist but are missing main resource files:
 - ExaminationResource
 - OutcomeResource
 - PatientResource
-- SectionResource
 
 These should be created or cleaned up based on business requirements.
 

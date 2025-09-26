@@ -405,4 +405,22 @@ return [
     'toggle_dark_mode' => 'تبديل الوضع المظلم',
     'medical_analytics_footer' => 'لوحة التحليلات الطبية',
     'all_rights_reserved' => 'جميع الحقوق محفوظة.',
+
+    // Group join request notifications
+    'join_request_approved' => 'تم قبول طلب الانضمام بنجاح',
+    'join_request_declined' => 'تم رفض طلب الانضمام',
+    'join_request_approved_title' => 'تم قبول الطلب ✅',
+    'join_request_declined_title' => 'تم رفض الطلب ❌',
+    'join_request_approved_body' => 'تم قبول طلبك للانضمام إلى :group!',
+    'join_request_declined_body' => 'تم رفض طلبك للانضمام إلى :group.',
+    'notification_group_join_approved' => ':owner_name وافق على طلبك للانضمام إلى :group_name',
+    'notification_group_join_declined' => ':owner_name رفض طلبك للانضمام إلى :group_name',
+    'unauthorized_group_action' => 'غير مخول لك تنفيذ هذا الإجراء',
+    'invalid_join_request' => 'طلب انضمام غير صحيح',
+    'error_handling_join_request' => 'خطأ في معالجة طلب الانضمام',
+
+    // Group member removal notifications
+    'member_removed_title' => 'تم إزالتك من المجموعة 🚫',
+    'member_removed_body' => 'تم إزالتك من المجموعة :group',
+    'notification_group_member_removed' => ':remover_name قام بإزالتك من :group_name',
 ];

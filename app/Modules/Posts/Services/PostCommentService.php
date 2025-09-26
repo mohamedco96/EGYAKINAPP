@@ -2,14 +2,25 @@
 
 namespace App\Modules\Posts\Services;
 
+use App\Modules\Notifications\Models\AppNotification;
+use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Posts\Models\PostComments;
 use App\Modules\Posts\Models\Posts;
+use App\Services\NotificationService;
 use App\Traits\NotificationCleanup;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class PostCommentService
 {
     use NotificationCleanup;
+
+    protected $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
 
     /**
      * Get all comments for a specific post
@@ -50,6 +61,9 @@ class PostCommentService
         // Associate the comment with the current user and post
         $user->postcomments()->save($comment);
         $post->postcomments()->save($comment);
+
+        // Send notification to post owner if different from commenter
+        $this->sendCommentNotification($post, $comment, $user);
 
         return [
             'value' => true,
@@ -104,5 +118,57 @@ class PostCommentService
     public function commentExists(int $commentId): bool
     {
         return PostComments::where('id', $commentId)->exists();
+    }
+
+    /**
+     * Send notification to post owner when someone comments
+     */
+    private function sendCommentNotification(Posts $post, PostComments $comment, $commentingUser): void
+    {
+        try {
+            $postOwner = $post->doctor;
+
+            // Don't send notification if the commenter is the post owner
+            if (! $postOwner || $postOwner->id === $commentingUser->id) {
+                return;
+            }
+
+            // Create app notification
+            AppNotification::createLocalized([
+                'doctor_id' => $postOwner->id,
+                'type' => 'PostComment',
+                'type_id' => $post->id,
+                'localization_key' => 'api.notification_post_commented',
+                'localization_params' => [
+                    'name' => $commentingUser->name.' '.$commentingUser->lname,
+                ],
+                'type_doctor_id' => $commentingUser->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            Log::info('Post comment notification created', [
+                'post_id' => $post->id,
+                'comment_id' => $comment->id,
+                'post_owner_id' => $postOwner->id,
+                'commenting_user_id' => $commentingUser->id,
+            ]);
+
+            // Send push notification
+            $tokens = FcmToken::where('doctor_id', $postOwner->id)
+                ->pluck('token')
+                ->toArray();
+
+            if (! empty($tokens)) {
+                $this->notificationService->sendPushNotification(
+                    __('api.new_comment_added'),
+                    __('api.doctor_commented_on_post', ['name' => ucfirst($commentingUser->name)]),
+                    $tokens
+                );
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Error sending post comment notification: '.$e->getMessage());
+        }
     }
 }

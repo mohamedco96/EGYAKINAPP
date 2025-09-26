@@ -792,6 +792,11 @@ class GroupController extends Controller
             // Remove the member from the group
             $group->doctors()->detach($doctorId);
 
+            // Send notification to removed member (if not removing themselves)
+            if ($doctorId !== Auth::id()) {
+                $this->sendMemberRemovedNotification($group, $doctorId);
+            }
+
             // Clean up related notifications for the removed member
             $this->cleanupDoctorActionNotifications($doctorId, ['group_join_request', 'group_invitation'], $groupId);
 
@@ -1274,6 +1279,219 @@ class GroupController extends Controller
                     $tokens
                 );
             }
+        }
+    }
+
+    /**
+     * Approve or decline join requests by group owner.
+     *
+     * @param  int  $groupId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function handleJoinRequest(Request $request, $groupId)
+    {
+        try {
+            // Validate the request
+            $validated = $request->validate([
+                'status' => 'required|in:approved,declined',
+                'request_id' => 'required|exists:group_user,id',
+            ]);
+
+            // Find the group or fail if not found
+            $group = Group::findOrFail($groupId);
+            $ownerId = Auth::id();
+
+            // Check if the authenticated user is the group owner
+            if ($group->owner_id !== $ownerId) {
+                Log::error('Unauthorized join request handling attempt', [
+                    'group_id' => $groupId,
+                    'user_id' => $ownerId,
+                    'actual_owner' => $group->owner_id,
+                ]);
+
+                return response()->json([
+                    'value' => false,
+                    'message' => __('api.unauthorized_group_action'),
+                ], 403);
+            }
+
+            // Find the join request and check if it's pending
+            $joinRequest = DB::table('group_user')
+                ->where('id', $validated['request_id'])
+                ->where('group_id', $groupId)
+                ->where('status', 'pending')
+                ->first();
+
+            if (! $joinRequest) {
+                Log::error('Invalid join request', [
+                    'group_id' => $groupId,
+                    'owner_id' => $ownerId,
+                    'request_id' => $validated['request_id'],
+                ]);
+
+                return response()->json([
+                    'value' => false,
+                    'message' => __('api.invalid_join_request'),
+                ], 400);
+            }
+
+            try {
+                DB::beginTransaction();
+
+                // Update the join request status
+                $newStatus = $validated['status'] === 'approved' ? 'joined' : 'declined';
+                DB::table('group_user')
+                    ->where('id', $validated['request_id'])
+                    ->update([
+                        'status' => $newStatus,
+                        'updated_at' => now(),
+                    ]);
+
+                // Send notification to the requesting user
+                $this->sendJoinRequestResponseNotification($group, $joinRequest->doctor_id, $validated['status']);
+
+                DB::commit();
+
+                Log::info('Join request handled successfully', [
+                    'group_id' => $groupId,
+                    'request_id' => $validated['request_id'],
+                    'status' => $validated['status'],
+                    'owner_id' => $ownerId,
+                ]);
+
+                return response()->json([
+                    'value' => true,
+                    'message' => $validated['status'] === 'approved'
+                        ? __('api.join_request_approved')
+                        : __('api.join_request_declined'),
+                ], 200);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::error('Group not found for join request handling', [
+                'group_id' => $groupId,
+                'user_id' => Auth::id(),
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => __('api.group_not_found'),
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Error handling join request', [
+                'error' => $e->getMessage(),
+                'group_id' => $groupId,
+                'user_id' => Auth::id(),
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => __('api.error_handling_join_request'),
+            ], 500);
+        }
+    }
+
+    /**
+     * Send notification to user about join request response
+     */
+    private function sendJoinRequestResponseNotification($group, $requestingUserId, $status)
+    {
+        try {
+            $owner = Auth::user();
+            $notificationType = $status === 'approved' ? 'group_join_approved' : 'group_join_declined';
+            $localizationKey = $status === 'approved'
+                ? 'api.notification_group_join_approved'
+                : 'api.notification_group_join_declined';
+
+            AppNotification::createLocalized([
+                'doctor_id' => $requestingUserId,
+                'type' => $notificationType,
+                'type_id' => $group->id,
+                'localization_key' => $localizationKey,
+                'localization_params' => [
+                    'group_name' => $group->name,
+                    'owner_name' => $owner->name.' '.$owner->lname,
+                ],
+                'type_doctor_id' => $owner->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // Send push notification
+            $tokens = FcmToken::where('doctor_id', $requestingUserId)
+                ->pluck('token')
+                ->toArray();
+
+            if (! empty($tokens)) {
+                $title = $status === 'approved'
+                    ? __('api.join_request_approved_title')
+                    : __('api.join_request_declined_title');
+                $body = $status === 'approved'
+                    ? __('api.join_request_approved_body', ['group' => $group->name])
+                    : __('api.join_request_declined_body', ['group' => $group->name]);
+
+                $this->notificationService->sendPushNotification($title, $body, $tokens);
+            }
+
+            Log::info('Join request response notification sent', [
+                'group_id' => $group->id,
+                'requesting_user_id' => $requestingUserId,
+                'status' => $status,
+                'owner_id' => $owner->id,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error sending join request response notification: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Send notification to user when they are removed from a group
+     */
+    private function sendMemberRemovedNotification($group, $removedUserId)
+    {
+        try {
+            $remover = Auth::user();
+
+            AppNotification::createLocalized([
+                'doctor_id' => $removedUserId,
+                'type' => 'group_member_removed',
+                'type_id' => $group->id,
+                'localization_key' => 'api.notification_group_member_removed',
+                'localization_params' => [
+                    'group_name' => $group->name,
+                    'remover_name' => $remover->name.' '.$remover->lname,
+                ],
+                'type_doctor_id' => $remover->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // Send push notification
+            $tokens = FcmToken::where('doctor_id', $removedUserId)
+                ->pluck('token')
+                ->toArray();
+
+            if (! empty($tokens)) {
+                $this->notificationService->sendPushNotification(
+                    __('api.member_removed_title'),
+                    __('api.member_removed_body', ['group' => $group->name]),
+                    $tokens
+                );
+            }
+
+            Log::info('Member removed notification sent', [
+                'group_id' => $group->id,
+                'removed_user_id' => $removedUserId,
+                'remover_id' => $remover->id,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error sending member removed notification: '.$e->getMessage());
         }
     }
 

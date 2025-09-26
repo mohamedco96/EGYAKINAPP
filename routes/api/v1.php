@@ -244,6 +244,7 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked']], function () {
     Route::delete('/groups/{id}', [GroupController::class, 'delete']);
     Route::post('/groups/{groupId}/invite', [GroupController::class, 'inviteMember']);
     Route::post('/groups/{groupId}/invitation', [GroupController::class, 'handleInvitation']);
+    Route::post('/groups/{groupId}/join-request', [GroupController::class, 'handleJoinRequest']);
     Route::get('/groups/{id}', [GroupController::class, 'show']);
     Route::post('/groups/{groupId}/removeMember', [GroupController::class, 'removeMember']);
     Route::post('/groups/{groupId}/searchMembers', [GroupController::class, 'searchMembers']);

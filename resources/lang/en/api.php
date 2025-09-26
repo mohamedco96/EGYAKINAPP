@@ -405,4 +405,22 @@ return [
     'toggle_dark_mode' => 'Toggle dark mode',
     'medical_analytics_footer' => 'Medical Analytics Dashboard',
     'all_rights_reserved' => 'All rights reserved.',
+
+    // Group join request notifications
+    'join_request_approved' => 'Join request approved successfully',
+    'join_request_declined' => 'Join request declined',
+    'join_request_approved_title' => 'Request Approved ✅',
+    'join_request_declined_title' => 'Request Declined ❌',
+    'join_request_approved_body' => 'Your request to join :group has been approved!',
+    'join_request_declined_body' => 'Your request to join :group has been declined.',
+    'notification_group_join_approved' => ':owner_name approved your request to join :group_name',
+    'notification_group_join_declined' => ':owner_name declined your request to join :group_name',
+    'unauthorized_group_action' => 'You are not authorized to perform this action',
+    'invalid_join_request' => 'Invalid join request',
+    'error_handling_join_request' => 'Error processing join request',
+
+    // Group member removal notifications
+    'member_removed_title' => 'Removed from Group 🚫',
+    'member_removed_body' => 'You have been removed from the group :group',
+    'notification_group_member_removed' => ':remover_name removed you from :group_name',
 ];

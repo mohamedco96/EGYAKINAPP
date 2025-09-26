@@ -32,7 +32,7 @@
     
     <!-- Favicon -->
     <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
-    <link rel="apple-touch-icon" href="{{ asset('images/egyakin-logo.png') }}">
+    <link rel="apple-touch-icon" href="https://test.egyakin.com/storage/profile_images/profile_image.jpg">
     
     <!-- Canonical URL -->
     <link rel="canonical" href="{{ $metaData['url'] }}">
@@ -51,7 +51,7 @@
             "name": "EGYAKIN",
             "logo": {
                 "@type": "ImageObject",
-                "url": "{{ asset('images/egyakin-logo.png') }}"
+                "url": "https://test.egyakin.com/storage/profile_images/profile_image.jpg"
             }
         }
     }

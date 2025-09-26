@@ -221,7 +221,7 @@ Update `config/app.php`:
 ```
 
 ### 2. Add Logo Image
-Place your app logo at: `public/images/egyakin-logo.png`
+The system now uses your EGYAKIN logo from: `https://test.egyakin.com/storage/profile_images/profile_image.jpg`
 
 ### 3. Configure App Store Links
 Update the preview template with your actual app store URLs:
@@ -290,7 +290,7 @@ curl "https://yourdomain.com/api/v1/share/preview?type=post&id=123" \
 ## Next Steps
 
 1. **Add App Store Links** - Update with your actual app store URLs
-2. **Upload Logo** - Add your app logo to `public/images/egyakin-logo.png`
+2. **Logo Updated** - Now using your EGYAKIN logo from `https://test.egyakin.com/storage/profile_images/profile_image.jpg`
 3. **Test Sharing** - Share URLs and verify previews work
 4. **Configure Mobile App** - Set up deeplink handling in your mobile app
 5. **Monitor Analytics** - Track shared URL performance

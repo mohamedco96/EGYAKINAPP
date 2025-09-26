@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\V1\ResetPasswordController;
 use App\Http\Controllers\Api\V1\RolePermissionController;
 use App\Http\Controllers\Api\V1\SectionsController;
 use App\Http\Controllers\Api\V1\SettingsController;
+use App\Http\Controllers\Api\V1\ShareController;
 use App\Http\Controllers\Api\V1\UserLocaleController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -267,6 +268,11 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked']], function () {
     Route::post('/recommendations/{patient_id}', [RecommendationController::class, 'store']);
     Route::put('/recommendations/{patient_id}', [RecommendationController::class, 'update']);
     Route::delete('/recommendations/{patient_id}', [RecommendationController::class, 'destroy']);
+
+    // Share URLs
+    Route::post('/share/generate', [ShareController::class, 'generateUrl']);
+    Route::post('/share/bulk', [ShareController::class, 'generateBulkUrls']);
+    Route::get('/share/preview', [ShareController::class, 'getPreview']);
 });
 
 // Authenticated user route

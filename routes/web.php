@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\DeepLinkController;
 use App\Http\Controllers\ExportController;
 use App\Mail\DailyReportMail;
 use App\Mail\WeeklySummaryMail;
@@ -52,21 +53,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/export/download/{filename}', [ExportController::class, 'downloadExport'])->name('export.download');
 });
 
-Route::get('/post/{id}', function ($id) {
-    // Check if the request is from a mobile device
-    $isMobile = preg_match('/(android|iphone|ipad|mobile)/i', request()->header('User-Agent'));
-
-    if ($isMobile) {
-        // Redirect to the app's custom scheme (e.g., "egyakin://post/837")
-        return redirect()->away("egyakin://post/$id");
-    } else {
-        // Fallback for web browsers/API calls (no view needed)
-        return response()->json([
-            'error' => 'not_found',
-            'message' => 'This is a deep link. Open the app to view the content.',
-        ], 404);
-    }
-});
+// Deeplink routes with URL previews
+Route::get('/post/{id}', [DeepLinkController::class, 'post'])->name('deeplink.post');
+Route::get('/patient/{id}', [DeepLinkController::class, 'patient'])->name('deeplink.patient');
+Route::get('/group/{id}', [DeepLinkController::class, 'group'])->name('deeplink.group');
+Route::get('/consultation/{id}', [DeepLinkController::class, 'consultation'])->name('deeplink.consultation');
 
 // test
 

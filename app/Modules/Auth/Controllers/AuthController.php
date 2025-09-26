@@ -201,12 +201,13 @@ class AuthController extends Controller
             Log::error('User update failed', [
                 'user_id' => auth()->id(),
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'value' => false,
-                'message' => 'No User was found',
-            ], 404);
+                'message' => 'User update failed: '.$e->getMessage(),
+            ], 500);
         }
     }
 

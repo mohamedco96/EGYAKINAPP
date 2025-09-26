@@ -303,6 +303,12 @@ class AuthService
         $user = User::findOrFail(Auth::id());
 
         return DB::transaction(function () use ($validatedData, $user) {
+            // Log the incoming data for debugging
+            Log::info('Update profile data received', [
+                'user_id' => $user->id,
+                'validated_data' => $validatedData,
+            ]);
+
             // Remove email_verified_at from validated data as it shouldn't be directly updated
             unset($validatedData['email_verified_at']);
 

@@ -2,13 +2,12 @@
 
 namespace App\Modules\Chat\Services;
 
+use App\Models\SectionsInfo;
 use App\Modules\Chat\Models\AIConsultation;
 use App\Modules\Chat\Models\DoctorMonthlyTrial;
-use App\Models\User;
-use App\Models\SectionsInfo;
+use App\Modules\Patients\Models\Patients;
 use App\Modules\Questions\Models\Questions;
 use App\Services\ChatGPTService;
-use App\Modules\Patients\Models\Patients;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -24,9 +23,6 @@ class ChatService
 
     /**
      * Send consultation request for a patient
-     *
-     * @param int $patientId
-     * @return array
      */
     public function sendConsultation(int $patientId): array
     {
@@ -35,17 +31,36 @@ class ChatService
             $patient = Patients::with(['doctor', 'status', 'answers'])->findOrFail($patientId);
 
             // Check if the patient exists
-            if (!$patient) {
+            if (! $patient) {
                 Log::error('Patient not found', [
-                    'patient_id' => $patientId
+                    'patient_id' => $patientId,
                 ]);
+
                 return [
                     'success' => false,
                     'data' => [
                         'value' => false,
-                        'message' => 'Patient not found'
+                        'message' => 'Patient not found',
                     ],
-                    'status_code' => 404
+                    'status_code' => 404,
+                ];
+            }
+
+            // Verify patient ownership
+            if ($patient->doctor_id !== Auth::id()) {
+                Log::warning('Unauthorized AI consultation attempt', [
+                    'doctor_id' => Auth::id(),
+                    'patient_id' => $patientId,
+                    'patient_owner' => $patient->doctor_id,
+                ]);
+
+                return [
+                    'success' => false,
+                    'data' => [
+                        'value' => false,
+                        'message' => __('api.consultation_unauthorized_patient'),
+                    ],
+                    'status_code' => 403,
                 ];
             }
 
@@ -60,7 +75,7 @@ class ChatService
 
             // Check doctor trials
             $trialCheck = $this->checkDoctorTrials($doctorId, $patientId);
-            if (!$trialCheck['success']) {
+            if (! $trialCheck['success']) {
                 return $trialCheck;
             }
 
@@ -79,7 +94,7 @@ class ChatService
             Log::info('Consultation request sent', [
                 'doctor_id' => $doctorId,
                 'patient_id' => $patientId,
-                'trial_count' => $trial->trial_count
+                'trial_count' => $trial->trial_count,
             ]);
 
             // Return the AI response
@@ -89,38 +104,65 @@ class ChatService
                     'value' => true,
                     'message' => 'Consultation request sent successfully',
                     'response' => $response,
-                    'trial_count' => $trial->trial_count
+                    'trial_count' => $trial->trial_count,
                 ],
-                'status_code' => 200
+                'status_code' => 200,
             ];
 
         } catch (\Exception $e) {
-            Log::error('Error sending consultation: ' . $e->getMessage(), [
+            Log::error('Error sending consultation: '.$e->getMessage(), [
                 'patient_id' => $patientId,
-                'exception' => $e->getTraceAsString()
+                'exception' => $e->getTraceAsString(),
             ]);
 
             return [
                 'success' => false,
                 'data' => [
                     'value' => false,
-                    'message' => 'An error occurred while sending consultation.'
+                    'message' => 'An error occurred while sending consultation.',
                 ],
-                'status_code' => 500
+                'status_code' => 500,
             ];
         }
     }
 
     /**
      * Get consultation history for a patient
-     *
-     * @param int $patientId
-     * @return array
      */
     public function getConsultationHistory(int $patientId): array
     {
         try {
             $doctorId = Auth::id();
+
+            // Verify patient ownership first
+            $patient = Patients::find($patientId);
+            if (! $patient) {
+                return [
+                    'success' => false,
+                    'data' => [
+                        'value' => false,
+                        'message' => 'Patient not found',
+                    ],
+                    'status_code' => 404,
+                ];
+            }
+
+            if ($patient->doctor_id !== $doctorId) {
+                Log::warning('Unauthorized AI consultation history attempt', [
+                    'doctor_id' => $doctorId,
+                    'patient_id' => $patientId,
+                    'patient_owner' => $patient->doctor_id,
+                ]);
+
+                return [
+                    'success' => false,
+                    'data' => [
+                        'value' => false,
+                        'message' => __('api.consultation_unauthorized_patient'),
+                    ],
+                    'status_code' => 403,
+                ];
+            }
 
             // Check and reset the trial count if the reset date has passed
             $trial = $this->getOrCreateDoctorTrial($doctorId);
@@ -128,6 +170,7 @@ class ChatService
 
             // Retrieve consultation history for the patient, sorted by newest
             $history = AIConsultation::where('patient_id', $patientId)
+                ->where('doctor_id', $doctorId) // Additional security check
                 ->orderBy('created_at', 'desc')
                 ->select('id', 'doctor_id', 'patient_id', 'response', 'created_at')
                 ->paginate(5);
@@ -137,7 +180,7 @@ class ChatService
                 'doctor_id' => $doctorId,
                 'patient_id' => $patientId,
                 'trial_count' => $trial->trial_count,
-                'history_count' => $history->count()
+                'history_count' => $history->count(),
             ]);
 
             return [
@@ -147,33 +190,30 @@ class ChatService
                     'message' => 'Consultation history retrieved successfully',
                     'trial_count' => $trial->trial_count,
                     'reset_date' => $trial->reset_date,
-                    'history' => $history
+                    'history' => $history,
                 ],
-                'status_code' => 200
+                'status_code' => 200,
             ];
 
         } catch (\Exception $e) {
-            Log::error('Error retrieving consultation history: ' . $e->getMessage(), [
+            Log::error('Error retrieving consultation history: '.$e->getMessage(), [
                 'patient_id' => $patientId,
-                'exception' => $e->getTraceAsString()
+                'exception' => $e->getTraceAsString(),
             ]);
 
             return [
                 'success' => false,
                 'data' => [
                     'value' => false,
-                    'message' => 'An error occurred while retrieving consultation history.'
+                    'message' => 'An error occurred while retrieving consultation history.',
                 ],
-                'status_code' => 500
+                'status_code' => 500,
             ];
         }
     }
 
     /**
      * Prepare patient data for AI consultation
-     *
-     * @param Patients $patient
-     * @return array
      */
     private function preparePatientData(Patients $patient): array
     {
@@ -188,13 +228,14 @@ class ChatService
             // Skip questions with certain IDs
             if ($question->skip) {
                 Log::info("Question with ID {$question->id} skipped as per skip flag.");
+
                 continue;
             }
 
             $questionData = [
                 'id' => $question->id,
-                'section_id' => $question->section->id ?? "test",
-                'section_name' => $question->section->section_name ?? "Not found",
+                'section_id' => $question->section->id ?? 'test',
+                'section_name' => $question->section->section_name ?? 'Not found',
                 'question' => $question->question,
                 'values' => $question->values,
                 'type' => $question->type,
@@ -210,7 +251,7 @@ class ChatService
                 // Initialize the answer array
                 $questionData['answer'] = [
                     'answers' => [], // Initialize answers as an empty array
-                    'other_field' => null // Set other_field to null by default
+                    'other_field' => null, // Set other_field to null by default
                 ];
 
                 // Find answers for this question
@@ -237,16 +278,12 @@ class ChatService
         return [
             'patient' => $patient,
             'questionData' => $data,
-            'sections_infos' => $sectionsInfos
+            'sections_infos' => $sectionsInfos,
         ];
     }
 
     /**
      * Check doctor trials and validate eligibility
-     *
-     * @param int $doctorId
-     * @param int $patientId
-     * @return array
      */
     private function checkDoctorTrials(int $doctorId, int $patientId): array
     {
@@ -260,29 +297,27 @@ class ChatService
         if ($trial->trial_count <= 0) {
             Log::warning('No trials left for this month', [
                 'doctor_id' => $doctorId,
-                'patient_id' => $patientId
+                'patient_id' => $patientId,
             ]);
+
             return [
                 'success' => false,
                 'data' => [
                     'value' => false,
-                    'message' => 'No trials left for this month'
+                    'message' => 'No trials left for this month',
                 ],
-                'status_code' => 403
+                'status_code' => 403,
             ];
         }
 
         return [
             'success' => true,
-            'trial' => $trial
+            'trial' => $trial,
         ];
     }
 
     /**
      * Get or create doctor trial record
-     *
-     * @param int $doctorId
-     * @return DoctorMonthlyTrial
      */
     private function getOrCreateDoctorTrial(int $doctorId): DoctorMonthlyTrial
     {
@@ -294,9 +329,6 @@ class ChatService
 
     /**
      * Reset trial count if needed
-     *
-     * @param DoctorMonthlyTrial $trial
-     * @return void
      */
     private function resetTrialIfNeeded(DoctorMonthlyTrial $trial): void
     {
@@ -307,12 +339,6 @@ class ChatService
 
     /**
      * Save consultation to database
-     *
-     * @param int $doctorId
-     * @param int $patientId
-     * @param string $prompt
-     * @param string $response
-     * @return AIConsultation
      */
     private function saveConsultation(int $doctorId, int $patientId, string $prompt, string $response): AIConsultation
     {
@@ -320,7 +346,7 @@ class ChatService
             'doctor_id' => $doctorId,
             'patient_id' => $patientId,
             'question' => $prompt,
-            'response' => $response
+            'response' => $response,
         ]);
     }
 }

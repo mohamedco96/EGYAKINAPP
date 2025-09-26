@@ -28,6 +28,15 @@ class ConsultationService
     public function createConsultation(array $data): array
     {
         return DB::transaction(function () use ($data) {
+            // Verify patient ownership
+            $patient = Patients::find($data['patient_id']);
+            if (! $patient || $patient->doctor_id !== Auth::id()) {
+                return [
+                    'value' => false,
+                    'message' => __('api.consultation_unauthorized_patient'),
+                ];
+            }
+
             $consultation = Consultation::create([
                 'doctor_id' => Auth::id(),
                 'patient_id' => $data['patient_id'],

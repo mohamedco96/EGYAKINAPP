@@ -2,7 +2,9 @@
 
 namespace App\Modules\Consultations\Requests;
 
+use App\Modules\Patients\Models\Patients;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 
 class StoreConsultationRequest extends FormRequest
 {
@@ -20,7 +22,16 @@ class StoreConsultationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'patient_id' => 'required|exists:patients,id',
+            'patient_id' => [
+                'required',
+                'exists:patients,id',
+                function ($attribute, $value, $fail) {
+                    $patient = Patients::find($value);
+                    if ($patient && $patient->doctor_id !== Auth::id()) {
+                        $fail(__('api.consultation_unauthorized_patient'));
+                    }
+                },
+            ],
             'consult_message' => 'required|string',
             'consult_doctor_ids' => 'required|array',
             'consult_doctor_ids.*' => 'exists:users,id',

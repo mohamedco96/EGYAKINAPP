@@ -362,4 +362,7 @@ return [
     'current_GFR' => 'Current GFR',
     'basal_creatinine_GFR' => 'Basal Creatinine GFR',
     'creatinine_on_discharge_GFR' => 'Creatinine on Discharge GFR',
+
+    // Consultation Messages
+    'consultation_unauthorized_patient' => 'You can only request consultation for patients you created.',
 ];

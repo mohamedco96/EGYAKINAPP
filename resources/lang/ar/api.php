@@ -362,4 +362,7 @@ return [
     'current_GFR' => 'معدل الترشيح الكلوي الحالي',
     'basal_creatinine_GFR' => 'معدل الترشيح الكلوي للكرياتينين الأساسي',
     'creatinine_on_discharge_GFR' => 'معدل الترشيح الكلوي للكرياتينين عند الخروج',
+
+    // Consultation Messages
+    'consultation_unauthorized_patient' => 'يمكنك فقط طلب استشارة للمرضى الذين قمت بإنشائهم.',
 ];

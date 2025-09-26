@@ -22,6 +22,22 @@ class RecommendationService
             Log::info('Fetching recommendations for patient', ['patient_id' => $patientId]);
 
             $patient = Patients::findOrFail($patientId);
+
+            // Verify patient ownership
+            if ($patient->doctor_id !== Auth::id()) {
+                Log::warning('Unauthorized recommendation access attempt', [
+                    'doctor_id' => Auth::id(),
+                    'patient_id' => $patientId,
+                    'patient_owner' => $patient->doctor_id,
+                ]);
+
+                return [
+                    'value' => false,
+                    'data' => null,
+                    'message' => __('api.consultation_unauthorized_patient'),
+                ];
+            }
+
             $recommendations = $patient->recommendations()->get();
 
             Log::info('Successfully fetched recommendations', ['patient_id' => $patientId, 'count' => $recommendations->count()]);
@@ -59,6 +75,21 @@ class RecommendationService
             Log::info('Creating recommendations for patient', ['patient_id' => $patientId]);
 
             $patient = Patients::findOrFail($patientId);
+
+            // Verify patient ownership
+            if ($patient->doctor_id !== Auth::id()) {
+                Log::warning('Unauthorized recommendation creation attempt', [
+                    'doctor_id' => Auth::id(),
+                    'patient_id' => $patientId,
+                    'patient_owner' => $patient->doctor_id,
+                ]);
+
+                return [
+                    'value' => false,
+                    'data' => null,
+                    'message' => __('api.consultation_unauthorized_patient'),
+                ];
+            }
 
             $result = DB::transaction(function () use ($patient, $patientId, $recommendations) {
                 $recommendationModels = collect($recommendations)->map(function ($item) use ($patientId) {
@@ -142,6 +173,21 @@ class RecommendationService
 
             $patient = Patients::findOrFail($patientId);
 
+            // Verify patient ownership
+            if ($patient->doctor_id !== Auth::id()) {
+                Log::warning('Unauthorized recommendation update attempt', [
+                    'doctor_id' => Auth::id(),
+                    'patient_id' => $patientId,
+                    'patient_owner' => $patient->doctor_id,
+                ]);
+
+                return [
+                    'value' => false,
+                    'data' => null,
+                    'message' => __('api.consultation_unauthorized_patient'),
+                ];
+            }
+
             $result = DB::transaction(function () use ($patient, $patientId, $recommendations) {
                 $updatedRecommendations = [];
                 $createdRecommendations = [];
@@ -223,6 +269,21 @@ class RecommendationService
             Log::info('Deleting recommendations for patient', ['patient_id' => $patientId, 'ids' => $ids]);
 
             $patient = Patients::findOrFail($patientId);
+
+            // Verify patient ownership
+            if ($patient->doctor_id !== Auth::id()) {
+                Log::warning('Unauthorized recommendation deletion attempt', [
+                    'doctor_id' => Auth::id(),
+                    'patient_id' => $patientId,
+                    'patient_owner' => $patient->doctor_id,
+                ]);
+
+                return [
+                    'value' => false,
+                    'data' => null,
+                    'message' => __('api.consultation_unauthorized_patient'),
+                ];
+            }
 
             $result = DB::transaction(function () use ($patient, $ids) {
                 if ($ids[0] === 0) {

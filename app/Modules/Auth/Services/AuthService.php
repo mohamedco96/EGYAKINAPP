@@ -303,12 +303,6 @@ class AuthService
         $user = User::findOrFail(Auth::id());
 
         return DB::transaction(function () use ($validatedData, $user) {
-            // Log the incoming data for debugging
-            Log::info('Update profile data received', [
-                'user_id' => $user->id,
-                'validated_data' => $validatedData,
-            ]);
-
             // Remove email_verified_at from validated data as it shouldn't be directly updated
             unset($validatedData['email_verified_at']);
 
@@ -316,12 +310,6 @@ class AuthService
             if (isset($validatedData['email']) && $validatedData['email'] !== $user->email) {
                 $validatedData['email'] = strtolower($validatedData['email']);
                 $validatedData['email_verified_at'] = null; // Only set when email changes
-
-                Log::info('Email changed, setting email_verified_at to null', [
-                    'user_id' => $user->id,
-                    'old_email' => $user->email,
-                    'new_email' => $validatedData['email'],
-                ]);
             }
 
             // Sanitize inputs - but preserve null values for datetime fields
@@ -333,13 +321,6 @@ class AuthService
                     $sanitized[$key] = is_string($value) ? trim($value) : $value;
                 }
             }
-
-            Log::info('Final data before save', [
-                'user_id' => $user->id,
-                'sanitized_data' => $sanitized,
-                'email_verified_at_value' => $sanitized['email_verified_at'] ?? 'NOT_SET',
-                'email_verified_at_type' => gettype($sanitized['email_verified_at'] ?? null),
-            ]);
 
             // Update user
             $user->fill($sanitized);

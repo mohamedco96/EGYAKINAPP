@@ -55,11 +55,6 @@ class EmailVerificationNotification extends Notification // implements ShouldQue
      */
     public function via(object $notifiable): array
     {
-        Log::info('EmailVerificationNotification via() called', [
-            'notifiable_email' => $notifiable->email,
-            'channels' => ['brevo-api'],
-        ]);
-
         return ['brevo-api'];
     }
 

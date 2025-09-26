@@ -357,4 +357,9 @@ return [
     'failed_to_retrieve_all_patients' => 'فشل في استرداد جميع المرضى للطبيب.',
     'failed_to_retrieve_current_doctor_patients' => 'فشل في استرداد مرضى الطبيب الحالي.',
     'failed_to_retrieve_doctor_profile_patients' => 'فشل في استرداد مرضى ملف الطبيب.',
+
+    // GFR (Glomerular Filtration Rate) Messages
+    'current_GFR' => 'معدل الترشيح الكلوي الحالي',
+    'basal_creatinine_GFR' => 'معدل الترشيح الكلوي للكرياتينين الأساسي',
+    'creatinine_on_discharge_GFR' => 'معدل الترشيح الكلوي للكرياتينين عند الخروج',
 ];

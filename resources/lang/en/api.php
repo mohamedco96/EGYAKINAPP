@@ -357,4 +357,9 @@ return [
     'failed_to_retrieve_all_patients' => 'Failed to retrieve all patients for doctor.',
     'failed_to_retrieve_current_doctor_patients' => 'Failed to retrieve current doctor patients.',
     'failed_to_retrieve_doctor_profile_patients' => 'Failed to retrieve doctor profile patients.',
+
+    // GFR (Glomerular Filtration Rate) Messages
+    'current_GFR' => 'Current GFR',
+    'basal_creatinine_GFR' => 'Basal Creatinine GFR',
+    'creatinine_on_discharge_GFR' => 'Creatinine on Discharge GFR',
 ];

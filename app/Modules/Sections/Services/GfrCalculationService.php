@@ -7,10 +7,9 @@ class GfrCalculationService
     /**
      * Calculate GFR for CKD using CKD-EPI equation.
      *
-     * @param string|null $gender
-     * @param int|null $age
-     * @param float|null $creatinine
-     * @return float
+     * @param  string|null  $gender
+     * @param  int|null  $age
+     * @param  float|null  $creatinine
      */
     public function calculateCkdGfr($gender, $age, $creatinine): float
     {
@@ -34,11 +33,10 @@ class GfrCalculationService
     /**
      * Calculate Sobh Ccr (Creatinine Clearance).
      *
-     * @param int|null $age
-     * @param float|null $weight
-     * @param float|null $height
-     * @param float|null $serumCreatinine
-     * @return float
+     * @param  int|null  $age
+     * @param  float|null  $weight
+     * @param  float|null  $height
+     * @param  float|null  $serumCreatinine
      */
     public function calculateSobhCcr($age, $weight, $height, $serumCreatinine): float
     {
@@ -58,17 +56,17 @@ class GfrCalculationService
     /**
      * Calculate GFR using MDRD equation.
      *
-     * @param float $serumCr Serum Creatinine level
-     * @param int $age Age of the patient
-     * @param string $race Race of the patient ('yes' for black, other for non-black)
-     * @param string $gender Gender of the patient
+     * @param  float  $serumCr  Serum Creatinine level
+     * @param  int  $age  Age of the patient
+     * @param  string  $race  Race of the patient ('yes' for black, other for non-black)
+     * @param  string  $gender  Gender of the patient
      * @return float Calculated GFR
      */
     public function calculateMdrdGfr($serumCr, $age, $race, $gender): float
     {
         $genderFactor = ($gender === 'Female') ? 0.742 : 1.0;
         $raceFactor = ($race === 'yes') ? 1.212 : 1.0;
-        
+
         $constant = 175.0;
         $ageFactor = pow($age, -0.203);
         $serumCrFactor = pow($serumCr, -1.154);
@@ -80,27 +78,29 @@ class GfrCalculationService
 
     /**
      * Calculate all GFR values for a patient.
-     *
-     * @param array $patientData
-     * @return array
      */
     public function calculateAllGfrValues(array $patientData): array
     {
+        // Get localized keys
+        $currentGfrKey = __('api.current_GFR');
+        $basalGfrKey = __('api.basal_creatinine_GFR');
+        $dischargeGfrKey = __('api.creatinine_on_discharge_GFR');
+
         $gfr = [
             'ckd' => [
-                'current_GFR' => '0',
-                'basal_creatinine_GFR' => '0',
-                'creatinine_on_discharge_GFR' => '0',
+                $currentGfrKey => '0',
+                $basalGfrKey => '0',
+                $dischargeGfrKey => '0',
             ],
             'sobh' => [
-                'current_GFR' => '0',
-                'basal_creatinine_GFR' => '0',
-                'creatinine_on_discharge_GFR' => '0',
+                $currentGfrKey => '0',
+                $basalGfrKey => '0',
+                $dischargeGfrKey => '0',
             ],
             'mdrd' => [
-                'current_GFR' => '0',
-                'basal_creatinine_GFR' => '0',
-                'creatinine_on_discharge_GFR' => '0',
+                $currentGfrKey => '0',
+                $basalGfrKey => '0',
+                $dischargeGfrKey => '0',
             ],
         ];
 
@@ -118,10 +118,10 @@ class GfrCalculationService
 
         foreach ($creatinineValues as $type => $creatinine) {
             if ($this->isValidForCalculation($gender, $age, $height, $weight, $race, $creatinine)) {
-                $gfrKey = match($type) {
-                    'current' => 'current_GFR',
-                    'basal' => 'basal_creatinine_GFR',
-                    'discharge' => 'creatinine_on_discharge_GFR',
+                $gfrKey = match ($type) {
+                    'current' => $currentGfrKey,
+                    'basal' => $basalGfrKey,
+                    'discharge' => $dischargeGfrKey,
                 };
 
                 $gfr['ckd'][$gfrKey] = $this->calculateCkdGfr($gender, $age, $creatinine);
@@ -136,21 +136,20 @@ class GfrCalculationService
     /**
      * Check if all required parameters are valid for GFR calculation.
      *
-     * @param mixed $gender
-     * @param mixed $age
-     * @param mixed $height
-     * @param mixed $weight
-     * @param mixed $race
-     * @param mixed $creatinine
-     * @return bool
+     * @param  mixed  $gender
+     * @param  mixed  $age
+     * @param  mixed  $height
+     * @param  mixed  $weight
+     * @param  mixed  $race
+     * @param  mixed  $creatinine
      */
     private function isValidForCalculation($gender, $age, $height, $weight, $race, $creatinine): bool
     {
-        return !is_null($gender) && 
-               !is_null($age) && $age != 0 &&
-               !is_null($height) && $height != 0 && 
-               !is_null($weight) && $weight != 0 &&
-               !is_null($race) && 
-               !is_null($creatinine) && $creatinine != 0;
+        return ! is_null($gender) &&
+               ! is_null($age) && $age != 0 &&
+               ! is_null($height) && $height != 0 &&
+               ! is_null($weight) && $weight != 0 &&
+               ! is_null($race) &&
+               ! is_null($creatinine) && $creatinine != 0;
     }
 }

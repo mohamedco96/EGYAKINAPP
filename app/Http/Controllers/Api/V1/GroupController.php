@@ -67,12 +67,12 @@ class GroupController extends Controller
 
     public function joinGroup(Request $request, $groupId)
     {
-        return $this->groupController->joinGroup($request, $groupId);
+        return $this->groupController->joinGroup($groupId);
     }
 
     public function leaveGroup(Request $request, $groupId)
     {
-        return $this->groupController->leaveGroup($request, $groupId);
+        return $this->groupController->leaveGroup($groupId);
     }
 
     public function fetchMyGroups()

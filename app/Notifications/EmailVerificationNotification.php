@@ -8,7 +8,7 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 use Otp;
 
-class EmailVerificationNotification extends Notification implements ShouldQueue
+class EmailVerificationNotification extends Notification // implements ShouldQueue
 {
     // test
     use Queueable;
@@ -55,6 +55,11 @@ class EmailVerificationNotification extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
+        Log::info('EmailVerificationNotification via() called', [
+            'notifiable_email' => $notifiable->email,
+            'channels' => ['brevo-api'],
+        ]);
+
         return ['brevo-api'];
     }
 

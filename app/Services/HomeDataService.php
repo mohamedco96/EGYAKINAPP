@@ -118,7 +118,7 @@ class HomeDataService
         return [
             'userPatientCount' => $user->patients()->count(),
             'allPatientCount' => Patients::count(),
-            'postsCount' => $user->feedPosts()->count(),
+            'postsCount' => $user->feedPosts()->whereNull('group_id')->count(),
             'savedPostsCount' => $user->saves()->count(),
             'unreadCount' => AppNotification::where('doctor_id', $user->id)->where('read', false)->count(),
         ];

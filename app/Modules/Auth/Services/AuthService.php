@@ -407,7 +407,7 @@ class AuthService
 
             // Get counts from already loaded collections to avoid additional queries
             $patientCount = $user->patients->count();
-            $postsCount = $user->posts->count();
+            $postsCount = $user->feedPosts()->whereNull('group_id')->count();
             $savedPostsCount = $user->saves->count();
             $scoreValue = optional($user->score)->score ?? 0;
 
@@ -456,7 +456,7 @@ class AuthService
 
         $imageUrl = config('app.url').'/storage/'.$user->image;
         $patientCount = $user->patients()->count();
-        $postsCount = $user->feedPosts()->count();
+        $postsCount = $user->feedPosts()->whereNull('group_id')->count();
         $savedPostsCount = $user->saves()->count();
         $scoreValue = optional($user->score)->score ?? 0;
 

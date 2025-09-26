@@ -138,12 +138,10 @@ Features:
 
 The following resource directories exist but are missing main resource files:
 - AllPatiensResource
-- ComplaintResource
 - DecisionResource
 - ExaminationResource
 - OutcomeResource
 - PatientResource
-- RiskResource
 - SectionResource
 
 These should be created or cleaned up based on business requirements.

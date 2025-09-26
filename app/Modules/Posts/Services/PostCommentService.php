@@ -7,13 +7,14 @@ use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Posts\Models\PostComments;
 use App\Modules\Posts\Models\Posts;
 use App\Services\NotificationService;
+use App\Traits\FormatsUserName;
 use App\Traits\NotificationCleanup;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class PostCommentService
 {
-    use NotificationCleanup;
+    use FormatsUserName, NotificationCleanup;
 
     protected $notificationService;
 
@@ -140,7 +141,7 @@ class PostCommentService
                 'type_id' => $post->id,
                 'localization_key' => 'api.notification_post_commented',
                 'localization_params' => [
-                    'name' => $commentingUser->name.' '.$commentingUser->lname,
+                    'name' => $this->formatUserName($commentingUser),
                 ],
                 'type_doctor_id' => $commentingUser->id,
                 'created_at' => now(),
@@ -160,9 +161,10 @@ class PostCommentService
                 ->toArray();
 
             if (! empty($tokens)) {
+                $formattedName = $this->formatUserName($commentingUser);
                 $this->notificationService->sendPushNotification(
                     __('api.new_comment_added'),
-                    __('api.doctor_commented_on_post', ['name' => ucfirst($commentingUser->name)]),
+                    __('api.doctor_commented_on_post', ['name' => ucfirst($formattedName)]),
                     $tokens
                 );
             }

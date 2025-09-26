@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Modules\Notifications\Models\AppNotification;
 use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Notifications\Services\NotificationService;
+use App\Traits\FormatsUserName;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,8 @@ use Illuminate\Support\Facades\Log;
 
 class GroupController extends Controller
 {
+    use FormatsUserName;
+
     protected $mainController;
 
     protected $notificationService;
@@ -437,7 +440,7 @@ class GroupController extends Controller
                             'type' => 'group_invitation',
                             'type_id' => $groupId,
                             'localization_key' => 'api.notification_group_invitation',
-                            'localization_params' => ['name' => Auth::user()->name.' '.Auth::user()->lname],
+                            'localization_params' => ['name' => $this->formatUserName(Auth::user())],
                             'type_doctor_id' => Auth::id(),
                             'created_at' => now(),
                             'updated_at' => now(),
@@ -453,7 +456,7 @@ class GroupController extends Controller
                         if (! empty($tokens)) {
                             $this->notificationService->sendPushNotification(
                                 __('api.new_invitation_created'),
-                                __('api.doctor_invited_to_group', ['name' => ucfirst(Auth::user()->name)]),
+                                __('api.doctor_invited_to_group', ['name' => ucfirst($this->formatUserName(Auth::user()))]),
                                 $tokens
                             );
                         }
@@ -489,7 +492,7 @@ class GroupController extends Controller
                             'type' => 'group_invitation',
                             'type_id' => $groupId,
                             'localization_key' => 'api.notification_group_invitation',
-                            'localization_params' => ['name' => Auth::user()->name.' '.Auth::user()->lname],
+                            'localization_params' => ['name' => $this->formatUserName(Auth::user())],
                             'type_doctor_id' => Auth::id(),
                             'created_at' => now(),
                             'updated_at' => now(),
@@ -505,7 +508,7 @@ class GroupController extends Controller
                         if (! empty($tokens)) {
                             $this->notificationService->sendPushNotification(
                                 __('api.new_invitation_created'),
-                                __('api.doctor_invited_to_group', ['name' => ucfirst(Auth::user()->name)]),
+                                __('api.doctor_invited_to_group', ['name' => ucfirst($this->formatUserName(Auth::user()))]),
                                 $tokens
                             );
                         }
@@ -596,7 +599,7 @@ class GroupController extends Controller
                             'type' => 'group_invitation_accepted',
                             'type_id' => $groupId,
                             'localization_key' => 'api.notification_group_invitation_accepted',
-                            'localization_params' => ['name' => Auth::user()->name.' '.Auth::user()->lname],
+                            'localization_params' => ['name' => $this->formatUserName(Auth::user())],
                             'type_doctor_id' => $userId,
                             'created_at' => now(),
                             'updated_at' => now(),
@@ -610,7 +613,7 @@ class GroupController extends Controller
                         if (! empty($tokens)) {
                             $this->notificationService->sendPushNotification(
                                 __('api.group_invitation_accepted'),
-                                __('api.doctor_accepted_invitation', ['name' => ucfirst(Auth::user()->name)]),
+                                __('api.doctor_accepted_invitation', ['name' => ucfirst($this->formatUserName(Auth::user()))]),
                                 $tokens
                             );
                         }
@@ -1259,7 +1262,7 @@ class GroupController extends Controller
                 'type' => 'group_join_request',
                 'type_id' => $group->id,
                 'localization_key' => 'api.notification_group_join_request',
-                'localization_params' => ['name' => Auth::user()->name.' '.Auth::user()->lname],
+                'localization_params' => ['name' => $this->formatUserName(Auth::user())],
                 'type_doctor_id' => Auth::id(),
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -1275,7 +1278,7 @@ class GroupController extends Controller
             if (! empty($tokens)) {
                 $this->notificationService->sendPushNotification(
                     __('api.new_join_request'),
-                    __('api.doctor_requested_to_join', ['name' => ucfirst(Auth::user()->name)]),
+                    __('api.doctor_requested_to_join', ['name' => ucfirst($this->formatUserName(Auth::user()))]),
                     $tokens
                 );
             }
@@ -1414,7 +1417,7 @@ class GroupController extends Controller
                 'localization_key' => $localizationKey,
                 'localization_params' => [
                     'group_name' => $group->name,
-                    'owner_name' => $owner->name.' '.$owner->lname,
+                    'owner_name' => $this->formatUserName($owner),
                 ],
                 'type_doctor_id' => $owner->id,
                 'created_at' => now(),
@@ -1464,7 +1467,7 @@ class GroupController extends Controller
                 'localization_key' => 'api.notification_group_member_removed',
                 'localization_params' => [
                     'group_name' => $group->name,
-                    'remover_name' => $remover->name.' '.$remover->lname,
+                    'remover_name' => $this->formatUserName($remover),
                 ],
                 'type_doctor_id' => $remover->id,
                 'created_at' => now(),

@@ -7,10 +7,13 @@ use App\Modules\Consultations\Models\Consultation;
 use App\Modules\Notifications\Models\AppNotification;
 use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Notifications\Services\NotificationService;
+use App\Traits\FormatsUserName;
 use Illuminate\Support\Facades\Auth;
 
 class ConsultationNotificationService
 {
+    use FormatsUserName;
+
     protected $notificationService;
 
     public function __construct(NotificationService $notificationService)
@@ -31,14 +34,14 @@ class ConsultationNotificationService
                 'type' => 'Consultation',
                 'type_id' => $consultation->id,
                 'localization_key' => 'api.notification_consultation_request',
-                'localization_params' => ['name' => $user->name],
+                'localization_params' => ['name' => $this->formatUserName($user)],
                 'type_doctor_id' => Auth::id(),
                 'patient_id' => $patientId,
             ]);
         }
 
         $title = __('api.new_consultation_request_created');
-        $body = __('api.doctor_seeking_advice', ['name' => $user->name]);
+        $body = __('api.doctor_seeking_advice', ['name' => $this->formatUserName($user)]);
         $tokens = FcmToken::whereIn('doctor_id', $doctors)
             ->pluck('token')
             ->toArray();
@@ -64,7 +67,7 @@ class ConsultationNotificationService
 
         // Prepare and send push notifications to relevant doctors
         $title = __('api.new_reply_on_consultation');
-        $body = __('api.doctor_replied_to_consultation', ['name' => $user->name]);
+        $body = __('api.doctor_replied_to_consultation', ['name' => $this->formatUserName($user)]);
         $tokens = FcmToken::whereIn('doctor_id', [$doctorId])
             ->pluck('token')
             ->toArray();

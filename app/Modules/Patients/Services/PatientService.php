@@ -15,6 +15,7 @@ use App\Modules\Patients\Models\Patients;
 use App\Modules\Patients\Models\PatientStatus;
 use App\Modules\Questions\Models\Questions;
 use App\Services\FileUploadService;
+use App\Traits\FormatsUserName;
 use App\Traits\NotificationCleanup;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -23,7 +24,7 @@ use Illuminate\Support\Facades\Log;
 
 class PatientService
 {
-    use NotificationCleanup;
+    use FormatsUserName, NotificationCleanup;
 
     protected $notificationService;
 
@@ -303,7 +304,7 @@ class PatientService
                 'type' => 'New Patient',
                 'localization_key' => 'api.notification_new_patient',
                 'localization_params' => [
-                    'name' => $user->name.' '.$user->lname,
+                    'name' => $this->formatUserName($user),
                     'patient' => $patientName ?? 'Unknown',
                 ],
                 'patient_id' => $patientId,
@@ -313,7 +314,7 @@ class PatientService
 
         // Send push notifications to admins
         $title = __('api.new_patient_created');
-        $body = __('api.doctor_added_new_patient', ['name' => ucfirst($user->name), 'patient' => ($patientName ?? 'Unknown')]);
+        $body = __('api.doctor_added_new_patient', ['name' => ucfirst($this->formatUserName($user)), 'patient' => ($patientName ?? 'Unknown')]);
         $tokens = FcmToken::whereIn('doctor_id', $adminUsers)->pluck('token')->toArray();
 
         if (! empty($tokens)) {
@@ -363,7 +364,7 @@ class PatientService
                 $notificationsToInsert[] = [
                     'doctor_id' => $adminId,
                     'type' => 'Outcome Submitted',
-                    'content' => sprintf('Dr. %s submitted outcome for patient: %s', $user->name.' '.$user->lname, $patientName),
+                    'content' => sprintf('%s submitted outcome for patient: %s', $this->formatUserName($user), $patientName),
                     'patient_id' => $patientId,
                     'type_doctor_id' => $user->id,
                     'created_at' => now(),
@@ -375,7 +376,7 @@ class PatientService
 
             // Send push notifications to admins
             $title = __('api.outcome_submitted');
-            $body = __('api.doctor_submitted_outcome', ['name' => ucfirst($user->name), 'patient' => $patientName]);
+            $body = __('api.doctor_submitted_outcome', ['name' => ucfirst($this->formatUserName($user)), 'patient' => $patientName]);
             $tokens = FcmToken::whereIn('doctor_id', $adminUsers)->pluck('token')->toArray();
 
             if (! empty($tokens)) {

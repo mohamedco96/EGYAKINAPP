@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Modules\Notifications\Models\AppNotification;
 use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Notifications\Services\NotificationService;
+use App\Traits\FormatsUserName;
 use App\Traits\NotificationCleanup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth; // If you have a separate PollOption model
@@ -23,7 +24,7 @@ use Illuminate\Support\Facades\Log;
 
 class FeedPostController extends Controller
 {
-    use NotificationCleanup;
+    use FormatsUserName, NotificationCleanup;
 
     protected $mainController;
 
@@ -1069,7 +1070,7 @@ class FeedPostController extends Controller
     private function notifyDoctors(FeedPost $post)
     {
         $user = Auth::user();
-        $doctorName = $user->name.' '.$user->lname;
+        $doctorName = $this->formatUserName($user);
 
         // Determine who to notify based on post type
         if ($post->group_id) {
@@ -1444,7 +1445,7 @@ class FeedPostController extends Controller
                     'type' => 'PostComment',
                     'type_id' => $post->id,
                     'localization_key' => 'api.notification_post_commented',
-                    'localization_params' => ['name' => Auth::user()->name.' '.Auth::user()->lname],
+                    'localization_params' => ['name' => $this->formatUserName(Auth::user())],
                     'type_doctor_id' => Auth::id(),
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -1460,7 +1461,7 @@ class FeedPostController extends Controller
                 if (! empty($tokens)) {
                     $this->notificationService->sendPushNotification(
                         __('api.new_comment_added'),
-                        __('api.doctor_commented_on_post', ['name' => ucfirst(Auth::user()->name)]),
+                        __('api.doctor_commented_on_post', ['name' => ucfirst($this->formatUserName(Auth::user()))]),
                         $tokens
                     );
                 }
@@ -1575,7 +1576,7 @@ class FeedPostController extends Controller
                         'type' => 'CommentLike',
                         'type_id' => $comment->feed_post_id,
                         'localization_key' => 'api.notification_comment_liked',
-                        'localization_params' => ['name' => Auth::user()->name.' '.Auth::user()->lname],
+                        'localization_params' => ['name' => $this->formatUserName(Auth::user())],
                         'type_doctor_id' => Auth::id(),
                         'created_at' => now(),
                         'updated_at' => now(),
@@ -1589,7 +1590,7 @@ class FeedPostController extends Controller
                     if (! empty($tokens)) {
                         $this->notificationService->sendPushNotification(
                             __('api.comment_was_liked'),
-                            __('api.doctor_liked_comment', ['name' => ucfirst(Auth::user()->name)]),
+                            __('api.doctor_liked_comment', ['name' => ucfirst($this->formatUserName(Auth::user()))]),
                             $tokens
                         );
                     }

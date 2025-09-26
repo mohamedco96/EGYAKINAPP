@@ -7,11 +7,14 @@ use App\Modules\Notifications\Models\AppNotification;
 use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Patients\Models\Patients;
 use App\Services\NotificationService;
+use App\Traits\FormatsUserName;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class CommentNotificationService
 {
+    use FormatsUserName;
+
     protected $notificationService;
 
     public function __construct(NotificationService $notificationService)
@@ -70,7 +73,7 @@ class CommentNotificationService
                 $commentingUser = Auth::user();
                 $this->notificationService->sendPushNotification(
                     __('api.new_patient_comment'),
-                    __('api.doctor_commented_on_patient', ['name' => ucfirst($commentingUser->name)]),
+                    __('api.doctor_commented_on_patient', ['name' => ucfirst($this->formatUserName($commentingUser))]),
                     $tokens
                 );
             }

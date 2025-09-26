@@ -365,6 +365,7 @@ return [
 
     // Consultation Messages
     'consultation_unauthorized_patient' => 'يمكنك فقط طلب استشارة للمرضى الذين قمت بإنشائهم.',
+    'private_group_access_denied' => 'تم رفض الوصول. يجب أن تكون عضواً في هذه المجموعة الخاصة لتنفيذ هذا الإجراء.',
 
     // Analytics Dashboard
     'analytics_title' => 'لوحة تحليلات EGYAKIN',

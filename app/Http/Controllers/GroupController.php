@@ -42,6 +42,63 @@ class GroupController extends Controller
     }
 
     /**
+     * Check if user can access a private group (either member or owner).
+     *
+     * @param  int|null  $userId
+     * @return bool
+     */
+    protected function canAccessPrivateGroup(Group $group, $userId = null)
+    {
+        $userId = $userId ?? Auth::id();
+
+        // Public groups are accessible to everyone
+        if ($group->privacy === 'public') {
+            return true;
+        }
+
+        // Owner can always access their own group
+        if ($group->owner_id === $userId) {
+            return true;
+        }
+
+        // Check if user is a joined member of the private group
+        $memberStatus = DB::table('group_user')
+            ->where('group_id', $group->id)
+            ->where('doctor_id', $userId)
+            ->value('status');
+
+        return $memberStatus === 'joined';
+    }
+
+    /**
+     * Validate access to private group and return appropriate response if unauthorized.
+     *
+     * @param  string  $action
+     * @param  int|null  $userId
+     * @return \Illuminate\Http\JsonResponse|null
+     */
+    protected function validatePrivateGroupAccess(Group $group, $action = 'access', $userId = null)
+    {
+        $userId = $userId ?? Auth::id();
+
+        if (! $this->canAccessPrivateGroup($group, $userId)) {
+            Log::warning('Unauthorized private group access attempt', [
+                'user_id' => $userId,
+                'group_id' => $group->id,
+                'action' => $action,
+                'group_privacy' => $group->privacy,
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => __('api.private_group_access_denied'),
+            ], 403);
+        }
+
+        return null; // Access granted
+    }
+
+    /**
      * Create a new group.
      *
      * @return \Illuminate\Http\JsonResponse
@@ -349,6 +406,14 @@ class GroupController extends Controller
         // Check if the authenticated user is the group owner
         //$this->authorizeOwner($group);
 
+        // For private groups, only owners and existing members can invite others
+        if ($group->privacy === 'private') {
+            $accessValidation = $this->validatePrivateGroupAccess($group, 'invite_member');
+            if ($accessValidation) {
+                return $accessValidation;
+            }
+        }
+
         try {
             DB::beginTransaction();
 
@@ -636,11 +701,29 @@ class GroupController extends Controller
             }])
                 ->findOrFail($id);
 
-            // Count the number of members in the group
-            $group->members_count = (int) $group->doctors()->where('status', 'joined')->count();
-
             // Check if the authenticated user is a member of the group and get their status
             $userId = Auth::id();
+
+            // For private groups, validate access for detailed information
+            if ($group->privacy === 'private' && ! $this->canAccessPrivateGroup($group, $userId)) {
+                // Return limited group info for non-members of private groups
+                return response()->json([
+                    'value' => true,
+                    'data' => [
+                        'id' => $group->id,
+                        'name' => $group->name,
+                        'description' => $group->description,
+                        'privacy' => $group->privacy,
+                        'owner' => $group->owner,
+                        'members_count' => null, // Hide member count for private groups
+                        'user_status' => null,
+                    ],
+                    'message' => __('api.group_details_retrieved_successfully'),
+                ], 200);
+            }
+
+            // Count the number of members in the group
+            $group->members_count = (int) $group->doctors()->where('status', 'joined')->count();
 
             $userStatus = DB::table('group_user')
                 ->where('group_id', $id)
@@ -699,6 +782,14 @@ class GroupController extends Controller
             // Check if the authenticated user is the group owner
             //$this->authorizeOwner($group);
 
+            // For private groups, only owners and existing members can remove members
+            if ($group->privacy === 'private') {
+                $accessValidation = $this->validatePrivateGroupAccess($group, 'remove_member');
+                if ($accessValidation) {
+                    return $accessValidation;
+                }
+            }
+
             // Check if the member exists in the group
             if (! $group->doctors()->where('doctor_id', $doctorId)->exists()) {
                 return response()->json([
@@ -753,6 +844,12 @@ class GroupController extends Controller
 
             // Find the group or fail if not found
             $group = Group::findOrFail($groupId);
+
+            // Validate access for private groups
+            $accessValidation = $this->validatePrivateGroupAccess($group, 'search_members');
+            if ($accessValidation) {
+                return $accessValidation;
+            }
 
             // Search for members in the group based on the query with pagination
             $members = $group->doctors()
@@ -813,6 +910,12 @@ class GroupController extends Controller
         try {
             // Find the group or fail if not found
             $group = Group::findOrFail($groupId);
+
+            // Validate access for private groups
+            $accessValidation = $this->validatePrivateGroupAccess($group, 'fetch_members');
+            if ($accessValidation) {
+                return $accessValidation;
+            }
 
             // Retrieve the joined members of the group with pagination
             $members = $group->doctors()

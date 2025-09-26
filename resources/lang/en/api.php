@@ -365,6 +365,7 @@ return [
 
     // Consultation Messages
     'consultation_unauthorized_patient' => 'You can only request consultation for patients you created.',
+    'private_group_access_denied' => 'Access denied. You must be a member of this private group to perform this action.',
 
     // Analytics Dashboard
     'analytics_title' => 'EGYAKIN Analytics Dashboard',

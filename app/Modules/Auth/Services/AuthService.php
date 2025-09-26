@@ -120,12 +120,18 @@ class AuthService
 
         // Check if user is blocked
         if ($user->blocked) {
+            // Set the locale based on user preference before returning the message
+            if ($user->locale && in_array($user->locale, ['en', 'ar'])) {
+                \App::setLocale($user->locale);
+            }
+
             // Log out the user immediately
             Auth::logout();
 
             Log::warning('Blocked user attempted to login', [
                 'user_id' => $user->id,
                 'email' => $email,
+                'user_locale' => $user->locale,
             ]);
 
             return [

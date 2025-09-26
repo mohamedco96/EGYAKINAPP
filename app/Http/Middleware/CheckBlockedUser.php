@@ -21,6 +21,11 @@ class CheckBlockedUser
 
             // Check if user is blocked
             if ($user->blocked) {
+                // Set the locale based on user preference before returning the message
+                if ($user->locale && in_array($user->locale, ['en', 'ar'])) {
+                    \App::setLocale($user->locale);
+                }
+
                 // Revoke all tokens for this user
                 $user->tokens()->delete();
 
@@ -30,6 +35,7 @@ class CheckBlockedUser
                     'email' => $user->email,
                     'url' => $request->url(),
                     'ip' => $request->ip(),
+                    'user_locale' => $user->locale,
                 ]);
 
                 return response()->json([

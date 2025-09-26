@@ -346,6 +346,17 @@ class AuthService
             ];
         }
 
+        // Handle email update - reset verification if email changed
+        if (isset($requestData['email']) && $requestData['email'] !== $user->email) {
+            $requestData['email'] = strtolower($requestData['email']);
+            $requestData['email_verified_at'] = null;
+        }
+
+        // Handle empty string for email_verified_at (convert to null)
+        if (isset($requestData['email_verified_at']) && $requestData['email_verified_at'] === '') {
+            $requestData['email_verified_at'] = null;
+        }
+
         // Handle syndicate card requirement updates
         if (isset($requestData['isSyndicateCardRequired'])) {
             $this->handleSyndicateCardUpdate($user, $requestData['isSyndicateCardRequired']);

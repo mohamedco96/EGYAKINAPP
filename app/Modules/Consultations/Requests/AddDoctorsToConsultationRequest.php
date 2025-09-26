@@ -31,10 +31,10 @@ class AddDoctorsToConsultationRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'consult_doctor_ids.required' => 'At least one consulting doctor is required.',
-            'consult_doctor_ids.array' => 'Consulting doctors must be provided as an array.',
-            'consult_doctor_ids.min' => 'At least one consulting doctor is required.',
-            'consult_doctor_ids.*.exists' => 'One or more selected doctors do not exist.',
+            'consult_doctor_ids.required' => __('api.consult_doctors_required'),
+            'consult_doctor_ids.array' => __('api.consult_doctors_array'),
+            'consult_doctor_ids.min' => __('api.consult_doctors_min'),
+            'consult_doctor_ids.*.exists' => __('api.consult_doctors_not_exist'),
         ];
     }
 }

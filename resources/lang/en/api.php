@@ -365,6 +365,21 @@ return [
 
     // Consultation Messages
     'consultation_unauthorized_patient' => 'You can only request consultation for patients you created.',
+    'consultation_closed' => 'Cannot reply to a closed consultation.',
+    'consultation_unauthorized_reply' => 'You are not authorized to reply to this consultation.',
+    'consultation_reply_failed' => 'Failed to add reply.',
+    'reply_required' => 'Reply is required.',
+    'reply_string' => 'Reply must be a string.',
+    'patient_not_exist' => 'The selected patient does not exist.',
+    'patient_id_required' => 'Patient ID is required.',
+    'consult_message_required' => 'Consultation message is required.',
+    'consult_message_string' => 'Consultation message must be a string.',
+    'consult_doctors_required' => 'At least one consulting doctor is required.',
+    'consult_doctors_array' => 'Consulting doctors must be provided as an array.',
+    'consult_doctors_not_exist' => 'One or more selected doctors do not exist.',
+    'status_required' => 'Status is required.',
+    'status_boolean' => 'Status must be true (open) or false (closed).',
+    'consult_doctors_min' => 'At least one consulting doctor is required.',
     'private_group_access_denied' => 'Access denied. You must be a member of this private group to perform this action.',
 
     // Analytics Dashboard

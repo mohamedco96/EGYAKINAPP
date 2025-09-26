@@ -365,6 +365,21 @@ return [
 
     // Consultation Messages
     'consultation_unauthorized_patient' => 'يمكنك فقط طلب استشارة للمرضى الذين قمت بإنشائهم.',
+    'consultation_closed' => 'لا يمكن الرد على استشارة مغلقة.',
+    'consultation_unauthorized_reply' => 'غير مخول لك الرد على هذه الاستشارة.',
+    'consultation_reply_failed' => 'فشل في إضافة الرد.',
+    'reply_required' => 'الرد مطلوب.',
+    'reply_string' => 'يجب أن يكون الرد نص.',
+    'patient_not_exist' => 'المريض المحدد غير موجود.',
+    'patient_id_required' => 'معرف المريض مطلوب.',
+    'consult_message_required' => 'رسالة الاستشارة مطلوبة.',
+    'consult_message_string' => 'يجب أن تكون رسالة الاستشارة نص.',
+    'consult_doctors_required' => 'مطلوب طبيب واحد على الأقل للاستشارة.',
+    'consult_doctors_array' => 'يجب تقديم الأطباء المستشارين كمصفوفة.',
+    'consult_doctors_not_exist' => 'واحد أو أكثر من الأطباء المحددين غير موجود.',
+    'status_required' => 'الحالة مطلوبة.',
+    'status_boolean' => 'يجب أن تكون الحالة صحيح (مفتوح) أو خطأ (مغلق).',
+    'consult_doctors_min' => 'مطلوب طبيب واحد على الأقل للاستشارة.',
     'private_group_access_denied' => 'تم رفض الوصول. يجب أن تكون عضواً في هذه المجموعة الخاصة لتنفيذ هذا الإجراء.',
 
     // Analytics Dashboard

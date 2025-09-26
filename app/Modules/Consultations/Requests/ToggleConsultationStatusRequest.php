@@ -30,8 +30,8 @@ class ToggleConsultationStatusRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'is_open.required' => 'Status is required.',
-            'is_open.boolean' => 'Status must be true (open) or false (closed).',
+            'is_open.required' => __('api.status_required'),
+            'is_open.boolean' => __('api.status_boolean'),
         ];
     }
 }

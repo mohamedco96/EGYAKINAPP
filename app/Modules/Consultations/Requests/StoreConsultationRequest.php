@@ -44,13 +44,13 @@ class StoreConsultationRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'patient_id.required' => 'Patient ID is required.',
-            'patient_id.exists' => 'The selected patient does not exist.',
-            'consult_message.required' => 'Consultation message is required.',
-            'consult_message.string' => 'Consultation message must be a string.',
-            'consult_doctor_ids.required' => 'At least one consulting doctor is required.',
-            'consult_doctor_ids.array' => 'Consulting doctors must be provided as an array.',
-            'consult_doctor_ids.*.exists' => 'One or more selected doctors do not exist.',
+            'patient_id.required' => __('api.patient_id_required'),
+            'patient_id.exists' => __('api.patient_not_exist'),
+            'consult_message.required' => __('api.consult_message_required'),
+            'consult_message.string' => __('api.consult_message_string'),
+            'consult_doctor_ids.required' => __('api.consult_doctors_required'),
+            'consult_doctor_ids.array' => __('api.consult_doctors_array'),
+            'consult_doctor_ids.*.exists' => __('api.consult_doctors_not_exist'),
         ];
     }
 }

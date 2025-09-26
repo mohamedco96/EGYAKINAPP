@@ -31,9 +31,9 @@ class UpdateConsultationRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'reply.required' => 'Reply is required.',
-            'reply.string' => 'Reply must be a string.',
-            'patient_id.exists' => 'The selected patient does not exist.',
+            'reply.required' => __('api.reply_required'),
+            'reply.string' => __('api.reply_string'),
+            'patient_id.exists' => __('api.patient_not_exist'),
         ];
     }
 }

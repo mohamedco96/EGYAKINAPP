@@ -260,13 +260,13 @@ class ConsultationService
 
             if (! $consultation) {
                 return [
-                    'message' => 'Consultation not found.',
+                    'message' => __('api.consultation_not_found'),
                 ];
             }
 
             if (! $consultation->is_open) {
                 return [
-                    'message' => 'Cannot reply to a closed consultation.',
+                    'message' => __('api.consultation_closed'),
                 ];
             }
 
@@ -307,7 +307,7 @@ class ConsultationService
             ]);
 
             return [
-                'message' => 'Consultation request updated successfully',
+                'message' => __('api.consultation_updated_successfully'),
                 'data' => [
                     'consultation_id' => $id,
                     'doctor_id' => $user->id,
@@ -689,14 +689,14 @@ class ConsultationService
             if (! $consultation) {
                 return [
                     'value' => false,
-                    'message' => 'Consultation not found.',
+                    'message' => __('api.consultation_not_found'),
                 ];
             }
 
             if (! $consultation->is_open) {
                 return [
                     'value' => false,
-                    'message' => 'Cannot reply to a closed consultation.',
+                    'message' => __('api.consultation_closed'),
                 ];
             }
 
@@ -708,7 +708,7 @@ class ConsultationService
             if (! $consultationDoctor) {
                 return [
                     'value' => false,
-                    'message' => 'You are not authorized to reply to this consultation.',
+                    'message' => __('api.consultation_unauthorized_reply'),
                 ];
             }
 
@@ -741,7 +741,7 @@ class ConsultationService
 
                 return [
                     'value' => true,
-                    'message' => 'Reply added successfully.',
+                    'message' => __('api.reply_added_successfully'),
                     'data' => [
                         'reply_id' => $reply->id,
                         'consultation_id' => $consultation->id,
@@ -758,7 +758,7 @@ class ConsultationService
 
             return [
                 'value' => false,
-                'message' => 'Failed to add reply.',
+                'message' => __('api.consultation_reply_failed'),
             ];
         }
     }

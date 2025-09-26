@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" class="{{ $isDark ? 'dark' : '' }}">
+<html lang="{{ $locale ?? 'en' }}" class="{{ $isDark ? 'dark' : '' }}" dir="{{ ($locale ?? 'en') === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EGYAKIN Analytics Dashboard</title>
+    <title>{{ __('api.analytics_title') }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -121,8 +121,8 @@
             <div class="flex items-center justify-center">
                 <i class="fas fa-exclamation-triangle mr-3"></i>
                 <div class="text-center">
-                    <p class="font-semibold mb-1">لا يُسمح باستخدام البيانات دون موافقتنا.</p>
-                    <p class="text-sm opacity-90">Data use is not permitted without our approval.</p>
+                    <p class="font-semibold mb-1">{{ __('api.data_use_warning_ar') }}</p>
+                    <p class="text-sm opacity-90">{{ __('api.data_use_warning') }}</p>
                 </div>
             </div>
         </div>
@@ -134,24 +134,24 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-4xl font-bold mb-2">
-                        <i class="fas fa-chart-line mr-3"></i>
-                        EGYAKIN Analytics Dashboard
+                        <i class="fas fa-chart-line {{ ($locale ?? 'en') === 'ar' ? 'ml-3' : 'mr-3' }}"></i>
+                        {{ __('api.analytics_title') }}
                     </h1>
-                    <p class="text-xl opacity-90">Comprehensive Medical Data Analytics</p>
+                    <p class="text-xl opacity-90">{{ __('api.analytics_subtitle') }}</p>
                 </div>
                 <div class="flex items-center space-x-6">
                     <!-- Dark Mode Toggle -->
                     <div class="flex items-center space-x-3">
                         <i class="fas fa-sun text-yellow-300"></i>
                         <button onclick="toggleDarkMode()" class="relative inline-flex h-6 w-11 items-center rounded-full bg-white bg-opacity-20 transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2">
-                            <span class="sr-only">Toggle dark mode</span>
+                            <span class="sr-only">{{ __('api.toggle_dark_mode') }}</span>
                             <span id="toggle-dot" class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {{ $isDark ? 'translate-x-6' : 'translate-x-1' }}"></span>
                         </button>
                         <i class="fas fa-moon text-blue-200"></i>
                     </div>
                     <div class="text-right">
                         <p class="text-lg opacity-90">{{ date('F j, Y') }}</p>
-                        <p class="text-sm opacity-75">Real-time Data Insights</p>
+                        <p class="text-sm opacity-75">{{ __('api.real_time_insights') }}</p>
                     </div>
                 </div>
             </div>
@@ -165,9 +165,9 @@
             <div class="stat-card rounded-xl p-6 text-white card-hover">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm opacity-90 mb-1">Total Doctors</p>
+                        <p class="text-sm opacity-90 mb-1">{{ __('api.total_doctors') }}</p>
                         <p class="text-3xl font-bold">{{ number_format($analytics['total_doctors']) }}</p>
-                        <p class="text-xs opacity-75">Verified</p>
+                        <p class="text-xs opacity-75">{{ __('api.verified') }}</p>
                     </div>
                     <div class="bg-white bg-opacity-20 rounded-full p-3">
                         <i class="fas fa-user-md text-2xl"></i>
@@ -179,9 +179,9 @@
             <div class="stat-card-orange rounded-xl p-6 text-white card-hover">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm opacity-90 mb-1">Total Users</p>
+                        <p class="text-sm opacity-90 mb-1">{{ __('api.total_users') }}</p>
                         <p class="text-3xl font-bold">{{ number_format($analytics['total_users']) }}</p>
-                        <p class="text-xs opacity-75">Non-verified</p>
+                        <p class="text-xs opacity-75">{{ __('api.non_verified') }}</p>
                     </div>
                     <div class="bg-white bg-opacity-20 rounded-full p-3">
                         <i class="fas fa-users text-2xl"></i>
@@ -193,9 +193,9 @@
             <div class="stat-card-blue rounded-xl p-6 text-white card-hover">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm opacity-90 mb-1">Total Patients</p>
+                        <p class="text-sm opacity-90 mb-1">{{ __('api.total_patients') }}</p>
                         <p class="text-3xl font-bold">{{ number_format($analytics['total_patients']) }}</p>
-                        <p class="text-xs opacity-75">Active only</p>
+                        <p class="text-xs opacity-75">{{ __('api.active_only') }}</p>
                     </div>
                     <div class="bg-white bg-opacity-20 rounded-full p-3">
                         <i class="fas fa-hospital-user text-2xl"></i>
@@ -207,7 +207,7 @@
             <div class="stat-card-green rounded-xl p-6 text-white card-hover">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm opacity-90 mb-1">Male Patients</p>
+                        <p class="text-sm opacity-90 mb-1">{{ __('api.male_patients') }}</p>
                         <p class="text-3xl font-bold">{{ number_format($analytics['gender_stats']['male']) }}</p>
                     </div>
                     <div class="bg-white bg-opacity-20 rounded-full p-3">
@@ -220,7 +220,7 @@
             <div class="stat-card-purple rounded-xl p-6 text-white card-hover">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm opacity-90 mb-1">Female Patients</p>
+                        <p class="text-sm opacity-90 mb-1">{{ __('api.female_patients') }}</p>
                         <p class="text-3xl font-bold">{{ number_format($analytics['gender_stats']['female']) }}</p>
                     </div>
                     <div class="bg-white bg-opacity-20 rounded-full p-3">
@@ -235,8 +235,8 @@
             <!-- Gender Distribution Chart -->
             <div class="chart-container rounded-xl p-6 shadow-lg">
                 <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-                    <i class="fas fa-chart-pie mr-2 text-blue-600 dark:text-blue-400"></i>
-                    Gender Distribution
+                    <i class="fas fa-chart-pie {{ ($locale ?? 'en') === 'ar' ? 'ml-2' : 'mr-2' }} text-blue-600 dark:text-blue-400"></i>
+                    {{ __('api.gender_distribution') }}
                 </h3>
                 <div class="chart-fixed-height">
                     <canvas id="genderChart"></canvas>
@@ -246,8 +246,8 @@
             <!-- DM vs HTN Chart -->
             <div class="chart-container rounded-xl p-6 shadow-lg">
                 <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-                    <i class="fas fa-chart-bar mr-2 text-green-600 dark:text-green-400"></i>
-                    DM vs HTN Statistics
+                    <i class="fas fa-chart-bar {{ ($locale ?? 'en') === 'ar' ? 'ml-2' : 'mr-2' }} text-green-600 dark:text-green-400"></i>
+                    {{ __('api.dm_htn_statistics') }}
                 </h3>
                 <div class="chart-fixed-height">
                     <canvas id="dmHtnChart"></canvas>
@@ -260,8 +260,8 @@
             <!-- Dialysis Percentage -->
             <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg card-hover transition-colors duration-300">
                 <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-                    <i class="fas fa-percentage mr-2 text-red-600 dark:text-red-400"></i>
-                    Dialysis Percentage
+                    <i class="fas fa-percentage {{ ($locale ?? 'en') === 'ar' ? 'ml-2' : 'mr-2' }} text-red-600 dark:text-red-400"></i>
+                    {{ __('api.dialysis_percentage') }}
                 </h3>
                 <div class="flex items-center justify-center">
                     <div class="relative w-32 h-32">
@@ -282,8 +282,8 @@
             <!-- Department Statistics -->
             <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg card-hover transition-colors duration-300">
                 <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-                    <i class="fas fa-hospital mr-2 text-purple-600 dark:text-purple-400"></i>
-                    Department Distribution
+                    <i class="fas fa-hospital {{ ($locale ?? 'en') === 'ar' ? 'ml-2' : 'mr-2' }} text-purple-600 dark:text-purple-400"></i>
+                    {{ __('api.department_distribution') }}
                 </h3>
                 @if(count($analytics['department_stats']) > 0)
                     <div class="space-y-3">
@@ -302,7 +302,7 @@
                         @endforeach
                     </div>
                 @else
-                    <p class="text-gray-500 dark:text-gray-400 text-center py-4">No department data available</p>
+                    <p class="text-gray-500 dark:text-gray-400 text-center py-4">{{ __('api.no_department_data') }}</p>
                 @endif
             </div>
         </div>
@@ -312,8 +312,8 @@
             <!-- Provisional Diagnosis -->
             <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg card-hover transition-colors duration-300">
                 <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-                    <i class="fas fa-stethoscope mr-2 text-indigo-600 dark:text-indigo-400"></i>
-                    Provisional Diagnosis
+                    <i class="fas fa-stethoscope {{ ($locale ?? 'en') === 'ar' ? 'ml-2' : 'mr-2' }} text-indigo-600 dark:text-indigo-400"></i>
+                    {{ __('api.provisional_diagnosis') }}
                 </h3>
                 @if(count($analytics['provisional_diagnosis_stats']) > 0)
                     <div class="space-y-3 max-h-64 overflow-y-auto scrollable-content">
@@ -327,15 +327,15 @@
                         @endforeach
                     </div>
                 @else
-                    <p class="text-gray-500 dark:text-gray-400 text-center py-4">No diagnosis data available</p>
+                    <p class="text-gray-500 dark:text-gray-400 text-center py-4">{{ __('api.no_diagnosis_data') }}</p>
                 @endif
             </div>
 
             <!-- Cause of AKI -->
             <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg card-hover transition-colors duration-300">
                 <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-                    <i class="fas fa-exclamation-triangle mr-2 text-orange-600 dark:text-orange-400"></i>
-                    Cause of AKI
+                    <i class="fas fa-exclamation-triangle {{ ($locale ?? 'en') === 'ar' ? 'ml-2' : 'mr-2' }} text-orange-600 dark:text-orange-400"></i>
+                    {{ __('api.cause_of_aki') }}
                 </h3>
                 @if(count($analytics['cause_of_aki_stats']) > 0)
                     <div class="space-y-3 max-h-64 overflow-y-auto scrollable-content">
@@ -349,7 +349,7 @@
                         @endforeach
                     </div>
                 @else
-                    <p class="text-gray-500 dark:text-gray-400 text-center py-4">No AKI cause data available</p>
+                    <p class="text-gray-500 dark:text-gray-400 text-center py-4">{{ __('api.no_aki_cause_data') }}</p>
                 @endif
             </div>
         </div>
@@ -359,19 +359,19 @@
             <!-- Patient Outcomes -->
             <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg card-hover transition-colors duration-300">
                 <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-                    <i class="fas fa-heartbeat mr-2 text-green-600 dark:text-green-400"></i>
-                    Patient Outcomes & Status
+                    <i class="fas fa-heartbeat {{ ($locale ?? 'en') === 'ar' ? 'ml-2' : 'mr-2' }} text-green-600 dark:text-green-400"></i>
+                    {{ __('api.patient_outcomes_status') }}
                 </h3>
                 
                 <!-- Status Counts -->
                 <div class="mb-6">
                     <div class="grid grid-cols-2 gap-4">
                         <div class="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg transition-colors duration-300">
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Outcome Status</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">{{ __('api.outcome_status') }}</p>
                             <p class="text-3xl font-bold text-green-600 dark:text-green-400">{{ $analytics['outcome_stats']['outcome_status_count'] ?? 0 }}</p>
                         </div>
                         <div class="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg transition-colors duration-300">
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Submit Status</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">{{ __('api.submit_status') }}</p>
                             <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ $analytics['outcome_stats']['submit_status_count'] ?? 0 }}</p>
                         </div>
                     </div>
@@ -380,7 +380,7 @@
                 <!-- Outcome Values from Question ID 79 -->
                 @if(isset($analytics['outcome_stats']['outcome_values']) && count($analytics['outcome_stats']['outcome_values']) > 0)
                     <div class="mb-4">
-                        <h4 class="text-md font-medium text-gray-700 dark:text-gray-300 mb-3">Outcome Values</h4>
+                        <h4 class="text-md font-medium text-gray-700 dark:text-gray-300 mb-3">{{ __('api.outcome_values') }}</h4>
                         <div class="space-y-2 mb-4">
                             @foreach($analytics['outcome_stats']['outcome_values'] as $outcome => $data)
                                 @if(!empty($outcome) && $outcome !== null && trim($outcome) !== '' && $outcome !== 'null')
@@ -400,7 +400,7 @@
                         </div>
                     </div>
                 @else
-                    <p class="text-gray-500 dark:text-gray-400 text-center py-4">No outcome data available</p>
+                    <p class="text-gray-500 dark:text-gray-400 text-center py-4">{{ __('api.no_outcome_data') }}</p>
                 @endif
             </div>
         </div>
@@ -409,7 +409,7 @@
     <!-- Footer -->
     <footer class="bg-gray-800 dark:bg-gray-900 text-white py-6 mt-12 transition-colors duration-300">
         <div class="container mx-auto px-6 text-center">
-            <p>&copy; {{ date('Y') }} EGYAKIN. All rights reserved. | Medical Analytics Dashboard</p>
+            <p>&copy; {{ date('Y') }} EGYAKIN. {{ __('api.all_rights_reserved') }} | {{ __('api.medical_analytics_footer') }}</p>
         </div>
     </footer>
 
@@ -419,7 +419,7 @@
         new Chart(genderCtx, {
             type: 'doughnut',
             data: {
-                labels: ['Male', 'Female'],
+                labels: ['{{ __("api.male") }}', '{{ __("api.female") }}'],
                 datasets: [{
                     data: [
                         {{ $analytics['gender_stats']['male'] }},
@@ -455,9 +455,9 @@
         new Chart(dmHtnCtx, {
             type: 'bar',
             data: {
-                labels: ['DM (Yes)', 'DM (No)', 'HTN (Yes)', 'HTN (No)'],
+                labels: ['{{ __("api.dm_yes") }}', '{{ __("api.dm_no") }}', '{{ __("api.htn_yes") }}', '{{ __("api.htn_no") }}'],
                 datasets: [{
-                    label: 'Patient Count',
+                    label: '{{ __("api.patient_count") }}',
                     data: [
                         {{ $analytics['dm_stats']['yes'] }},
                         {{ $analytics['dm_stats']['no'] }},

@@ -17,7 +17,13 @@ class AnalyticsController extends Controller
         // Get dark mode parameter (default is false for white mode)
         $isDark = request()->boolean('dark', false);
 
-        return view('analytics', compact('analytics', 'isDark'));
+        // Get locale parameter (default is 'en')
+        $locale = request()->get('lang', app()->getLocale());
+
+        // Set the application locale
+        app()->setLocale($locale);
+
+        return view('analytics', compact('analytics', 'isDark', 'locale'));
     }
 
     private function getAnalyticsData()

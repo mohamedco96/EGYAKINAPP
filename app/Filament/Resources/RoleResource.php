@@ -31,11 +31,11 @@ class RoleResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-shield-check';
 
-    protected static ?string $navigationGroup = '🔐 Access Control';
+    protected static ?string $navigationGroup = '👨‍⚕️ User Management';
 
     protected static ?string $navigationLabel = 'Roles & Permissions';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 20;
 
     protected static ?string $recordTitleAttribute = 'name';
 

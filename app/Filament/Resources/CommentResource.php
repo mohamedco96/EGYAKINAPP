@@ -24,7 +24,7 @@ class CommentResource extends Resource
 
     protected static ?string $navigationGroup = '🏥 Patient Management';
 
-    protected static ?int $navigationSort = 30;
+    protected static ?int $navigationSort = 60;
 
     public static function getNavigationBadge(): ?string
     {

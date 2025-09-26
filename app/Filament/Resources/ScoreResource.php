@@ -22,9 +22,9 @@ class ScoreResource extends Resource
 
     protected static ?string $navigationLabel = 'Doctor Scores';
 
-    protected static ?string $navigationGroup = '👨‍⚕️ Medical Team';
+    protected static ?string $navigationGroup = '🏥 Patient Management';
 
-    protected static ?int $navigationSort = 20;
+    protected static ?int $navigationSort = 70;
 
     public static function getNavigationBadge(): ?string
     {

@@ -22,9 +22,9 @@ class ScoreHistoryResource extends Resource
 
     protected static ?string $navigationLabel = 'Score History';
 
-    protected static ?string $navigationGroup = '👨‍⚕️ Medical Team';
+    protected static ?string $navigationGroup = '🏥 Patient Management';
 
-    protected static ?int $navigationSort = 30;
+    protected static ?int $navigationSort = 80;
 
     public static function getNavigationBadge(): ?string
     {

@@ -29,7 +29,7 @@ class AuditLogResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Audit Logs';
 
-    protected static ?string $navigationGroup = 'Security';
+    protected static ?string $navigationGroup = '🔒 System Administration';
 
     protected static ?int $navigationSort = 10;
 

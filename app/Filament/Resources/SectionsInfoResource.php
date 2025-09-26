@@ -24,7 +24,7 @@ class SectionsInfoResource extends Resource
 
     protected static ?string $navigationGroup = '📊 Medical Data';
 
-    protected static ?int $navigationSort = 30;
+    protected static ?int $navigationSort = 20;
 
     public static function getNavigationBadge(): ?string
     {

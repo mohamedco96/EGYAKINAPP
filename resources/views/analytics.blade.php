@@ -33,6 +33,10 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
         
+        .dark .gradient-bg {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
+        }
+        
         .card-hover {
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             will-change: transform;

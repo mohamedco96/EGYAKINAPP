@@ -303,10 +303,13 @@ class AuthService
         $user = User::findOrFail(Auth::id());
 
         return DB::transaction(function () use ($validatedData, $user) {
+            // Remove email_verified_at from validated data as it shouldn't be directly updated
+            unset($validatedData['email_verified_at']);
+
             // Handle email update
             if (isset($validatedData['email']) && $validatedData['email'] !== $user->email) {
                 $validatedData['email'] = strtolower($validatedData['email']);
-                $validatedData['email_verified_at'] = null;
+                $validatedData['email_verified_at'] = null; // Only set when email changes
             }
 
             // Sanitize inputs

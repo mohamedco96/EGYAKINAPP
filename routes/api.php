@@ -69,7 +69,7 @@ Route::put('/settings/{settings}', [SettingsController::class, 'update']);
 Route::delete('/settings/{settings}', [SettingsController::class, 'destroy']);
 
 // Protected routes
-Route::group(['middleware' => ['auth:sanctum']], function () {
+Route::group(['middleware' => ['auth:sanctum', 'check.blocked']], function () {
     // General
     Route::post('/uploadImage', 'MainController@uploadImage');
     Route::post('/uploadVideo', 'MainController@uploadVideo');
@@ -254,6 +254,6 @@ Route::fallback(function () {
     ], 404);
 });
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+Route::middleware(['auth:sanctum', 'check.blocked'])->get('/user', function (Request $request) {
     return $request->user();
 });

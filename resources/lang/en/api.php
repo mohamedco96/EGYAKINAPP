@@ -93,6 +93,7 @@ return [
     'registration_failed' => 'Registration failed',
     'invalid_credentials' => 'Invalid credentials',
     'too_many_login_attempts' => 'Too many login attempts. Please try again later.',
+    'account_blocked' => 'Your account has been blocked. Please contact support.',
     'current_password_incorrect' => 'Current password is incorrect',
     'password_changed_successfully' => 'Password changed successfully',
     'profile_image_uploaded_successfully' => 'Profile image uploaded successfully.',

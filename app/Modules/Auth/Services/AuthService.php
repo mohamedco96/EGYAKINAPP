@@ -118,6 +118,23 @@ class AuthService
 
         $user = Auth::user();
 
+        // Check if user is blocked
+        if ($user->blocked) {
+            // Log out the user immediately
+            Auth::logout();
+
+            Log::warning('Blocked user attempted to login', [
+                'user_id' => $user->id,
+                'email' => $email,
+            ]);
+
+            return [
+                'value' => false,
+                'message' => __('api.account_blocked'),
+                'status_code' => 403,
+            ];
+        }
+
         // Clear failed attempts on successful login
         Cache::forget($key);
 

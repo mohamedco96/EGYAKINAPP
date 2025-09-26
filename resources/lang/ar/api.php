@@ -93,6 +93,7 @@ return [
     'registration_failed' => 'فشل في التسجيل',
     'invalid_credentials' => 'بيانات الدخول غير صحيحة',
     'too_many_login_attempts' => 'محاولات دخول كثيرة جداً. يرجى المحاولة مرة أخرى لاحقاً.',
+    'account_blocked' => 'تم حظر حسابك. يرجى التواصل مع الدعم الفني.',
     'current_password_incorrect' => 'كلمة المرور الحالية غير صحيحة',
     'password_changed_successfully' => 'تم تغيير كلمة المرور بنجاح',
     'profile_image_uploaded_successfully' => 'تم رفع صورة الملف الشخصي بنجاح.',

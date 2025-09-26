@@ -1377,7 +1377,15 @@ class GroupController extends Controller
                 $group->member_count = (int) $memberCount; // Add member count to the group object
             }
 
-            // Fetch posts with necessary relationships and counts - only from public groups
+            // Get groups where the user is a joined member
+            $userJoinedGroupIds = DB::table('group_user')
+                ->where('doctor_id', $userId)
+                ->where('status', 'joined')
+                ->pluck('group_id')
+                ->toArray();
+
+            // Fetch posts with necessary relationships and counts
+            // Include posts from public groups OR private groups where user is a member
             $randomPosts = FeedPost::with([
                 'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
                 'poll.options' => function ($query) use ($userId) {
@@ -1397,8 +1405,11 @@ class GroupController extends Controller
                     },
                 ])
                 ->whereNotNull('group_id') // Ensure group_id is not null
-                ->whereHas('group', function ($groupQuery) {
-                    $groupQuery->where('privacy', 'public'); // Only include posts from public groups
+                ->where(function ($query) use ($userJoinedGroupIds) {
+                    $query->whereHas('group', function ($groupQuery) {
+                        $groupQuery->where('privacy', 'public'); // Include posts from public groups
+                    })
+                        ->orWhereIn('group_id', $userJoinedGroupIds); // OR include posts from private groups where user is a member
                 })
                 ->inRandomOrder() // Fetch posts randomly
                 ->with(['group' => function ($query) {

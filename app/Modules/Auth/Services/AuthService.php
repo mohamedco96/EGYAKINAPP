@@ -316,10 +316,30 @@ class AuthService
             if (isset($validatedData['email']) && $validatedData['email'] !== $user->email) {
                 $validatedData['email'] = strtolower($validatedData['email']);
                 $validatedData['email_verified_at'] = null; // Only set when email changes
+
+                Log::info('Email changed, setting email_verified_at to null', [
+                    'user_id' => $user->id,
+                    'old_email' => $user->email,
+                    'new_email' => $validatedData['email'],
+                ]);
             }
 
-            // Sanitize inputs
-            $sanitized = array_map('trim', $validatedData);
+            // Sanitize inputs - but preserve null values for datetime fields
+            $sanitized = [];
+            foreach ($validatedData as $key => $value) {
+                if ($key === 'email_verified_at' && $value === null) {
+                    $sanitized[$key] = null; // Preserve null for datetime fields
+                } else {
+                    $sanitized[$key] = is_string($value) ? trim($value) : $value;
+                }
+            }
+
+            Log::info('Final data before save', [
+                'user_id' => $user->id,
+                'sanitized_data' => $sanitized,
+                'email_verified_at_value' => $sanitized['email_verified_at'] ?? 'NOT_SET',
+                'email_verified_at_type' => gettype($sanitized['email_verified_at'] ?? null),
+            ]);
 
             // Update user
             $user->fill($sanitized);

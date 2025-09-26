@@ -15,6 +15,7 @@ use App\Modules\Patients\Models\Patients;
 use App\Modules\Patients\Models\PatientStatus;
 use App\Modules\Questions\Models\Questions;
 use App\Services\FileUploadService;
+use App\Traits\NotificationCleanup;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,8 @@ use Illuminate\Support\Facades\Log;
 
 class PatientService
 {
+    use NotificationCleanup;
+
     protected $notificationService;
 
     public function __construct(NotificationService $notificationService)
@@ -131,6 +134,9 @@ class PatientService
 
             // Handle score adjustments
             $this->adjustDoctorScores($patientId);
+
+            // Clean up related notifications
+            $this->cleanupPatientNotifications($patientId);
 
             $patient->delete();
 

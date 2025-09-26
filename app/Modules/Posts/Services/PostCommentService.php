@@ -4,11 +4,13 @@ namespace App\Modules\Posts\Services;
 
 use App\Modules\Posts\Models\PostComments;
 use App\Modules\Posts\Models\Posts;
+use App\Traits\NotificationCleanup;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class PostCommentService
 {
+    use NotificationCleanup;
+
     /**
      * Get all comments for a specific post
      */
@@ -31,8 +33,8 @@ class PostCommentService
     public function createComment(array $validatedData, int $postId): array
     {
         $post = Posts::find($postId);
-        
-        if (!$post) {
+
+        if (! $post) {
             return [
                 'value' => false,
                 'message' => 'No post was found',
@@ -44,7 +46,7 @@ class PostCommentService
         ]);
 
         $user = Auth::user();
-        
+
         // Associate the comment with the current user and post
         $user->postcomments()->save($comment);
         $post->postcomments()->save($comment);
@@ -78,7 +80,7 @@ class PostCommentService
     {
         $comment = PostComments::find($commentId);
 
-        if (!$comment) {
+        if (! $comment) {
             return [
                 'value' => false,
                 'message' => 'No Post comment was found',
@@ -86,6 +88,9 @@ class PostCommentService
         }
 
         $comment->delete();
+
+        // Clean up related notifications
+        $this->cleanupCommentNotifications($commentId);
 
         return [
             'value' => true,

@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Modules\Notifications\Models\AppNotification;
 use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Notifications\Services\NotificationService;
+use App\Traits\NotificationCleanup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth; // If you have a separate PollOption model
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,8 @@ use Illuminate\Support\Facades\Log;
 
 class FeedPostController extends Controller
 {
+    use NotificationCleanup;
+
     protected $mainController;
 
     protected $notificationService;
@@ -1166,17 +1169,8 @@ class FeedPostController extends Controller
                 // Delete the post
                 $post->delete();
 
-                // Remove the associated AppNotification
-                $deletedCount = AppNotification::where(function ($query) {
-                    $query->where('type', 'PostLike')
-                        ->orWhere('type', 'PostComment')
-                        ->orWhere('type', 'CommentLike')
-                        ->orWhere('type', 'Post');
-                })
-                    ->where('type_id', $id)
-                    ->delete();
-
-                Log::info("Deleted $deletedCount notifications for post ID $id.");
+                // Remove the associated notifications using trait method
+                $this->cleanupPostNotifications($id);
 
                 DB::commit();
                 Log::info("Post ID $id and its hashtags deleted by doctor ".Auth::id());
@@ -1297,6 +1291,10 @@ class FeedPostController extends Controller
             } elseif ($status === 'unlike') {
                 if ($like) {
                     $like->delete();
+
+                    // Clean up like notification
+                    $this->cleanupLikeNotifications($postId, $doctor_id, 'PostLike');
+
                     Log::info("Post ID $postId unliked by doctor ".$doctor_id);
 
                     return response()->json([
@@ -1609,6 +1607,10 @@ class FeedPostController extends Controller
             } elseif ($status === 'unlike') {
                 if ($like) {
                     $like->delete();
+
+                    // Clean up comment like notification
+                    $this->cleanupLikeNotifications($commentId, $doctor_id, 'CommentLike');
+
                     Log::info("Comment ID $commentId unliked by doctor $doctor_id");
 
                     return response()->json([

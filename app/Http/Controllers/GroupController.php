@@ -341,17 +341,8 @@ class GroupController extends Controller
             // Delete the group
             $group->delete();
 
-            // Remove the associated AppNotification
-
-            $deletedCount = AppNotification::where(function ($query) {
-                $query->where('type', 'group_invitation')
-                    ->orWhere('type', 'group_invitation_accepted')
-                    ->orWhere('type', 'group_join_request');
-            })
-                ->where('type_id', $id)
-                ->delete();
-
-            Log::info("Deleted $deletedCount notifications for post ID $id.");
+            // Remove the associated notifications using trait method
+            $this->cleanupGroupNotifications($id);
 
             // Log the deletion
             Log::info('Group deleted', [
@@ -800,6 +791,9 @@ class GroupController extends Controller
 
             // Remove the member from the group
             $group->doctors()->detach($doctorId);
+
+            // Clean up related notifications for the removed member
+            $this->cleanupDoctorActionNotifications($doctorId, ['group_join_request', 'group_invitation'], $groupId);
 
             // Log the removal
             Log::info('Member removed from group', [

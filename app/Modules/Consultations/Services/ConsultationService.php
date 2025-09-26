@@ -8,6 +8,7 @@ use App\Modules\Consultations\Models\Consultation;
 use App\Modules\Consultations\Models\ConsultationDoctor;
 use App\Modules\Consultations\Models\ConsultationReply;
 use App\Modules\Patients\Models\Patients;
+use App\Traits\NotificationCleanup;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,8 @@ use Illuminate\Support\Facades\Log;
 
 class ConsultationService
 {
+    use NotificationCleanup;
+
     protected $notificationService;
 
     public function __construct(ConsultationNotificationService $notificationService)
@@ -804,9 +807,12 @@ class ConsultationService
             }
 
             // Delete the consultation doctor record and all related replies
-            DB::transaction(function () use ($consultationDoctor) {
+            DB::transaction(function () use ($consultationDoctor, $consultationId) {
                 // Delete all replies for this consultation doctor
                 $consultationDoctor->replies()->delete();
+
+                // Clean up related notifications
+                $this->cleanupConsultationNotifications($consultationId);
 
                 // Delete the consultation doctor record
                 $consultationDoctor->delete();

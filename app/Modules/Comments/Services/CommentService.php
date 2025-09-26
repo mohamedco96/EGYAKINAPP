@@ -4,14 +4,15 @@ namespace App\Modules\Comments\Services;
 
 use App\Modules\Comments\Models\Comment;
 use App\Modules\Patients\Models\Patients;
-use App\Modules\Notifications\Models\AppNotification;
-use App\Modules\Comments\Services\CommentNotificationService;
+use App\Traits\NotificationCleanup;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class CommentService
 {
+    use NotificationCleanup;
+
     protected $commentNotificationService;
 
     public function __construct(CommentNotificationService $commentNotificationService)
@@ -21,8 +22,6 @@ class CommentService
 
     /**
      * Get all comments with doctor relationships
-     *
-     * @return array
      */
     public function getAllComments(): array
     {
@@ -35,7 +34,7 @@ class CommentService
                         'value' => false,
                         'message' => 'No comments were found',
                     ],
-                    'status_code' => 404
+                    'status_code' => 404,
                 ];
             }
 
@@ -44,19 +43,16 @@ class CommentService
                     'value' => true,
                     'data' => $comments,
                 ],
-                'status_code' => 200
+                'status_code' => 200,
             ];
         } catch (\Exception $e) {
-            Log::error('Error retrieving all comments: ' . $e->getMessage());
+            Log::error('Error retrieving all comments: '.$e->getMessage());
             throw $e;
         }
     }
 
     /**
      * Create a new comment
-     *
-     * @param array $data
-     * @return array
      */
     public function createComment(array $data): array
     {
@@ -92,10 +88,10 @@ class CommentService
                         'value' => true,
                         'message' => 'Comment created successfully',
                     ],
-                    'status_code' => 200
+                    'status_code' => 200,
                 ];
             } catch (\Exception $e) {
-                Log::error('Error creating comment: ' . $e->getMessage());
+                Log::error('Error creating comment: '.$e->getMessage());
                 throw $e;
             }
         });
@@ -103,9 +99,6 @@ class CommentService
 
     /**
      * Get comments by patient ID
-     *
-     * @param int $patientId
-     * @return array
      */
     public function getCommentsByPatient(int $patientId): array
     {
@@ -120,33 +113,29 @@ class CommentService
                     'value' => true,
                     'data' => $comments,
                 ],
-                'status_code' => 200
+                'status_code' => 200,
             ];
         } catch (\Exception $e) {
-            Log::error("Error retrieving comments for patient ID {$patientId}: " . $e->getMessage());
+            Log::error("Error retrieving comments for patient ID {$patientId}: ".$e->getMessage());
             throw $e;
         }
     }
 
     /**
      * Update a comment
-     *
-     * @param int $commentId
-     * @param array $data
-     * @return array
      */
     public function updateComment(int $commentId, array $data): array
     {
         try {
             $comment = Comment::find($commentId);
 
-            if (!$comment) {
+            if (! $comment) {
                 return [
                     'data' => [
                         'value' => false,
                         'message' => 'Comment not found',
                     ],
-                    'status_code' => 404
+                    'status_code' => 404,
                 ];
             }
 
@@ -164,32 +153,29 @@ class CommentService
                     'data' => $comment,
                     'message' => 'Comment updated successfully',
                 ],
-                'status_code' => 200
+                'status_code' => 200,
             ];
         } catch (\Exception $e) {
-            Log::error("Error updating comment ID {$commentId}: " . $e->getMessage());
+            Log::error("Error updating comment ID {$commentId}: ".$e->getMessage());
             throw $e;
         }
     }
 
     /**
      * Delete a comment
-     *
-     * @param int $commentId
-     * @return array
      */
     public function deleteComment(int $commentId): array
     {
         try {
             $comment = Comment::find($commentId);
 
-            if (!$comment) {
+            if (! $comment) {
                 return [
                     'data' => [
                         'value' => false,
                         'message' => 'Comment not found',
                     ],
-                    'status_code' => 404
+                    'status_code' => 404,
                 ];
             }
 
@@ -201,6 +187,9 @@ class CommentService
 
             $comment->delete();
 
+            // Clean up related notifications
+            $this->cleanupCommentNotifications($commentId);
+
             Log::info('Comment deleted', $commentInfo);
 
             return [
@@ -208,10 +197,10 @@ class CommentService
                     'value' => true,
                     'message' => 'Comment deleted successfully',
                 ],
-                'status_code' => 200
+                'status_code' => 200,
             ];
         } catch (\Exception $e) {
-            Log::error("Error deleting comment ID {$commentId}: " . $e->getMessage());
+            Log::error("Error deleting comment ID {$commentId}: ".$e->getMessage());
             throw $e;
         }
     }
@@ -219,15 +208,13 @@ class CommentService
     /**
      * Validate that patient exists
      *
-     * @param int $patientId
-     * @return \App\Modules\Patients\Models\Patients
      * @throws \Exception
      */
     private function validatePatientExists(int $patientId): Patients
     {
         $patient = Patients::find($patientId);
 
-        if (!$patient) {
+        if (! $patient) {
             throw new \Exception('Patient not found', 404);
         }
 
@@ -236,9 +223,6 @@ class CommentService
 
     /**
      * Update patient timestamp
-     *
-     * @param int $patientId
-     * @return void
      */
     private function updatePatientTimestamp(int $patientId): void
     {

@@ -1810,11 +1810,29 @@ class FeedPostController extends Controller
         try {
             $doctorId = auth()->id(); // Get the authenticated doctor's ID
 
-            // Search posts by content
+            // Get user's joined group IDs for privacy filtering
+            $userJoinedGroupIds = DB::table('group_user')
+                ->where('doctor_id', $doctorId)
+                ->where('status', 'joined')
+                ->pluck('group_id')
+                ->toArray();
+
+            // Search posts by content with group privacy filtering
             $posts = FeedPost::where('content', 'LIKE', '%'.$query.'%')
+                ->where(function ($query) use ($userJoinedGroupIds) {
+                    // Include posts that are not in any group
+                    $query->whereNull('group_id')
+                        // OR posts from public groups
+                        ->orWhereHas('group', function ($groupQuery) {
+                            $groupQuery->where('privacy', 'public');
+                        })
+                        // OR posts from private groups where user is a member
+                        ->orWhereIn('group_id', $userJoinedGroupIds);
+                })
                 ->with([
                     'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
                     'hashtags:id,tag,usage_count',
+                    'group:id,name,privacy', // Include group info for debugging
                     'poll' => function ($query) {
                         $query->select('id', 'feed_post_id', 'question', 'allow_add_options', 'allow_multiple_choice');
                     },

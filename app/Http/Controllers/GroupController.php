@@ -946,6 +946,25 @@ class GroupController extends Controller
 
             $group->member_count = $memberCount; // Add member count to the group object
 
+            // Check if user can access posts based on group privacy
+            if ($group->privacy === 'private' && (!$userGroupData || $userGroupData->status !== 'joined')) {
+                // For private groups, only return group info without posts if user is not a member
+                return response()->json([
+                    'value' => true,
+                    'data' => [
+                        'group' => $group,
+                        'posts' => [
+                            'data' => [],
+                            'current_page' => 1,
+                            'last_page' => 1,
+                            'per_page' => 10,
+                            'total' => 0,
+                        ],
+                    ],
+                    'message' => __('api.group_details_retrieved_successfully'),
+                ]);
+            }
+
             // Fetch posts with necessary relationships and counts
             $feedPosts = $group->posts()->with([
                 'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',

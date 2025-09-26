@@ -50,11 +50,34 @@ class SetLocale
         }
 
         // Priority 2: User's saved preference (if authenticated)
-        if (Auth::check() && Auth::user()->locale) {
-            $userLocale = Auth::user()->locale;
-            if (in_array($userLocale, $supportedLocales)) {
-                return $userLocale;
+        $user = null;
+
+        // Try web guard first
+        if (Auth::guard('web')->check()) {
+            $user = Auth::guard('web')->user();
+        }
+        // Try sanctum guard if web guard fails
+        elseif (Auth::guard('sanctum')->check()) {
+            $user = Auth::guard('sanctum')->user();
+        }
+
+        if ($user) {
+            Log::info('User authenticated in SetLocale middleware', [
+                'user_id' => $user->id,
+                'user_locale' => $user->locale ?? 'null',
+                'auth_guard' => Auth::getDefaultDriver(),
+            ]);
+
+            if ($user->locale) {
+                $userLocale = $user->locale;
+                if (in_array($userLocale, $supportedLocales)) {
+                    Log::info('Using user saved locale', ['locale' => $userLocale]);
+
+                    return $userLocale;
+                }
             }
+        } else {
+            Log::info('No authenticated user found in SetLocale middleware');
         }
 
         // Priority 3: Accept-Language header

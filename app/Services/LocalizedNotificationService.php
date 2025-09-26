@@ -3,11 +3,14 @@
 namespace App\Services;
 
 use App\Modules\Notifications\Models\AppNotification;
+use App\Traits\FormatsUserName;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 
 class LocalizedNotificationService
 {
+    use FormatsUserName;
+
     /**
      * Get all notifications for the authenticated user with localized content
      */
@@ -31,6 +34,7 @@ class LocalizedNotificationService
 
         try {
             $notifications = AppNotification::where('doctor_id', $user->id)
+                ->select('id', 'read', 'content', 'type', 'type_id', 'patient_id', 'doctor_id', 'type_doctor_id', 'localization_key', 'localization_params', 'created_at', 'updated_at')
                 ->with(['patient', 'doctor', 'typeDoctor'])
                 ->latest()
                 ->get();
@@ -41,8 +45,8 @@ class LocalizedNotificationService
             $localizedNotifications = $notifications->map(function ($notification) {
                 $notificationArray = $notification->toArray();
 
-                // Add localized content
-                $notificationArray['localized_content'] = $notification->getLocalizedContent();
+                // Add dynamic localized content with proper user name formatting
+                $notificationArray['localized_content'] = $this->getLocalizedNotificationContent($notification);
 
                 return $notificationArray;
             });
@@ -149,5 +153,39 @@ class LocalizedNotificationService
         return AppNotification::where('doctor_id', $user->id)
             ->where('read', false)
             ->update(['read' => true]) !== false;
+    }
+
+    /**
+     * Get localized notification content with proper user name formatting
+     */
+    private function getLocalizedNotificationContent($notification): string
+    {
+        // Get the current user's locale or use the set locale
+        $currentLocale = app()->getLocale();
+
+        // If we have localization data, use dynamic translation
+        if ($notification->localization_key && $notification->localization_params) {
+            $params = $notification->localization_params;
+
+            // Format user names with Dr. prefix if they exist in params and we have typeDoctor
+            if (isset($params['name']) && $notification->typeDoctor) {
+                $params['name'] = $this->formatUserName($notification->typeDoctor);
+            }
+
+            // Handle other name parameters that might exist
+            if (isset($params['owner_name']) && $notification->typeDoctor) {
+                $params['owner_name'] = $this->formatUserName($notification->typeDoctor);
+            }
+
+            if (isset($params['remover_name']) && $notification->typeDoctor) {
+                $params['remover_name'] = $this->formatUserName($notification->typeDoctor);
+            }
+
+            // Get localized content using current locale
+            return __($notification->localization_key, $params);
+        }
+
+        // Fallback to static content if no localization data
+        return $notification->content ?? '';
     }
 }

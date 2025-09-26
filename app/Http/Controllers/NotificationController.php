@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Modules\Notifications\Models\AppNotification;
 use App\Modules\Notifications\Models\FcmToken;
+use App\Traits\FormatsUserName;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -16,6 +17,8 @@ use Kreait\Firebase\Messaging\Notification;
 
 class NotificationController extends Controller
 {
+    use FormatsUserName;
+
     protected $messaging;
 
     public function __construct(FirebaseMessaging $messaging)
@@ -288,7 +291,7 @@ class NotificationController extends Controller
 
             // Fetch today's and recent records in one go
             $notifications = AppNotification::where('doctor_id', $doctorId)
-                ->select('id', 'read', 'content', 'type', 'type_id', 'patient_id', 'doctor_id', 'type_doctor_id', 'created_at')
+                ->select('id', 'read', 'content', 'type', 'type_id', 'patient_id', 'doctor_id', 'type_doctor_id', 'localization_key', 'localization_params', 'created_at')
                 ->with([
                     'patient' => function ($query) {
                         $query->select('id', 'doctor_id', 'updated_at');
@@ -416,10 +419,13 @@ class NotificationController extends Controller
                 'isSyndicateCardRequired' => null,
             ];
 
+            // Get dynamic localized content with proper user name formatting
+            $localizedContent = $this->getLocalizedNotificationContent($notification, $typeDoctor);
+
             return [
                 'id' => $notification->id,
                 'read' => $notification->read,
-                'content' => $notification->content,
+                'content' => $localizedContent,
                 'type' => $notification->type,
                 'type_id' => $notification->type_id,
                 'patient_id' => strval($notification->patient_id),
@@ -429,5 +435,36 @@ class NotificationController extends Controller
                 'type_doctor' => $typeDoctor,
             ];
         });
+    }
+
+    /**
+     * Get localized notification content with proper user name formatting
+     */
+    private function getLocalizedNotificationContent($notification, $typeDoctor): string
+    {
+        // If we have localization data, use dynamic translation
+        if ($notification->localization_key && $notification->localization_params) {
+            $params = $notification->localization_params;
+
+            // Format user names with Dr. prefix if they exist in params
+            if (isset($params['name']) && $typeDoctor) {
+                $params['name'] = $this->formatUserName($typeDoctor);
+            }
+
+            // Handle other name parameters that might exist
+            if (isset($params['owner_name']) && $typeDoctor) {
+                $params['owner_name'] = $this->formatUserName($typeDoctor);
+            }
+
+            if (isset($params['remover_name']) && $typeDoctor) {
+                $params['remover_name'] = $this->formatUserName($typeDoctor);
+            }
+
+            // Get localized content using current app locale
+            return __($notification->localization_key, $params);
+        }
+
+        // Fallback to static content if no localization data
+        return $notification->content ?? '';
     }
 }

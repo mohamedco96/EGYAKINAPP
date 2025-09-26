@@ -115,14 +115,11 @@ class AppNotification extends Model
      */
     public static function createLocalized(array $data): self
     {
-        // If localization_key is provided, generate fallback content in English
+        // If localization_key is provided, we'll rely entirely on dynamic localization
+        // No static content generation to ensure names are always formatted correctly
         if (isset($data['localization_key'])) {
-            $originalLocale = app()->getLocale();
-            app()->setLocale('en'); // Set to English for fallback content
-
-            $data['content'] = __($data['localization_key'], $data['localization_params'] ?? []);
-
-            app()->setLocale($originalLocale);
+            // Set a generic fallback content for backwards compatibility
+            $data['content'] = $data['content'] ?? 'Notification';
         }
 
         return static::create($data);

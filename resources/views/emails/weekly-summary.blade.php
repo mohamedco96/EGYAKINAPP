@@ -351,7 +351,7 @@
             @else
                 <!-- Weekly Overview -->
                 <div class="section">
-                    <h2>📊 This Week's Performance</h2>
+                    <h2>📊 Last Week's Performance</h2>
                     <div class="overview-grid">
                         <div class="overview-card">
                             <span class="metric-number">{{ number_format($data['current_week']['new_doctors'] ?? 0) }}</span>
@@ -414,8 +414,8 @@
                         <thead>
                             <tr>
                                 <th>Metric</th>
-                                <th>This Week</th>
-                                <th>Last Week</th>
+                                <th>Previous Week</th>
+                                <th>Week Before</th>
                                 <th>Change</th>
                             </tr>
                         </thead>
@@ -470,7 +470,7 @@
 
                 <!-- Top Performers -->
                 <div class="section">
-                    <h2>🏆 Top Performers This Week</h2>
+                    <h2>🏆 Top Performers Last Week</h2>
                     
                     <h3 style="color: #3498db; font-size: 18px; margin: 20px 0 15px 0;">Doctors Adding Patients</h3>
                     @if(isset($data['top_performers']['doctors_with_patients']) && count($data['top_performers']['doctors_with_patients']) > 0)

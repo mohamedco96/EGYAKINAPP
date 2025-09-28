@@ -36,8 +36,9 @@ class WeeklySummaryMail extends Mailable
      */
     public function envelope(): Envelope
     {
-        $weekStart = Carbon::now()->startOfWeek()->format('M j');
-        $weekEnd = Carbon::now()->endOfWeek()->format('M j, Y');
+        // Use previous week for the subject line
+        $weekStart = Carbon::now()->subWeek()->startOfWeek()->format('M j');
+        $weekEnd = Carbon::now()->subWeek()->endOfWeek()->format('M j, Y');
 
         return new Envelope(
             subject: __('api.weekly_summary_subject', ['week_start' => $weekStart, 'week_end' => $weekEnd]),
@@ -71,12 +72,14 @@ class WeeklySummaryMail extends Mailable
     private function generateWeeklySummaryData(): array
     {
         try {
-            $weekStart = Carbon::now()->startOfWeek();
-            $weekEnd = Carbon::now()->endOfWeek();
-            $lastWeekStart = Carbon::now()->subWeek()->startOfWeek();
-            $lastWeekEnd = Carbon::now()->subWeek()->endOfWeek();
+            // Use previous week as the main reporting week
+            $weekStart = Carbon::now()->subWeek()->startOfWeek();
+            $weekEnd = Carbon::now()->subWeek()->endOfWeek();
+            // Week before previous week for comparison
+            $lastWeekStart = Carbon::now()->subWeeks(2)->startOfWeek();
+            $lastWeekEnd = Carbon::now()->subWeeks(2)->endOfWeek();
 
-            // Current week data
+            // Previous week data (main report)
             $currentWeek = $this->getWeeklyStats($weekStart, $weekEnd);
             $lastWeek = $this->getWeeklyStats($lastWeekStart, $lastWeekEnd);
 
@@ -86,7 +89,7 @@ class WeeklySummaryMail extends Mailable
                 'last_week' => $lastWeek,
                 'growth' => $this->calculateGrowth($currentWeek, $lastWeek),
 
-                // Top performers this week
+                // Top performers for previous week
                 'top_performers' => [
                     'most_active_doctors' => $this->getMostActiveDoctors($weekStart, $weekEnd),
                     'doctors_with_patients' => $this->getDoctorsWithPatients($weekStart, $weekEnd),
@@ -95,7 +98,7 @@ class WeeklySummaryMail extends Mailable
                     'active_groups' => $this->getMostActiveGroups($weekStart, $weekEnd),
                 ],
 
-                // Trends and insights
+                // Trends and insights for previous week
                 'trends' => [
                     'user_engagement' => $this->getUserEngagementTrend($weekStart, $weekEnd),
                     'consultation_patterns' => $this->getConsultationPatterns($weekStart, $weekEnd),
@@ -118,7 +121,7 @@ class WeeklySummaryMail extends Mailable
 
             return [
                 'error' => 'Unable to generate summary data',
-                'week_period' => Carbon::now()->startOfWeek()->format('M j').' - '.Carbon::now()->endOfWeek()->format('M j, Y'),
+                'week_period' => Carbon::now()->subWeek()->startOfWeek()->format('M j').' - '.Carbon::now()->subWeek()->endOfWeek()->format('M j, Y'),
             ];
         }
     }

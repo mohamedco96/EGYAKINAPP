@@ -14,7 +14,9 @@ use Illuminate\Support\Facades\Log;
 class SectionsController extends Controller
 {
     protected $gfrCalculationService;
+
     protected $scoringService;
+
     protected $sectionManagementService;
 
     public function __construct(
@@ -30,8 +32,6 @@ class SectionsController extends Controller
     /**
      * Update the final submit status for a patient.
      *
-     * @param UpdateFinalSubmitRequest $request
-     * @param int $patientId
      * @return \Illuminate\Http\JsonResponse
      */
     public function updateFinalSubmit(UpdateFinalSubmitRequest $request, int $patientId)
@@ -43,8 +43,9 @@ class SectionsController extends Controller
                 ->first();
 
             // Handle case where patient submit status is not found
-            if (!$patientSubmitStatus) {
+            if (! $patientSubmitStatus) {
                 Log::error("Patient submit status not found for patient ID: $patientId");
+
                 return response()->json([
                     'value' => false,
                     'message' => 'Patient not found',
@@ -68,7 +69,8 @@ class SectionsController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
-            Log::error("Error updating final submit for patient ID: $patientId. Error: " . $e->getMessage());
+            Log::error("Error updating final submit for patient ID: $patientId. Error: ".$e->getMessage());
+
             return response()->json([
                 'value' => false,
                 'message' => 'Error updating final submit.',
@@ -79,8 +81,6 @@ class SectionsController extends Controller
     /**
      * Show questions and answers for a specific section and patient.
      *
-     * @param int $sectionId
-     * @param int $patientId
      * @return \Illuminate\Http\JsonResponse
      */
     public function showQuestionsAnswers(int $sectionId, int $patientId)
@@ -92,7 +92,7 @@ class SectionsController extends Controller
             // Prepare response based on section type
             if ($sectionId == 8) {
                 $submitter = $this->sectionManagementService->getSubmitterInfo($patientId);
-                
+
                 $response = [
                     'value' => true,
                     'Submitter' => $submitter,
@@ -110,10 +110,11 @@ class SectionsController extends Controller
             return response()->json($response, 200);
 
         } catch (\Exception $e) {
-            Log::error("Error while fetching questions and answers: " . $e->getMessage());
+            Log::error('Error while fetching questions and answers: '.$e->getMessage());
+
             return response()->json([
                 'value' => false,
-                'message' => 'Error: ' . $e->getMessage(),
+                'message' => 'Error: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -121,7 +122,6 @@ class SectionsController extends Controller
     /**
      * Show sections and their statuses for a patient.
      *
-     * @param int $patientId
      * @return \Illuminate\Http\JsonResponse
      */
     public function showSections(int $patientId)
@@ -131,8 +131,9 @@ class SectionsController extends Controller
             $patientData = $this->sectionManagementService->getPatientBasicData($patientId);
 
             // Validate patient exists
-            if (!$patientData['patient_name']) {
+            if (! $patientData['patient_name']) {
                 Log::error("Patient name not found for patient ID: $patientId");
+
                 return response()->json([
                     'value' => false,
                     'message' => 'Patient not found for the given patient ID.',
@@ -144,6 +145,7 @@ class SectionsController extends Controller
 
             if (empty($sectionsData)) {
                 Log::warning("Sections not found for patient ID: $patientId");
+
                 return response()->json([
                     'value' => false,
                     'message' => 'Sections not found for the given patient ID.',
@@ -172,10 +174,11 @@ class SectionsController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error("Error while showing sections for patient ID: $patientId. Error: " . $e->getMessage());
+            Log::error("Error while showing sections for patient ID: $patientId. Error: ".$e->getMessage());
+
             return response()->json([
                 'value' => false,
-                'message' => 'Error: ' . $e->getMessage(),
+                'message' => 'Error: '.$e->getMessage(),
             ], 500);
         }
     }

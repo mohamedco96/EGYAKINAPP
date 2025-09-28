@@ -86,21 +86,49 @@ class GfrCalculationService
         $basalGfrKey = __('api.basal_creatinine_GFR');
         $dischargeGfrKey = __('api.creatinine_on_discharge_GFR');
 
+        // Initialize GFR structure with old static keys and localization parameters
         $gfr = [
             'ckd' => [
-                $currentGfrKey => '0',
-                $basalGfrKey => '0',
-                $dischargeGfrKey => '0',
+                'current_GFR' => [
+                    'value' => '0',
+                    'localization' => $currentGfrKey,
+                ],
+                'basal_creatinine_GFR' => [
+                    'value' => '0',
+                    'localization' => $basalGfrKey,
+                ],
+                'creatinine_on_discharge_GFR' => [
+                    'value' => '0',
+                    'localization' => $dischargeGfrKey,
+                ],
             ],
             'sobh' => [
-                $currentGfrKey => '0',
-                $basalGfrKey => '0',
-                $dischargeGfrKey => '0',
+                'current_GFR' => [
+                    'value' => '0',
+                    'localization' => $currentGfrKey,
+                ],
+                'basal_creatinine_GFR' => [
+                    'value' => '0',
+                    'localization' => $basalGfrKey,
+                ],
+                'creatinine_on_discharge_GFR' => [
+                    'value' => '0',
+                    'localization' => $dischargeGfrKey,
+                ],
             ],
             'mdrd' => [
-                $currentGfrKey => '0',
-                $basalGfrKey => '0',
-                $dischargeGfrKey => '0',
+                'current_GFR' => [
+                    'value' => '0',
+                    'localization' => $currentGfrKey,
+                ],
+                'basal_creatinine_GFR' => [
+                    'value' => '0',
+                    'localization' => $basalGfrKey,
+                ],
+                'creatinine_on_discharge_GFR' => [
+                    'value' => '0',
+                    'localization' => $dischargeGfrKey,
+                ],
             ],
         ];
 
@@ -118,15 +146,22 @@ class GfrCalculationService
 
         foreach ($creatinineValues as $type => $creatinine) {
             if ($this->isValidForCalculation($gender, $age, $height, $weight, $race, $creatinine)) {
-                $gfrKey = match ($type) {
-                    'current' => $currentGfrKey,
-                    'basal' => $basalGfrKey,
-                    'discharge' => $dischargeGfrKey,
+                // Map to static keys
+                $staticKey = match ($type) {
+                    'current' => 'current_GFR',
+                    'basal' => 'basal_creatinine_GFR',
+                    'discharge' => 'creatinine_on_discharge_GFR',
                 };
 
-                $gfr['ckd'][$gfrKey] = $this->calculateCkdGfr($gender, $age, $creatinine);
-                $gfr['sobh'][$gfrKey] = $this->calculateSobhCcr($age, $weight, $height, $creatinine);
-                $gfr['mdrd'][$gfrKey] = $this->calculateMdrdGfr($creatinine, $age, $race, $gender);
+                // Calculate GFR values
+                $ckdValue = $this->calculateCkdGfr($gender, $age, $creatinine);
+                $sobhValue = $this->calculateSobhCcr($age, $weight, $height, $creatinine);
+                $mdrdValue = $this->calculateMdrdGfr($creatinine, $age, $race, $gender);
+
+                // Set values with localization for each key
+                $gfr['ckd'][$staticKey]['value'] = $ckdValue;
+                $gfr['sobh'][$staticKey]['value'] = $sobhValue;
+                $gfr['mdrd'][$staticKey]['value'] = $mdrdValue;
             }
         }
 

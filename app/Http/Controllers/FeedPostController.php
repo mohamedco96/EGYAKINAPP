@@ -1126,7 +1126,7 @@ class FeedPostController extends Controller
             'recipients_count' => count($doctors),
         ]);
 
-        return $notifications;
+        return $doctors;
     }
 
     // Delete a post

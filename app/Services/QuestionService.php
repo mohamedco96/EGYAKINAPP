@@ -32,19 +32,19 @@ class QuestionService
         // Add static questions
         $staticQuestions = [
             [
-                "id" => 9901,
-                "condition" => "Final submit",
-                "values" => ["Yes", "No"],
-                "type" => "checkbox",
-                "keyboard_type" => null,
+                'id' => 9901,
+                'condition' => 'Final submit',
+                'values' => ['Yes', 'No'],
+                'type' => 'checkbox',
+                'keyboard_type' => null,
             ],
             [
-                "id" => 9902,
-                "condition" => "Outcome",
-                "values" => ["Yes", "No"],
-                "type" => "checkbox",
-                "keyboard_type" => null,
-            ]
+                'id' => 9902,
+                'condition' => 'Outcome',
+                'values' => ['Yes', 'No'],
+                'type' => 'checkbox',
+                'keyboard_type' => null,
+            ],
         ];
 
         return array_merge($data, $staticQuestions);
@@ -65,13 +65,15 @@ class QuestionService
         foreach ($questions as $question) {
             if ($question->skip) {
                 Log::info("Question with ID {$question->id} skipped as per skip flag.");
+
                 continue;
             }
 
             $answer = $answers->where('question_id', $question->id)->first();
 
-            if ($question->hidden && !$answer) {
+            if ($question->hidden && ! $answer) {
                 Log::info("Hidden question with ID {$question->id} skipped due to no answer.");
+
                 continue;
             }
 
@@ -134,26 +136,44 @@ class QuestionService
 
             case 'files':
                 $answer = $questionAnswers->first();
-                if (!$answer) {
+                if (! $answer) {
                     Log::info("PDF Debug - No answer found for file question $questionId");
+
                     return [];
                 }
 
-                Log::info("PDF Debug - Raw file answer for question $questionId: " . print_r($answer->answer, true));
-                Log::info("PDF Debug - Raw file answer type for question $questionId: " . gettype($answer->answer));
-                
-                // Check if the answer is already a comma-separated string
-                if (is_string($answer->answer) && strpos($answer->answer, ',') !== false) {
-                    Log::info("PDF Debug - Answer appears to be comma-separated string, splitting it");
+                Log::info("PDF Debug - Raw file answer for question $questionId: ".print_r($answer->answer, true));
+                Log::info("PDF Debug - Raw file answer type for question $questionId: ".gettype($answer->answer));
+
+                // Handle different answer formats
+                if (is_array($answer->answer)) {
+                    // Answer is already an array
+                    Log::info('PDF Debug - Answer is already an array');
+                    $filePaths = $answer->answer;
+                } elseif (is_string($answer->answer) && strpos($answer->answer, ',') !== false) {
+                    // Answer is a comma-separated string
+                    Log::info('PDF Debug - Answer appears to be comma-separated string, splitting it');
                     $filePaths = array_map('trim', explode(',', $answer->answer));
+                } elseif (is_string($answer->answer)) {
+                    // Answer might be JSON encoded
+                    Log::info('PDF Debug - Attempting to decode JSON string');
+                    $filePaths = json_decode($answer->answer, true);
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        // If JSON decode fails, treat as single file path
+                        Log::info('PDF Debug - JSON decode failed, treating as single file path');
+                        $filePaths = [$answer->answer];
+                    }
                 } else {
-                    $filePaths = json_decode($answer->answer);
+                    // Fallback for other types
+                    Log::warning("PDF Debug - Unexpected answer type for question $questionId: ".gettype($answer->answer));
+                    $filePaths = [];
                 }
-                
-                Log::info("PDF Debug - Decoded file paths for question $questionId: " . print_r($filePaths, true));
-                
-                if (!is_array($filePaths)) {
-                    Log::info("PDF Debug - File paths is not array for question $questionId, type: " . gettype($filePaths));
+
+                Log::info("PDF Debug - Decoded file paths for question $questionId: ".print_r($filePaths, true));
+
+                if (! is_array($filePaths)) {
+                    Log::info("PDF Debug - File paths is not array for question $questionId, type: ".gettype($filePaths));
+
                     return [];
                 }
 
@@ -161,12 +181,14 @@ class QuestionService
                 foreach ($filePaths as $filePath) {
                     $fileUrls[] = \Illuminate\Support\Facades\Storage::disk('public')->url($filePath);
                 }
-                
-                Log::info("PDF Debug - Final file URLs for question $questionId: " . print_r($fileUrls, true));
+
+                Log::info("PDF Debug - Final file URLs for question $questionId: ".print_r($fileUrls, true));
+
                 return $fileUrls;
 
             default:
                 $answer = $questionAnswers->first();
+
                 return $answer ? $answer->answer : null;
         }
     }

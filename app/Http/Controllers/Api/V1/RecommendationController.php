@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Recommendations\Controllers\RecommendationController as ModuleRecommendationController;
+use App\Modules\Recommendations\Requests\DeleteRecommendationRequest;
 use App\Modules\Recommendations\Requests\StoreRecommendationRequest;
 use App\Modules\Recommendations\Requests\UpdateRecommendationRequest;
 
@@ -31,8 +32,8 @@ class RecommendationController extends Controller
         return $this->recommendationController->update($request, $patient_id);
     }
 
-    public function destroy($patient_id)
+    public function destroy(DeleteRecommendationRequest $request, $patient_id)
     {
-        return $this->recommendationController->destroy($patient_id);
+        return $this->recommendationController->destroy($request, $patient_id);
     }
 }

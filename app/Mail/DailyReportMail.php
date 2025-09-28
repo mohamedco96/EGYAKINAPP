@@ -120,13 +120,6 @@ class DailyReportMail extends Mailable
                     'public_groups' => Group::where('privacy', 'public')->count(),
                 ],
 
-                // System Health
-                'system' => [
-                    'database_size' => $this->getDatabaseSize(),
-                    'storage_usage' => $this->getStorageUsage(),
-                    'last_backup' => $this->getLastBackupDate(),
-                ],
-
                 // Top Performers
                 'top_performers' => [
                     'doctors_with_patients' => $this->getDoctorsWithPatients($today, $now),
@@ -141,45 +134,6 @@ class DailyReportMail extends Mailable
                 'date' => Carbon::now()->format('F j, Y'),
                 'period' => 'Data unavailable',
             ];
-        }
-    }
-
-    /**
-     * Get database size (simplified version)
-     */
-    private function getDatabaseSize(): string
-    {
-        try {
-            // This is a simplified version - you might want to implement actual database size calculation
-            return 'N/A';
-        } catch (\Exception $e) {
-            return 'Error';
-        }
-    }
-
-    /**
-     * Get storage usage (simplified version)
-     */
-    private function getStorageUsage(): string
-    {
-        try {
-            // This is a simplified version - you might want to implement actual storage calculation
-            return 'N/A';
-        } catch (\Exception $e) {
-            return 'Error';
-        }
-    }
-
-    /**
-     * Get last backup date (placeholder)
-     */
-    private function getLastBackupDate(): string
-    {
-        try {
-            // This is a placeholder - implement your backup date logic
-            return 'N/A';
-        } catch (\Exception $e) {
-            return 'Error';
         }
     }
 

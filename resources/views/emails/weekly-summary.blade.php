@@ -576,12 +576,6 @@
         <div class="footer">
             <p><strong>EGYAKIN Weekly Summary Report</strong></p>
             <p>Generated on {{ now()->format('F j, Y \a\t H:i T') }}</p>
-            <div style="margin-top: 15px;">
-                <a href="#">Dashboard</a>
-                <a href="#">Analytics</a>
-                <a href="#">Support</a>
-                <a href="#">Settings</a>
-            </div>
             <p style="margin-top: 15px; opacity: 0.8;">© {{ date('Y') }} EGYAKIN. All rights reserved.</p>
         </div>
     </div>

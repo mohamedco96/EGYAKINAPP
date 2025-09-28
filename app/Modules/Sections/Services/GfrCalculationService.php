@@ -158,10 +158,10 @@ class GfrCalculationService
                 $sobhValue = $this->calculateSobhCcr($age, $weight, $height, $creatinine);
                 $mdrdValue = $this->calculateMdrdGfr($creatinine, $age, $race, $gender);
 
-                // Set values with localization for each key
-                $gfr['ckd'][$staticKey]['value'] = $ckdValue;
-                $gfr['sobh'][$staticKey]['value'] = $sobhValue;
-                $gfr['mdrd'][$staticKey]['value'] = $mdrdValue;
+                // Set values as strings with localization for each key
+                $gfr['ckd'][$staticKey]['value'] = (string) $ckdValue;
+                $gfr['sobh'][$staticKey]['value'] = (string) $sobhValue;
+                $gfr['mdrd'][$staticKey]['value'] = (string) $mdrdValue;
             }
         }
 

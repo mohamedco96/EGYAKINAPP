@@ -22,6 +22,27 @@ class ChatService
     }
 
     /**
+     * Check if the current user can modify consultations for a patient.
+     * Only admins and patient owners can create consultations.
+     */
+    private function canModifyConsultations(Patients $patient): bool
+    {
+        $user = Auth::user();
+
+        // Check if user is admin
+        if ($user->hasRole('Admin')) {
+            return true;
+        }
+
+        // Check if user is the patient owner
+        if ($patient->doctor_id === Auth::id()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Send consultation request for a patient
      */
     public function sendConsultation(int $patientId): array
@@ -46,19 +67,20 @@ class ChatService
                 ];
             }
 
-            // Verify patient ownership
-            if ($patient->doctor_id !== Auth::id()) {
+            // Check if user can modify consultations (admin or patient owner)
+            if (! $this->canModifyConsultations($patient)) {
                 Log::warning('Unauthorized AI consultation attempt', [
                     'doctor_id' => Auth::id(),
                     'patient_id' => $patientId,
                     'patient_owner' => $patient->doctor_id,
+                    'user_roles' => Auth::user()->getRoleNames(),
                 ]);
 
                 return [
                     'success' => false,
                     'data' => [
                         'value' => false,
-                        'message' => __('api.consultation_unauthorized_patient'),
+                        'message' => __('api.unauthorized_action'),
                     ],
                     'status_code' => 403,
                 ];
@@ -127,14 +149,15 @@ class ChatService
     }
 
     /**
-     * Get consultation history for a patient
+     * Get consultation history for a patient.
+     * All users can view consultation history.
      */
     public function getConsultationHistory(int $patientId): array
     {
         try {
             $doctorId = Auth::id();
 
-            // Verify patient ownership first
+            // Check if patient exists
             $patient = Patients::find($patientId);
             if (! $patient) {
                 return [
@@ -147,22 +170,12 @@ class ChatService
                 ];
             }
 
-            if ($patient->doctor_id !== $doctorId) {
-                Log::warning('Unauthorized AI consultation history attempt', [
-                    'doctor_id' => $doctorId,
-                    'patient_id' => $patientId,
-                    'patient_owner' => $patient->doctor_id,
-                ]);
-
-                return [
-                    'success' => false,
-                    'data' => [
-                        'value' => false,
-                        'message' => __('api.consultation_unauthorized_patient'),
-                    ],
-                    'status_code' => 403,
-                ];
-            }
+            // Allow all authenticated users to view consultation history
+            Log::info('AI consultation history accessed', [
+                'viewer_id' => $doctorId,
+                'patient_id' => $patientId,
+                'patient_owner' => $patient->doctor_id,
+            ]);
 
             // Check and reset the trial count if the reset date has passed
             $trial = $this->getOrCreateDoctorTrial($doctorId);

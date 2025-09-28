@@ -14,7 +14,29 @@ use Illuminate\Support\Facades\Log;
 class RecommendationService
 {
     /**
+     * Check if the current user can modify recommendations for a patient.
+     * Only admins and patient owners can add/modify recommendations.
+     */
+    private function canModifyRecommendations(Patients $patient): bool
+    {
+        $user = Auth::user();
+
+        // Check if user is admin
+        if ($user->hasRole('Admin')) {
+            return true;
+        }
+
+        // Check if user is the patient owner
+        if ($patient->doctor_id === Auth::id()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Get all recommendations for a patient.
+     * All users can view recommendations.
      */
     public function getPatientRecommendations(int $patientId): array
     {
@@ -23,24 +45,15 @@ class RecommendationService
 
             $patient = Patients::findOrFail($patientId);
 
-            // Verify patient ownership
-            if ($patient->doctor_id !== Auth::id()) {
-                Log::warning('Unauthorized recommendation access attempt', [
-                    'doctor_id' => Auth::id(),
-                    'patient_id' => $patientId,
-                    'patient_owner' => $patient->doctor_id,
-                ]);
-
-                return [
-                    'value' => false,
-                    'data' => null,
-                    'message' => __('api.consultation_unauthorized_patient'),
-                ];
-            }
-
+            // Allow all authenticated users to view recommendations
             $recommendations = $patient->recommendations()->get();
 
-            Log::info('Successfully fetched recommendations', ['patient_id' => $patientId, 'count' => $recommendations->count()]);
+            Log::info('Successfully fetched recommendations', [
+                'patient_id' => $patientId,
+                'count' => $recommendations->count(),
+                'viewer_id' => Auth::id(),
+                'patient_owner' => $patient->doctor_id,
+            ]);
 
             return [
                 'value' => true,
@@ -68,6 +81,7 @@ class RecommendationService
 
     /**
      * Create new recommendations for a patient.
+     * Only admins and patient owners can create recommendations.
      */
     public function createRecommendations(int $patientId, array $recommendations): array
     {
@@ -76,18 +90,19 @@ class RecommendationService
 
             $patient = Patients::findOrFail($patientId);
 
-            // Verify patient ownership
-            if ($patient->doctor_id !== Auth::id()) {
+            // Check if user can modify recommendations (admin or patient owner)
+            if (! $this->canModifyRecommendations($patient)) {
                 Log::warning('Unauthorized recommendation creation attempt', [
                     'doctor_id' => Auth::id(),
                     'patient_id' => $patientId,
                     'patient_owner' => $patient->doctor_id,
+                    'user_roles' => Auth::user()->getRoleNames(),
                 ]);
 
                 return [
                     'value' => false,
                     'data' => null,
-                    'message' => __('api.consultation_unauthorized_patient'),
+                    'message' => __('api.unauthorized_action'),
                 ];
             }
 
@@ -165,6 +180,7 @@ class RecommendationService
 
     /**
      * Update recommendations for a patient.
+     * Only admins and patient owners can update recommendations.
      */
     public function updateRecommendations(int $patientId, array $recommendations): array
     {
@@ -173,18 +189,19 @@ class RecommendationService
 
             $patient = Patients::findOrFail($patientId);
 
-            // Verify patient ownership
-            if ($patient->doctor_id !== Auth::id()) {
+            // Check if user can modify recommendations (admin or patient owner)
+            if (! $this->canModifyRecommendations($patient)) {
                 Log::warning('Unauthorized recommendation update attempt', [
                     'doctor_id' => Auth::id(),
                     'patient_id' => $patientId,
                     'patient_owner' => $patient->doctor_id,
+                    'user_roles' => Auth::user()->getRoleNames(),
                 ]);
 
                 return [
                     'value' => false,
                     'data' => null,
-                    'message' => __('api.consultation_unauthorized_patient'),
+                    'message' => __('api.unauthorized_action'),
                 ];
             }
 
@@ -262,6 +279,7 @@ class RecommendationService
 
     /**
      * Delete recommendations for a patient.
+     * Only admins and patient owners can delete recommendations.
      */
     public function deleteRecommendations(int $patientId, array $ids): array
     {
@@ -270,18 +288,19 @@ class RecommendationService
 
             $patient = Patients::findOrFail($patientId);
 
-            // Verify patient ownership
-            if ($patient->doctor_id !== Auth::id()) {
+            // Check if user can modify recommendations (admin or patient owner)
+            if (! $this->canModifyRecommendations($patient)) {
                 Log::warning('Unauthorized recommendation deletion attempt', [
                     'doctor_id' => Auth::id(),
                     'patient_id' => $patientId,
                     'patient_owner' => $patient->doctor_id,
+                    'user_roles' => Auth::user()->getRoleNames(),
                 ]);
 
                 return [
                     'value' => false,
                     'data' => null,
-                    'message' => __('api.consultation_unauthorized_patient'),
+                    'message' => __('api.unauthorized_action'),
                 ];
             }
 

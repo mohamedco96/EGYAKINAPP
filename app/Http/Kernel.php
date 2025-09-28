@@ -70,5 +70,6 @@ class Kernel extends HttpKernel
         'locale' => \App\Http\Middleware\SetLocale::class,
         'audit' => \App\Http\Middleware\AuditMiddleware::class,
         'check.blocked' => \App\Http\Middleware\CheckBlockedUser::class,
+        'check.blocked.home' => \App\Http\Middleware\CheckBlockedUserWithHomeAccess::class,
     ];
 }

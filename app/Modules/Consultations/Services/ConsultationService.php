@@ -26,17 +26,54 @@ class ConsultationService
     }
 
     /**
-     * Create a new consultation with associated doctors
+     * Check if the current user can modify consultations for a patient.
+     * Only admins and patient owners can create/modify consultations.
+     */
+    private function canModifyConsultations(Patients $patient): bool
+    {
+        $user = Auth::user();
+
+        // Check if user is admin
+        if ($user->hasRole('Admin')) {
+            return true;
+        }
+
+        // Check if user is the patient owner
+        if ($patient->doctor_id === Auth::id()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Create a new consultation with associated doctors.
+     * Only admins and patient owners can create consultations.
      */
     public function createConsultation(array $data): array
     {
         return DB::transaction(function () use ($data) {
-            // Verify patient ownership
+            // Check if patient exists
             $patient = Patients::find($data['patient_id']);
-            if (! $patient || $patient->doctor_id !== Auth::id()) {
+            if (! $patient) {
                 return [
                     'value' => false,
-                    'message' => __('api.consultation_unauthorized_patient'),
+                    'message' => 'Patient not found.',
+                ];
+            }
+
+            // Check if user can modify consultations (admin or patient owner)
+            if (! $this->canModifyConsultations($patient)) {
+                Log::warning('Unauthorized consultation creation attempt', [
+                    'doctor_id' => Auth::id(),
+                    'patient_id' => $data['patient_id'],
+                    'patient_owner' => $patient->doctor_id,
+                    'user_roles' => Auth::user()->getRoleNames(),
+                ]);
+
+                return [
+                    'value' => false,
+                    'message' => __('api.unauthorized_action'),
                 ];
             }
 
@@ -155,10 +192,17 @@ class ConsultationService
     }
 
     /**
-     * Get detailed consultation information
+     * Get detailed consultation information.
+     * All users can view consultation details.
      */
     public function getConsultationDetails(int $id): array
     {
+        // Allow all authenticated users to view consultation details
+        Log::info('Consultation details accessed', [
+            'consultation_id' => $id,
+            'viewer_id' => Auth::id(),
+        ]);
+
         $consultations = Consultation::where('id', $id)
             ->with([
                 'consultationDoctors' => function ($query) {
@@ -180,9 +224,6 @@ class ConsultationService
                         ]);
                 },
             ])
-            ->whereHas('consultationDoctors', function ($query) {
-                // Only include Consultations where the authenticated user has a record
-            })
             ->get();
 
         // Pre-fetch patient names to avoid N+1 queries
@@ -449,9 +490,22 @@ class ConsultationService
     public function addDoctorsToConsultation(int $consultationId, array $data): array
     {
         try {
-            $consultation = Consultation::where('id', $consultationId)
-                ->where('doctor_id', Auth::id())
-                ->firstOrFail();
+            $consultation = Consultation::where('id', $consultationId)->firstOrFail();
+
+            // Check if user can modify consultations (admin or consultation owner)
+            if (! $this->canModifyConsultations($consultation->patient)) {
+                Log::warning('Unauthorized attempt to add doctors to consultation', [
+                    'consultation_id' => $consultationId,
+                    'doctor_id' => Auth::id(),
+                    'consultation_owner' => $consultation->doctor_id,
+                    'user_roles' => Auth::user()->getRoleNames(),
+                ]);
+
+                return [
+                    'value' => false,
+                    'message' => __('api.unauthorized_action'),
+                ];
+            }
 
             if (! $consultation->is_open) {
                 return [
@@ -522,9 +576,22 @@ class ConsultationService
     public function toggleConsultationStatus(int $consultationId, array $data): array
     {
         try {
-            $consultation = Consultation::where('id', $consultationId)
-                ->where('doctor_id', Auth::id())
-                ->firstOrFail();
+            $consultation = Consultation::where('id', $consultationId)->firstOrFail();
+
+            // Check if user can modify consultations (admin or consultation owner)
+            if (! $this->canModifyConsultations($consultation->patient)) {
+                Log::warning('Unauthorized attempt to toggle consultation status', [
+                    'consultation_id' => $consultationId,
+                    'doctor_id' => Auth::id(),
+                    'consultation_owner' => $consultation->doctor_id,
+                    'user_roles' => Auth::user()->getRoleNames(),
+                ]);
+
+                return [
+                    'value' => false,
+                    'message' => __('api.unauthorized_action'),
+                ];
+            }
 
             $consultation->is_open = $data['is_open'];
             $consultation->save();
@@ -778,11 +845,18 @@ class ConsultationService
                 ];
             }
 
-            // Check if user has permission to remove doctors (only consultation creator can remove doctors)
-            if ($consultation->doctor_id !== Auth::id()) {
+            // Check if user can modify consultations (admin or consultation owner)
+            if (! $this->canModifyConsultations($consultation->patient)) {
+                Log::warning('Unauthorized attempt to remove doctor from consultation', [
+                    'consultation_id' => $consultationId,
+                    'doctor_id' => Auth::id(),
+                    'consultation_owner' => $consultation->doctor_id,
+                    'user_roles' => Auth::user()->getRoleNames(),
+                ]);
+
                 return [
                     'value' => false,
-                    'message' => 'You are not authorized to remove doctors from this consultation.',
+                    'message' => __('api.unauthorized_action'),
                 ];
             }
 

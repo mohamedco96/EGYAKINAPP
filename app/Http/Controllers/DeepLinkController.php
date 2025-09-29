@@ -34,7 +34,7 @@ class DeepLinkController extends Controller
             $metaData = [
                 'title' => $this->formatDoctorName($post->doctor).' - EGYAKIN Post',
                 'description' => $this->truncateText($post->content ?? 'Medical post on EGYAKIN', 160),
-                'image' => $post->image ?? 'https://test.egyakin.com/storage/profile_images/profile_image.jpg',
+                'image' => $post->image ?? asset('/storage/profile_images/profile_image.jpg'),
                 'url' => url("/post/$id"),
                 'type' => 'article',
             ];
@@ -89,7 +89,7 @@ class DeepLinkController extends Controller
                 'title' => "$patientName - EGYAKIN Patient",
                 'description' => 'Medical case by '.$this->formatDoctorName($patient->doctor).
                                ($hospital ? " at $hospital" : '').' on EGYAKIN medical platform',
-                'image' => 'https://test.egyakin.com/storage/profile_images/profile_image.jpg',
+                'image' => asset('/storage/profile_images/profile_image.jpg'),
                 'url' => url("/patient/$id"),
                 'type' => 'profile',
             ];
@@ -189,7 +189,7 @@ class DeepLinkController extends Controller
                 'title' => "Medical Consultation - $patientName - EGYAKIN",
                 'description' => 'Medical consultation by '.$this->formatDoctorName($consultation->doctor).
                                " for $patientName on EGYAKIN medical platform",
-                'image' => 'https://test.egyakin.com/storage/profile_images/profile_image.jpg',
+                'image' => asset('/storage/profile_images/profile_image.jpg'),
                 'url' => url("/consultation/$id"),
                 'type' => 'article',
             ];

@@ -221,7 +221,7 @@ Update `config/app.php`:
 ```
 
 ### 2. Add Logo Image
-The system now uses your EGYAKIN logo from: `https://test.egyakin.com/storage/profile_images/profile_image.jpg`
+The system now uses your EGYAKIN logo from: `/storage/profile_images/profile_image.jpg`
 
 ### 3. Configure App Store Links
 Update the preview template with your actual app store URLs:

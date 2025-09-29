@@ -108,24 +108,42 @@ class PatientsController extends Controller
     public function doctorPatientGetAll()
     {
         try {
-            $paginatedPatients = $this->patientFilterService->getDoctorPatients(true);
+            $startTime = microtime(true);
+
+            // Use optimized service for better performance
+            $optimizedService = app(\App\Modules\Patients\Services\OptimizedPatientFilterService::class);
+            $perPage = request('per_page', 10);
+
+            // PERFORMANCE: Use the ultra-fast version for high traffic
+            $paginatedPatients = $optimizedService->getDoctorPatients(true, $perPage);
+
             $filterConditions = $this->questionService->getFilterConditions();
+
+            $executionTime = round((microtime(true) - $startTime) * 1000, 2);
 
             $response = [
                 'value' => true,
                 'filter' => $filterConditions,
                 'data' => $paginatedPatients,
+                'performance' => [
+                    'execution_time_ms' => $executionTime,
+                    'optimized' => true,
+                ],
             ];
 
-            Log::info('Successfully retrieved all patients for doctor.', [
+            Log::info('Successfully retrieved all patients for doctor (OPTIMIZED).', [
                 'doctor_id' => optional(auth()->user())->id,
+                'execution_time_ms' => $executionTime,
+                'per_page' => $perPage,
+                'total_patients' => $paginatedPatients->total(),
             ]);
 
             return response()->json($response, 200);
         } catch (\Exception $e) {
             Log::error('Error retrieving all patients for doctor.', [
                 'doctor_id' => optional(auth()->user())->id,
-                'exception' => $e,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json(['error' => __('api.failed_to_retrieve_all_patients')], 500);

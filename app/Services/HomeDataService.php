@@ -61,7 +61,7 @@ class HomeDataService
     }
 
     /**
-     * Get feed posts for user
+     * Get feed posts for user with content and images only
      */
     private function getFeedPosts(User $user): \Illuminate\Support\Collection
     {
@@ -85,6 +85,8 @@ class HomeDataService
             ->where('media_type', 'image')
             ->whereNotNull('media_path')
             ->where('media_path', '!=', '[]')
+            ->whereNotNull('content')
+            ->where('content', '!=', '')
             ->latest('created_at')
             ->limit(5)
             ->get()

@@ -225,7 +225,7 @@ class ShareUrlService
             'success' => true,
             'title' => $this->formatDoctorName($post->doctor).' - EGYAKIN Post',
             'description' => $this->truncateText($post->content ?? 'Medical post on EGYAKIN', 160),
-            'image' => $post->image ?? asset('/storage/profile_images/profile_image.jpg'),
+            'image' => $post->image ?? config('app.url').'/storage/profile_images/profile_image.jpg',
             'url' => url("/post/$postId"),
         ];
     }
@@ -254,7 +254,7 @@ class ShareUrlService
             'title' => "$patientName - EGYAKIN Patient",
             'description' => 'Medical case by '.$this->formatDoctorName($patient->doctor).
                            ($hospital ? " at $hospital" : '').' on EGYAKIN medical platform',
-            'image' => asset('/storage/profile_images/profile_image.jpg'),
+            'image' => config('app.url').'/storage/profile_images/profile_image.jpg',
             'url' => url("/patient/$patientId"),
         ];
     }
@@ -304,7 +304,7 @@ class ShareUrlService
             'title' => "Medical Consultation - $patientName - EGYAKIN",
             'description' => 'Medical consultation by '.$this->formatDoctorName($consultation->doctor).
                            " for $patientName on EGYAKIN medical platform",
-            'image' => asset('/storage/profile_images/profile_image.jpg'),
+            'image' => config('app.url').'/storage/profile_images/profile_image.jpg',
             'url' => url("/consultation/$consultationId"),
         ];
     }

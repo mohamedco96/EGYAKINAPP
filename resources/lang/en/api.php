@@ -171,7 +171,6 @@ return [
 
     // Contact Request Content
     'hello_doctor_mostafa' => 'Hello Doctor Mostafa',
-    'contact_request_message' => 'Dr.:name who works at :workplace has raised a new contact request.',
     'contact_message' => '<< :message >>',
     'contact_reach_info' => 'He can be reached by Email: :email or Phone: :phone',
 
@@ -239,20 +238,13 @@ return [
 
     // Push Notifications
     'new_comment_added' => 'New Comment was added 📣',
-    'doctor_commented_on_post' => 'Dr. :name commented on your post',
     'new_like_added' => 'New Like was added ❤️',
-    'doctor_liked_post' => 'Dr. :name liked your post',
     'new_invitation_created' => 'New Invitation was created 📣',
-    'doctor_invited_to_group' => 'Dr. :name invited you to his group',
     'group_invitation_accepted' => 'Group Invitation Accepted 🎉',
-    'doctor_accepted_invitation' => 'Dr. :name accepted your group invitation',
     'new_join_request' => 'New Join Request 📣',
-    'doctor_requested_to_join' => 'Dr. :name requested to join group',
     'post_was_liked' => 'Post was liked 📣',
     'comment_was_liked' => 'Comment was liked 👍',
-    'doctor_liked_comment' => 'Dr. :name liked your comment',
     'new_patient_comment' => 'New Patient Comment 💬',
-    'doctor_commented_on_patient' => 'Dr. :name commented on your patient',
 
     // App Update Notifications
     'app_update_title' => 'EgyAkin v1.0.9 is Here! ✨',
@@ -260,7 +252,6 @@ return [
 
     // Syndicate Card Notifications
     'syndicate_card_pending_approval' => 'New Syndicate Card Pending Approval 📋',
-    'doctor_uploaded_syndicate_card' => 'Dr. :name has uploaded a new Syndicate Card for approval.',
     'syndicate_card_rejected' => 'Syndicate Card Rejected ❌',
     'syndicate_card_rejected_message' => 'Your Syndicate Card was rejected. Please upload the correct one.',
     'syndicate_card_approved' => 'Syndicate Card Approved ✅',
@@ -268,9 +259,9 @@ return [
 
     // Patient Notifications
     'new_patient_created' => 'New Patient Created 🏥',
-    'doctor_added_new_patient' => 'Dr. :name added a new patient: :patient',
     'outcome_submitted' => 'Outcome Submitted ✅',
-    'doctor_submitted_outcome' => 'Dr. :name submitted outcome for: :patient',
+    'notification_new_patient_clean' => ':name created a new patient: :patient',
+    'notification_outcome_submitted_clean' => ':name submitted outcome for: :patient',
 
     // FCM Token Management
     'fcm_token_stored_successfully' => 'FCM token stored successfully',
@@ -283,19 +274,8 @@ return [
     'points_awarded' => 'Points awarded successfully',
 
     // Database Notification Messages
-    'notification_post_liked' => 'Dr. :name liked your post',
-    'notification_post_commented' => 'Dr. :name commented on your post',
-    'notification_comment_liked' => 'Dr. :name liked your comment',
-    'notification_group_post_created' => 'Dr. :name posted in your group',
-    'notification_post_created' => 'Dr. :name added a new post',
-    'notification_group_invitation' => 'Dr. :name invited you to his group',
-    'notification_group_invitation_accepted' => 'Dr. :name accepted your group invitation',
-    'notification_group_join_request' => 'Dr. :name requested to join group',
-    'notification_new_patient' => 'Dr. :name created a new patient: :patient',
     'notification_outcome_created' => 'Outcome was created',
     'notification_new_comment' => 'New comment was created',
-    'notification_consultation_request' => 'Dr. :name is seeking your advice for his patient',
-    'notification_consultation_reply' => 'Dr. :name has replied to your consultation request. 📩',
     'notification_syndicate_card_status' => ':message',
 
     // Notification API Messages
@@ -317,9 +297,7 @@ return [
 
     // Consultation Messages
     'new_consultation_request_created' => 'New consultation request was created 📣',
-    'doctor_seeking_advice' => 'Dr. :name is seeking your advice for his patient',
     'new_reply_on_consultation' => 'New Reply on Consultation Request 🔔',
-    'doctor_replied_to_consultation' => 'Dr. :name has replied to your consultation request. 📩',
 
     // Test Messages
     'test_localized_notification_created' => 'Test localized notification created successfully',
@@ -439,4 +417,45 @@ return [
     'member_removed_title' => 'Removed from Group 🚫',
     'member_removed_body' => 'You have been removed from the group :group',
     'notification_group_member_removed' => ':remover_name removed you from :group_name',
+
+    // ========================================================================
+    // CLEAN NOTIFICATION KEYS (WITHOUT HARDCODED DR. PREFIX)
+    // These keys work with LocalizedNotificationService to add Dr. prefix automatically
+    // ========================================================================
+
+    // Contact and Communication
+    'clean_contact_request_message' => ':name who works at :workplace has raised a new contact request.',
+
+    // Social Interactions
+    'clean_doctor_commented_on_post' => ':name commented on your post',
+    'clean_doctor_liked_post' => ':name liked your post',
+    'clean_doctor_invited_to_group' => ':name invited you to his group',
+    'clean_doctor_accepted_invitation' => ':name accepted your group invitation',
+    'clean_doctor_requested_to_join' => ':name requested to join group',
+    'clean_doctor_liked_comment' => ':name liked your comment',
+    'clean_doctor_commented_on_patient' => ':name commented on your patient',
+
+    // Administrative
+    'clean_doctor_uploaded_syndicate_card' => ':name has uploaded a new Syndicate Card for approval.',
+
+    // Patient Management
+    'clean_doctor_added_new_patient' => ':name added a new patient: :patient',
+    'clean_doctor_submitted_outcome' => ':name submitted outcome for: :patient',
+
+    // Notification Templates
+    'clean_notification_post_liked' => ':name liked your post',
+    'clean_notification_post_commented' => ':name commented on your post',
+    'clean_notification_comment_liked' => ':name liked your comment',
+    'clean_notification_group_post_created' => ':name posted in your group',
+    'clean_notification_post_created' => ':name added a new post',
+    'clean_notification_group_invitation' => ':name invited you to his group',
+    'clean_notification_group_invitation_accepted' => ':name accepted your group invitation',
+    'clean_notification_group_join_request' => ':name requested to join group',
+    'clean_notification_new_patient' => ':name created a new patient: :patient',
+
+    // Consultations
+    'clean_notification_consultation_request' => ':name is seeking your advice for his patient',
+    'clean_notification_consultation_reply' => ':name has replied to your consultation request. 📩',
+    'clean_doctor_seeking_advice' => ':name is seeking your advice for his patient',
+    'clean_doctor_replied_to_consultation' => ':name has replied to your consultation request. 📩',
 ];

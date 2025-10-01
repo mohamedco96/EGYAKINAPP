@@ -302,9 +302,9 @@ class PatientService
             AppNotification::createLocalized([
                 'doctor_id' => $adminId,
                 'type' => 'New Patient',
-                'localization_key' => 'api.notification_new_patient',
+                'localization_key' => 'api.notification_new_patient_clean',
                 'localization_params' => [
-                    'name' => $this->formatUserName($user),
+                    'name' => $user->name.($user->lname ? ' '.$user->lname : ''), // Use raw name without Dr. prefix
                     'patient' => $patientName ?? 'Unknown',
                 ],
                 'patient_id' => $patientId,
@@ -314,7 +314,7 @@ class PatientService
 
         // Send push notifications to admins
         $title = __('api.new_patient_created');
-        $body = __('api.doctor_added_new_patient', ['name' => ucfirst($this->formatUserName($user)), 'patient' => ($patientName ?? 'Unknown')]);
+        $body = __('api.clean_doctor_added_new_patient', ['name' => ucfirst($this->formatUserName($user)), 'patient' => ($patientName ?? 'Unknown')]);
         $tokens = FcmToken::whereIn('doctor_id', $adminUsers)->pluck('token')->toArray();
 
         if (! empty($tokens)) {
@@ -358,25 +358,27 @@ class PatientService
                 return;
             }
 
-            // Bulk insert notifications for admins
-            $notificationsToInsert = [];
+            // Create localized notifications for each admin based on their locale preference
             foreach ($adminUsers as $adminId) {
-                $notificationsToInsert[] = [
+                $admin = User::find($adminId);
+                $adminLocale = $admin ? $admin->locale : 'en';
+
+                AppNotification::createLocalized([
                     'doctor_id' => $adminId,
                     'type' => 'Outcome Submitted',
-                    'content' => sprintf('%s submitted outcome for patient: %s', $this->formatUserName($user), $patientName),
+                    'localization_key' => 'api.notification_outcome_submitted_clean',
+                    'localization_params' => [
+                        'name' => $user->name.($user->lname ? ' '.$user->lname : ''), // Use raw name without Dr. prefix
+                        'patient' => $patientName,
+                    ],
                     'patient_id' => $patientId,
                     'type_doctor_id' => $user->id,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
+                ]);
             }
-
-            AppNotification::insert($notificationsToInsert);
 
             // Send push notifications to admins
             $title = __('api.outcome_submitted');
-            $body = __('api.doctor_submitted_outcome', ['name' => ucfirst($this->formatUserName($user)), 'patient' => $patientName]);
+            $body = __('api.clean_doctor_submitted_outcome', ['name' => ucfirst($this->formatUserName($user)), 'patient' => $patientName]);
             $tokens = FcmToken::whereIn('doctor_id', $adminUsers)->pluck('token')->toArray();
 
             if (! empty($tokens)) {

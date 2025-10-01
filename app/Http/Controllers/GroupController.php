@@ -439,7 +439,7 @@ class GroupController extends Controller
                             'doctor_id' => $doctorId,
                             'type' => 'group_invitation',
                             'type_id' => $groupId,
-                            'localization_key' => 'api.notification_group_invitation',
+                            'localization_key' => 'api.clean_notification_group_invitation',
                             'localization_params' => ['name' => $this->formatUserName(Auth::user())],
                             'type_doctor_id' => Auth::id(),
                             'created_at' => now(),
@@ -456,7 +456,7 @@ class GroupController extends Controller
                         if (! empty($tokens)) {
                             $this->notificationService->sendPushNotification(
                                 __('api.new_invitation_created'),
-                                __('api.doctor_invited_to_group', ['name' => ucfirst($this->formatUserName(Auth::user()))]),
+                                __('api.clean_doctor_invited_to_group', ['name' => ucfirst($this->formatUserName(Auth::user()))]),
                                 $tokens
                             );
                         }
@@ -491,7 +491,7 @@ class GroupController extends Controller
                             'doctor_id' => $doctorId,
                             'type' => 'group_invitation',
                             'type_id' => $groupId,
-                            'localization_key' => 'api.notification_group_invitation',
+                            'localization_key' => 'api.clean_notification_group_invitation',
                             'localization_params' => ['name' => $this->formatUserName(Auth::user())],
                             'type_doctor_id' => Auth::id(),
                             'created_at' => now(),
@@ -508,7 +508,7 @@ class GroupController extends Controller
                         if (! empty($tokens)) {
                             $this->notificationService->sendPushNotification(
                                 __('api.new_invitation_created'),
-                                __('api.doctor_invited_to_group', ['name' => ucfirst($this->formatUserName(Auth::user()))]),
+                                __('api.clean_doctor_invited_to_group', ['name' => ucfirst($this->formatUserName(Auth::user()))]),
                                 $tokens
                             );
                         }
@@ -598,7 +598,7 @@ class GroupController extends Controller
                             'doctor_id' => $group->owner_id,
                             'type' => 'group_invitation_accepted',
                             'type_id' => $groupId,
-                            'localization_key' => 'api.notification_group_invitation_accepted',
+                            'localization_key' => 'api.clean_notification_group_invitation_accepted',
                             'localization_params' => ['name' => $this->formatUserName(Auth::user())],
                             'type_doctor_id' => $userId,
                             'created_at' => now(),
@@ -613,7 +613,7 @@ class GroupController extends Controller
                         if (! empty($tokens)) {
                             $this->notificationService->sendPushNotification(
                                 __('api.group_invitation_accepted'),
-                                __('api.doctor_accepted_invitation', ['name' => ucfirst($this->formatUserName(Auth::user()))]),
+                                __('api.clean_doctor_accepted_invitation', ['name' => ucfirst($this->formatUserName(Auth::user()))]),
                                 $tokens
                             );
                         }
@@ -1261,7 +1261,7 @@ class GroupController extends Controller
                 'doctor_id' => $group->owner_id,
                 'type' => 'group_join_request',
                 'type_id' => $group->id,
-                'localization_key' => 'api.notification_group_join_request',
+                'localization_key' => 'api.clean_notification_group_join_request',
                 'localization_params' => ['name' => $this->formatUserName(Auth::user())],
                 'type_doctor_id' => Auth::id(),
                 'created_at' => now(),
@@ -1278,7 +1278,7 @@ class GroupController extends Controller
             if (! empty($tokens)) {
                 $this->notificationService->sendPushNotification(
                     __('api.new_join_request'),
-                    __('api.doctor_requested_to_join', ['name' => ucfirst($this->formatUserName(Auth::user()))]),
+                    __('api.clean_doctor_requested_to_join', ['name' => ucfirst($this->formatUserName(Auth::user()))]),
                     $tokens
                 );
             }

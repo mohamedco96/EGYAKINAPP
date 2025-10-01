@@ -171,7 +171,6 @@ return [
 
     // Contact Request Content
     'hello_doctor_mostafa' => 'مرحباً دكتور مصطفى',
-    'contact_request_message' => 'د.:name الذي يعمل في :workplace قد أرسل طلب تواصل جديد.',
     'contact_message' => '<< :message >>',
     'contact_reach_info' => 'يمكن الوصول إليه عبر البريد الإلكتروني: :email أو الهاتف: :phone',
 
@@ -239,20 +238,13 @@ return [
 
     // Push Notifications
     'new_comment_added' => 'تم إضافة تعليق جديد 📣',
-    'doctor_commented_on_post' => 'د. :name علق على منشورك',
     'new_like_added' => 'تم إضافة إعجاب جديد ❤️',
-    'doctor_liked_post' => 'د. :name أعجب بمنشورك',
     'new_invitation_created' => 'تم إنشاء دعوة جديدة 📣',
-    'doctor_invited_to_group' => 'د. :name دعاك إلى مجموعته',
     'group_invitation_accepted' => 'تم قبول دعوة المجموعة 🎉',
-    'doctor_accepted_invitation' => 'د. :name قبل دعوتك للمجموعة',
     'new_join_request' => 'طلب انضمام جديد 📣',
-    'doctor_requested_to_join' => 'د. :name طلب الانضمام إلى المجموعة',
     'post_was_liked' => 'تم إعجاب المنشور 📣',
     'comment_was_liked' => 'تم إعجاب التعليق 👍',
-    'doctor_liked_comment' => 'د. :name أعجب بتعليقك',
     'new_patient_comment' => 'تعليق مريض جديد 💬',
-    'doctor_commented_on_patient' => 'د. :name علق على مريضك',
 
     // App Update Notifications
     'app_update_title' => 'EgyAkin v1.0.9 متوفر الآن! ✨',
@@ -260,7 +252,6 @@ return [
 
     // Syndicate Card Notifications
     'syndicate_card_pending_approval' => 'بطاقة نقابة جديدة في انتظار الموافقة 📋',
-    'doctor_uploaded_syndicate_card' => 'د. :name قام برفع بطاقة نقابة جديدة للموافقة.',
     'syndicate_card_rejected' => 'تم رفض بطاقة النقابة ❌',
     'syndicate_card_rejected_message' => 'تم رفض بطاقة النقابة الخاصة بك. يرجى رفع البطاقة الصحيحة.',
     'syndicate_card_approved' => 'تم اعتماد بطاقة النقابة ✅',
@@ -268,9 +259,9 @@ return [
 
     // Patient Notifications
     'new_patient_created' => 'تم إنشاء مريض جديد 🏥',
-    'doctor_added_new_patient' => 'د. :name أضاف مريضاً جديداً: :patient',
     'outcome_submitted' => 'تم تقديم النتيجة ✅',
-    'doctor_submitted_outcome' => 'د. :name قدم نتيجة لـ: :patient',
+    'notification_new_patient_clean' => ':name أنشأ مريضاً جديداً: :patient',
+    'notification_outcome_submitted_clean' => ':name قدم نتيجة لـ: :patient',
 
     // FCM Token Management
     'fcm_token_stored_successfully' => 'تم حفظ رمز FCM بنجاح',
@@ -283,19 +274,8 @@ return [
     'points_awarded' => 'تم منح النقاط بنجاح',
 
     // Database Notification Messages
-    'notification_post_liked' => 'د. :name أعجب بمنشورك',
-    'notification_post_commented' => 'د. :name علق على منشورك',
-    'notification_comment_liked' => 'د. :name أعجب بتعليقك',
-    'notification_group_post_created' => 'د. :name نشر في مجموعتك',
-    'notification_post_created' => 'د. :name أضاف منشوراً جديداً',
-    'notification_group_invitation' => 'د. :name دعاك إلى مجموعته',
-    'notification_group_invitation_accepted' => 'د. :name قبل دعوتك للمجموعة',
-    'notification_group_join_request' => 'د. :name طلب الانضمام إلى المجموعة',
-    'notification_new_patient' => 'د. :name أنشأ مريضاً جديداً: :patient',
     'notification_outcome_created' => 'تم إنشاء النتيجة',
     'notification_new_comment' => 'تم إنشاء تعليق جديد',
-    'notification_consultation_request' => 'د. :name يطلب مشورتك لمريضه',
-    'notification_consultation_reply' => 'د. :name رد على طلب استشارتك. 📩',
     'notification_syndicate_card_status' => ':message',
 
     // Notification API Messages
@@ -317,9 +297,7 @@ return [
 
     // Consultation Messages
     'new_consultation_request_created' => 'تم إنشاء طلب استشارة جديد 📣',
-    'doctor_seeking_advice' => 'د. :name يطلب مشورتك لمريضه',
     'new_reply_on_consultation' => 'رد جديد على طلب استشارة 🔔',
-    'doctor_replied_to_consultation' => 'د. :name رد على طلب استشارتك. 📩',
 
     // Test Messages
     'test_localized_notification_created' => 'تم إنشاء إشعار اختباري مترجم بنجاح',
@@ -439,4 +417,45 @@ return [
     'member_removed_title' => 'تم إزالتك من المجموعة 🚫',
     'member_removed_body' => 'تم إزالتك من المجموعة :group',
     'notification_group_member_removed' => ':remover_name قام بإزالتك من :group_name',
+
+    // ========================================================================
+    // مفاتيح الإشعارات النظيفة (بدون بادئة د. مُدمجة)
+    // هذه المفاتيح تعمل مع LocalizedNotificationService لإضافة بادئة د. تلقائياً
+    // ========================================================================
+
+    // التواصل والاتصال
+    'clean_contact_request_message' => ':name الذي يعمل في :workplace قد أرسل طلب تواصل جديد.',
+
+    // التفاعلات الاجتماعية
+    'clean_doctor_commented_on_post' => ':name علق على منشورك',
+    'clean_doctor_liked_post' => ':name أعجب بمنشورك',
+    'clean_doctor_invited_to_group' => ':name دعاك إلى مجموعته',
+    'clean_doctor_accepted_invitation' => ':name قبل دعوتك للمجموعة',
+    'clean_doctor_requested_to_join' => ':name طلب الانضمام إلى المجموعة',
+    'clean_doctor_liked_comment' => ':name أعجب بتعليقك',
+    'clean_doctor_commented_on_patient' => ':name علق على مريضك',
+
+    // الإدارية
+    'clean_doctor_uploaded_syndicate_card' => ':name قام برفع بطاقة نقابة جديدة للموافقة.',
+
+    // إدارة المرضى
+    'clean_doctor_added_new_patient' => ':name أضاف مريضاً جديداً: :patient',
+    'clean_doctor_submitted_outcome' => ':name قدم نتيجة لـ: :patient',
+
+    // قوالب الإشعارات
+    'clean_notification_post_liked' => ':name أعجب بمنشورك',
+    'clean_notification_post_commented' => ':name علق على منشورك',
+    'clean_notification_comment_liked' => ':name أعجب بتعليقك',
+    'clean_notification_group_post_created' => ':name نشر في مجموعتك',
+    'clean_notification_post_created' => ':name أضاف منشوراً جديداً',
+    'clean_notification_group_invitation' => ':name دعاك إلى مجموعته',
+    'clean_notification_group_invitation_accepted' => ':name قبل دعوتك للمجموعة',
+    'clean_notification_group_join_request' => ':name طلب الانضمام إلى المجموعة',
+    'clean_notification_new_patient' => ':name أنشأ مريضاً جديداً: :patient',
+
+    // الاستشارات
+    'clean_notification_consultation_request' => ':name يطلب مشورتك لمريضه',
+    'clean_notification_consultation_reply' => ':name رد على طلب استشارتك. 📩',
+    'clean_doctor_seeking_advice' => ':name يطلب مشورتك لمريضه',
+    'clean_doctor_replied_to_consultation' => ':name رد على طلب استشارتك. 📩',
 ];

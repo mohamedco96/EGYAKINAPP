@@ -139,7 +139,7 @@ class PostCommentService
                 'doctor_id' => $postOwner->id,
                 'type' => 'PostComment',
                 'type_id' => $post->id,
-                'localization_key' => 'api.notification_post_commented',
+                'localization_key' => 'api.clean_notification_post_commented',
                 'localization_params' => [
                     'name' => $this->formatUserName($commentingUser),
                 ],
@@ -164,7 +164,7 @@ class PostCommentService
                 $formattedName = $this->formatUserName($commentingUser);
                 $this->notificationService->sendPushNotification(
                     __('api.new_comment_added'),
-                    __('api.doctor_commented_on_post', ['name' => ucfirst($formattedName)]),
+                    __('api.clean_doctor_commented_on_post', ['name' => ucfirst($formattedName)]),
                     $tokens
                 );
             }

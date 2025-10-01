@@ -285,7 +285,7 @@ class PatientService
             AppNotification::createLocalized([
                 'doctor_id' => $adminId,
                 'type' => 'New Patient',
-                'localization_key' => 'api.notification_new_patient',
+                'localization_key' => 'api.clean_notification_new_patient',
                 'localization_params' => [
                     'name' => $user->name.' '.$user->lname,
                     'patient' => $patientName ?? 'Unknown',
@@ -296,7 +296,7 @@ class PatientService
         }
 
         $title = __('api.new_patient_created');
-        $body = __('api.doctor_added_new_patient', ['name' => ucfirst($user->name), 'patient' => ($patientName ?? 'Unknown')]);
+        $body = __('api.clean_doctor_added_new_patient', ['name' => ucfirst($user->name), 'patient' => ($patientName ?? 'Unknown')]);
         $tokens = FcmToken::whereIn('doctor_id', $adminUsers)->pluck('token')->toArray();
 
         if (! empty($tokens)) {

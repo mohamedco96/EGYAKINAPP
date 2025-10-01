@@ -73,7 +73,7 @@ class CommentNotificationService
                 $commentingUser = Auth::user();
                 $this->notificationService->sendPushNotification(
                     __('api.new_patient_comment'),
-                    __('api.doctor_commented_on_patient', ['name' => ucfirst($this->formatUserName($commentingUser))]),
+                    __('api.clean_doctor_commented_on_patient', ['name' => ucfirst($this->formatUserName($commentingUser))]),
                     $tokens
                 );
             }

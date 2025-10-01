@@ -808,7 +808,7 @@ class AuthService
         AppNotification::insert($notifications);
 
         $title = __('api.syndicate_card_pending_approval');
-        $body = __('api.doctor_uploaded_syndicate_card', ['name' => $user->name]);
+        $body = __('api.clean_doctor_uploaded_syndicate_card', ['name' => $user->name]);
 
         // Get tokens from eager loaded relationship
         $tokens = $doctors->pluck('fcmTokens.*.token')

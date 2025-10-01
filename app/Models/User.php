@@ -129,7 +129,14 @@ class User extends Authenticatable
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        return str_ends_with($this->email, '@egyakin.com');
+        // Allow access for users with Admin or Tester roles, or specific emails
+        return $this->hasRole(['Admin', 'Tester']) ||
+               str_ends_with($this->email, '@egyakin.com') ||
+               in_array($this->email, [
+                   'mohamedco215@gmail.com',
+                   'Darsh1980@mans.edu.eg',
+                   'aboelkhaer@yandex.com',
+               ]);
     }
 
     public function patients()

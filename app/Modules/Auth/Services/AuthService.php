@@ -433,7 +433,7 @@ class AuthService
             $scoreValue = optional($user->score)->score ?? 0;
 
             // Get image URL
-            $imageUrl = $user->image ? config('app.url').'/storage/'.$user->image : null;
+            $imageUrl = $user->image;
 
             return [
                 'value' => true,
@@ -475,7 +475,7 @@ class AuthService
             ];
         }
 
-        $imageUrl = config('app.url').'/storage/'.$user->image;
+        $imageUrl = $user->image;
         $patientCount = $user->patients()->count();
         $postsCount = $user->feedPosts()->whereNull('group_id')->count();
         $savedPostsCount = $user->saves()->count();

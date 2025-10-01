@@ -27,6 +27,6 @@ class SectionsController extends Controller
 
     public function showSections($patient_id)
     {
-        return $this->sectionsController->showSections($patient_id);
+        return $this->sectionsController->showSectionsV1($patient_id);
     }
 }

@@ -311,9 +311,39 @@ class ConsultationService
                 ];
             }
 
+            $isOwner = $consultation->doctor_id === $user->id;
+
             $consultationDoctor = ConsultationDoctor::where('consultation_id', $id)
                 ->where('consult_doctor_id', $user->id)
-                ->firstOrFail();
+                ->first();
+
+            // Allow reply if user is the consultation owner OR is an invited doctor
+            if (! $consultationDoctor && ! $isOwner) {
+                Log::warning('Consultation update unauthorized.', [
+                    'consultation_id' => $id,
+                    'doctor_id' => $user->id,
+                    'consultation_owner' => $consultation->doctor_id,
+                    'is_owner' => $isOwner,
+                    'is_invited_doctor' => (bool) $consultationDoctor,
+                ]);
+
+                throw new \Exception(__('api.consultation_unauthorized_reply'));
+            }
+
+            // If user is the owner but not in ConsultationDoctor table, create an entry
+            if ($isOwner && ! $consultationDoctor) {
+                $consultationDoctor = ConsultationDoctor::create([
+                    'consultation_id' => $id,
+                    'consult_doctor_id' => $user->id,
+                    'status' => 'replied',
+                ]);
+
+                Log::info('Created ConsultationDoctor entry for consultation owner (update).', [
+                    'consultation_id' => $id,
+                    'doctor_id' => $user->id,
+                    'consultation_doctor_id' => $consultationDoctor->id,
+                ]);
+            }
 
             // For backward compatibility, keep the first reply in the main field
             if (empty($consultationDoctor->reply)) {
@@ -768,15 +798,41 @@ class ConsultationService
             }
 
             $user = Auth::user();
+            $isOwner = $consultation->doctor_id === $user->id;
+
             $consultationDoctor = ConsultationDoctor::where('consultation_id', $consultationId)
                 ->where('consult_doctor_id', $user->id)
                 ->first();
 
-            if (! $consultationDoctor) {
+            // Allow reply if user is the consultation owner OR is an invited doctor
+            if (! $consultationDoctor && ! $isOwner) {
+                Log::warning('Consultation reply unauthorized.', [
+                    'consultation_id' => $consultationId,
+                    'doctor_id' => $user->id,
+                    'consultation_owner' => $consultation->doctor_id,
+                    'is_owner' => $isOwner,
+                    'is_invited_doctor' => (bool) $consultationDoctor,
+                ]);
+
                 return [
                     'value' => false,
                     'message' => __('api.consultation_unauthorized_reply'),
                 ];
+            }
+
+            // If user is the owner but not in ConsultationDoctor table, create an entry
+            if ($isOwner && ! $consultationDoctor) {
+                $consultationDoctor = ConsultationDoctor::create([
+                    'consultation_id' => $consultationId,
+                    'consult_doctor_id' => $user->id,
+                    'status' => 'replied',
+                ]);
+
+                Log::info('Created ConsultationDoctor entry for consultation owner.', [
+                    'consultation_id' => $consultationId,
+                    'doctor_id' => $user->id,
+                    'consultation_doctor_id' => $consultationDoctor->id,
+                ]);
             }
 
             return DB::transaction(function () use ($consultationDoctor, $data, $consultation, $user) {

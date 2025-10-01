@@ -61,7 +61,7 @@ class HomeDataService
     }
 
     /**
-     * Get feed posts for user
+     * Get feed posts for user with content and images only
      */
     private function getFeedPosts(User $user): \Illuminate\Support\Collection
     {
@@ -85,6 +85,8 @@ class HomeDataService
             ->where('media_type', 'image')
             ->whereNotNull('media_path')
             ->where('media_path', '!=', '[]')
+            ->whereNotNull('content')
+            ->where('content', '!=', '')
             ->latest('created_at')
             ->limit(5)
             ->get()
@@ -174,12 +176,16 @@ class HomeDataService
     }
 
     /**
-     * Get all posts
+     * Get all posts with image and content only
      */
     private function getPosts(): \Illuminate\Support\Collection
     {
         return Posts::select('id', 'title', 'image', 'content', 'hidden', 'post_type', 'webinar_date', 'url', 'doctor_id', 'updated_at')
             ->where('hidden', false)
+            ->whereNotNull('image')
+            ->where('image', '!=', '')
+            ->whereNotNull('content')
+            ->where('content', '!=', '')
             ->with(['doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version'])
             ->get()
             ->map(function ($post) {

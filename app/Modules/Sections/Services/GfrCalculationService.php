@@ -169,6 +169,66 @@ class GfrCalculationService
     }
 
     /**
+     * Calculate all GFR values for a patient (Legacy format - no localization).
+     */
+    public function calculateAllGfrValuesLegacy(array $patientData): array
+    {
+        // Initialize GFR structure with old static keys only (no localization)
+        $gfr = [
+            'ckd' => [
+                'current_GFR' => '0',
+                'basal_creatinine_GFR' => '0',
+                'creatinine_on_discharge_GFR' => '0',
+            ],
+            'sobh' => [
+                'current_GFR' => '0',
+                'basal_creatinine_GFR' => '0',
+                'creatinine_on_discharge_GFR' => '0',
+            ],
+            'mdrd' => [
+                'current_GFR' => '0',
+                'basal_creatinine_GFR' => '0',
+                'creatinine_on_discharge_GFR' => '0',
+            ],
+        ];
+
+        $gender = $patientData['gender'] ?? null;
+        $age = floatval($patientData['age'] ?? 0);
+        $height = floatval($patientData['height'] ?? 0);
+        $weight = floatval($patientData['weight'] ?? 0);
+        $race = $patientData['race'] ?? null;
+
+        $creatinineValues = [
+            'current' => floatval($patientData['current_creatinine'] ?? 0),
+            'basal' => floatval($patientData['basal_creatinine'] ?? 0),
+            'discharge' => floatval($patientData['creatinine_on_discharge'] ?? 0),
+        ];
+
+        foreach ($creatinineValues as $type => $creatinine) {
+            if ($this->isValidForCalculation($gender, $age, $height, $weight, $race, $creatinine)) {
+                // Map to static keys
+                $staticKey = match ($type) {
+                    'current' => 'current_GFR',
+                    'basal' => 'basal_creatinine_GFR',
+                    'discharge' => 'creatinine_on_discharge_GFR',
+                };
+
+                // Calculate GFR values
+                $ckdValue = $this->calculateCkdGfr($gender, $age, $creatinine);
+                $sobhValue = $this->calculateSobhCcr($age, $weight, $height, $creatinine);
+                $mdrdValue = $this->calculateMdrdGfr($creatinine, $age, $race, $gender);
+
+                // Set values as strings (legacy format)
+                $gfr['ckd'][$staticKey] = (string) $ckdValue;
+                $gfr['sobh'][$staticKey] = (string) $sobhValue;
+                $gfr['mdrd'][$staticKey] = (string) $mdrdValue;
+            }
+        }
+
+        return $gfr;
+    }
+
+    /**
      * Check if all required parameters are valid for GFR calculation.
      *
      * @param  mixed  $gender

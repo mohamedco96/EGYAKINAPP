@@ -120,7 +120,7 @@ class SectionsController extends Controller
     }
 
     /**
-     * Show sections and their statuses for a patient.
+     * Show sections and their statuses for a patient (Legacy format for backward compatibility).
      *
      * @return \Illuminate\Http\JsonResponse
      */
@@ -152,11 +152,11 @@ class SectionsController extends Controller
                 ], 404);
             }
 
-            // Get patient GFR data and calculate GFR values
+            // Get patient GFR data and calculate GFR values (OLD FORMAT - no localization)
             $gfrData = $this->sectionManagementService->getPatientGfrData($patientId);
-            $gfrValues = $this->gfrCalculationService->calculateAllGfrValues($gfrData);
+            $gfrValues = $this->gfrCalculationService->calculateAllGfrValuesLegacy($gfrData);
 
-            Log::info("Showing sections for patient ID: $patientId", [
+            Log::info("Showing sections for patient ID: $patientId (LEGACY FORMAT)", [
                 'submit_status' => $patientData['submit_status'],
                 'patient_name' => $patientData['patient_name'],
                 'doctor_id' => $patientData['doctor_id'],
@@ -175,6 +175,70 @@ class SectionsController extends Controller
 
         } catch (\Exception $e) {
             Log::error("Error while showing sections for patient ID: $patientId. Error: ".$e->getMessage());
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Error: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Show sections and their statuses for a patient (V1 format with localization).
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function showSectionsV1(int $patientId)
+    {
+        try {
+            // Get patient basic data
+            $patientData = $this->sectionManagementService->getPatientBasicData($patientId);
+
+            // Validate patient exists
+            if (! $patientData['patient_name']) {
+                Log::error("Patient name not found for patient ID: $patientId");
+
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Patient not found for the given patient ID.',
+                ], 404);
+            }
+
+            // Get sections data
+            $sectionsData = $this->sectionManagementService->getSectionsData($patientId);
+
+            if (empty($sectionsData)) {
+                Log::warning("Sections not found for patient ID: $patientId");
+
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Sections not found for the given patient ID.',
+                ], 404);
+            }
+
+            // Get patient GFR data and calculate GFR values (NEW FORMAT - with localization)
+            $gfrData = $this->sectionManagementService->getPatientGfrData($patientId);
+            $gfrValues = $this->gfrCalculationService->calculateAllGfrValues($gfrData);
+
+            Log::info("Showing sections for patient ID: $patientId (V1 FORMAT)", [
+                'submit_status' => $patientData['submit_status'],
+                'patient_name' => $patientData['patient_name'],
+                'doctor_id' => $patientData['doctor_id'],
+                'sections_count' => count($sectionsData),
+                'gfr' => $gfrValues,
+            ]);
+
+            return response()->json([
+                'value' => true,
+                'submit_status' => $patientData['submit_status'],
+                'patient_name' => $patientData['patient_name'],
+                'doctor_Id' => $patientData['doctor_id'],
+                'gfr' => $gfrValues,
+                'data' => $sectionsData,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Error while showing sections for patient ID: $patientId (V1). Error: ".$e->getMessage());
 
             return response()->json([
                 'value' => false,

@@ -13,6 +13,16 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
+        // Only run scheduled tasks in production environment
+        if (! app()->environment('production')) {
+            Log::info('Scheduled tasks skipped - not in production environment', [
+                'current_env' => app()->environment(),
+                'timestamp' => now()->toISOString(),
+            ]);
+
+            return;
+        }
+
         // $schedule->command('inspire')->hourly();
         // Patient Outcome Reminder System - Check every 6 hours for patients needing outcome reminders
         $schedule->command('reminder:send')
@@ -75,33 +85,33 @@ class Kernel extends ConsoleKernel
             });
 
         // File cleanup scheduled job
-        if (config('filesystems.cleanup.schedule.enabled', true)) {
-            $frequency = config('filesystems.cleanup.schedule.frequency', 'daily');
-            $time = config('filesystems.cleanup.schedule.time', '02:00');
-            $disk = config('filesystems.cleanup.schedule.disk', 'public');
-            $batchSize = config('filesystems.cleanup.schedule.batch_size', 100);
+        // if (config('filesystems.cleanup.schedule.enabled', true)) {
+        //     $frequency = config('filesystems.cleanup.schedule.frequency', 'daily');
+        //     $time = config('filesystems.cleanup.schedule.time', '02:00');
+        //     $disk = config('filesystems.cleanup.schedule.disk', 'public');
+        //     $batchSize = config('filesystems.cleanup.schedule.batch_size', 100);
 
-            $command = $schedule->command("files:cleanup --disk={$disk} --batch-size={$batchSize} --force");
+        //     $command = $schedule->command("files:cleanup --disk={$disk} --batch-size={$batchSize} --force");
 
-            switch ($frequency) {
-                case 'weekly':
-                    $command->weekly()->at($time);
-                    break;
-                case 'monthly':
-                    $command->monthly()->at($time);
-                    break;
-                case 'daily':
-                default:
-                    $command->daily()->at($time);
-                    break;
-            }
+        //     switch ($frequency) {
+        //         case 'weekly':
+        //             $command->weekly()->at($time);
+        //             break;
+        //         case 'monthly':
+        //             $command->monthly()->at($time);
+        //             break;
+        //         case 'daily':
+        //         default:
+        //             $command->daily()->at($time);
+        //             break;
+        //     }
 
-            // Add additional scheduling options
-            $command->withoutOverlapping(120) // Prevent overlapping runs, timeout after 2 hours
-                ->runInBackground()
-                ->emailOutputOnFailure(config('mail.admin_email'))
-                ->appendOutputTo(storage_path('logs/scheduled_cleanup.log'));
-        }
+        //     // Add additional scheduling options
+        //     $command->withoutOverlapping(120) // Prevent overlapping runs, timeout after 2 hours
+        //         ->runInBackground()
+        //         ->emailOutputOnFailure(config('mail.admin_email'))
+        //         ->appendOutputTo(storage_path('logs/scheduled_cleanup.log'));
+        // }
 
         // Job Monitoring - Check every 15 minutes
         $schedule->command('jobs:monitor')
@@ -139,6 +149,19 @@ class Kernel extends ConsoleKernel
                 Log::error('Job monitoring cleanup scheduled task failed', [
                     'timestamp' => now()->toISOString(),
                     'command' => 'jobs:monitor --cleanup',
+                ]);
+            });
+
+        // Filament Excel Cleanup - Run daily at midnight
+        $schedule->command('filament-excel:prune')
+            ->daily()
+            ->withoutOverlapping(30) // Prevent overlapping runs, timeout after 30 minutes
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/filament_excel_cleanup.log'))
+            ->onFailure(function () {
+                Log::error('Filament Excel cleanup scheduled task failed', [
+                    'timestamp' => now()->toISOString(),
+                    'command' => 'filament-excel:prune',
                 ]);
             });
     }

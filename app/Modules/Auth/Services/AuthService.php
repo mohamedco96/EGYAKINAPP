@@ -715,16 +715,6 @@ class AuthService
             return;
         }
 
-        // Validate device ID format if provided
-        if ($deviceId && ! preg_match('/^[a-zA-Z0-9_-]{10,50}$/', $deviceId)) {
-            Log::warning('Invalid device ID format', [
-                'user_id' => $userId,
-                'device_id' => $deviceId,
-            ]);
-
-            return;
-        }
-
         try {
             // Prepare data for storage
             $tokenData = ['doctor_id' => $userId, 'token' => $token];

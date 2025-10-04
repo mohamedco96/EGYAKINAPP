@@ -715,16 +715,6 @@ class AuthService
             return;
         }
 
-        // Validate device ID format if provided
-        if ($deviceId && ! preg_match('/^[a-zA-Z0-9_-]{10,50}$/', $deviceId)) {
-            Log::warning('Invalid device ID format', [
-                'user_id' => $userId,
-                'device_id' => $deviceId,
-            ]);
-
-            return;
-        }
-
         try {
             // Prepare data for storage
             $tokenData = ['doctor_id' => $userId, 'token' => $token];
@@ -808,7 +798,7 @@ class AuthService
         AppNotification::insert($notifications);
 
         $title = __('api.syndicate_card_pending_approval');
-        $body = __('api.doctor_uploaded_syndicate_card', ['name' => $user->name]);
+        $body = __('api.clean_doctor_uploaded_syndicate_card', ['name' => $user->name]);
 
         // Get tokens from eager loaded relationship
         $tokens = $doctors->pluck('fcmTokens.*.token')

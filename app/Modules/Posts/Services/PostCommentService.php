@@ -28,8 +28,8 @@ class PostCommentService
      */
     public function getCommentsByPostId(int $postId): array
     {
-        $postComments = PostComments::where('post_id', $postId)
-            ->select('id', 'content', 'doctor_id', 'updated_at')
+        $postComments = PostComments::where('feed_post_id', $postId)
+            ->select('id', 'comment', 'doctor_id', 'updated_at', 'parent_id')
             ->with('doctor:id,name,lname,workingplace,image')
             ->get();
 
@@ -53,18 +53,15 @@ class PostCommentService
             ];
         }
 
-        $comment = new PostComments([
-            'content' => $validatedData['content'],
+        $comment = PostComments::create([
+            'comment' => $validatedData['content'] ?? $validatedData['comment'],
+            'doctor_id' => Auth::id(),
+            'feed_post_id' => $postId,
+            'parent_id' => $validatedData['parent_id'] ?? null,
         ]);
 
-        $user = Auth::user();
-
-        // Associate the comment with the current user and post
-        $user->postcomments()->save($comment);
-        $post->postcomments()->save($comment);
-
         // Send notification to post owner if different from commenter
-        $this->sendCommentNotification($post, $comment, $user);
+        $this->sendCommentNotification($post, $comment, Auth::user());
 
         return [
             'value' => true,
@@ -78,7 +75,7 @@ class PostCommentService
     public function updateComment(PostComments $comment, array $validatedData): array
     {
         $comment->update([
-            'content' => $validatedData['content'],
+            'comment' => $validatedData['content'] ?? $validatedData['comment'],
         ]);
 
         return [
@@ -139,7 +136,7 @@ class PostCommentService
                 'doctor_id' => $postOwner->id,
                 'type' => 'PostComment',
                 'type_id' => $post->id,
-                'localization_key' => 'api.notification_post_commented',
+                'localization_key' => 'api.clean_notification_post_commented',
                 'localization_params' => [
                     'name' => $this->formatUserName($commentingUser),
                 ],
@@ -164,7 +161,7 @@ class PostCommentService
                 $formattedName = $this->formatUserName($commentingUser);
                 $this->notificationService->sendPushNotification(
                     __('api.new_comment_added'),
-                    __('api.doctor_commented_on_post', ['name' => ucfirst($formattedName)]),
+                    __('api.clean_doctor_commented_on_post', ['name' => ucfirst($formattedName)]),
                     $tokens
                 );
             }

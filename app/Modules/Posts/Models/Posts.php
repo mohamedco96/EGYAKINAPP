@@ -30,7 +30,7 @@ class Posts extends Model
      */
     protected $casts = [
         'hidden' => 'boolean',
-        'doctor_id' => 'integer'
+        'doctor_id' => 'integer',
     ];
 
     /**
@@ -46,6 +46,6 @@ class Posts extends Model
      */
     public function postcomments()
     {
-        return $this->hasMany(PostComments::class, 'post_id');
+        return $this->hasMany(PostComments::class, 'feed_post_id');
     }
 }

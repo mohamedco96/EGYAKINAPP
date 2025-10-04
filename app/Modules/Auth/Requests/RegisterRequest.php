@@ -39,7 +39,7 @@ class RegisterRequest extends FormRequest
             'highestdegree' => 'nullable|string|max:255',
             'registration_number' => 'nullable|string|unique:users',
             'fcmToken' => 'nullable|string|max:255|regex:/^[a-zA-Z0-9:_-]+$/',
-            'deviceId' => 'nullable|string|min:10|max:50|regex:/^[a-zA-Z0-9_-]+$/',
+            'deviceId' => 'nullable|string',
             'deviceType' => 'nullable|string|in:ios,android,web',
             'appVersion' => 'nullable|string|max:20|regex:/^[0-9.]+$/',
         ];

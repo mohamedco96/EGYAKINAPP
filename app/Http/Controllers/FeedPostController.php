@@ -1106,8 +1106,8 @@ class FeedPostController extends Controller
                 'type' => $post->group_id ? 'GroupPost' : 'Post',
                 'type_id' => $post->id,
                 'localization_key' => $post->group_id
-                    ? 'api.notification_group_post_created'
-                    : 'api.notification_post_created',
+                    ? 'api.clean_notification_group_post_created'
+                    : 'api.clean_notification_post_created',
                 'localization_params' => [
                     'name' => $doctorName,
                 ],
@@ -1254,7 +1254,7 @@ class FeedPostController extends Controller
                             'doctor_id' => $postOwner->id,
                             'type' => 'PostLike',
                             'type_id' => $post->id,
-                            'localization_key' => 'api.notification_post_liked',
+                            'localization_key' => 'api.clean_notification_post_liked',
                             'localization_params' => ['name' => Auth::user()->name.' '.Auth::user()->lname],
                             'type_doctor_id' => Auth::id(),
                             'created_at' => now(),
@@ -1269,7 +1269,7 @@ class FeedPostController extends Controller
                         if (! empty($tokens)) {
                             $this->notificationService->sendPushNotification(
                                 __('api.post_was_liked'),
-                                __('api.doctor_liked_post', ['name' => ucfirst(Auth::user()->name)]),
+                                __('api.clean_doctor_liked_post', ['name' => ucfirst(Auth::user()->name)]),
                                 $tokens
                             );
                         }
@@ -1444,7 +1444,7 @@ class FeedPostController extends Controller
                     'doctor_id' => $postOwner->id,
                     'type' => 'PostComment',
                     'type_id' => $post->id,
-                    'localization_key' => 'api.notification_post_commented',
+                    'localization_key' => 'api.clean_notification_post_commented',
                     'localization_params' => ['name' => $this->formatUserName(Auth::user())],
                     'type_doctor_id' => Auth::id(),
                     'created_at' => now(),
@@ -1461,7 +1461,7 @@ class FeedPostController extends Controller
                 if (! empty($tokens)) {
                     $this->notificationService->sendPushNotification(
                         __('api.new_comment_added'),
-                        __('api.doctor_commented_on_post', ['name' => ucfirst($this->formatUserName(Auth::user()))]),
+                        __('api.clean_doctor_commented_on_post', ['name' => ucfirst($this->formatUserName(Auth::user()))]),
                         $tokens
                     );
                 }
@@ -1575,7 +1575,7 @@ class FeedPostController extends Controller
                         'doctor_id' => $commentOwner->id,
                         'type' => 'CommentLike',
                         'type_id' => $comment->feed_post_id,
-                        'localization_key' => 'api.notification_comment_liked',
+                        'localization_key' => 'api.clean_notification_comment_liked',
                         'localization_params' => ['name' => $this->formatUserName(Auth::user())],
                         'type_doctor_id' => Auth::id(),
                         'created_at' => now(),
@@ -1590,7 +1590,7 @@ class FeedPostController extends Controller
                     if (! empty($tokens)) {
                         $this->notificationService->sendPushNotification(
                             __('api.comment_was_liked'),
-                            __('api.doctor_liked_comment', ['name' => ucfirst($this->formatUserName(Auth::user()))]),
+                            __('api.clean_doctor_liked_comment', ['name' => ucfirst($this->formatUserName(Auth::user()))]),
                             $tokens
                         );
                     }

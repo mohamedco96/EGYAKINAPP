@@ -33,7 +33,7 @@ class ConsultationNotificationService
                 'doctor_id' => $doctorId,
                 'type' => 'Consultation',
                 'type_id' => $consultation->id,
-                'localization_key' => 'api.notification_consultation_request',
+                'localization_key' => 'api.clean_notification_consultation_request',
                 'localization_params' => ['name' => $this->formatUserName($user)],
                 'type_doctor_id' => Auth::id(),
                 'patient_id' => $patientId,
@@ -41,7 +41,7 @@ class ConsultationNotificationService
         }
 
         $title = __('api.new_consultation_request_created');
-        $body = __('api.doctor_seeking_advice', ['name' => $this->formatUserName($user)]);
+        $body = __('api.clean_doctor_seeking_advice', ['name' => $this->formatUserName($user)]);
         $tokens = FcmToken::whereIn('doctor_id', $doctors)
             ->pluck('token')
             ->toArray();
@@ -59,7 +59,7 @@ class ConsultationNotificationService
             'doctor_id' => $doctorId,
             'type' => 'Consultation',
             'type_id' => $consultationId,
-            'localization_key' => 'api.notification_consultation_reply',
+            'localization_key' => 'api.clean_notification_consultation_reply',
             'localization_params' => ['name' => $user->name],
             'type_doctor_id' => $user->id,
             'patient_id' => $patientId,
@@ -67,7 +67,7 @@ class ConsultationNotificationService
 
         // Prepare and send push notifications to relevant doctors
         $title = __('api.new_reply_on_consultation');
-        $body = __('api.doctor_replied_to_consultation', ['name' => $this->formatUserName($user)]);
+        $body = __('api.clean_doctor_replied_to_consultation', ['name' => $this->formatUserName($user)]);
         $tokens = FcmToken::whereIn('doctor_id', [$doctorId])
             ->pluck('token')
             ->toArray();

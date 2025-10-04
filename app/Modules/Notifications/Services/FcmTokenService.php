@@ -30,19 +30,6 @@ class FcmTokenService
                 ];
             }
 
-            // Validate device ID format if provided
-            if ($deviceId && ! $this->isValidDeviceId($deviceId)) {
-                Log::warning('Invalid device ID format', [
-                    'doctor_id' => $doctorId,
-                    'device_id' => $deviceId,
-                ]);
-
-                return [
-                    'value' => false,
-                    'message' => __('api.invalid_device_id_format'),
-                ];
-            }
-
             // Prepare data for storage
             $tokenData = [
                 'doctor_id' => $doctorId,

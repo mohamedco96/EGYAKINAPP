@@ -136,7 +136,7 @@ class LocalizedNotificationController extends Controller
             $notification = AppNotification::createLocalized([
                 'doctor_id' => $user->id,
                 'type' => 'Test',
-                'localization_key' => 'api.notification_post_liked',
+                'localization_key' => 'api.clean_notification_post_liked',
                 'localization_params' => ['name' => 'Dr. Test User'],
                 'type_doctor_id' => $user->id,
             ]);

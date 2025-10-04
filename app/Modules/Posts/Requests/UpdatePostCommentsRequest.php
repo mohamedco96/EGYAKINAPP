@@ -22,7 +22,8 @@ class UpdatePostCommentsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'content' => 'required|string',
+            'content' => 'required_without:comment|string',
+            'comment' => 'required_without:content|string',
         ];
     }
 }

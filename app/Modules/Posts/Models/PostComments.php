@@ -11,14 +11,22 @@ class PostComments extends Model
     use HasFactory;
 
     /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'feed_post_comments';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
     protected $fillable = [
-        'content',
+        'comment',
         'doctor_id',
-        'post_id',
+        'feed_post_id',
+        'parent_id',
     ];
 
     /**
@@ -28,7 +36,8 @@ class PostComments extends Model
      */
     protected $casts = [
         'doctor_id' => 'integer',
-        'post_id' => 'integer'
+        'feed_post_id' => 'integer',
+        'parent_id' => 'integer',
     ];
 
     /**
@@ -44,6 +53,22 @@ class PostComments extends Model
      */
     public function Posts()
     {
-        return $this->belongsTo(Posts::class, 'post_id');
+        return $this->belongsTo(Posts::class, 'feed_post_id');
+    }
+
+    /**
+     * Get the parent comment.
+     */
+    public function parent()
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    /**
+     * Get the child comments (replies).
+     */
+    public function replies()
+    {
+        return $this->hasMany(self::class, 'parent_id');
     }
 }

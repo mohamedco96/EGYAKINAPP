@@ -36,10 +36,10 @@ Route::prefix('v1')->group(function () {
     require __DIR__.'/api/v1.php';
 });
 
-// Future versions can be added here:
-// Route::prefix('v2')->group(function () {
-//     require __DIR__ . '/api/v2.php';
-// });
+// Version 2 Routes (api/v2/...) - All new changes should use V2
+Route::prefix('v2')->group(function () {
+    require __DIR__.'/api/v2.php';
+});
 
 // ==============================================================================
 // BACKWARD COMPATIBILITY ROUTES (Original non-versioned routes)

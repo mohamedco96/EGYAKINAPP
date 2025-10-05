@@ -90,4 +90,19 @@ class PatientsController extends Controller
     {
         return $this->patientsController->generatePatientPDF($patient_id);
     }
+
+    public function markPatient($patientId)
+    {
+        return $this->patientsController->markPatient($patientId);
+    }
+
+    public function unmarkPatient($patientId)
+    {
+        return $this->patientsController->unmarkPatient($patientId);
+    }
+
+    public function getMarkedPatients(Request $request)
+    {
+        return $this->patientsController->getMarkedPatients($request);
+    }
 }

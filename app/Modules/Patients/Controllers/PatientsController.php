@@ -620,10 +620,10 @@ class PatientsController extends Controller
                 ], 404);
             }
 
-            // Get all questions for CSV headers
+            // Get all questions for CSV headers (include 'type' to check for file questions)
             $questions = Cache::remember('all_questions_export', now()->addHour(), function () {
                 return Questions::query()
-                    ->select(['id', 'question'])
+                    ->select(['id', 'question', 'type'])
                     ->orderBy('id')
                     ->get();
             });
@@ -762,18 +762,23 @@ class PatientsController extends Controller
                             $patientAnswer = $indexedAnswers[$question->id];
                             $rawAnswer = $patientAnswer['answer'] ?? '';
 
-                            // Handle different answer types
-                            if (is_array($rawAnswer)) {
-                                $answer = implode(', ', array_map('strval', $rawAnswer));
-                            } elseif (is_string($rawAnswer)) {
-                                $answer = $rawAnswer;
+                            // Special handling for file-type questions (Laboratory reports, etc.)
+                            if ($question->type === 'files') {
+                                $answer = $this->processFileAnswer($rawAnswer);
                             } else {
-                                $answer = (string) $rawAnswer;
-                            }
+                                // Handle different answer types
+                                if (is_array($rawAnswer)) {
+                                    $answer = implode(', ', array_map('strval', $rawAnswer));
+                                } elseif (is_string($rawAnswer)) {
+                                    $answer = $rawAnswer;
+                                } else {
+                                    $answer = (string) $rawAnswer;
+                                }
 
-                            // Remove quotes if present
-                            if (is_string($answer)) {
-                                $answer = trim($answer, '"');
+                                // Remove quotes if present
+                                if (is_string($answer)) {
+                                    $answer = trim($answer, '"');
+                                }
                             }
                         }
 
@@ -781,6 +786,51 @@ class PatientsController extends Controller
                     }
 
                     return $data;
+                }
+
+                /**
+                 * Process file-type answers and convert paths to URLs
+                 * Based on the logic from patient_pdf2.blade.php
+                 */
+                private function processFileAnswer($filePaths): string
+                {
+                    if (empty($filePaths)) {
+                        return '';
+                    }
+
+                    // If it's a JSON string, decode it
+                    if (is_string($filePaths) && (str_starts_with($filePaths, '[') || str_starts_with($filePaths, '{'))) {
+                        $decoded = json_decode($filePaths, true);
+                        if (json_last_error() === JSON_ERROR_NONE) {
+                            $filePaths = $decoded;
+                        }
+                    }
+
+                    // If it's not an array, make it one
+                    if (! is_array($filePaths)) {
+                        $filePaths = [$filePaths];
+                    }
+
+                    // Convert each file path to full URL
+                    $fileUrls = array_map(function ($filePath) {
+                        // Remove quotes if present
+                        $filePath = trim($filePath, '"');
+
+                        // If the path is already a full URL, return it as-is
+                        if (filter_var($filePath, FILTER_VALIDATE_URL)) {
+                            return $filePath;
+                        }
+
+                        // Otherwise, convert storage path to URL
+                        // Remove leading slashes and 'public/' prefix if present
+                        $filePath = ltrim($filePath, '/');
+                        $filePath = preg_replace('#^public/#', '', $filePath);
+
+                        return url('storage/'.str_replace('\\/', '/', $filePath));
+                    }, $filePaths);
+
+                    // Return URLs joined with comma for Excel display
+                    return implode(', ', $fileUrls);
                 }
             };
 

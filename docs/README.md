@@ -21,6 +21,9 @@ Complete API documentation including versioning and permissions.
 - [`FILTERED_PATIENTS_PAYLOADS.md`](api/FILTERED_PATIENTS_PAYLOADS.md) - Simple payload examples for each request
 - [`FILTERED_PATIENTS_REFERENCE.md`](api/FILTERED_PATIENTS_REFERENCE.md) - Technical reference with all parameters
 
+#### **Marked Patients API**
+- [`MARKED_PATIENTS_API.md`](api/MARKED_PATIENTS_API.md) - Complete guide with payloads for marking/unmarking patients
+
 #### **Roles & Permissions** (`docs/api/permissions/`)
 Complete role-based access control (RBAC) documentation for both Laravel and Flutter.
 

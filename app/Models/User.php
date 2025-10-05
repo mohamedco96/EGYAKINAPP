@@ -247,4 +247,13 @@ class User extends Authenticatable
     {
         return $this->hasMany(FcmToken::class, 'doctor_id');
     }
+
+    /**
+     * Get the user's marked patients
+     */
+    public function markedPatients()
+    {
+        return $this->belongsToMany(Patients::class, 'marked_patients', 'user_id', 'patient_id')
+            ->withTimestamps();
+    }
 }

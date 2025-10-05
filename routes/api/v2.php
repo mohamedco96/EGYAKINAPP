@@ -136,6 +136,11 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
     Route::post('/patientFilters', [PatientsController::class, 'filteredPatients']);
     Route::post('/exportFilteredPatients', [PatientsController::class, 'exportFilteredPatients']);
 
+    // Marked Patients routes
+    Route::post('/markedPatients/{patient_id}', [PatientsController::class, 'markPatient']);
+    Route::delete('/markedPatients/{patient_id}', [PatientsController::class, 'unmarkPatient']);
+    Route::get('/markedPatients', [PatientsController::class, 'getMarkedPatients']);
+
     // Questions routes
     Route::get('/questions', [QuestionsController::class, 'index']);
     Route::post('/questions', [QuestionsController::class, 'store']);

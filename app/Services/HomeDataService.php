@@ -44,6 +44,7 @@ class HomeDataService
             'verified' => $isVerified,
             'unreadCount' => (string) $counts['unreadCount'],
             'doctor_patient_count' => (string) $counts['userPatientCount'],
+            'marked_patient_count' => (string) $counts['markedPatientCount'],
             'isSyndicateCardRequired' => $user->isSyndicateCardRequired,
             'isUserBlocked' => $user->blocked,
             'all_patient_count' => (string) $counts['allPatientCount'],
@@ -123,6 +124,7 @@ class HomeDataService
             'postsCount' => $user->feedPosts()->whereNull('group_id')->count(),
             'savedPostsCount' => $user->saves()->count(),
             'unreadCount' => AppNotification::where('doctor_id', $user->id)->where('read', false)->count(),
+            'markedPatientCount' => $user->markedPatients()->count(),
         ];
     }
 

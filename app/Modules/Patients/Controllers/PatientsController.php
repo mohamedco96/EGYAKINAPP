@@ -5,6 +5,7 @@ namespace App\Modules\Patients\Controllers;
 use App\Events\SearchResultsUpdated;
 use App\Http\Controllers\Controller;
 use App\Modules\Patients\Requests\UpdatePatientsRequest;
+use App\Modules\Patients\Services\MarkedPatientService;
 use App\Modules\Patients\Services\PatientFilterService;
 use App\Modules\Patients\Services\PatientService;
 use App\Modules\Questions\Models\Questions;
@@ -34,6 +35,8 @@ class PatientsController extends Controller
 
     protected $pdfGenerationService;
 
+    protected $markedPatientService;
+
     public function __construct(
         PatientService $patientService,
         HomeDataService $homeDataService,
@@ -41,7 +44,8 @@ class PatientsController extends Controller
         QuestionService $questionService,
         FileUploadService $fileUploadService,
         PatientFilterService $patientFilterService,
-        PdfGenerationService $pdfGenerationService
+        PdfGenerationService $pdfGenerationService,
+        MarkedPatientService $markedPatientService
     ) {
         $this->patientService = $patientService;
         $this->homeDataService = $homeDataService;
@@ -50,6 +54,7 @@ class PatientsController extends Controller
         $this->fileUploadService = $fileUploadService;
         $this->patientFilterService = $patientFilterService;
         $this->pdfGenerationService = $pdfGenerationService;
+        $this->markedPatientService = $markedPatientService;
     }
 
     /**
@@ -883,6 +888,102 @@ class PatientsController extends Controller
             return response()->json([
                 'value' => false,
                 'message' => 'Failed to export data: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Mark a patient
+     */
+    public function markPatient($patientId)
+    {
+        try {
+            $result = $this->markedPatientService->addToMarked($patientId);
+
+            if ($result['success']) {
+                return response()->json([
+                    'value' => true,
+                    'message' => $result['message'],
+                ], 200);
+            }
+
+            return response()->json([
+                'value' => false,
+                'message' => $result['message'],
+            ], 400);
+        } catch (\Exception $e) {
+            Log::error('Error marking patient: '.$e->getMessage(), [
+                'user_id' => auth()->id(),
+                'patient_id' => $patientId,
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to mark patient.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Unmark a patient
+     */
+    public function unmarkPatient($patientId)
+    {
+        try {
+            $result = $this->markedPatientService->removeFromMarked($patientId);
+
+            if ($result['success']) {
+                return response()->json([
+                    'value' => true,
+                    'message' => $result['message'],
+                ], 200);
+            }
+
+            return response()->json([
+                'value' => false,
+                'message' => $result['message'],
+            ], 400);
+        } catch (\Exception $e) {
+            Log::error('Error unmarking patient: '.$e->getMessage(), [
+                'user_id' => auth()->id(),
+                'patient_id' => $patientId,
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to unmark patient.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Get marked patients list
+     */
+    public function getMarkedPatients(Request $request)
+    {
+        try {
+            $perPage = $request->input('per_page', 10);
+
+            $result = $this->markedPatientService->getMarkedPatients($perPage);
+
+            Log::info('Successfully retrieved marked patients.', [
+                'user_id' => auth()->id(),
+                'total' => $result['pagination']['total'],
+            ]);
+
+            return response()->json([
+                'value' => true,
+                'data' => $result['data'],
+                'pagination' => $result['pagination'],
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Error retrieving marked patients: '.$e->getMessage(), [
+                'user_id' => auth()->id(),
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to retrieve marked patients.',
             ], 500);
         }
     }

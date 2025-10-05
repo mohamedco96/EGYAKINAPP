@@ -28,12 +28,15 @@ class PatientFilterService
         $paginationParams = ['page', 'per_page', 'sort', 'direction', 'offset', 'limit', 'only_my_patients'];
         $cleanFilters = collect($filters)->except($paginationParams);
 
-        $patientsQuery = Patients::select('id', 'doctor_id', 'updated_at')
-            ->where('hidden', false);
+        $patientsQuery = Patients::select('id', 'doctor_id', 'updated_at');
 
         // Filter by authenticated user's patients if requested
         if ($onlyAuthUserPatients) {
+            // When filtering only user's own patients, include hidden patients
             $patientsQuery->where('doctor_id', Auth::id());
+        } else {
+            // When viewing all patients, exclude hidden patients
+            $patientsQuery->where('hidden', false);
         }
 
         $this->applyFilters($patientsQuery, $cleanFilters);

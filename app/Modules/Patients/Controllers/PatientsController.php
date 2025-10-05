@@ -629,13 +629,25 @@ class PatientsController extends Controller
             });
 
             // Pre-process patients: Index answers by question_id for O(1) lookup
-            $processedPatients = $patients->map(function ($patient) {
-                $patient = is_array($patient) ? $patient : [];
+            $processedPatients = collect($patients)->map(function ($patient) {
+                // Convert to array if it's an object
+                if (is_object($patient) && method_exists($patient, 'toArray')) {
+                    $patient = $patient->toArray();
+                } elseif (! is_array($patient)) {
+                    $patient = (array) $patient;
+                }
 
                 // Create an indexed array of answers by question_id
                 $indexedAnswers = [];
                 if (isset($patient['answers']) && is_array($patient['answers'])) {
                     foreach ($patient['answers'] as $answer) {
+                        // Ensure answer is array
+                        if (is_object($answer) && method_exists($answer, 'toArray')) {
+                            $answer = $answer->toArray();
+                        } elseif (! is_array($answer)) {
+                            $answer = (array) $answer;
+                        }
+
                         if (isset($answer['question_id'])) {
                             $indexedAnswers[$answer['question_id']] = $answer;
                         }
@@ -645,6 +657,18 @@ class PatientsController extends Controller
 
                 return $patient;
             });
+
+            // Debug: Log first patient to check data structure
+            if ($processedPatients->isNotEmpty()) {
+                $firstPatient = $processedPatients->first();
+                Log::info('Export - First patient data check', [
+                    'has_answers' => isset($firstPatient['answers']),
+                    'answers_count' => isset($firstPatient['answers']) ? count($firstPatient['answers']) : 0,
+                    'has_indexed_answers' => isset($firstPatient['indexed_answers']),
+                    'indexed_answers_count' => isset($firstPatient['indexed_answers']) ? count($firstPatient['indexed_answers']) : 0,
+                    'sample_indexed_keys' => isset($firstPatient['indexed_answers']) ? array_keys(array_slice($firstPatient['indexed_answers'], 0, 5)) : [],
+                ]);
+            }
 
             // Create the export class
             $export = new class($processedPatients, $questions, $filterParams) implements \Maatwebsite\Excel\Concerns\FromCollection, \Maatwebsite\Excel\Concerns\WithHeadings, \Maatwebsite\Excel\Concerns\WithMapping
@@ -691,7 +715,11 @@ class PatientsController extends Controller
                 public function map($patient): array
                 {
                     // Ensure patient data is properly structured
-                    $patient = is_array($patient) ? $patient : [];
+                    if (is_object($patient) && method_exists($patient, 'toArray')) {
+                        $patient = $patient->toArray();
+                    } elseif (! is_array($patient)) {
+                        $patient = (array) $patient;
+                    }
 
                     $data = [
                         $patient['id'] ?? '',

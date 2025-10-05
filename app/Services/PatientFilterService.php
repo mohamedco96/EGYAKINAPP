@@ -17,14 +17,24 @@ class PatientFilterService
 
     /**
      * Filter patients based on various criteria
+     *
+     * @param  array  $filters  Filter parameters
+     * @param  int  $perPage  Number of items per page
+     * @param  int  $page  Current page number
+     * @param  bool  $onlyAuthUserPatients  If true, filters only authenticated user's patients
      */
-    public function filterPatients(array $filters, int $perPage = 10, int $page = 1): array
+    public function filterPatients(array $filters, int $perPage = 10, int $page = 1, bool $onlyAuthUserPatients = false): array
     {
-        $paginationParams = ['page', 'per_page', 'sort', 'direction', 'offset', 'limit'];
+        $paginationParams = ['page', 'per_page', 'sort', 'direction', 'offset', 'limit', 'only_my_patients'];
         $cleanFilters = collect($filters)->except($paginationParams);
 
         $patientsQuery = Patients::select('id', 'doctor_id', 'updated_at')
             ->where('hidden', false);
+
+        // Filter by authenticated user's patients if requested
+        if ($onlyAuthUserPatients) {
+            $patientsQuery->where('doctor_id', Auth::id());
+        }
 
         $this->applyFilters($patientsQuery, $cleanFilters);
 
@@ -69,10 +79,10 @@ class PatientFilterService
             return $query->where('hidden', false);
         })
             ->with([
-            'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version',
-            'status:id,patient_id,key,status',
-            'answers:id,patient_id,answer,question_id',
-        ])
+                'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired,version',
+                'status:id,patient_id,key,status',
+                'answers:id,patient_id,answer,question_id',
+            ])
             ->latest('updated_at')
             ->get();
 
@@ -111,6 +121,32 @@ class PatientFilterService
                     $statusQuery->where('key', 'outcome_status')
                         ->where('status', $booleanValue);
                 });
+            } elseif ($questionID == 9903) {
+                // Handle patient registration date range filter
+                if (is_array($value)) {
+                    // Expecting format: ['from' => '2024-01-01', 'to' => '2024-12-31']
+                    if (! empty($value['from']) && $this->isValidDate($value['from'])) {
+                        $query->whereDate('created_at', '>=', $value['from']);
+                    }
+                    if (! empty($value['to']) && $this->isValidDate($value['to'])) {
+                        $query->whereDate('created_at', '<=', $value['to']);
+                    }
+                }
+            } elseif ($questionID == 7 && is_array($value)) {
+                // Handle age range filter (Question ID 7)
+                // Expecting format: ['from' => '25', 'to' => '45']
+                $query->whereHas('answers', function ($answerQuery) use ($value) {
+                    $answerQuery->where('question_id', 7);
+
+                    if (! empty($value['from']) && is_numeric($value['from'])) {
+                        // Age stored as JSON string, e.g., "25"
+                        $answerQuery->whereRaw('CAST(JSON_UNQUOTE(answer) AS UNSIGNED) >= ?', [(int) $value['from']]);
+                    }
+
+                    if (! empty($value['to']) && is_numeric($value['to'])) {
+                        $answerQuery->whereRaw('CAST(JSON_UNQUOTE(answer) AS UNSIGNED) <= ?', [(int) $value['to']]);
+                    }
+                });
             } else {
                 // Handle answer filters
                 $query->whereHas('answers', function ($answerQuery) use ($questionID, $value) {
@@ -146,5 +182,15 @@ class PatientFilterService
                 'outcome_status' => $outcomeStatus ?? false,
             ],
         ];
+    }
+
+    /**
+     * Validate if a string is a valid date in Y-m-d format
+     */
+    private function isValidDate(string $date): bool
+    {
+        $d = \DateTime::createFromFormat('Y-m-d', $date);
+
+        return $d && $d->format('Y-m-d') === $date;
     }
 }

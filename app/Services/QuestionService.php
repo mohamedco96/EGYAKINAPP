@@ -12,7 +12,7 @@ class QuestionService
      */
     public function getFilterConditions(): array
     {
-        $questions = Questions::whereIn('id', [1, 2, 4, 8, 168, 162, 26, 86, 156, 79, 82])
+        $questions = Questions::whereIn('id', [1, 2, 4, 7, 8, 168, 162, 26, 86, 156, 79, 82])
             ->where('skip', false)
             ->orderBy('id')
             ->get();
@@ -20,13 +20,25 @@ class QuestionService
         $data = [];
 
         foreach ($questions as $question) {
-            $data[] = [
+            $questionData = [
                 'id' => $question->id,
                 'condition' => $question->question,
                 'values' => $question->values,
                 'type' => $question->type,
                 'keyboard_type' => $question->keyboard_type,
             ];
+
+            // Override Age (ID 7) to be a range filter
+            if ($question->id == 7) {
+                $questionData['type'] = 'number_range';
+                $questionData['keyboard_type'] = 'number-pad';
+                $questionData['fields'] = [
+                    'from' => 'Age From',
+                    'to' => 'Age To',
+                ];
+            }
+
+            $data[] = $questionData;
         }
 
         // Add static questions
@@ -44,6 +56,17 @@ class QuestionService
                 'values' => ['Yes', 'No'],
                 'type' => 'checkbox',
                 'keyboard_type' => null,
+            ],
+            [
+                'id' => 9903,
+                'condition' => 'Patient Registration Date',
+                'values' => null,
+                'type' => 'date_range',
+                'keyboard_type' => 'date',
+                'fields' => [
+                    'from' => 'Registration Date From',
+                    'to' => 'Registration Date To',
+                ],
             ],
         ];
 

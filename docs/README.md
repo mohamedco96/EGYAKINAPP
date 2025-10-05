@@ -17,6 +17,10 @@ Complete API documentation including versioning and permissions.
 - [`API_V2_SETUP_COMPLETE.md`](api/API_V2_SETUP_COMPLETE.md) - API v2 setup documentation
 - [`V2_QUICK_START.md`](api/V2_QUICK_START.md) - Quick start guide for API v2
 
+#### **Filtered Patients API**
+- [`FILTERED_PATIENTS_PAYLOADS.md`](api/FILTERED_PATIENTS_PAYLOADS.md) - Simple payload examples for each request
+- [`FILTERED_PATIENTS_REFERENCE.md`](api/FILTERED_PATIENTS_REFERENCE.md) - Technical reference with all parameters
+
 #### **Roles & Permissions** (`docs/api/permissions/`)
 Complete role-based access control (RBAC) documentation for both Laravel and Flutter.
 
@@ -184,6 +188,8 @@ Historical documentation and outdated files kept for reference.
 - [`docs/api/V2_README.md`](api/V2_README.md) - API v2 guide
 
 **Patient Management**
+- [`docs/api/FILTERED_PATIENTS_PAYLOADS.md`](api/FILTERED_PATIENTS_PAYLOADS.md) - **Payload examples** (START HERE)
+- [`docs/api/FILTERED_PATIENTS_REFERENCE.md`](api/FILTERED_PATIENTS_REFERENCE.md) - Technical reference
 - [`docs/features/FILTERED_PATIENTS_EXPORT_API.md`](features/FILTERED_PATIENTS_EXPORT_API.md) - Export functionality
 - [`docs/performance/patient-endpoint-optimization.md`](performance/patient-endpoint-optimization.md) - Performance
 
@@ -226,6 +232,7 @@ Historical documentation and outdated files kept for reference.
 
 ## 🔄 **Recently Updated**
 
+- ✅ **Filtered Patients API Documentation** (October 2025) - Simplified to 2 focused docs
 - ✅ API Permissions documentation (October 2024)
 - ✅ API v2 documentation consolidated
 - ✅ Historical files archived

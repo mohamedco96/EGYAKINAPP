@@ -131,8 +131,8 @@ class PatientsController extends Controller
                 ],
             ];
 
-            Log::info('Successfully retrieved all patients for doctor (OPTIMIZED).', [
-                'doctor_id' => optional(auth()->user())->id,
+            Log::info('Successfully retrieved all patients.', [
+                'user_id' => auth()->id(),
                 'execution_time_ms' => $executionTime,
                 'per_page' => $perPage,
                 'total_patients' => $paginatedPatients->total(),
@@ -140,8 +140,8 @@ class PatientsController extends Controller
 
             return response()->json($response, 200);
         } catch (\Exception $e) {
-            Log::error('Error retrieving all patients for doctor.', [
-                'doctor_id' => optional(auth()->user())->id,
+            Log::error('Error retrieving all patients.', [
+                'user_id' => optional(auth()->user())->id,
                 'exception' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -153,23 +153,29 @@ class PatientsController extends Controller
     public function doctorPatientGet()
     {
         try {
-            $paginatedPatients = $this->patientFilterService->getDoctorPatients(false);
+            $perPage = request('per_page', 10);
+            $paginatedPatients = $this->patientFilterService->getDoctorPatients(false, $perPage);
 
             $user = auth()->user();
             $userPatientCount = $user->patients()->count();
             $scoreValue = optional($user->score)->score ?? 0;
             $isVerified = (bool) $user->email_verified_at;
 
+            // Get filter conditions for authenticated user's patients
+            $filterConditions = $this->questionService->getFilterConditions();
+
             $response = [
                 'value' => true,
                 'verified' => $isVerified,
                 'patient_count' => strval($userPatientCount),
                 'score_value' => strval($scoreValue),
+                'filter' => $filterConditions,
                 'data' => $paginatedPatients,
             ];
 
             Log::info('Successfully retrieved current doctor patients.', [
                 'doctor_id' => optional(auth()->user())->id,
+                'per_page' => $perPage,
             ]);
 
             return response()->json($response, 200);
@@ -518,19 +524,31 @@ class PatientsController extends Controller
         try {
             $perPage = $request->input('per_page', 10);
             $page = $request->input('page', 1);
+            $onlyMyPatients = $request->boolean('only_my_patients', false);
 
-            // Extract filter parameters (excluding pagination)
-            $filterParams = $request->except(['page', 'per_page', 'sort', 'direction', 'offset', 'limit']);
+            // Extract filter parameters (excluding pagination and scope parameters)
+            $filterParams = $request->except(['page', 'per_page', 'sort', 'direction', 'offset', 'limit', 'only_my_patients']);
 
             // Cache the latest filter parameters for this user (for export functionality)
+            // Duration: 2 hours - balances convenience with data freshness
             $userFilterCacheKey = 'latest_filter_params_user_'.auth()->id();
-            Cache::put($userFilterCacheKey, $filterParams, now()->addHours(24));
+            Cache::put($userFilterCacheKey, $filterParams, now()->addHours(2));
 
-            $result = $this->patientFilterService->filterPatients($request->all(), $perPage, $page);
+            // Cache the scope parameter as well for export
+            $userScopeCacheKey = 'latest_filter_scope_user_'.auth()->id();
+            Cache::put($userScopeCacheKey, $onlyMyPatients, now()->addHours(2));
+
+            $result = $this->patientFilterService->filterPatients(
+                $request->all(),
+                $perPage,
+                $page,
+                $onlyMyPatients
+            );
 
             Log::info('Successfully retrieved filtered patients.', [
                 'filter_count' => count($filterParams),
                 'user_id' => auth()->id(),
+                'only_my_patients' => $onlyMyPatients,
             ]);
 
             return response()->json([
@@ -555,6 +573,19 @@ class PatientsController extends Controller
             $userFilterCacheKey = 'latest_filter_params_user_'.auth()->id();
             $filterParams = Cache::get($userFilterCacheKey, []);
 
+            // Get the scope parameter from cache
+            $userScopeCacheKey = 'latest_filter_scope_user_'.auth()->id();
+            $onlyMyPatients = Cache::get($userScopeCacheKey, false);
+
+            // Check if user has admin role when exporting all patients
+            $user = auth()->user();
+            if ($onlyMyPatients === false && ! $user->hasRole('Admin')) {
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Access denied. Admin role required to export all patients.',
+                ], 403);
+            }
+
             // If no cached filters found, return error
             if (empty($filterParams)) {
                 return response()->json([
@@ -563,21 +594,23 @@ class PatientsController extends Controller
                 ], 400);
             }
 
-            // Generate cache key from filter parameters
-            $cacheKey = 'filtered_patients_export_'.md5(json_encode($filterParams)).'_'.auth()->id();
+            // Generate cache key from filter parameters and scope
+            $cacheKey = 'filtered_patients_export_'.md5(json_encode($filterParams).'_'.$onlyMyPatients).'_'.auth()->id();
 
             // Cache the filter parameters for tracking
-            Cache::put($cacheKey.'_filters', $filterParams, now()->addHours(24));
+            Cache::put($cacheKey.'_filters', $filterParams, now()->addHours(2));
+            Cache::put($cacheKey.'_scope', $onlyMyPatients, now()->addHours(2));
 
             Log::info('Starting filtered patients export with cached filters', [
                 'user_id' => auth()->id(),
                 'filter_count' => count($filterParams),
                 'filter_params' => $filterParams,
+                'only_my_patients' => $onlyMyPatients,
                 'cache_key' => $cacheKey,
             ]);
 
             // Get all filtered patients (without pagination)
-            $result = $this->patientFilterService->filterPatients($filterParams, PHP_INT_MAX, 1);
+            $result = $this->patientFilterService->filterPatients($filterParams, PHP_INT_MAX, 1, $onlyMyPatients);
             $patients = $result['data'];
 
             if ($patients->isEmpty()) {

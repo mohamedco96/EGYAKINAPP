@@ -630,17 +630,31 @@ class PatientsController extends Controller
 
             // Pre-process patients: Index answers by question_id for O(1) lookup
             $processedPatients = collect($patients)->map(function ($patient) {
-                // Convert to array if it's an object
-                if (is_object($patient) && method_exists($patient, 'toArray')) {
-                    $patient = $patient->toArray();
-                } elseif (! is_array($patient)) {
-                    $patient = (array) $patient;
+                // Ensure we have an array
+                if (! is_array($patient)) {
+                    $patient = is_object($patient) && method_exists($patient, 'toArray')
+                        ? $patient->toArray()
+                        : (array) $patient;
                 }
 
                 // Create an indexed array of answers by question_id
                 $indexedAnswers = [];
-                if (isset($patient['answers']) && is_array($patient['answers'])) {
-                    foreach ($patient['answers'] as $answer) {
+
+                // Check if answers exists - could be array or Collection
+                if (isset($patient['answers'])) {
+                    $answers = $patient['answers'];
+
+                    // Convert Collection to array if needed
+                    if (is_object($answers) && method_exists($answers, 'toArray')) {
+                        $answers = $answers->toArray();
+                    } elseif (is_object($answers) && method_exists($answers, 'all')) {
+                        $answers = $answers->all();
+                    } elseif (! is_array($answers)) {
+                        $answers = (array) $answers;
+                    }
+
+                    // Now iterate through answers
+                    foreach ($answers as $answer) {
                         // Ensure answer is array
                         if (is_object($answer) && method_exists($answer, 'toArray')) {
                             $answer = $answer->toArray();
@@ -653,6 +667,7 @@ class PatientsController extends Controller
                         }
                     }
                 }
+
                 $patient['indexed_answers'] = $indexedAnswers;
 
                 return $patient;
@@ -661,12 +676,16 @@ class PatientsController extends Controller
             // Debug: Log first patient to check data structure
             if ($processedPatients->isNotEmpty()) {
                 $firstPatient = $processedPatients->first();
+                $indexedAnswers = $firstPatient['indexed_answers'] ?? [];
                 Log::info('Export - First patient data check', [
+                    'patient_id' => $firstPatient['id'] ?? 'unknown',
                     'has_answers' => isset($firstPatient['answers']),
-                    'answers_count' => isset($firstPatient['answers']) ? count($firstPatient['answers']) : 0,
+                    'answers_type' => isset($firstPatient['answers']) ? gettype($firstPatient['answers']) : 'not set',
                     'has_indexed_answers' => isset($firstPatient['indexed_answers']),
-                    'indexed_answers_count' => isset($firstPatient['indexed_answers']) ? count($firstPatient['indexed_answers']) : 0,
-                    'sample_indexed_keys' => isset($firstPatient['indexed_answers']) ? array_keys(array_slice($firstPatient['indexed_answers'], 0, 5)) : [],
+                    'indexed_answers_count' => count($indexedAnswers),
+                    'sample_indexed_keys' => array_slice(array_keys($indexedAnswers), 0, 10),
+                    'sample_answer' => ! empty($indexedAnswers) ? array_values($indexedAnswers)[0] : 'no answers',
+                    'questions_count' => $questions->count(),
                 ]);
             }
 

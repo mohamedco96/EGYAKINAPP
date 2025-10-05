@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api\V2;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\V1\PatientsController as V1PatientsController;
+use App\Http\Controllers\Controller;
 use App\Modules\Patients\Requests\UpdatePatientsRequest;
 use Illuminate\Http\Request;
 
@@ -81,7 +81,7 @@ class PatientsController extends Controller
         return $this->patientsController->filteredPatients($request);
     }
 
-    public function exportFilteredPatients(Request $request)
+    public function exportFilteredPatients()
     {
         return $this->patientsController->exportFilteredPatients();
     }

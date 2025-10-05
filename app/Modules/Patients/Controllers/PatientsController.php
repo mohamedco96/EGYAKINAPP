@@ -628,8 +628,26 @@ class PatientsController extends Controller
                     ->get();
             });
 
+            // Pre-process patients: Index answers by question_id for O(1) lookup
+            $processedPatients = $patients->map(function ($patient) {
+                $patient = is_array($patient) ? $patient : [];
+
+                // Create an indexed array of answers by question_id
+                $indexedAnswers = [];
+                if (isset($patient['answers']) && is_array($patient['answers'])) {
+                    foreach ($patient['answers'] as $answer) {
+                        if (isset($answer['question_id'])) {
+                            $indexedAnswers[$answer['question_id']] = $answer;
+                        }
+                    }
+                }
+                $patient['indexed_answers'] = $indexedAnswers;
+
+                return $patient;
+            });
+
             // Create the export class
-            $export = new class($patients, $questions, $filterParams) implements \Maatwebsite\Excel\Concerns\FromCollection, \Maatwebsite\Excel\Concerns\WithHeadings, \Maatwebsite\Excel\Concerns\WithMapping
+            $export = new class($processedPatients, $questions, $filterParams) implements \Maatwebsite\Excel\Concerns\FromCollection, \Maatwebsite\Excel\Concerns\WithHeadings, \Maatwebsite\Excel\Concerns\WithMapping
             {
                 private $patients;
 
@@ -686,35 +704,32 @@ class PatientsController extends Controller
                         $patient['updated_at'] ?? '',
                     ];
 
-                    // Add answer data for each question
+                    // Use pre-indexed answers for O(1) lookup instead of nested loop
+                    $indexedAnswers = $patient['indexed_answers'] ?? [];
+
                     foreach ($this->questions as $question) {
-                        // Find the answer for this question from the patient's answers
                         $answer = '';
-                        if (isset($patient['answers'])) {
-                            foreach ($patient['answers'] as $patientAnswer) {
-                                if ($patientAnswer['question_id'] == $question->id) {
-                                    $rawAnswer = $patientAnswer['answer'] ?? '';
 
-                                    // Handle different answer types
-                                    if (is_array($rawAnswer)) {
-                                        // If it's an array, join the values
-                                        $answer = implode(', ', array_map('strval', $rawAnswer));
-                                    } elseif (is_string($rawAnswer)) {
-                                        // If it's a string, use it directly
-                                        $answer = $rawAnswer;
-                                    } else {
-                                        // For any other type, convert to string
-                                        $answer = (string) $rawAnswer;
-                                    }
+                        // Direct lookup by question_id - O(1) instead of O(k)
+                        if (isset($indexedAnswers[$question->id])) {
+                            $patientAnswer = $indexedAnswers[$question->id];
+                            $rawAnswer = $patientAnswer['answer'] ?? '';
 
-                                    // Remove quotes if present (only for strings)
-                                    if (is_string($answer)) {
-                                        $answer = trim($answer, '"');
-                                    }
-                                    break;
-                                }
+                            // Handle different answer types
+                            if (is_array($rawAnswer)) {
+                                $answer = implode(', ', array_map('strval', $rawAnswer));
+                            } elseif (is_string($rawAnswer)) {
+                                $answer = $rawAnswer;
+                            } else {
+                                $answer = (string) $rawAnswer;
+                            }
+
+                            // Remove quotes if present
+                            if (is_string($answer)) {
+                                $answer = trim($answer, '"');
                             }
                         }
+
                         $data[] = $answer;
                     }
 

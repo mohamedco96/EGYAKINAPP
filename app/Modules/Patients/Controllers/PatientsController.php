@@ -622,7 +622,7 @@ class PatientsController extends Controller
 
             // Get all questions for CSV headers
             $questions = Cache::remember('all_questions_export', now()->addHour(), function () {
-                return \App\Models\Questions::query()
+                return Questions::query()
                     ->select(['id', 'question'])
                     ->orderBy('id')
                     ->get();

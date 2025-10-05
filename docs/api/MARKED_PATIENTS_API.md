@@ -159,65 +159,66 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc...
 ```
 
 ### **Success Response**
+**Note:** Response format matches `doctorProfileGetPatients` API - `data` is a Laravel paginator object
+
 ```json
 {
   "value": true,
-  "data": [
-    {
-      "id": 123,
-      "doctor_id": 45,
-      "name": "John Doe",
-      "hospital": "General Hospital",
-      "updated_at": "2025-10-05 10:30:00",
-      "doctor": {
-        "id": 45,
-        "name": "Dr. Smith"
-      },
-      "answers": [
-        {
-          "id": 1001,
-          "patient_id": 123,
-          "question_id": 1,
-          "answer": "John Doe"
-        },
-        {
-          "id": 1002,
-          "patient_id": 123,
-          "question_id": 2,
-          "answer": "General Hospital"
-        }
-      ],
-      "sections": {
-        "patient_id": 123,
-        "submit_status": true,
-        "outcome_status": false
-      },
-      "is_marked": true
-    },
-    {
-      "id": 124,
-      "doctor_id": 45,
-      "name": "Jane Smith",
-      "hospital": "City Hospital",
-      "updated_at": "2025-10-04 15:20:00",
-      "doctor": {
-        "id": 45,
-        "name": "Dr. Smith"
-      },
-      "answers": [...],
-      "sections": {
-        "patient_id": 124,
-        "submit_status": false,
-        "outcome_status": false
-      },
-      "is_marked": true
-    }
-  ],
-  "pagination": {
+  "data": {
     "current_page": 1,
+    "data": [
+      {
+        "id": 123,
+        "doctor_id": 45,
+        "name": "John Doe",
+        "hospital": "General Hospital",
+        "updated_at": "2025-10-05 10:30:00",
+        "doctor": {
+          "id": 45,
+          "name": "Dr. Ahmed",
+          "lname": "Hassan",
+          "image": "https://test.egyakin.com/storage/profile_images/doctor_45.jpg",
+          "syndicate_card": "https://test.egyakin.com/storage/syndicate_cards/card_45.jpg",
+          "isSyndicateCardRequired": true
+        },
+        "sections": {
+          "patient_id": 123,
+          "submit_status": true,
+          "outcome_status": false
+        }
+      },
+      {
+        "id": 124,
+        "doctor_id": 45,
+        "name": "Jane Smith",
+        "hospital": "City Hospital",
+        "updated_at": "2025-10-04 15:20:00",
+        "doctor": {
+          "id": 45,
+          "name": "Dr. Ahmed",
+          "lname": "Hassan",
+          "image": "https://test.egyakin.com/storage/profile_images/doctor_45.jpg",
+          "syndicate_card": null,
+          "isSyndicateCardRequired": true
+        },
+        "sections": {
+          "patient_id": 124,
+          "submit_status": false,
+          "outcome_status": false
+        }
+      }
+    ],
+    "first_page_url": "https://test.egyakin.com/api/v2/markedPatients?page=1",
+    "from": 1,
+    "last_page": 3,
+    "last_page_url": "https://test.egyakin.com/api/v2/markedPatients?page=3",
+    "links": [...],
+    "next_page_url": "https://test.egyakin.com/api/v2/markedPatients?page=2",
+    "path": "https://test.egyakin.com/api/v2/markedPatients",
     "per_page": 10,
-    "total": 25,
-    "last_page": 3
+    "prev_page_url": null,
+    "to": 10,
+    "total": 25
   }
 }
 ```
@@ -226,12 +227,20 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc...
 ```json
 {
   "value": true,
-  "data": [],
-  "pagination": {
+  "data": {
     "current_page": 1,
+    "data": [],
+    "first_page_url": "https://test.egyakin.com/api/v2/markedPatients?page=1",
+    "from": null,
+    "last_page": 1,
+    "last_page_url": "https://test.egyakin.com/api/v2/markedPatients?page=1",
+    "links": [...],
+    "next_page_url": null,
+    "path": "https://test.egyakin.com/api/v2/markedPatients",
     "per_page": 10,
-    "total": 0,
-    "last_page": 1
+    "prev_page_url": null,
+    "to": null,
+    "total": 0
   }
 }
 ```
@@ -319,6 +328,7 @@ class MarkedPatientsService {
 
 ```dart
 // Marked Patient Response Model
+// Matches response from doctorProfileGetPatients API
 class MarkedPatientsResponse {
   final bool value;
   final List<Patient> data;
@@ -331,12 +341,16 @@ class MarkedPatientsResponse {
   });
 
   factory MarkedPatientsResponse.fromJson(Map<String, dynamic> json) {
+    // The 'data' field is a paginator object with nested 'data' array
+    final paginatorData = json['data'] as Map<String, dynamic>;
+    final patientsList = (paginatorData['data'] as List)
+        .map((patient) => Patient.fromJson(patient))
+        .toList();
+    
     return MarkedPatientsResponse(
       value: json['value'] ?? false,
-      data: (json['data'] as List)
-          .map((patient) => Patient.fromJson(patient))
-          .toList(),
-      pagination: Pagination.fromJson(json['pagination']),
+      data: patientsList,
+      pagination: Pagination.fromJson(paginatorData),
     );
   }
 }
@@ -348,7 +362,7 @@ class Patient {
   final String? name;
   final String? hospital;
   final String updatedAt;
-  final bool isMarked;
+  final Doctor? doctor;
   final PatientSections sections;
 
   Patient({
@@ -357,7 +371,7 @@ class Patient {
     this.name,
     this.hospital,
     required this.updatedAt,
-    required this.isMarked,
+    this.doctor,
     required this.sections,
   });
 
@@ -368,8 +382,38 @@ class Patient {
       name: json['name'],
       hospital: json['hospital'],
       updatedAt: json['updated_at'],
-      isMarked: json['is_marked'] ?? false,
+      doctor: json['doctor'] != null ? Doctor.fromJson(json['doctor']) : null,
       sections: PatientSections.fromJson(json['sections']),
+    );
+  }
+}
+
+// Doctor Model
+class Doctor {
+  final int id;
+  final String name;
+  final String? lname;
+  final String? image;
+  final String? syndicateCard;
+  final bool isSyndicateCardRequired;
+
+  Doctor({
+    required this.id,
+    required this.name,
+    this.lname,
+    this.image,
+    this.syndicateCard,
+    required this.isSyndicateCardRequired,
+  });
+
+  factory Doctor.fromJson(Map<String, dynamic> json) {
+    return Doctor(
+      id: json['id'],
+      name: json['name'],
+      lname: json['lname'],
+      image: json['image'],
+      syndicateCard: json['syndicate_card'],
+      isSyndicateCardRequired: json['isSyndicateCardRequired'] ?? false,
     );
   }
 }

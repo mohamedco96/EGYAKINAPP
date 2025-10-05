@@ -958,6 +958,7 @@ class PatientsController extends Controller
 
     /**
      * Get marked patients list
+     * Matches format from App\Modules\Auth\Controllers\AuthController::doctorProfileGetPatients
      */
     public function getMarkedPatients(Request $request)
     {
@@ -966,16 +967,11 @@ class PatientsController extends Controller
 
             $result = $this->markedPatientService->getMarkedPatients($perPage);
 
-            Log::info('Successfully retrieved marked patients.', [
-                'user_id' => auth()->id(),
-                'total' => $result['pagination']['total'],
-            ]);
+            // Extract status_code and remove it from response
+            $statusCode = $result['status_code'] ?? 200;
+            unset($result['status_code']);
 
-            return response()->json([
-                'value' => true,
-                'data' => $result['data'],
-                'pagination' => $result['pagination'],
-            ], 200);
+            return response()->json($result, $statusCode);
         } catch (\Exception $e) {
             Log::error('Error retrieving marked patients: '.$e->getMessage(), [
                 'user_id' => auth()->id(),

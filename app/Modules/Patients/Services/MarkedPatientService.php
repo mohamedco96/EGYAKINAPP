@@ -117,79 +117,83 @@ class MarkedPatientService
 
     /**
      * Get marked patients with pagination and transformation
+     * Matches format from App\Modules\Auth\Services\AuthService::getDoctorPatients
      */
     public function getMarkedPatients(int $perPage = 10): array
     {
         try {
             $user = Auth::user();
 
-            // Get marked patients with relationships
+            // Get marked patients with relationships (matching getDoctorPatients structure)
             $markedPatientsQuery = $user->markedPatients()
                 ->select('patients.id', 'patients.doctor_id', 'patients.updated_at')
                 ->with([
-                    'doctor:id,name',
-                    'answers:id,patient_id,answer,question_id',
-                    'status:id,patient_id,key,status',
+                    'doctor:id,name,lname,image,syndicate_card,isSyndicateCardRequired',
+                    'status' => function ($query) {
+                        $query->select('id', 'patient_id', 'key', 'status')
+                            ->whereIn('key', ['submit_status', 'outcome_status']);
+                    },
+                    'answers' => function ($query) {
+                        $query->select('id', 'patient_id', 'answer', 'question_id')
+                            ->whereIn('question_id', [1, 2]);
+                    },
                 ])
                 ->latest('marked_patients.created_at'); // Order by when they were marked
 
             // Paginate results
             $paginatedPatients = $markedPatientsQuery->paginate($perPage);
 
-            // Transform patient data
-            $transformedPatients = $paginatedPatients->getCollection()->map(function ($patient) {
-                return $this->transformPatientData($patient);
-            });
+            // Transform the paginated results (matching getDoctorPatients format)
+            $transformedData = collect($paginatedPatients->items())->map(function ($patient) {
+                return [
+                    'id' => $patient->id,
+                    'doctor_id' => $patient->doctor_id,
+                    'name' => optional($patient->answers->where('question_id', 1)->first())->answer,
+                    'hospital' => optional($patient->answers->where('question_id', 2)->first())->answer,
+                    'updated_at' => $patient->updated_at,
+                    'doctor' => $patient->doctor,
+                    'sections' => [
+                        'patient_id' => $patient->id,
+                        'submit_status' => optional($patient->status->where('key', 'submit_status')->first())->status ?? false,
+                        'outcome_status' => optional($patient->status->where('key', 'outcome_status')->first())->status ?? false,
+                    ],
+                ];
+            })->values()->all();
 
+            // Create a new paginator with the transformed data
+            $result = new \Illuminate\Pagination\LengthAwarePaginator(
+                $transformedData,
+                $paginatedPatients->total(),
+                $perPage,
+                $paginatedPatients->currentPage(),
+                [
+                    'path' => \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPath(),
+                    'pageName' => 'page',
+                ]
+            );
+
+            Log::info('Retrieved marked patients', [
+                'user_id' => $user->id,
+                'count' => $paginatedPatients->total(),
+            ]);
+
+            // Match the exact format from getDoctorPatients
             return [
-                'data' => $transformedPatients,
-                'pagination' => [
-                    'current_page' => $paginatedPatients->currentPage(),
-                    'per_page' => $paginatedPatients->perPage(),
-                    'total' => $paginatedPatients->total(),
-                    'last_page' => $paginatedPatients->lastPage(),
-                ],
+                'value' => true,
+                'data' => $result,
+                'status_code' => 200,
             ];
+
         } catch (\Exception $e) {
             Log::error('Error getting marked patients: '.$e->getMessage(), [
                 'user_id' => Auth::id(),
             ]);
 
-            throw $e;
+            return [
+                'value' => false,
+                'message' => 'Failed to retrieve marked patients.',
+                'status_code' => 500,
+            ];
         }
-    }
-
-    /**
-     * Transform patient data for response
-     * Matches the structure from PatientFilterService
-     */
-    private function transformPatientData($patient): array
-    {
-        // Create indexed collections for O(1) lookups
-        $statusByKey = $patient->status->keyBy('key');
-        $answersByQuestionId = $patient->answers->keyBy('question_id');
-
-        // Use indexed collections for efficient lookups
-        $submitStatus = optional($statusByKey->get('submit_status'))->status;
-        $outcomeStatus = optional($statusByKey->get('outcome_status'))->status;
-
-        $nameAnswer = optional($answersByQuestionId->get(1))->answer;
-        $hospitalAnswer = optional($answersByQuestionId->get(2))->answer;
-
-        return [
-            'id' => $patient->id,
-            'doctor_id' => (int) $patient->doctor_id,
-            'name' => $nameAnswer,
-            'hospital' => $hospitalAnswer,
-            'updated_at' => $patient->updated_at,
-            'doctor' => $patient->doctor,
-            'answers' => $patient->answers,
-            'sections' => [
-                'patient_id' => $patient->id,
-                'submit_status' => $submitStatus ?? false,
-                'outcome_status' => $outcomeStatus ?? false,
-            ],
-            'is_marked' => true, // Always true for marked patients list
-        ];
     }
 }

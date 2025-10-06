@@ -7,12 +7,12 @@ use App\Http\Controllers\Controller;
 use App\Modules\Patients\Requests\UpdatePatientsRequest;
 use App\Modules\Patients\Services\MarkedPatientService;
 use App\Modules\Patients\Services\PatientFilterService;
+use App\Modules\Patients\Services\PatientQuestionService;
 use App\Modules\Patients\Services\PatientService;
 use App\Modules\Questions\Models\Questions;
 use App\Services\FileUploadService;
 use App\Services\HomeDataService;
 use App\Services\PdfGenerationService;
-use App\Services\QuestionService;
 use App\Services\SearchService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -41,7 +41,7 @@ class PatientsController extends Controller
         PatientService $patientService,
         HomeDataService $homeDataService,
         SearchService $searchService,
-        QuestionService $questionService,
+        PatientQuestionService $questionService,
         FileUploadService $fileUploadService,
         PatientFilterService $patientFilterService,
         PdfGenerationService $pdfGenerationService,

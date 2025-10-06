@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Services;
+namespace App\Modules\Patients\Services;
 
 use App\Modules\Questions\Models\Questions;
 use Illuminate\Support\Facades\Log;
 
-class QuestionService
+class PatientQuestionService
 {
     /**
      * Get filter conditions for patient filtering

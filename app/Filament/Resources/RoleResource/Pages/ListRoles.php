@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\RoleResource\Pages;
 
 use App\Filament\Resources\RoleResource;
-use App\Filament\Widgets\RolePermissionStatsWidget;
 use Filament\Actions;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -55,9 +54,7 @@ class ListRoles extends ListRecords
 
     protected function getHeaderWidgets(): array
     {
-        return [
-            RolePermissionStatsWidget::class,
-        ];
+        return [];
     }
 
     public function getTitle(): string

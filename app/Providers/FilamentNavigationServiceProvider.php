@@ -52,25 +52,6 @@ class FilamentNavigationServiceProvider extends ServiceProvider
                     ->icon('heroicon-o-home')
                     ->group('🏠 Dashboard')
                     ->sort(1),
-
-                NavigationItem::make('Analytics')
-                    ->url('/admin/analytics')
-                    ->icon('heroicon-o-chart-pie')
-                    ->group('🏠 Dashboard')
-                    ->sort(2)
-                    ->badge('New', 'success'),
-
-                NavigationItem::make('System Health')
-                    ->url('/admin/health')
-                    ->icon('heroicon-o-heart')
-                    ->group('⚙️ System Settings')
-                    ->sort(10),
-
-                NavigationItem::make('Backup & Restore')
-                    ->url('/admin/backup')
-                    ->icon('heroicon-o-server-stack')
-                    ->group('⚙️ System Settings')
-                    ->sort(20),
             ]);
         });
     }

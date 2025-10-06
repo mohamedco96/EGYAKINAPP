@@ -1,0 +1,100 @@
+# ================================================
+# Production Environment Configuration Example
+# For Filament Admin Panel - EGYAKIN
+# ================================================
+
+# Application
+APP_NAME=EGYAKIN
+APP_ENV=production
+APP_KEY=base64:YOUR_APP_KEY_HERE
+APP_DEBUG=false
+APP_URL=https://api.egyakin.com
+
+# Database
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=egyakin_production
+DB_USERNAME=your_db_user
+DB_PASSWORD=your_db_password
+
+# Session Configuration
+# CRITICAL: These settings are essential for Filament to work in production
+SESSION_DRIVER=file
+SESSION_LIFETIME=120
+SESSION_DOMAIN=.egyakin.com
+SESSION_SECURE_COOKIE=true
+SESSION_COOKIE=egyakin_session
+
+# Sanctum Configuration
+# CRITICAL: Add all domains that will access your API/Admin panel
+SANCTUM_STATEFUL_DOMAINS=api.egyakin.com,egyakin.com,www.egyakin.com
+
+# Cache
+CACHE_DRIVER=file
+QUEUE_CONNECTION=database
+
+# Logging
+LOG_CHANNEL=stack
+LOG_DEPRECATIONS_CHANNEL=null
+LOG_LEVEL=error
+
+# Mail Configuration
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your_email@gmail.com
+MAIL_PASSWORD=your_app_password
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=noreply@egyakin.com
+MAIL_FROM_NAME="${APP_NAME}"
+
+# Pusher/Broadcasting (if used)
+BROADCAST_DRIVER=log
+PUSHER_APP_ID=
+PUSHER_APP_KEY=
+PUSHER_APP_SECRET=
+PUSHER_APP_CLUSTER=
+
+# Filesystem
+FILESYSTEM_DISK=public
+
+# Asset URL (if using CDN)
+ASSET_URL=https://api.egyakin.com
+
+# Telescope (optional - for debugging)
+TELESCOPE_ENABLED=true
+
+# Firebase Configuration
+FIREBASE_CREDENTIALS=storage/egyakin-firebase-service-account.json
+FIREBASE_DATABASE_URL=https://your-project.firebaseio.com
+
+# ================================================
+# IMPORTANT NOTES FOR FILAMENT 403 FIX
+# ================================================
+#
+# 1. SESSION_DOMAIN:
+#    - Use ".egyakin.com" (with dot) for subdomain compatibility
+#    - Or use "egyakin.com" (without dot) for exact domain only
+#    - NEVER leave it as "null" in production
+#
+# 2. SESSION_SECURE_COOKIE:
+#    - MUST be "true" if using HTTPS (recommended)
+#    - Set to "false" only for HTTP (not recommended)
+#
+# 3. SANCTUM_STATEFUL_DOMAINS:
+#    - Include ALL domains that will access the admin panel
+#    - Comma-separated list (no spaces)
+#    - Include both with and without "www" if applicable
+#
+# 4. APP_URL:
+#    - MUST match your actual production URL
+#    - Include protocol (https://)
+#
+# 5. After updating this file:
+#    - Run: php artisan config:clear
+#    - Run: php artisan cache:clear
+#    - Run: php artisan config:cache (optional but recommended)
+#
+# ================================================
+

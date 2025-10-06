@@ -1,0 +1,149 @@
+================================================================================
+PRODUCTION FIX - Copy and Paste These Commands
+================================================================================
+
+SSH into your production server and run these commands:
+
+================================================================================
+STEP 1: Navigate to project directory
+================================================================================
+
+cd ~/public_html/api.egyakin.com
+
+
+================================================================================
+STEP 2: Backup your current .env file
+================================================================================
+
+cp .env .env.backup.$(date +%Y%m%d_%H%M%S)
+
+
+================================================================================
+STEP 3: Add the missing configuration
+================================================================================
+
+Run this entire block (copy everything between the lines):
+
+cat >> .env << 'ENDOFCONFIG'
+
+# Session Configuration for Filament (Added to fix 403 error)
+SESSION_DOMAIN=.egyakin.com
+SESSION_SECURE_COOKIE=true
+SESSION_COOKIE=egyakin_session
+
+# Sanctum Configuration for Filament
+SANCTUM_STATEFUL_DOMAINS=api.egyakin.com,egyakin.com,www.egyakin.com
+ENDOFCONFIG
+
+
+================================================================================
+STEP 4: Clear all caches
+================================================================================
+
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
+php artisan view:clear
+
+
+================================================================================
+STEP 5: Cache the new configuration
+================================================================================
+
+php artisan config:cache
+
+
+================================================================================
+STEP 6: Fix permissions (if needed)
+================================================================================
+
+chmod -R 775 storage/framework/sessions
+
+
+================================================================================
+DONE! Now test your admin panel
+================================================================================
+
+Visit: https://api.egyakin.com/admin
+
+You should now see the LOGIN PAGE instead of 403 Forbidden!
+
+
+================================================================================
+VERIFICATION COMMANDS
+================================================================================
+
+# View the added configuration
+cat .env | grep SESSION_DOMAIN
+cat .env | grep SANCTUM_STATEFUL_DOMAINS
+
+# Check if config is cached
+ls -la bootstrap/cache/config.php
+
+# View recent logs
+tail -50 storage/logs/laravel.log
+
+
+================================================================================
+ROLLBACK (if something goes wrong)
+================================================================================
+
+# Find your backup
+ls -la .env.backup.*
+
+# Restore backup (replace TIMESTAMP with actual timestamp)
+cp .env.backup.TIMESTAMP .env
+php artisan config:clear
+
+
+================================================================================
+ALTERNATIVE: Manual Edit Method
+================================================================================
+
+If you prefer to edit manually:
+
+1. nano .env
+   OR
+   vim .env
+
+2. Find this line:
+   SESSION_LIFETIME=120
+
+3. Add these lines RIGHT AFTER it:
+
+SESSION_DOMAIN=.egyakin.com
+SESSION_SECURE_COOKIE=true
+SESSION_COOKIE=egyakin_session
+SANCTUM_STATEFUL_DOMAINS=api.egyakin.com,egyakin.com,www.egyakin.com
+
+4. Save and exit (Ctrl+X, then Y for nano)
+
+5. Clear caches:
+   php artisan config:clear && php artisan cache:clear
+
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+If still seeing 403 after these changes:
+
+1. Check logs:
+   tail -100 storage/logs/laravel.log
+
+2. Verify config was added:
+   cat .env | grep SESSION_DOMAIN
+
+3. Ensure cache is cleared:
+   rm -f bootstrap/cache/config.php
+   php artisan config:clear
+
+4. Check permissions:
+   ls -la storage/framework/sessions
+
+5. Test session:
+   php artisan tinker --execute="session(['test'=>'ok']); echo session('test');"
+
+
+================================================================================
+

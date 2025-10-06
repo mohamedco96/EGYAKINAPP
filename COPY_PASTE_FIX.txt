@@ -1,0 +1,103 @@
+================================================================================
+🔥 COPY & PASTE FIX - 403 Error After Filament Login
+================================================================================
+
+Problem: Login page loads, but after clicking "Sign in" → 403 Forbidden
+
+Fix Time: 2 minutes
+
+================================================================================
+STEP 1: SSH into your production server
+================================================================================
+
+ssh your_user@your_server
+cd ~/public_html/api.egyakin.com
+
+
+================================================================================
+STEP 2: Copy and paste this ENTIRE block (don't modify anything)
+================================================================================
+
+cat >> .env << 'ENDOFFILE'
+
+# ================================================
+# Session Configuration for Filament
+# CRITICAL: Required to fix 403 after login
+# ================================================
+SESSION_DOMAIN=.egyakin.com
+SESSION_SECURE_COOKIE=true
+SESSION_COOKIE=egyakin_session
+
+# Sanctum Configuration
+SANCTUM_STATEFUL_DOMAINS=api.egyakin.com,egyakin.com,www.egyakin.com
+ENDOFFILE
+
+
+================================================================================
+STEP 3: Clear all caches (copy and paste this line)
+================================================================================
+
+php artisan config:clear && php artisan cache:clear && php artisan route:clear && php artisan config:cache
+
+
+================================================================================
+STEP 4: Test your login
+================================================================================
+
+1. Open browser (preferably in Incognito/Private mode)
+2. Visit: https://api.egyakin.com/admin
+3. Enter your email and password
+4. Click "Sign in"
+
+✅ You should now be redirected to the dashboard!
+
+
+================================================================================
+VERIFY IT WORKED
+================================================================================
+
+To confirm the configuration was added:
+
+cat .env | grep SESSION_DOMAIN
+
+Expected output:
+SESSION_DOMAIN=.egyakin.com
+
+
+================================================================================
+IF STILL NOT WORKING
+================================================================================
+
+1. Clear browser cookies and try again
+2. Check logs:
+   tail -50 storage/logs/laravel.log
+
+3. Verify storage permissions:
+   chmod -R 775 storage/framework/sessions
+
+4. Try in a different browser
+
+
+================================================================================
+ROLLBACK (if needed)
+================================================================================
+
+If something goes wrong:
+
+cp .env.backup.* .env
+php artisan config:clear
+
+
+================================================================================
+EXPLANATION (Optional Reading)
+================================================================================
+
+Why this fixes it:
+- SESSION_DOMAIN tells browser which domain the session cookie belongs to
+- SESSION_SECURE_COOKIE=true required for HTTPS sites
+- SANCTUM_STATEFUL_DOMAINS whitelists your domain for authentication
+- Without these, session cookie doesn't save → login fails → 403
+
+
+================================================================================
+

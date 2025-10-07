@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AchievementController;
+use App\Http\Controllers\SocialAuthController;
 use App\Modules\Auth\Controllers\AuthController;
 use App\Modules\Auth\Controllers\EmailVerificationController;
 use App\Modules\Auth\Controllers\ForgetPasswordController;
@@ -50,6 +51,20 @@ Route::prefix('v1')->group(function () {
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// Social Authentication Routes
+Route::prefix('auth/social')->group(function () {
+    // Web-based OAuth flows (for web applications)
+    Route::get('/google', [SocialAuthController::class, 'redirectToGoogle']);
+    Route::get('/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
+    Route::get('/apple', [SocialAuthController::class, 'redirectToApple']);
+    Route::get('/apple/callback', [SocialAuthController::class, 'handleAppleCallback']);
+
+    // API-based authentication (for mobile applications)
+    Route::post('/google', [SocialAuthController::class, 'googleAuth']);
+    Route::post('/apple', [SocialAuthController::class, 'appleAuth']);
+});
+
 Route::post('/forgotpassword', [ForgetPasswordController::class, 'forgotPassword']);
 Route::post('/resetpasswordverification', [ResetPasswordController::class, 'resetpasswordverification']);
 Route::post('/resetpassword', [ResetPasswordController::class, 'resetpassword']);

@@ -235,10 +235,10 @@ class ManageAppleClientSecret extends Command
             if ($key === 'APPLE_PRIVATE_KEY') {
                 // Special handling for multi-line private key
                 // Match quoted multi-line values (including newlines) or unquoted values
-                if (preg_match("/^{$key}=\"(.+?)\"/ms", $envContent, $matches) || 
+                if (preg_match("/^{$key}=\"(.+?)\"/ms", $envContent, $matches) ||
                     preg_match("/^{$key}='(.+?)'/ms", $envContent, $matches) ||
                     preg_match("/^{$key}=(.+)(?=^[A-Z_]+=|$)/ms", $envContent, $matches)) {
-                    
+
                     $privateKey = trim($matches[1]);
                     // Convert \n to actual newlines if present
                     $privateKey = str_replace('\\n', "\n", $privateKey);

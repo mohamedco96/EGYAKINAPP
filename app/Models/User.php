@@ -269,7 +269,7 @@ class User extends Authenticatable implements FilamentUser
     public static function createFromSocial($provider, $socialUser)
     {
         $userData = [
-            'name' => $socialUser->getName(),
+            'name' => $socialUser->getName() ?: $socialUser->getNickname() ?: explode('@', $socialUser->getEmail())[0],
             'email' => $socialUser->getEmail(),
             'avatar' => $socialUser->getAvatar(),
             'social_verified_at' => now(),

@@ -54,11 +54,13 @@ Route::post('/login', [AuthController::class, 'login']);
 
 // Social Authentication Routes
 Route::prefix('auth/social')->group(function () {
-    // Web-based OAuth flows (for web applications)
-    Route::get('/google', [SocialAuthController::class, 'redirectToGoogle']);
-    Route::get('/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
-    Route::get('/apple', [SocialAuthController::class, 'redirectToApple']);
-    Route::match(['get', 'post'], '/apple/callback', [SocialAuthController::class, 'handleAppleCallback']);
+    // Web-based OAuth flows (for web applications) - requires session for OAuth state
+    Route::middleware(['web'])->group(function () {
+        Route::get('/google', [SocialAuthController::class, 'redirectToGoogle']);
+        Route::get('/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
+        Route::get('/apple', [SocialAuthController::class, 'redirectToApple']);
+        Route::match(['get', 'post'], '/apple/callback', [SocialAuthController::class, 'handleAppleCallback']);
+    });
 
     // API-based authentication (for mobile applications)
     Route::post('/google', [SocialAuthController::class, 'googleAuth']);

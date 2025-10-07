@@ -17,6 +17,7 @@
         "kreait/firebase-php": "^7.12",
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.2",
+        "laravel/socialite": "^5.0",
         "laravel/telescope": "^5.0",
         "laravel/tinker": "^2.8",
         "livewire/livewire": "^3.0",
@@ -24,6 +25,7 @@
         "nyholm/psr7": "*",
         "pusher/pusher-php-server": "^7.2",
         "pxlrbt/filament-excel": "^2.1",
+        "socialiteproviders/apple": "^5.7",
         "spatie/laravel-permission": "^6.4",
         "symfony/http-client": "*"
     },

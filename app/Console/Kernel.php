@@ -164,6 +164,25 @@ class Kernel extends ConsoleKernel
                     'command' => 'filament-excel:prune',
                 ]);
             });
+
+        // Apple Client Secret Management - Check weekly for expiration
+        $schedule->command('apple:schedule-check')
+            ->weekly()
+            ->withoutOverlapping(30) // Prevent overlapping runs, timeout after 30 minutes
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/apple_secret_management.log'))
+            ->onFailure(function () {
+                Log::error('Apple Client Secret management scheduled task failed', [
+                    'timestamp' => now()->toISOString(),
+                    'command' => 'apple:schedule-check',
+                ]);
+            })
+            ->onSuccess(function () {
+                Log::info('Apple Client Secret management scheduled task completed successfully', [
+                    'timestamp' => now()->toISOString(),
+                    'command' => 'apple:schedule-check',
+                ]);
+            });
     }
 
     /**

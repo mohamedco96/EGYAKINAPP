@@ -234,12 +234,30 @@ class ManageAppleClientSecret extends Command
         foreach ($required as $key) {
             if ($key === 'APPLE_PRIVATE_KEY') {
                 // Special handling for multi-line private key
-                if (preg_match("/^{$key}=(.+?)(?=^[A-Z_]+=|$)/ms", $envContent, $matches)) {
+                // Match quoted multi-line values (including newlines) or unquoted values
+                if (preg_match("/^{$key}=\"(.+?)\"/ms", $envContent, $matches) || 
+                    preg_match("/^{$key}='(.+?)'/ms", $envContent, $matches) ||
+                    preg_match("/^{$key}=(.+)(?=^[A-Z_]+=|$)/ms", $envContent, $matches)) {
+                    
                     $privateKey = trim($matches[1]);
-                    // Remove surrounding quotes if present
-                    $privateKey = trim($privateKey, '"\'');
-                    // Convert \n to actual newlines
+                    // Convert \n to actual newlines if present
                     $privateKey = str_replace('\\n', "\n", $privateKey);
+
+                    // Ensure the private key has proper markers and formatting
+                    if (! str_contains($privateKey, '-----BEGIN PRIVATE KEY-----')) {
+                        $privateKey = "-----BEGIN PRIVATE KEY-----\n".$privateKey;
+                    }
+                    if (! str_contains($privateKey, '-----END PRIVATE KEY-----')) {
+                        $privateKey = $privateKey."\n-----END PRIVATE KEY-----";
+                    }
+
+                    // Ensure proper newline formatting
+                    $privateKey = str_replace('-----BEGIN PRIVATE KEY-----', "-----BEGIN PRIVATE KEY-----\n", $privateKey);
+                    $privateKey = str_replace('-----END PRIVATE KEY-----', "\n-----END PRIVATE KEY-----", $privateKey);
+
+                    // Clean up any double newlines
+                    $privateKey = preg_replace('/\n\n+/', "\n", $privateKey);
+
                     $config[strtolower(str_replace('APPLE_', '', $key))] = $privateKey;
                 } else {
                     $this->error("Missing {$key} in environment file");

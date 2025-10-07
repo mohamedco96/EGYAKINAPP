@@ -3,7 +3,6 @@
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\DeepLinkController;
 use App\Http\Controllers\ExportController;
-use App\Http\Controllers\SocialAuthController;
 use App\Mail\DailyReportMail;
 use App\Mail\WeeklySummaryMail;
 use App\Modules\Chat\Controllers\ChatController;
@@ -64,16 +63,16 @@ Route::get('/consultation/{id}', [DeepLinkController::class, 'consultation'])->n
 
 // === EMAIL REPORTING TEST ROUTES (Remove in production) ===
 Route::get('/test-daily-report', function () {
-    return new DailyReportMail;
+    return new DailyReportMail();
 });
 
 Route::get('/test-weekly-summary', function () {
-    return new WeeklySummaryMail;
+    return new WeeklySummaryMail();
 });
 
 Route::get('/test-send-daily', function () {
     try {
-        Mail::to('mohamedco215@gmail.com')->send(new DailyReportMail);
+        Mail::to('mohamedco215@gmail.com')->send(new DailyReportMail());
 
         return response()->json(['success' => true, 'message' => 'Daily report sent successfully!']);
     } catch (\Exception $e) {
@@ -83,21 +82,10 @@ Route::get('/test-send-daily', function () {
 
 Route::get('/test-send-weekly', function () {
     try {
-        Mail::to('mohamedco215@gmail.com')->send(new WeeklySummaryMail);
+        Mail::to('mohamedco215@gmail.com')->send(new WeeklySummaryMail());
 
         return response()->json(['success' => true, 'message' => 'Weekly summary sent successfully!']);
     } catch (\Exception $e) {
         return response()->json(['success' => false, 'message' => 'Error: '.$e->getMessage()]);
     }
 });
-
-// === SOCIAL AUTHENTICATION TEST ROUTES ===
-Route::get('/apple-signin-test', function () {
-    return view('apple-signin-test');
-})->name('apple.signin.test');
-
-// Social OAuth redirect routes
-Route::get('/auth/social/google', [SocialAuthController::class, 'redirectToGoogle'])->name('google.redirect');
-Route::get('/auth/social/google/callback', [SocialAuthController::class, 'handleGoogleCallback'])->name('google.callback');
-Route::get('/auth/social/apple', [SocialAuthController::class, 'redirectToApple'])->name('apple.redirect');
-Route::get('/auth/social/apple/callback', [SocialAuthController::class, 'handleAppleCallback'])->name('apple.callback');

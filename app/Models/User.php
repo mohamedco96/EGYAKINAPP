@@ -48,10 +48,6 @@ class User extends Authenticatable implements FilamentUser
         'blocked',
         'email_verified_at',
         'locale',
-        'google_id',
-        'apple_id',
-        'avatar',
-        'social_verified_at',
     ];
 
     /**
@@ -72,7 +68,6 @@ class User extends Authenticatable implements FilamentUser
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'social_verified_at' => 'datetime',
         'blocked' => 'boolean',
         'limited' => 'boolean',
         'locale' => 'string',
@@ -253,30 +248,5 @@ class User extends Authenticatable implements FilamentUser
     public function fcmTokens()
     {
         return $this->hasMany(FcmToken::class, 'doctor_id');
-    }
-
-    /**
-     * Find user by social provider ID
-     */
-    public static function findBySocialId($provider, $id)
-    {
-        return static::where($provider.'_id', $id)->first();
-    }
-
-    /**
-     * Create user from social provider data
-     */
-    public static function createFromSocial($provider, $socialUser)
-    {
-        $userData = [
-            'name' => $socialUser->getName(),
-            'email' => $socialUser->getEmail(),
-            'avatar' => $socialUser->getAvatar(),
-            'social_verified_at' => now(),
-        ];
-
-        $userData[$provider.'_id'] = $socialUser->getId();
-
-        return static::create($userData);
     }
 }

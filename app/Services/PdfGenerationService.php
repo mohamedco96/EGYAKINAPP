@@ -2,17 +2,17 @@
 
 namespace App\Services;
 
-use App\Services\QuestionService;
+use App\Modules\Patients\Services\PatientQuestionService;
 use App\Modules\Recommendations\Models\Recommendation;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use PDF;
 
 class PdfGenerationService
 {
     private $questionService;
 
-    public function __construct(QuestionService $questionService)
+    public function __construct(PatientQuestionService $questionService)
     {
         $this->questionService = $questionService;
     }
@@ -39,27 +39,27 @@ class PdfGenerationService
             // Ensure the 'pdfs' directory exists
             Storage::disk('public')->makeDirectory('pdfs');
 
-            $pdfFileName = "Report_" . date("dmy_His") . '.pdf';
-            Storage::disk('public')->put('pdfs/' . $pdfFileName, $pdf->output());
+            $pdfFileName = 'Report_'.date('dmy_His').'.pdf';
+            Storage::disk('public')->put('pdfs/'.$pdfFileName, $pdf->output());
 
-            $pdfUrl = config('app.url') . '/storage/pdfs/' . $pdfFileName;
+            $pdfUrl = config('app.url').'/storage/pdfs/'.$pdfFileName;
 
             Log::info('PDF generated successfully', [
                 'patient_id' => $patientId,
-                'pdf_file' => $pdfFileName
+                'pdf_file' => $pdfFileName,
             ]);
 
             return [
                 'success' => true,
                 'pdf_url' => $pdfUrl,
-                'data' => $pdfData
+                'data' => $pdfData,
             ];
         } catch (\Exception $e) {
-            Log::error("Error generating PDF for patient {$patientId}: " . $e->getMessage());
-            
+            Log::error("Error generating PDF for patient {$patientId}: ".$e->getMessage());
+
             return [
                 'success' => false,
-                'message' => 'Error: ' . $e->getMessage(),
+                'message' => 'Error: '.$e->getMessage(),
             ];
         }
     }

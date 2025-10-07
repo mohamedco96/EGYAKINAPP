@@ -81,7 +81,7 @@ class PatientsController extends Controller
         return $this->patientsController->filteredPatients($request);
     }
 
-    public function exportFilteredPatients(Request $request)
+    public function exportFilteredPatients()
     {
         return $this->patientsController->exportFilteredPatients();
     }
@@ -89,5 +89,20 @@ class PatientsController extends Controller
     public function generatePatientPDF($patient_id)
     {
         return $this->patientsController->generatePatientPDF($patient_id);
+    }
+
+    public function markPatient($patientId)
+    {
+        return $this->patientsController->markPatient($patientId);
+    }
+
+    public function unmarkPatient($patientId)
+    {
+        return $this->patientsController->unmarkPatient($patientId);
+    }
+
+    public function getMarkedPatients(Request $request)
+    {
+        return $this->patientsController->getMarkedPatients($request);
     }
 }

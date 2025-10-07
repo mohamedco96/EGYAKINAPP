@@ -14,9 +14,6 @@ use App\Modules\Notifications\Services\NotificationService;
 use App\Modules\Patients\Models\Patients;
 use App\Modules\Patients\Models\PatientStatus;
 use App\Modules\Questions\Models\Questions;
-use App\Services\FileUploadService;
-use App\Traits\FormatsUserName;
-use App\Traits\NotificationCleanup;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -24,8 +21,6 @@ use Illuminate\Support\Facades\Log;
 
 class PatientService
 {
-    use FormatsUserName, NotificationCleanup;
-
     protected $notificationService;
 
     public function __construct(NotificationService $notificationService)
@@ -136,9 +131,6 @@ class PatientService
             // Handle score adjustments
             $this->adjustDoctorScores($patientId);
 
-            // Clean up related notifications
-            $this->cleanupPatientNotifications($patientId);
-
             $patient->delete();
 
             Log::info('Patient deleted successfully', ['patient_id' => $patientId]);
@@ -155,20 +147,15 @@ class PatientService
      */
     public function transformPatientData($patient): array
     {
-        // Create indexed collections for O(1) lookups instead of O(n) where() calls
-        $statusByKey = $patient->status->keyBy('key');
-        $answersByQuestionId = $patient->answers->keyBy('question_id');
-
-        // Use indexed collections for efficient lookups
-        $submitStatus = optional($statusByKey->get('submit_status'))->status;
-        $outcomeStatus = optional($statusByKey->get('outcome_status'))->status;
-        $outcomeSubmitterDoctorId = optional($statusByKey->get('outcome_status'))->doctor_id;
+        $submitStatus = optional($patient->status->where('key', 'LIKE', 'submit_status')->first())->status;
+        $outcomeStatus = optional($patient->status->where('key', 'LIKE', 'outcome_status')->first())->status;
+        $outcomeSubmitterDoctorId = optional($patient->status->where('key', 'outcome_status')->first())->doctor_id;
 
         return [
             'id' => $patient->id,
             'doctor_id' => (int) $patient->doctor_id,
-            'name' => optional($answersByQuestionId->get(1))->answer,
-            'hospital' => optional($answersByQuestionId->get(2))->answer,
+            'name' => optional($patient->answers->where('question_id', 1)->first())->answer,
+            'hospital' => optional($patient->answers->where('question_id', 2)->first())->answer,
             'updated_at' => $patient->updated_at,
             'doctor' => $patient->doctor,
             'sections' => [
@@ -279,7 +266,7 @@ class PatientService
     }
 
     /**
-     * Send notifications to admins when a new patient is created
+     * Send notifications to admins about new patient creation
      */
     private function sendNewPatientNotifications(User $user, int $patientId, ?string $patientName): void
     {
@@ -294,17 +281,13 @@ class PatientService
             return;
         }
 
-        // Create localized notifications for each admin based on their locale preference
         foreach ($adminUsers as $adminId) {
-            $admin = User::find($adminId);
-            $adminLocale = $admin ? $admin->locale : 'en';
-
             AppNotification::createLocalized([
                 'doctor_id' => $adminId,
                 'type' => 'New Patient',
-                'localization_key' => 'api.notification_new_patient_clean',
+                'localization_key' => 'api.clean_notification_new_patient',
                 'localization_params' => [
-                    'name' => $user->name.($user->lname ? ' '.$user->lname : ''), // Use raw name without Dr. prefix
+                    'name' => $user->name.' '.$user->lname,
                     'patient' => $patientName ?? 'Unknown',
                 ],
                 'patient_id' => $patientId,
@@ -312,16 +295,15 @@ class PatientService
             ]);
         }
 
-        // Send push notifications to admins
         $title = __('api.new_patient_created');
-        $body = __('api.clean_doctor_added_new_patient', ['name' => ucfirst($this->formatUserName($user)), 'patient' => ($patientName ?? 'Unknown')]);
+        $body = __('api.clean_doctor_added_new_patient', ['name' => ucfirst($user->name), 'patient' => ($patientName ?? 'Unknown')]);
         $tokens = FcmToken::whereIn('doctor_id', $adminUsers)->pluck('token')->toArray();
 
         if (! empty($tokens)) {
             $this->notificationService->sendPushNotification($title, $body, $tokens);
         }
 
-        Log::info('Admin notifications sent for new patient', [
+        Log::info('Admin notifications sent for new patient (legacy service)', [
             'patient_id' => $patientId,
             'admin_count' => count($adminUsers),
             'creator' => $user->name,
@@ -329,103 +311,16 @@ class PatientService
     }
 
     /**
-     * Send notifications to admins when an outcome is submitted
-     */
-    private function sendOutcomeSubmittedNotifications(int $doctorId, int $patientId): void
-    {
-        try {
-            $user = User::find($doctorId);
-            if (! $user) {
-                Log::error('User not found for outcome notification', ['doctor_id' => $doctorId]);
-
-                return;
-            }
-
-            // Get patient name
-            $patientName = Answers::where('patient_id', $patientId)
-                ->where('question_id', 1)
-                ->value('answer');
-            $patientName = $patientName ? stripslashes(trim($patientName, '"')) : 'Unknown';
-
-            // Get admin users only
-            $adminUsers = User::role('Admin')
-                ->where('id', '!=', $doctorId)
-                ->pluck('id');
-
-            if ($adminUsers->isEmpty()) {
-                Log::info('No admin users found to notify for outcome submission', ['patient_id' => $patientId]);
-
-                return;
-            }
-
-            // Create localized notifications for each admin based on their locale preference
-            foreach ($adminUsers as $adminId) {
-                $admin = User::find($adminId);
-                $adminLocale = $admin ? $admin->locale : 'en';
-
-                AppNotification::createLocalized([
-                    'doctor_id' => $adminId,
-                    'type' => 'Outcome Submitted',
-                    'localization_key' => 'api.notification_outcome_submitted_clean',
-                    'localization_params' => [
-                        'name' => $user->name.($user->lname ? ' '.$user->lname : ''), // Use raw name without Dr. prefix
-                        'patient' => $patientName,
-                    ],
-                    'patient_id' => $patientId,
-                    'type_doctor_id' => $user->id,
-                ]);
-            }
-
-            // Send push notifications to admins
-            $title = __('api.outcome_submitted');
-            $body = __('api.clean_doctor_submitted_outcome', ['name' => ucfirst($this->formatUserName($user)), 'patient' => $patientName]);
-            $tokens = FcmToken::whereIn('doctor_id', $adminUsers)->pluck('token')->toArray();
-
-            if (! empty($tokens)) {
-                $this->notificationService->sendPushNotification($title, $body, $tokens);
-            }
-
-            Log::info('Admin notifications sent for outcome submission', [
-                'patient_id' => $patientId,
-                'admin_count' => count($adminUsers),
-                'submitter' => $user->name,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Failed to send outcome submission notifications', [
-                'error' => $e->getMessage(),
-                'patient_id' => $patientId,
-                'doctor_id' => $doctorId,
-            ]);
-        }
-    }
-
-    /**
      * Update existing section answers
      */
     private function updateExistingSection(array $requestData, int $patientId, int $doctorId, int $sectionId, array $questionSectionIds): void
     {
-        // Extract question IDs from request data
-        $questionIds = [];
-        foreach ($requestData as $key => $value) {
-            if (preg_match('/^\d+$/', $key)) {
-                $questionIds[] = (int) $key;
-            }
-        }
-
-        if (empty($questionIds)) {
-            return;
-        }
-
-        // Get all existing answers in a single query
-        $existingAnswers = Answers::where('patient_id', $patientId)
-            ->whereIn('question_id', $questionIds)
-            ->pluck('question_id')
-            ->toArray();
-
         foreach ($requestData as $key => $value) {
             if (preg_match('/^\d+$/', $key)) {
                 $questionId = (int) $key;
-                $questionExists = in_array($questionId, $existingAnswers);
+                $questionExists = Answers::where('patient_id', $patientId)
+                    ->where('question_id', $questionId)
+                    ->exists();
 
                 if ($questionExists) {
                     $this->updateAnswerLogic($questionId, $value, $patientId, $sectionId);
@@ -441,28 +336,12 @@ class PatientService
      */
     private function createNewSection(array $requestData, int $patientId, int $doctorId, int $sectionId, array $questionSectionIds): void
     {
-        // Extract question IDs from request data
-        $questionIds = [];
-        foreach ($requestData as $key => $value) {
-            if (preg_match('/^\d+$/', $key)) {
-                $questionIds[] = (int) $key;
-            }
-        }
-
-        if (empty($questionIds)) {
-            return;
-        }
-
-        // Get all existing answers in a single query
-        $existingAnswers = Answers::where('patient_id', $patientId)
-            ->whereIn('question_id', $questionIds)
-            ->pluck('question_id')
-            ->toArray();
-
         foreach ($requestData as $key => $value) {
             if (preg_match('/^\d+$/', $key)) {
                 $questionId = (int) $key;
-                $questionExists = in_array($questionId, $existingAnswers);
+                $questionExists = Answers::where('patient_id', $patientId)
+                    ->where('question_id', $questionId)
+                    ->exists();
 
                 if ($questionExists) {
                     $this->updateAnswerLogic($questionId, $value, $patientId, $sectionId);
@@ -493,14 +372,11 @@ class PatientService
             ->where('key', 'outcome_status')
             ->first();
 
-        $isNewOutcome = false;
-
         if ($patientOutcomeStatus && $patientOutcomeStatus->status === false) {
             $patientOutcomeStatus->update([
                 'status' => true,
                 'doctor_id' => $doctorId,
             ]);
-            $isNewOutcome = true;
         } elseif (! $patientOutcomeStatus) {
             PatientStatus::create([
                 'doctor_id' => $doctorId,
@@ -510,12 +386,6 @@ class PatientService
             ]);
 
             $this->updateDoctorScore($doctorId, $patientId);
-            $isNewOutcome = true;
-        }
-
-        // Send admin notifications when outcome is submitted
-        if ($isNewOutcome) {
-            $this->sendOutcomeSubmittedNotifications($doctorId, $patientId);
         }
     }
 
@@ -576,18 +446,9 @@ class PatientService
      */
     private function updateAnswerLogic(int $questionId, $value, int $patientId, int $sectionId): void
     {
-        Log::info('updateAnswerLogic called', [
-            'questionId' => $questionId,
-            'value_type' => gettype($value),
-            'value' => $value,
-            'patientId' => $patientId,
-            'sectionId' => $sectionId,
-        ]);
-
         if ($this->isFileTypeQuestion($questionId)) {
-            Log::info('Processing file upload for question', ['questionId' => $questionId]);
             $fileUrls = $this->handleFileUploads($value);
-            $this->updateAnswer($questionId, $fileUrls, $patientId, false, $sectionId);
+            $this->updateAnswer($questionId, json_encode($fileUrls), $patientId, false, $sectionId);
         } else {
             if (isset($value['answers'])) {
                 $this->updateAnswer($questionId, json_encode($value['answers']), $patientId, false, $sectionId);
@@ -605,7 +466,7 @@ class PatientService
     {
         if ($this->isFileTypeQuestion($questionId)) {
             $fileUrls = $this->handleFileUploads($value);
-            $this->saveAnswer($doctorId, $questionId, $fileUrls, $patientId, false, $sectionId);
+            $this->saveAnswer($doctorId, $questionId, json_encode($fileUrls), $patientId, false, $sectionId);
         } else {
             if (isset($value['answers'])) {
                 $this->saveAnswer($doctorId, $questionId, $value['answers'], $patientId, false, $sectionId);
@@ -631,50 +492,9 @@ class PatientService
      */
     private function handleFileUploads(array $files): array
     {
-        try {
-            Log::info('File upload data received', [
-                'files' => $files,
-                'files_type' => gettype($files),
-                'files_count' => count($files),
-            ]);
-
-            // Check if files is empty or not in expected format
-            if (empty($files)) {
-                Log::warning('No files provided for upload');
-
-                return [];
-            }
-
-            // Validate file structure
-            foreach ($files as $index => $file) {
-                Log::info("File {$index} structure", [
-                    'file' => $file,
-                    'has_file_data' => isset($file['file_data']),
-                    'has_file_name' => isset($file['file_name']),
-                    'file_data_length' => isset($file['file_data']) ? strlen($file['file_data']) : 0,
-                ]);
-            }
-
-            // Use the FileUploadService to handle the uploads
-            $fileUploadService = app(FileUploadService::class);
-            $result = $fileUploadService->handleQuestionFileUploads($files);
-
-            Log::info('File upload completed', [
-                'result' => $result,
-                'result_count' => count($result),
-                'result_type' => gettype($result),
-            ]);
-
-            return $result;
-        } catch (\Exception $e) {
-            Log::error('File upload failed in PatientService', [
-                'error' => $e->getMessage(),
-                'files' => $files,
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return [];
-        }
+        // This method would contain the file upload logic
+        // Implementation would be moved from the controller
+        return [];
     }
 
     /**
@@ -706,15 +526,7 @@ class PatientService
     {
         $question = Questions::find($questionId);
         if ($question && $question->type === 'files') {
-            Log::info('Updating file answer', [
-                'questionId' => $questionId,
-                'answerText_before_encode' => $answerText,
-                'answerText_type' => gettype($answerText),
-            ]);
             $answerText = json_encode($answerText);
-            Log::info('File answer after JSON encode', [
-                'answerText_after_encode' => $answerText,
-            ]);
         }
 
         Patients::where('id', $patientId)->update(['updated_at' => now()]);

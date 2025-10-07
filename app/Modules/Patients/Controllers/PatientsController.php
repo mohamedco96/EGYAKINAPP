@@ -5,13 +5,14 @@ namespace App\Modules\Patients\Controllers;
 use App\Events\SearchResultsUpdated;
 use App\Http\Controllers\Controller;
 use App\Modules\Patients\Requests\UpdatePatientsRequest;
+use App\Modules\Patients\Services\MarkedPatientService;
 use App\Modules\Patients\Services\PatientFilterService;
+use App\Modules\Patients\Services\PatientQuestionService;
 use App\Modules\Patients\Services\PatientService;
 use App\Modules\Questions\Models\Questions;
 use App\Services\FileUploadService;
 use App\Services\HomeDataService;
 use App\Services\PdfGenerationService;
-use App\Services\QuestionService;
 use App\Services\SearchService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -34,14 +35,17 @@ class PatientsController extends Controller
 
     protected $pdfGenerationService;
 
+    protected $markedPatientService;
+
     public function __construct(
         PatientService $patientService,
         HomeDataService $homeDataService,
         SearchService $searchService,
-        QuestionService $questionService,
+        PatientQuestionService $questionService,
         FileUploadService $fileUploadService,
         PatientFilterService $patientFilterService,
-        PdfGenerationService $pdfGenerationService
+        PdfGenerationService $pdfGenerationService,
+        MarkedPatientService $markedPatientService
     ) {
         $this->patientService = $patientService;
         $this->homeDataService = $homeDataService;
@@ -50,6 +54,7 @@ class PatientsController extends Controller
         $this->fileUploadService = $fileUploadService;
         $this->patientFilterService = $patientFilterService;
         $this->pdfGenerationService = $pdfGenerationService;
+        $this->markedPatientService = $markedPatientService;
     }
 
     /**
@@ -131,8 +136,8 @@ class PatientsController extends Controller
                 ],
             ];
 
-            Log::info('Successfully retrieved all patients for doctor (OPTIMIZED).', [
-                'doctor_id' => optional(auth()->user())->id,
+            Log::info('Successfully retrieved all patients.', [
+                'user_id' => auth()->id(),
                 'execution_time_ms' => $executionTime,
                 'per_page' => $perPage,
                 'total_patients' => $paginatedPatients->total(),
@@ -140,8 +145,8 @@ class PatientsController extends Controller
 
             return response()->json($response, 200);
         } catch (\Exception $e) {
-            Log::error('Error retrieving all patients for doctor.', [
-                'doctor_id' => optional(auth()->user())->id,
+            Log::error('Error retrieving all patients.', [
+                'user_id' => optional(auth()->user())->id,
                 'exception' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -153,23 +158,29 @@ class PatientsController extends Controller
     public function doctorPatientGet()
     {
         try {
-            $paginatedPatients = $this->patientFilterService->getDoctorPatients(false);
+            $perPage = request('per_page', 10);
+            $paginatedPatients = $this->patientFilterService->getDoctorPatients(false, $perPage);
 
             $user = auth()->user();
             $userPatientCount = $user->patients()->count();
             $scoreValue = optional($user->score)->score ?? 0;
             $isVerified = (bool) $user->email_verified_at;
 
+            // Get filter conditions for authenticated user's patients
+            $filterConditions = $this->questionService->getFilterConditions();
+
             $response = [
                 'value' => true,
                 'verified' => $isVerified,
                 'patient_count' => strval($userPatientCount),
                 'score_value' => strval($scoreValue),
+                'filter' => $filterConditions,
                 'data' => $paginatedPatients,
             ];
 
             Log::info('Successfully retrieved current doctor patients.', [
                 'doctor_id' => optional(auth()->user())->id,
+                'per_page' => $perPage,
             ]);
 
             return response()->json($response, 200);
@@ -518,19 +529,31 @@ class PatientsController extends Controller
         try {
             $perPage = $request->input('per_page', 10);
             $page = $request->input('page', 1);
+            $onlyMyPatients = $request->boolean('only_my_patients', false);
 
-            // Extract filter parameters (excluding pagination)
-            $filterParams = $request->except(['page', 'per_page', 'sort', 'direction', 'offset', 'limit']);
+            // Extract filter parameters (excluding pagination and scope parameters)
+            $filterParams = $request->except(['page', 'per_page', 'sort', 'direction', 'offset', 'limit', 'only_my_patients']);
 
             // Cache the latest filter parameters for this user (for export functionality)
+            // Duration: 2 hours - balances convenience with data freshness
             $userFilterCacheKey = 'latest_filter_params_user_'.auth()->id();
-            Cache::put($userFilterCacheKey, $filterParams, now()->addHours(24));
+            Cache::put($userFilterCacheKey, $filterParams, now()->addHours(2));
 
-            $result = $this->patientFilterService->filterPatients($request->all(), $perPage, $page);
+            // Cache the scope parameter as well for export
+            $userScopeCacheKey = 'latest_filter_scope_user_'.auth()->id();
+            Cache::put($userScopeCacheKey, $onlyMyPatients, now()->addHours(2));
+
+            $result = $this->patientFilterService->filterPatients(
+                $request->all(),
+                $perPage,
+                $page,
+                $onlyMyPatients
+            );
 
             Log::info('Successfully retrieved filtered patients.', [
                 'filter_count' => count($filterParams),
                 'user_id' => auth()->id(),
+                'only_my_patients' => $onlyMyPatients,
             ]);
 
             return response()->json([
@@ -555,6 +578,19 @@ class PatientsController extends Controller
             $userFilterCacheKey = 'latest_filter_params_user_'.auth()->id();
             $filterParams = Cache::get($userFilterCacheKey, []);
 
+            // Get the scope parameter from cache
+            $userScopeCacheKey = 'latest_filter_scope_user_'.auth()->id();
+            $onlyMyPatients = Cache::get($userScopeCacheKey, false);
+
+            // Check if user has admin role when exporting all patients
+            $user = auth()->user();
+            if ($onlyMyPatients === false && ! $user->hasRole('Admin')) {
+                return response()->json([
+                    'value' => false,
+                    'message' => 'Access denied. Admin role required to export all patients.',
+                ], 403);
+            }
+
             // If no cached filters found, return error
             if (empty($filterParams)) {
                 return response()->json([
@@ -563,21 +599,23 @@ class PatientsController extends Controller
                 ], 400);
             }
 
-            // Generate cache key from filter parameters
-            $cacheKey = 'filtered_patients_export_'.md5(json_encode($filterParams)).'_'.auth()->id();
+            // Generate cache key from filter parameters and scope
+            $cacheKey = 'filtered_patients_export_'.md5(json_encode($filterParams).'_'.$onlyMyPatients).'_'.auth()->id();
 
             // Cache the filter parameters for tracking
-            Cache::put($cacheKey.'_filters', $filterParams, now()->addHours(24));
+            Cache::put($cacheKey.'_filters', $filterParams, now()->addHours(2));
+            Cache::put($cacheKey.'_scope', $onlyMyPatients, now()->addHours(2));
 
             Log::info('Starting filtered patients export with cached filters', [
                 'user_id' => auth()->id(),
                 'filter_count' => count($filterParams),
                 'filter_params' => $filterParams,
+                'only_my_patients' => $onlyMyPatients,
                 'cache_key' => $cacheKey,
             ]);
 
             // Get all filtered patients (without pagination)
-            $result = $this->patientFilterService->filterPatients($filterParams, PHP_INT_MAX, 1);
+            $result = $this->patientFilterService->filterPatients($filterParams, PHP_INT_MAX, 1, $onlyMyPatients);
             $patients = $result['data'];
 
             if ($patients->isEmpty()) {
@@ -587,16 +625,77 @@ class PatientsController extends Controller
                 ], 404);
             }
 
-            // Get all questions for CSV headers
+            // Get all questions for CSV headers (include 'type' to check for file questions)
             $questions = Cache::remember('all_questions_export', now()->addHour(), function () {
-                return \App\Models\Questions::query()
-                    ->select(['id', 'question'])
+                return Questions::query()
+                    ->select(['id', 'question', 'type'])
                     ->orderBy('id')
                     ->get();
             });
 
+            // Pre-process patients: Index answers by question_id for O(1) lookup
+            $processedPatients = collect($patients)->map(function ($patient) {
+                // Ensure we have an array
+                if (! is_array($patient)) {
+                    $patient = is_object($patient) && method_exists($patient, 'toArray')
+                        ? $patient->toArray()
+                        : (array) $patient;
+                }
+
+                // Create an indexed array of answers by question_id
+                $indexedAnswers = [];
+
+                // Check if answers exists - could be array or Collection
+                if (isset($patient['answers'])) {
+                    $answers = $patient['answers'];
+
+                    // Convert Collection to array if needed
+                    if (is_object($answers) && method_exists($answers, 'toArray')) {
+                        $answers = $answers->toArray();
+                    } elseif (is_object($answers) && method_exists($answers, 'all')) {
+                        $answers = $answers->all();
+                    } elseif (! is_array($answers)) {
+                        $answers = (array) $answers;
+                    }
+
+                    // Now iterate through answers
+                    foreach ($answers as $answer) {
+                        // Ensure answer is array
+                        if (is_object($answer) && method_exists($answer, 'toArray')) {
+                            $answer = $answer->toArray();
+                        } elseif (! is_array($answer)) {
+                            $answer = (array) $answer;
+                        }
+
+                        if (isset($answer['question_id'])) {
+                            $indexedAnswers[$answer['question_id']] = $answer;
+                        }
+                    }
+                }
+
+                $patient['indexed_answers'] = $indexedAnswers;
+
+                return $patient;
+            });
+
+            // Debug: Log first patient to check data structure
+            if ($processedPatients->isNotEmpty()) {
+                $firstPatient = $processedPatients->first();
+                $indexedAnswers = $firstPatient['indexed_answers'] ?? [];
+                Log::info('Export - First patient data check', [
+                    'patient_id' => $firstPatient['id'] ?? 'unknown',
+                    'has_answers' => isset($firstPatient['answers']),
+                    'answers_type' => isset($firstPatient['answers']) ? gettype($firstPatient['answers']) : 'not set',
+                    'has_indexed_answers' => isset($firstPatient['indexed_answers']),
+                    'indexed_answers_count' => count($indexedAnswers),
+                    'sample_indexed_keys' => array_slice(array_keys($indexedAnswers), 0, 10),
+                    'sample_answer' => ! empty($indexedAnswers) ? array_values($indexedAnswers)[0] : 'no answers',
+                    'questions_count' => $questions->count(),
+                ]);
+            }
+
             // Create the export class
-            $export = new class($patients, $questions, $filterParams) implements \Maatwebsite\Excel\Concerns\FromCollection, \Maatwebsite\Excel\Concerns\WithHeadings, \Maatwebsite\Excel\Concerns\WithMapping
+            $export = new class($processedPatients, $questions, $filterParams) implements \Maatwebsite\Excel\Concerns\FromCollection, \Maatwebsite\Excel\Concerns\WithHeadings, \Maatwebsite\Excel\Concerns\WithMapping
             {
                 private $patients;
 
@@ -640,7 +739,11 @@ class PatientsController extends Controller
                 public function map($patient): array
                 {
                     // Ensure patient data is properly structured
-                    $patient = is_array($patient) ? $patient : [];
+                    if (is_object($patient) && method_exists($patient, 'toArray')) {
+                        $patient = $patient->toArray();
+                    } elseif (! is_array($patient)) {
+                        $patient = (array) $patient;
+                    }
 
                     $data = [
                         $patient['id'] ?? '',
@@ -653,39 +756,86 @@ class PatientsController extends Controller
                         $patient['updated_at'] ?? '',
                     ];
 
-                    // Add answer data for each question
+                    // Use pre-indexed answers for O(1) lookup instead of nested loop
+                    $indexedAnswers = $patient['indexed_answers'] ?? [];
+
                     foreach ($this->questions as $question) {
-                        // Find the answer for this question from the patient's answers
                         $answer = '';
-                        if (isset($patient['answers'])) {
-                            foreach ($patient['answers'] as $patientAnswer) {
-                                if ($patientAnswer['question_id'] == $question->id) {
-                                    $rawAnswer = $patientAnswer['answer'] ?? '';
 
-                                    // Handle different answer types
-                                    if (is_array($rawAnswer)) {
-                                        // If it's an array, join the values
-                                        $answer = implode(', ', array_map('strval', $rawAnswer));
-                                    } elseif (is_string($rawAnswer)) {
-                                        // If it's a string, use it directly
-                                        $answer = $rawAnswer;
-                                    } else {
-                                        // For any other type, convert to string
-                                        $answer = (string) $rawAnswer;
-                                    }
+                        // Direct lookup by question_id - O(1) instead of O(k)
+                        if (isset($indexedAnswers[$question->id])) {
+                            $patientAnswer = $indexedAnswers[$question->id];
+                            $rawAnswer = $patientAnswer['answer'] ?? '';
 
-                                    // Remove quotes if present (only for strings)
-                                    if (is_string($answer)) {
-                                        $answer = trim($answer, '"');
-                                    }
-                                    break;
+                            // Special handling for file-type questions (Laboratory reports, etc.)
+                            if ($question->type === 'files') {
+                                $answer = $this->processFileAnswer($rawAnswer);
+                            } else {
+                                // Handle different answer types
+                                if (is_array($rawAnswer)) {
+                                    $answer = implode(', ', array_map('strval', $rawAnswer));
+                                } elseif (is_string($rawAnswer)) {
+                                    $answer = $rawAnswer;
+                                } else {
+                                    $answer = (string) $rawAnswer;
+                                }
+
+                                // Remove quotes if present
+                                if (is_string($answer)) {
+                                    $answer = trim($answer, '"');
                                 }
                             }
                         }
+
                         $data[] = $answer;
                     }
 
                     return $data;
+                }
+
+                /**
+                 * Process file-type answers and convert paths to URLs
+                 * Based on the logic from patient_pdf2.blade.php
+                 */
+                private function processFileAnswer($filePaths): string
+                {
+                    if (empty($filePaths)) {
+                        return '';
+                    }
+
+                    // If it's a JSON string, decode it
+                    if (is_string($filePaths) && (str_starts_with($filePaths, '[') || str_starts_with($filePaths, '{'))) {
+                        $decoded = json_decode($filePaths, true);
+                        if (json_last_error() === JSON_ERROR_NONE) {
+                            $filePaths = $decoded;
+                        }
+                    }
+
+                    // If it's not an array, make it one
+                    if (! is_array($filePaths)) {
+                        $filePaths = [$filePaths];
+                    }
+
+                    // Convert each file path to full URL
+                    $fileUrls = array_map(function ($filePath) {
+                        // Remove quotes if present
+                        $filePath = trim($filePath, '"');
+
+                        // If the path is already a full URL, return it as-is
+                        if (filter_var($filePath, FILTER_VALIDATE_URL)) {
+                            return $filePath;
+                        }
+
+                        // Otherwise, convert storage path to URL
+                        // Remove leading slashes and 'public/' prefix if present
+                        $filePath = ltrim($filePath, '/');
+                        $filePath = preg_replace('#^public/#', '', $filePath);
+
+                        return url('storage/'.str_replace('\\/', '/', $filePath));
+                    }, $filePaths);
+
+                    // Return URLs joined with comma for Excel display
+                    return implode(', ', $fileUrls);
                 }
             };
 
@@ -738,6 +888,98 @@ class PatientsController extends Controller
             return response()->json([
                 'value' => false,
                 'message' => 'Failed to export data: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Mark a patient
+     */
+    public function markPatient($patientId)
+    {
+        try {
+            $result = $this->markedPatientService->addToMarked($patientId);
+
+            if ($result['success']) {
+                return response()->json([
+                    'value' => true,
+                    'message' => $result['message'],
+                ], 200);
+            }
+
+            return response()->json([
+                'value' => false,
+                'message' => $result['message'],
+            ], 400);
+        } catch (\Exception $e) {
+            Log::error('Error marking patient: '.$e->getMessage(), [
+                'user_id' => auth()->id(),
+                'patient_id' => $patientId,
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to mark patient.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Unmark a patient
+     */
+    public function unmarkPatient($patientId)
+    {
+        try {
+            $result = $this->markedPatientService->removeFromMarked($patientId);
+
+            if ($result['success']) {
+                return response()->json([
+                    'value' => true,
+                    'message' => $result['message'],
+                ], 200);
+            }
+
+            return response()->json([
+                'value' => false,
+                'message' => $result['message'],
+            ], 400);
+        } catch (\Exception $e) {
+            Log::error('Error unmarking patient: '.$e->getMessage(), [
+                'user_id' => auth()->id(),
+                'patient_id' => $patientId,
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to unmark patient.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Get marked patients list
+     * Matches format from App\Modules\Auth\Controllers\AuthController::doctorProfileGetPatients
+     */
+    public function getMarkedPatients(Request $request)
+    {
+        try {
+            $perPage = $request->input('per_page', 10);
+
+            $result = $this->markedPatientService->getMarkedPatients($perPage);
+
+            // Extract status_code and remove it from response
+            $statusCode = $result['status_code'] ?? 200;
+            unset($result['status_code']);
+
+            return response()->json($result, $statusCode);
+        } catch (\Exception $e) {
+            Log::error('Error retrieving marked patients: '.$e->getMessage(), [
+                'user_id' => auth()->id(),
+            ]);
+
+            return response()->json([
+                'value' => false,
+                'message' => 'Failed to retrieve marked patients.',
             ], 500);
         }
     }

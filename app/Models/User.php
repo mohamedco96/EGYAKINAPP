@@ -273,6 +273,7 @@ class User extends Authenticatable implements FilamentUser
             'email' => $socialUser->getEmail(),
             'avatar' => $socialUser->getAvatar(),
             'social_verified_at' => now(),
+            'password' => bcrypt(\Illuminate\Support\Str::random(32)), // Random password for social users
         ];
 
         $userData[$provider.'_id'] = $socialUser->getId();

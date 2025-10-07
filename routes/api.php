@@ -58,7 +58,7 @@ Route::prefix('auth/social')->group(function () {
     Route::get('/google', [SocialAuthController::class, 'redirectToGoogle']);
     Route::get('/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
     Route::get('/apple', [SocialAuthController::class, 'redirectToApple']);
-    Route::get('/apple/callback', [SocialAuthController::class, 'handleAppleCallback']);
+    Route::match(['get', 'post'], '/apple/callback', [SocialAuthController::class, 'handleAppleCallback']);
 
     // API-based authentication (for mobile applications)
     Route::post('/google', [SocialAuthController::class, 'googleAuth']);

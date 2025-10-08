@@ -127,6 +127,7 @@ class SocialAuthController extends Controller
                         'id' => $user->id,
                         'name' => $user->name,
                         'email' => $user->email,
+                        'profile_completed' => $user->profile_completed,
                         'avatar' => $user->avatar,
                         'locale' => $user->locale,
                     ],

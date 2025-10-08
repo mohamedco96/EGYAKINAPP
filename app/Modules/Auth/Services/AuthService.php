@@ -50,7 +50,7 @@ class AuthService
 
             // Send welcome email notification
             try {
-                $user->notify(new WelcomeMailNotification());
+                $user->notify(new WelcomeMailNotification);
                 Log::info('Welcome email sent successfully', [
                     'user_id' => $user->id,
                     'email' => $user->email,
@@ -324,16 +324,26 @@ class AuthService
 
             // Update user
             $user->fill($sanitized);
+
+            // Check if profile is complete (has both name and email)
+            if ($user->name && $user->email) {
+                $user->profile_completed = true;
+            }
+
             $user->save();
 
             Log::info('User updated', [
                 'user_id' => $user->id,
                 'fields' => array_keys($validatedData),
+                'profile_completed' => $user->profile_completed,
             ]);
 
             return [
                 'value' => true,
                 'message' => __('api.user_updated_successfully'),
+                'data' => [
+                    'profile_completed' => $user->profile_completed,
+                ],
                 'status_code' => 200,
             ];
         });

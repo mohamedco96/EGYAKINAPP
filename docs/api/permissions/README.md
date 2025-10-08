@@ -1,5 +1,33 @@
 # Permissions System Documentation
 
+## 🚀 **Enhanced API Endpoints - NEW!**
+
+### **✅ Login Response Now Includes Roles & Permissions**
+```json
+{
+  "value": true,
+  "message": "User logged in successfully",
+  "token": "1|abc123...",
+  "data": { /* user data */ },
+  "roles": ["doctor"],
+  "permissions": ["view-patients", "create-patients", "edit-patients"]
+}
+```
+
+### **✅ User Endpoint Enhanced**
+```http
+GET /api/v2/user
+```
+**Now returns:** User data + roles + permissions for refreshing without re-login
+
+### **✅ Permission Check Enhanced**
+```http
+POST /api/v2/checkPermission
+```
+**Now returns:** Complete roles and permissions list instead of just specific checks
+
+---
+
 ## 📚 Documentation Index
 
 This directory contains comprehensive documentation for the EGYAKIN application's permissions and role-based access control (RBAC) system.
@@ -43,16 +71,22 @@ Condensed reference with:
 ---
 
 ### 3. **FLUTTER_ROLES_PERMISSIONS_GUIDE.md** 📱 FRONTEND
-**Flutter Integration Guide**
+**Flutter Integration Guide - UPDATED!**
 
 Frontend-focused documentation:
-- 📱 Flutter implementation examples
-- 📱 Data models for Flutter
-- 📱 API integration patterns
-- 📱 UI conditional rendering
-- 📱 Best practices for mobile apps
+- 📱 **Enhanced Flutter implementation** with immediate permission access
+- 📱 **Updated data models** for roles and permissions
+- 📱 **State management** with UserState class
+- 📱 **UI conditional rendering** examples
+- 📱 **Permission-based navigation** patterns
+- 📱 **Complete login flow** with roles/permissions
+- 📱 **Best practices** and error handling
+- 📱 **Testing strategies** for permission-based UI
+- 📱 **Migration guide** from old to new system
 
-**Use this when:** Implementing permissions in the Flutter mobile app.
+**✅ NEW:** Login response now includes roles and permissions immediately!
+
+**Use this when:** You're implementing Flutter frontend with role-based access control.
 
 **File:** [FLUTTER_ROLES_PERMISSIONS_GUIDE.md](./FLUTTER_ROLES_PERMISSIONS_GUIDE.md)
 

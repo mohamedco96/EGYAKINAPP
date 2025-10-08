@@ -3,19 +3,16 @@
 namespace App\Modules\RolePermission\Services;
 
 use App\Models\User;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class RolePermissionService
 {
     /**
      * Create role or permission, or assign permission to role
-     *
-     * @param array $data
-     * @return array
      */
     public function createRoleAndPermission(array $data): array
     {
@@ -40,37 +37,35 @@ class RolePermissionService
 
                 default:
                     Log::warning('Invalid action attempted', ['action' => $action]);
+
                     return [
                         'success' => false,
                         'data' => [
                             'value' => false,
-                            'message' => 'Invalid action!'
+                            'message' => 'Invalid action!',
                         ],
-                        'status_code' => 400
+                        'status_code' => 400,
                     ];
             }
         } catch (\Exception $e) {
-            Log::error('Error in createRoleAndPermission: ' . $e->getMessage(), [
+            Log::error('Error in createRoleAndPermission: '.$e->getMessage(), [
                 'data' => $data,
-                'exception' => $e->getTraceAsString()
+                'exception' => $e->getTraceAsString(),
             ]);
 
             return [
                 'success' => false,
                 'data' => [
                     'value' => false,
-                    'message' => 'Failed to process role/permission action'
+                    'message' => 'Failed to process role/permission action',
                 ],
-                'status_code' => 500
+                'status_code' => 500,
             ];
         }
     }
 
     /**
      * Assign role or permission to user
-     *
-     * @param array $data
-     * @return array
      */
     public function assignRoleToUser(array $data): array
     {
@@ -78,15 +73,16 @@ class RolePermissionService
             $doctorId = Auth::id();
             $user = User::find($doctorId);
 
-            if (!$user) {
+            if (! $user) {
                 Log::error('User not found for assignment', ['doctor_id' => $doctorId]);
+
                 return [
                     'success' => false,
                     'data' => [
                         'value' => false,
-                        'message' => 'User not found'
+                        'message' => 'User not found',
                     ],
-                    'status_code' => 404
+                    'status_code' => 404,
                 ];
             }
 
@@ -102,116 +98,95 @@ class RolePermissionService
                 default:
                     Log::warning('Invalid assignment action attempted', [
                         'action' => $action,
-                        'user_id' => $doctorId
+                        'user_id' => $doctorId,
                     ]);
+
                     return [
                         'success' => false,
                         'data' => [
                             'value' => false,
-                            'message' => 'Invalid action!'
+                            'message' => 'Invalid action!',
                         ],
-                        'status_code' => 400
+                        'status_code' => 400,
                     ];
             }
         } catch (\Exception $e) {
-            Log::error('Error in assignRoleToUser: ' . $e->getMessage(), [
+            Log::error('Error in assignRoleToUser: '.$e->getMessage(), [
                 'data' => $data,
-                'exception' => $e->getTraceAsString()
+                'exception' => $e->getTraceAsString(),
             ]);
 
             return [
                 'success' => false,
                 'data' => [
                     'value' => false,
-                    'message' => 'Failed to assign role/permission to user'
+                    'message' => 'Failed to assign role/permission to user',
                 ],
-                'status_code' => 500
+                'status_code' => 500,
             ];
         }
     }
 
     /**
      * Check role and permission for current user
-     *
-     * @return array
      */
     public function checkRoleAndPermission(): array
     {
         try {
             $user = Auth::user();
 
-            if (!$user) {
+            if (! $user) {
                 return [
                     'success' => false,
                     'data' => [
                         'value' => false,
-                        'message' => 'User not authenticated'
+                        'message' => 'User not authenticated',
                     ],
-                    'status_code' => 401
+                    'status_code' => 401,
                 ];
             }
 
-            $hasAdminRole = $user->hasRole('admin');
-            $hasDeletePatientPermission = $user->hasPermissionTo('delete patient', 'web');
+            // Get all user permissions
+            $allPermissions = $user->getAllPermissions()->pluck('name')->unique()->values();
+            $roles = $user->roles->pluck('name');
 
             Log::info('Role and permission check performed', [
                 'user_id' => $user->id,
-                'has_admin_role' => $hasAdminRole,
-                'has_delete_patient_permission' => $hasDeletePatientPermission
+                'roles' => $roles,
+                'permissions_count' => $allPermissions->count(),
             ]);
-
-            if ($hasAdminRole) {
-                return [
-                    'success' => true,
-                    'data' => [
-                        'value' => true,
-                        'message' => 'user have admin role'
-                    ],
-                    'status_code' => 200
-                ];
-            }
-
-            if ($hasDeletePatientPermission) {
-                return [
-                    'success' => true,
-                    'data' => [
-                        'value' => true,
-                        'message' => 'User has permission to delete patient'
-                    ],
-                    'status_code' => 200
-                ];
-            }
 
             return [
                 'success' => true,
                 'data' => [
-                    'value' => false,
-                    'message' => 'User does not have permission to edit articles'
+                    'value' => true,
+                    'message' => 'User permissions retrieved successfully',
+                    'roles' => $roles,
+                    'permissions' => $allPermissions,
+                    'has_admin_role' => $user->hasRole('admin'),
+                    'has_super_admin_role' => $user->hasRole('super-admin'),
                 ],
-                'status_code' => 200
+                'status_code' => 200,
             ];
 
         } catch (\Exception $e) {
-            Log::error('Error in checkRoleAndPermission: ' . $e->getMessage(), [
-                'exception' => $e->getTraceAsString()
+            Log::error('Error in checkRoleAndPermission: '.$e->getMessage(), [
+                'exception' => $e->getTraceAsString(),
             ]);
 
             return [
                 'success' => false,
                 'data' => [
                     'value' => false,
-                    'message' => 'Failed to check role and permission'
+                    'message' => 'Failed to check role and permission',
                 ],
-                'status_code' => 500
+                'status_code' => 500,
             ];
         }
     }
 
     /**
      * Create a new role
-     *
-     * @param array $data
-     * @return array
      */
     private function createRole(array $data): array
     {
@@ -222,9 +197,9 @@ class RolePermissionService
                 'success' => false,
                 'data' => [
                     'value' => false,
-                    'message' => 'Role already exists!'
+                    'message' => 'Role already exists!',
                 ],
-                'status_code' => 409
+                'status_code' => 409,
             ];
         }
 
@@ -237,17 +212,14 @@ class RolePermissionService
             'data' => [
                 'value' => true,
                 'message' => 'Role created successfully!',
-                'role' => $role
+                'role' => $role,
             ],
-            'status_code' => 201
+            'status_code' => 201,
         ];
     }
 
     /**
      * Create a new permission
-     *
-     * @param array $data
-     * @return array
      */
     private function createPermission(array $data): array
     {
@@ -258,9 +230,9 @@ class RolePermissionService
                 'success' => false,
                 'data' => [
                     'value' => false,
-                    'message' => 'Permission already exists!'
+                    'message' => 'Permission already exists!',
                 ],
-                'status_code' => 409
+                'status_code' => 409,
             ];
         }
 
@@ -268,7 +240,7 @@ class RolePermissionService
 
         Log::info('Permission created successfully', [
             'permission_name' => $permissionName,
-            'permission_id' => $permission->id
+            'permission_id' => $permission->id,
         ]);
 
         return [
@@ -276,17 +248,14 @@ class RolePermissionService
             'data' => [
                 'value' => true,
                 'message' => 'Permission created successfully!',
-                'permission' => $permission
+                'permission' => $permission,
             ],
-            'status_code' => 201
+            'status_code' => 201,
         ];
     }
 
     /**
      * Assign permission to role
-     *
-     * @param array $data
-     * @return array
      */
     private function assignPermissionToRole(array $data): array
     {
@@ -302,9 +271,9 @@ class RolePermissionService
                 'data' => [
                     'value' => false,
                     'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ],
-                'status_code' => 400
+                'status_code' => 400,
             ];
         }
 
@@ -314,14 +283,14 @@ class RolePermissionService
         $role = Role::findByName($roleName);
         $permission = Permission::findByName($permissionName);
 
-        if (!$role || !$permission) {
+        if (! $role || ! $permission) {
             return [
                 'success' => false,
                 'data' => [
                     'value' => false,
-                    'message' => 'Role or Permission not found!'
+                    'message' => 'Role or Permission not found!',
                 ],
-                'status_code' => 404
+                'status_code' => 404,
             ];
         }
 
@@ -330,9 +299,9 @@ class RolePermissionService
                 'success' => false,
                 'data' => [
                     'value' => false,
-                    'message' => 'Permission already assigned to role!'
+                    'message' => 'Permission already assigned to role!',
                 ],
-                'status_code' => 409
+                'status_code' => 409,
             ];
         }
 
@@ -340,24 +309,21 @@ class RolePermissionService
 
         Log::info('Permission assigned to role successfully', [
             'role_name' => $roleName,
-            'permission_name' => $permissionName
+            'permission_name' => $permissionName,
         ]);
 
         return [
             'success' => true,
             'data' => [
                 'value' => true,
-                'message' => 'Permission assigned to role successfully!'
+                'message' => 'Permission assigned to role successfully!',
             ],
-            'status_code' => 200
+            'status_code' => 200,
         ];
     }
 
     /**
      * Remove a role (placeholder for future implementation)
-     *
-     * @param array $data
-     * @return array
      */
     private function removeRole(array $data): array
     {
@@ -366,17 +332,14 @@ class RolePermissionService
             'success' => false,
             'data' => [
                 'value' => false,
-                'message' => 'Remove role functionality not implemented yet'
+                'message' => 'Remove role functionality not implemented yet',
             ],
-            'status_code' => 501
+            'status_code' => 501,
         ];
     }
 
     /**
      * Revoke permission from role (placeholder for future implementation)
-     *
-     * @param array $data
-     * @return array
      */
     private function revokePermissionFromRole(array $data): array
     {
@@ -385,18 +348,14 @@ class RolePermissionService
             'success' => false,
             'data' => [
                 'value' => false,
-                'message' => 'Revoke permission functionality not implemented yet'
+                'message' => 'Revoke permission functionality not implemented yet',
             ],
-            'status_code' => 501
+            'status_code' => 501,
         ];
     }
 
     /**
      * Assign role to user internal method
-     *
-     * @param User $user
-     * @param array $data
-     * @return array
      */
     private function assignRoleToUserInternal(User $user, array $data): array
     {
@@ -410,9 +369,9 @@ class RolePermissionService
                 'data' => [
                     'value' => false,
                     'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ],
-                'status_code' => 400
+                'status_code' => 400,
             ];
         }
 
@@ -423,9 +382,9 @@ class RolePermissionService
                 'success' => false,
                 'data' => [
                     'value' => false,
-                    'message' => 'Role already assigned to user!'
+                    'message' => 'Role already assigned to user!',
                 ],
-                'status_code' => 409
+                'status_code' => 409,
             ];
         }
 
@@ -433,25 +392,21 @@ class RolePermissionService
 
         Log::info('Role assigned to user successfully', [
             'user_id' => $user->id,
-            'role' => $roleOrPermission
+            'role' => $roleOrPermission,
         ]);
 
         return [
             'success' => true,
             'data' => [
                 'value' => true,
-                'message' => 'Role assigned to user successfully!'
+                'message' => 'Role assigned to user successfully!',
             ],
-            'status_code' => 200
+            'status_code' => 200,
         ];
     }
 
     /**
      * Assign permission to user internal method
-     *
-     * @param User $user
-     * @param array $data
-     * @return array
      */
     private function assignPermissionToUserInternal(User $user, array $data): array
     {
@@ -465,9 +420,9 @@ class RolePermissionService
                 'data' => [
                     'value' => false,
                     'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ],
-                'status_code' => 400
+                'status_code' => 400,
             ];
         }
 
@@ -478,9 +433,9 @@ class RolePermissionService
                 'success' => false,
                 'data' => [
                     'value' => false,
-                    'message' => 'Permission already assigned to user!'
+                    'message' => 'Permission already assigned to user!',
                 ],
-                'status_code' => 409
+                'status_code' => 409,
             ];
         }
 
@@ -488,16 +443,16 @@ class RolePermissionService
 
         Log::info('Permission assigned to user successfully', [
             'user_id' => $user->id,
-            'permission' => $roleOrPermission
+            'permission' => $roleOrPermission,
         ]);
 
         return [
             'success' => true,
             'data' => [
                 'value' => true,
-                'message' => 'Permission assigned to user successfully!'
+                'message' => 'Permission assigned to user successfully!',
             ],
-            'status_code' => 200
+            'status_code' => 200,
         ];
     }
 }

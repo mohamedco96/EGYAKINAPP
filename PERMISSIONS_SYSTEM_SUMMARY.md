@@ -1,5 +1,35 @@
 # Permissions System Implementation Summary
 
+## 🚀 **Enhanced API Endpoints - NEW FEATURES!**
+
+### **✅ Login Response Now Includes Roles & Permissions**
+The login endpoint now returns roles and permissions immediately, eliminating the need for additional API calls:
+
+```json
+{
+  "value": true,
+  "message": "User logged in successfully",
+  "token": "1|abc123...",
+  "data": { /* user data */ },
+  "roles": ["doctor"],
+  "permissions": ["view-patients", "create-patients", "edit-patients"]
+}
+```
+
+### **✅ Enhanced User Endpoint**
+```http
+GET /api/v2/user
+```
+**Now returns:** User data + roles + permissions for refreshing without re-login
+
+### **✅ Enhanced Permission Check**
+```http
+POST /api/v2/checkPermission
+```
+**Now returns:** Complete roles and permissions list instead of just specific checks
+
+---
+
 ## ✅ What Was Created
 
 A comprehensive permissions system for the EGYAKIN application with **~180 permissions** across **18 categories** and **8 predefined roles**.

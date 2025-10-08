@@ -262,12 +262,12 @@ class RolePermissionSeeder extends Seeder
         $this->command->info('👥 Creating roles...');
 
         // Super Admin - All permissions
-        $superAdmin = Role::firstOrCreate(['name' => 'super-admin']);
-        $superAdmin->syncPermissions(Permission::all());
+        $superAdmin = Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
+        $superAdmin->syncPermissions(Permission::where('guard_name', 'web')->get());
         $this->command->info('✓ Super Admin role created with ALL permissions');
 
         // Admin Role
-        $admin = Role::firstOrCreate(['name' => 'admin']);
+        $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $adminPermissions = [
             // User management
             'view-users', 'view-user-profile', 'create-users', 'edit-users',
@@ -303,11 +303,11 @@ class RolePermissionSeeder extends Seeder
             // Communication
             'send-push-notifications', 'send-bulk-push-notifications', 'create-notifications',
         ];
-        $admin->syncPermissions($adminPermissions);
+        $admin->syncPermissions(Permission::whereIn('name', $adminPermissions)->where('guard_name', 'web')->get());
         $this->command->info('✓ Admin role created');
 
         // Senior Doctor Role
-        $seniorDoctor = Role::firstOrCreate(['name' => 'senior-doctor']);
+        $seniorDoctor = Role::firstOrCreate(['name' => 'senior-doctor', 'guard_name' => 'web']);
         $seniorDoctorPermissions = [
             // Patient management (full)
             'view-patients', 'view-patient-details', 'create-patients', 'edit-patients',
@@ -355,11 +355,11 @@ class RolePermissionSeeder extends Seeder
             // Doses
             'view-doses', 'create-doses', 'edit-doses', 'search-doses',
         ];
-        $seniorDoctor->syncPermissions($seniorDoctorPermissions);
+        $seniorDoctor->syncPermissions(Permission::whereIn('name', $seniorDoctorPermissions)->where('guard_name', 'web')->get());
         $this->command->info('✓ Senior Doctor role created');
 
         // Doctor (Standard) Role
-        $doctor = Role::firstOrCreate(['name' => 'doctor']);
+        $doctor = Role::firstOrCreate(['name' => 'doctor', 'guard_name' => 'web']);
         $doctorPermissions = [
             // Patient management (own + view all)
             'view-patients', 'view-patient-details', 'create-patients', 'edit-patients',
@@ -415,11 +415,11 @@ class RolePermissionSeeder extends Seeder
             // Sharing
             'generate-share-urls', 'view-share-preview',
         ];
-        $doctor->syncPermissions($doctorPermissions);
+        $doctor->syncPermissions(Permission::whereIn('name', $doctorPermissions)->where('guard_name', 'web')->get());
         $this->command->info('✓ Doctor role created');
 
         // Junior Doctor Role
-        $juniorDoctor = Role::firstOrCreate(['name' => 'junior-doctor']);
+        $juniorDoctor = Role::firstOrCreate(['name' => 'junior-doctor', 'guard_name' => 'web']);
         $juniorDoctorPermissions = [
             // Patient management (limited)
             'view-patients', 'view-patient-details', 'create-patients',
@@ -456,11 +456,11 @@ class RolePermissionSeeder extends Seeder
             // Doses
             'view-doses', 'search-doses',
         ];
-        $juniorDoctor->syncPermissions($juniorDoctorPermissions);
+        $juniorDoctor->syncPermissions(Permission::whereIn('name', $juniorDoctorPermissions)->where('guard_name', 'web')->get());
         $this->command->info('✓ Junior Doctor role created');
 
         // Moderator Role
-        $moderator = Role::firstOrCreate(['name' => 'moderator']);
+        $moderator = Role::firstOrCreate(['name' => 'moderator', 'guard_name' => 'web']);
         $moderatorPermissions = [
             // Content moderation
             'view-posts', 'edit-any-post', 'delete-any-post', 'moderate-posts',
@@ -477,11 +477,11 @@ class RolePermissionSeeder extends Seeder
             // Reports
             'view-reports',
         ];
-        $moderator->syncPermissions($moderatorPermissions);
+        $moderator->syncPermissions(Permission::whereIn('name', $moderatorPermissions)->where('guard_name', 'web')->get());
         $this->command->info('✓ Moderator role created');
 
         // Content Manager Role
-        $contentManager = Role::firstOrCreate(['name' => 'content-manager']);
+        $contentManager = Role::firstOrCreate(['name' => 'content-manager', 'guard_name' => 'web']);
         $contentManagerPermissions = [
             // Content
             'view-posts', 'create-posts', 'edit-posts', 'delete-posts',
@@ -498,11 +498,11 @@ class RolePermissionSeeder extends Seeder
             // Media
             'upload-images', 'upload-videos',
         ];
-        $contentManager->syncPermissions($contentManagerPermissions);
+        $contentManager->syncPermissions(Permission::whereIn('name', $contentManagerPermissions)->where('guard_name', 'web')->get());
         $this->command->info('✓ Content Manager role created');
 
         // Viewer Role
-        $viewer = Role::firstOrCreate(['name' => 'viewer']);
+        $viewer = Role::firstOrCreate(['name' => 'viewer', 'guard_name' => 'web']);
         $viewerPermissions = [
             // View only
             'view-posts', 'view-trending-posts', 'search-posts',
@@ -511,7 +511,7 @@ class RolePermissionSeeder extends Seeder
             'view-notifications', 'mark-notification-read',
             'view-doses', 'search-doses',
         ];
-        $viewer->syncPermissions($viewerPermissions);
+        $viewer->syncPermissions(Permission::whereIn('name', $viewerPermissions)->where('guard_name', 'web')->get());
         $this->command->info('✓ Viewer role created');
 
         $this->command->info('✓ All 8 roles created and configured');

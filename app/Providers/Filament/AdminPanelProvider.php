@@ -7,6 +7,7 @@ use App\Filament\Widgets\CoreMedicalOverview;
 use App\Filament\Widgets\QuickActionsWidget;
 use App\Filament\Widgets\RecentActivityTable;
 use App\Filament\Widgets\RecentConsultationsTable;
+use App\Filament\Widgets\RolePermissionChartWidget;
 use App\Modules\Achievements\Filament\Resources\AchievementResource;
 use App\Modules\Doses\Resources\DoseResource;
 use App\Modules\Patients\Resources\PatientsResource;
@@ -55,6 +56,7 @@ class AdminPanelProvider extends PanelProvider
                 RecentActivityTable::class,
                 RecentConsultationsTable::class,
                 QuickActionsWidget::class,
+                RolePermissionChartWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

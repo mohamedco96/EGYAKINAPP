@@ -129,7 +129,7 @@ class AnalyticsController extends Controller
                         AND TRIM(answers.answer) != ""
                         AND TRIM(answers.answer) IS NOT NULL
                     THEN answers.answer
-                    ELSE "Unknown"
+                    ELSE "Not Registered"
                 END as department_name,
                 COUNT(*) as count
             ')
@@ -216,15 +216,18 @@ class AnalyticsController extends Controller
             ->where('patients.hidden', false)
             ->selectRaw('
                 CASE 
-                    WHEN JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
+                    WHEN JSON_VALID(answers.answer) = 1 
+                        AND JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
                         AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) != ""
                         AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) IS NOT NULL
                     THEN TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]"))
-                    WHEN answers.answer IS NOT NULL 
+                    WHEN JSON_VALID(answers.answer) = 0 
+                        AND answers.answer IS NOT NULL 
                         AND TRIM(answers.answer) != ""
                         AND TRIM(answers.answer) IS NOT NULL
+                        AND answers.answer != "null"
                     THEN answers.answer
-                    ELSE "Unknown"
+                    ELSE "Not Registered"
                 END as diagnosis_name,
                 COUNT(*) as count
             ')
@@ -245,15 +248,18 @@ class AnalyticsController extends Controller
             ->where('patients.hidden', false)
             ->selectRaw('
                 CASE 
-                    WHEN JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
+                    WHEN JSON_VALID(answers.answer) = 1 
+                        AND JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
                         AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) != ""
                         AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) IS NOT NULL
                     THEN TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]"))
-                    WHEN answers.answer IS NOT NULL 
+                    WHEN JSON_VALID(answers.answer) = 0 
+                        AND answers.answer IS NOT NULL 
                         AND TRIM(answers.answer) != ""
                         AND TRIM(answers.answer) IS NOT NULL
+                        AND answers.answer != "null"
                     THEN answers.answer
-                    ELSE "Unknown"
+                    ELSE "Not Registered"
                 END as aki_cause,
                 COUNT(*) as count
             ')
@@ -300,15 +306,18 @@ class AnalyticsController extends Controller
             ->where('patients.hidden', false)
             ->selectRaw('
                 CASE 
-                    WHEN JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
+                    WHEN JSON_VALID(answers.answer) = 1 
+                        AND JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
                         AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) != ""
                         AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) IS NOT NULL
                     THEN TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]"))
-                    WHEN answers.answer IS NOT NULL 
+                    WHEN JSON_VALID(answers.answer) = 0 
+                        AND answers.answer IS NOT NULL 
                         AND TRIM(answers.answer) != ""
                         AND TRIM(answers.answer) IS NOT NULL
+                        AND answers.answer != "null"
                     THEN answers.answer
-                    ELSE "Unknown"
+                    ELSE "Not Registered"
                 END as outcome_value,
                 COUNT(*) as count
             ')

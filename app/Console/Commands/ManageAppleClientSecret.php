@@ -14,7 +14,7 @@ class ManageAppleClientSecret extends Command
      * @var string
      */
     protected $signature = 'apple:manage-secret 
-                            {action : Action to perform (generate, check, renew)}
+                            {action : Action to perform (generate, check, renew, debug)}
                             {--env= : Environment (dev, staging, prod)}
                             {--auto-renew : Automatically renew if expired}';
 
@@ -40,8 +40,10 @@ class ManageAppleClientSecret extends Command
                 return $this->generateNewSecret($env);
             case 'renew':
                 return $this->renewSecret($env);
+            case 'debug':
+                return $this->debugConfiguration($env);
             default:
-                $this->error('Invalid action. Use: check, generate, or renew');
+                $this->error('Invalid action. Use: check, generate, renew, or debug');
 
                 return 1;
         }
@@ -159,6 +161,61 @@ class ManageAppleClientSecret extends Command
     }
 
     /**
+     * Debug Apple configuration
+     */
+    private function debugConfiguration($env)
+    {
+        $this->info("Debugging Apple Configuration for {$env}...");
+        $this->line('=====================================');
+
+        $envFile = $this->getEnvFile($env);
+        $this->line("Environment file: {$envFile}");
+        $this->line('File exists: '.(file_exists($envFile) ? 'Yes' : 'No'));
+
+        if (! file_exists($envFile)) {
+            $this->error('Environment file not found!');
+
+            return 1;
+        }
+
+        $config = $this->getAppleConfig($env);
+
+        if (! $config) {
+            $this->error('Failed to load Apple configuration!');
+
+            return 1;
+        }
+
+        $this->line("\nConfiguration loaded:");
+        $this->line('Team ID: '.($config['team_id'] ?? 'NOT SET'));
+        $this->line('Client ID: '.($config['client_id'] ?? 'NOT SET'));
+        $this->line('Key ID: '.($config['key_id'] ?? 'NOT SET'));
+
+        $privateKey = $config['private_key'] ?? null;
+        if ($privateKey) {
+            $this->line('Private Key Length: '.strlen($privateKey).' characters');
+            $this->line('Private Key Valid: '.($this->isValidPrivateKey($privateKey) ? 'Yes' : 'No'));
+            $this->line('Private Key Preview: '.substr($privateKey, 0, 50).'...');
+
+            // Test OpenSSL
+            $this->line("\nOpenSSL Test:");
+            $testData = 'test';
+            $signature = '';
+            $success = openssl_sign($testData, $signature, $privateKey, OPENSSL_ALGO_SHA256);
+            $this->line('OpenSSL Sign Test: '.($success ? 'SUCCESS' : 'FAILED'));
+
+            if (! $success) {
+                $error = openssl_error_string();
+                $this->error('OpenSSL Error: '.($error ?: 'Unknown error'));
+            }
+        } else {
+            $this->error('Private Key: NOT SET');
+        }
+
+        return 0;
+    }
+
+    /**
      * Get Apple configuration from environment file
      */
     private function getAppleConfig($env)
@@ -175,12 +232,49 @@ class ManageAppleClientSecret extends Command
         $required = ['APPLE_TEAM_ID', 'APPLE_CLIENT_ID', 'APPLE_KEY_ID', 'APPLE_PRIVATE_KEY'];
 
         foreach ($required as $key) {
-            if (preg_match("/^{$key}=(.+)$/m", $envContent, $matches)) {
-                $config[strtolower(str_replace('APPLE_', '', $key))] = $matches[1];
-            } else {
-                $this->error("Missing {$key} in environment file");
+            if ($key === 'APPLE_PRIVATE_KEY') {
+                // Special handling for multi-line private key
+                // Match quoted multi-line values (including newlines) or unquoted values
+                if (preg_match("/^{$key}=\"(.+?)\"/ms", $envContent, $matches) ||
+                    preg_match("/^{$key}='(.+?)'/ms", $envContent, $matches) ||
+                    preg_match("/^{$key}=(.+)(?=^[A-Z_]+=|$)/ms", $envContent, $matches)) {
 
-                return null;
+                    $privateKey = trim($matches[1]);
+                    // Convert \n to actual newlines if present
+                    $privateKey = str_replace('\\n', "\n", $privateKey);
+
+                    // Ensure the private key has proper markers and formatting
+                    if (! str_contains($privateKey, '-----BEGIN PRIVATE KEY-----')) {
+                        $privateKey = "-----BEGIN PRIVATE KEY-----\n".$privateKey;
+                    }
+                    if (! str_contains($privateKey, '-----END PRIVATE KEY-----')) {
+                        $privateKey = $privateKey."\n-----END PRIVATE KEY-----";
+                    }
+
+                    // Ensure proper newline formatting
+                    $privateKey = str_replace('-----BEGIN PRIVATE KEY-----', "-----BEGIN PRIVATE KEY-----\n", $privateKey);
+                    $privateKey = str_replace('-----END PRIVATE KEY-----', "\n-----END PRIVATE KEY-----", $privateKey);
+
+                    // Clean up any double newlines
+                    $privateKey = preg_replace('/\n\n+/', "\n", $privateKey);
+
+                    $config[strtolower(str_replace('APPLE_', '', $key))] = $privateKey;
+                } else {
+                    $this->error("Missing {$key} in environment file");
+
+                    return null;
+                }
+            } else {
+                if (preg_match("/^{$key}=(.+)$/m", $envContent, $matches)) {
+                    $value = trim($matches[1]);
+                    // Remove surrounding quotes if present
+                    $value = trim($value, '"\'');
+                    $config[strtolower(str_replace('APPLE_', '', $key))] = $value;
+                } else {
+                    $this->error("Missing {$key} in environment file");
+
+                    return null;
+                }
             }
         }
 
@@ -192,6 +286,11 @@ class ManageAppleClientSecret extends Command
      */
     private function generateAppleClientSecret($teamId, $clientId, $keyId, $privateKey)
     {
+        // Validate private key format
+        if (! $this->isValidPrivateKey($privateKey)) {
+            throw new Exception('Invalid private key format. Ensure it starts with "-----BEGIN PRIVATE KEY-----" and ends with "-----END PRIVATE KEY-----"');
+        }
+
         $header = [
             'alg' => 'ES256',
             'kid' => $keyId,
@@ -217,12 +316,29 @@ class ManageAppleClientSecret extends Command
         );
 
         if (! $success) {
-            throw new Exception('Failed to sign JWT token');
+            $error = openssl_error_string();
+            throw new Exception('Failed to sign JWT token. OpenSSL error: '.($error ?: 'Unknown error'));
         }
 
         $signatureEncoded = $this->base64url_encode($signature);
 
         return $headerEncoded.'.'.$payloadEncoded.'.'.$signatureEncoded;
+    }
+
+    /**
+     * Validate private key format
+     */
+    private function isValidPrivateKey($privateKey)
+    {
+        if (empty($privateKey)) {
+            return false;
+        }
+
+        // Check if it starts and ends with the correct markers
+        $startsWithBegin = strpos($privateKey, '-----BEGIN PRIVATE KEY-----') === 0;
+        $endsWithEnd = strpos($privateKey, '-----END PRIVATE KEY-----') !== false;
+
+        return $startsWithBegin && $endsWithEnd;
     }
 
     /**

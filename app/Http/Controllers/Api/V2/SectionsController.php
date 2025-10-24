@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api\V2;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\V1\SectionsController as V1SectionsController;
+use App\Http\Controllers\Controller;
 use App\Modules\Sections\Requests\UpdateFinalSubmitRequest;
 
 class SectionsController extends Controller

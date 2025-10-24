@@ -52,6 +52,7 @@ class User extends Authenticatable implements FilamentUser
         'apple_id',
         'avatar',
         'social_verified_at',
+        'profile_completed',
     ];
 
     /**
@@ -75,6 +76,7 @@ class User extends Authenticatable implements FilamentUser
         'social_verified_at' => 'datetime',
         'blocked' => 'boolean',
         'limited' => 'boolean',
+        'profile_completed' => 'boolean',
         'locale' => 'string',
     ];
 
@@ -268,11 +270,37 @@ class User extends Authenticatable implements FilamentUser
      */
     public static function createFromSocial($provider, $socialUser)
     {
+        // Extract name with fallbacks
+        $name = $socialUser->getName() ?: $socialUser->getNickname();
+
+        // If still no name, use email username or generate a placeholder
+        if (! $name && $socialUser->getEmail()) {
+            $name = explode('@', $socialUser->getEmail())[0];
+        } elseif (! $name) {
+            $name = ucfirst($provider).' User'; // Fallback: "Apple User" or "Google User"
+        }
+
+        // Handle email - Apple sometimes doesn't provide it
+        $email = $socialUser->getEmail();
+        if (! $email) {
+            // Generate a placeholder email for Apple users without email
+            $email = $socialUser->getId().'@'.$provider.'-user.egyakin.com';
+        }
+
+        // Check if we have real email and name (not placeholders)
+        $hasRealEmail = $socialUser->getEmail() && ! str_contains($email, '@apple-user.egyakin.com') && ! str_contains($email, '@google-user.egyakin.com');
+        $hasRealName = $socialUser->getName() || $socialUser->getNickname();
+
+        // Profile is complete only if both name and email are provided
+        $profileCompleted = $hasRealEmail && $hasRealName;
+
         $userData = [
-            'name' => $socialUser->getName(),
-            'email' => $socialUser->getEmail(),
+            'name' => $name,
+            'email' => $email,
             'avatar' => $socialUser->getAvatar(),
             'social_verified_at' => now(),
+            'password' => bcrypt(\Illuminate\Support\Str::random(32)), // Random password for social users
+            'profile_completed' => $profileCompleted,
         ];
 
         $userData[$provider.'_id'] = $socialUser->getId();

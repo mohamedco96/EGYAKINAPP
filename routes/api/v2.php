@@ -282,7 +282,26 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
     Route::get('/share/preview', [ShareController::class, 'getPreview']);
 });
 
-// Authenticated user route
+// Authenticated user route with roles and permissions
 Route::middleware(['auth:sanctum', 'check.blocked.home'])->get('/user', function (Request $request) {
-    return $request->user();
+    $user = $request->user();
+
+    // Load roles and permissions
+    $user->load(['roles:id,name', 'permissions:id,name']);
+
+    // Get all permissions (direct + from roles)
+    $allPermissions = $user->getAllPermissions()->pluck('name')->unique()->values();
+
+    return [
+        'id' => $user->id,
+        'name' => $user->name,
+        'email' => $user->email,
+        'profile_completed' => $user->profile_completed,
+        'avatar' => $user->avatar,
+        'locale' => $user->locale,
+        'roles' => $user->roles->pluck('name'),
+        'permissions' => $allPermissions,
+        'created_at' => $user->created_at,
+        'updated_at' => $user->updated_at,
+    ];
 });

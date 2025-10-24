@@ -100,4 +100,4 @@ Route::get('/apple-signin-test', function () {
 Route::get('/auth/social/google', [SocialAuthController::class, 'redirectToGoogle'])->name('google.redirect');
 Route::get('/auth/social/google/callback', [SocialAuthController::class, 'handleGoogleCallback'])->name('google.callback');
 Route::get('/auth/social/apple', [SocialAuthController::class, 'redirectToApple'])->name('apple.redirect');
-Route::get('/auth/social/apple/callback', [SocialAuthController::class, 'handleAppleCallback'])->name('apple.callback');
+Route::match(['get', 'post'], '/auth/social/apple/callback', [SocialAuthController::class, 'handleAppleCallback'])->name('apple.callback');

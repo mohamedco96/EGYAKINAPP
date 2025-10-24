@@ -88,6 +88,7 @@ class AnalyticsController extends Controller
         $maleCount = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $genderQuestionId)
             ->where('patients.hidden', false)
+            ->whereNull('answers.type')
             ->where(function ($query) {
                 $query->whereRaw('LOWER(answers.answer) LIKE "%male%"')
                     ->whereRaw('LOWER(answers.answer) NOT LIKE "%female%"')
@@ -99,6 +100,7 @@ class AnalyticsController extends Controller
         $femaleCount = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $genderQuestionId)
             ->where('patients.hidden', false)
+            ->whereNull('answers.type')
             ->where(function ($query) {
                 $query->whereRaw('LOWER(answers.answer) LIKE "%female%"')
                     ->orWhereRaw('LOWER(JSON_EXTRACT(answers.answer, "$[0]")) LIKE "%female%"');
@@ -119,22 +121,30 @@ class AnalyticsController extends Controller
         $departmentStats = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $departmentQuestionId)
             ->where('patients.hidden', false)
+            ->whereNotNull('answers.answer')
+            ->where('answers.answer', '!=', '')
+            ->whereNull('answers.type')
             ->selectRaw('
                 CASE 
-                    WHEN JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
+                    WHEN JSON_VALID(answers.answer) = 1 
+                        AND JSON_EXTRACT(answers.answer, "$[0]") IS NOT NULL 
                         AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) != ""
                         AND TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]")) IS NOT NULL
                     THEN TRIM(BOTH \'"\' FROM JSON_EXTRACT(answers.answer, "$[0]"))
-                    WHEN answers.answer IS NOT NULL 
+                    WHEN JSON_VALID(answers.answer) = 0 
+                        AND answers.answer IS NOT NULL 
                         AND TRIM(answers.answer) != ""
                         AND TRIM(answers.answer) IS NOT NULL
-                    THEN answers.answer
+                        AND answers.answer != "null"
+                        AND answers.answer != "\"\""
+                    THEN TRIM(BOTH \'"\' FROM answers.answer)
                     ELSE "Not Registered"
                 END as department_name,
                 COUNT(*) as count
             ')
             ->groupBy('department_name')
             ->havingRaw('department_name != ""')
+            ->orderBy('count', 'desc')
             ->pluck('count', 'department_name');
 
         return $departmentStats->toArray();
@@ -148,6 +158,7 @@ class AnalyticsController extends Controller
         $yesCount = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $dmQuestionId)
             ->where('patients.hidden', false)
+            ->whereNull('answers.type')
             ->where(function ($query) {
                 $query->whereRaw('LOWER(answers.answer) LIKE "%yes%"')
                     ->orWhereRaw('LOWER(answers.answer) LIKE "%positive%"')
@@ -159,6 +170,7 @@ class AnalyticsController extends Controller
         $noCount = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $dmQuestionId)
             ->where('patients.hidden', false)
+            ->whereNull('answers.type')
             ->where(function ($query) {
                 $query->whereRaw('LOWER(answers.answer) LIKE "%no%"')
                     ->orWhereRaw('LOWER(answers.answer) LIKE "%negative%"')
@@ -181,6 +193,7 @@ class AnalyticsController extends Controller
         $yesCount = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $htnQuestionId)
             ->where('patients.hidden', false)
+            ->whereNull('answers.type')
             ->where(function ($query) {
                 $query->whereRaw('LOWER(answers.answer) LIKE "%yes%"')
                     ->orWhereRaw('LOWER(answers.answer) LIKE "%positive%"')
@@ -192,6 +205,7 @@ class AnalyticsController extends Controller
         $noCount = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $htnQuestionId)
             ->where('patients.hidden', false)
+            ->whereNull('answers.type')
             ->where(function ($query) {
                 $query->whereRaw('LOWER(answers.answer) LIKE "%no%"')
                     ->orWhereRaw('LOWER(answers.answer) LIKE "%negative%"')
@@ -214,6 +228,8 @@ class AnalyticsController extends Controller
         $diagnosisStats = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $diagnosisQuestionId)
             ->where('patients.hidden', false)
+            ->whereNotNull('answers.answer')
+            ->where('answers.answer', '!=', '')
             ->selectRaw('
                 CASE 
                     WHEN JSON_VALID(answers.answer) = 1 
@@ -226,13 +242,15 @@ class AnalyticsController extends Controller
                         AND TRIM(answers.answer) != ""
                         AND TRIM(answers.answer) IS NOT NULL
                         AND answers.answer != "null"
-                    THEN answers.answer
+                        AND answers.answer != "\"\""
+                    THEN TRIM(BOTH \'"\' FROM answers.answer)
                     ELSE "Not Registered"
                 END as diagnosis_name,
                 COUNT(*) as count
             ')
             ->groupBy('diagnosis_name')
             ->havingRaw('diagnosis_name != ""')
+            ->orderBy('count', 'desc')
             ->pluck('count', 'diagnosis_name');
 
         return $diagnosisStats->toArray();
@@ -246,6 +264,8 @@ class AnalyticsController extends Controller
         $akiStats = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $akiQuestionId)
             ->where('patients.hidden', false)
+            ->whereNotNull('answers.answer')
+            ->where('answers.answer', '!=', '')
             ->selectRaw('
                 CASE 
                     WHEN JSON_VALID(answers.answer) = 1 
@@ -258,13 +278,15 @@ class AnalyticsController extends Controller
                         AND TRIM(answers.answer) != ""
                         AND TRIM(answers.answer) IS NOT NULL
                         AND answers.answer != "null"
-                    THEN answers.answer
+                        AND answers.answer != "\"\""
+                    THEN TRIM(BOTH \'"\' FROM answers.answer)
                     ELSE "Not Registered"
                 END as aki_cause,
                 COUNT(*) as count
             ')
             ->groupBy('aki_cause')
             ->havingRaw('aki_cause != ""')
+            ->orderBy('count', 'desc')
             ->pluck('count', 'aki_cause');
 
         return $akiStats->toArray();
@@ -283,6 +305,7 @@ class AnalyticsController extends Controller
         $dialysisCount = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $dialysisQuestionId)
             ->where('patients.hidden', false)
+            ->whereNull('answers.type')
             ->where(function ($query) {
                 $query->where('answers.answer', 'LIKE', '%yes%')
                     ->orWhere('answers.answer', 'LIKE', '%positive%')
@@ -304,6 +327,9 @@ class AnalyticsController extends Controller
         $outcomeStats = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $outcomeQuestionId)
             ->where('patients.hidden', false)
+            ->whereNotNull('answers.answer')
+            ->where('answers.answer', '!=', '')
+            ->whereNull('answers.type')
             ->selectRaw('
                 CASE 
                     WHEN JSON_VALID(answers.answer) = 1 
@@ -316,13 +342,15 @@ class AnalyticsController extends Controller
                         AND TRIM(answers.answer) != ""
                         AND TRIM(answers.answer) IS NOT NULL
                         AND answers.answer != "null"
-                    THEN answers.answer
+                        AND answers.answer != "\"\""
+                    THEN TRIM(BOTH \'"\' FROM answers.answer)
                     ELSE "Not Registered"
                 END as outcome_value,
                 COUNT(*) as count
             ')
             ->groupBy('outcome_value')
             ->havingRaw('outcome_value != ""')
+            ->orderBy('count', 'desc')
             ->get()
             ->mapWithKeys(function ($item) use ($totalPatients) {
                 $percentage = $totalPatients > 0 ? round(($item->count / $totalPatients) * 100, 2) : 0;

@@ -50,7 +50,7 @@ The system organizes permissions into categories:
 
 #### Login
 ```http
-POST /api/login
+POST /api/v2/login
 ```
 
 **Request Body:**
@@ -78,16 +78,30 @@ POST /api/login
     "email": "user@example.com",
     "image": "https://...",
     "specialty": "Cardiology",
-    // ... other user fields
-  }
+    "profile_completed": true,
+    "avatar": "https://...",
+    "locale": "en"
+  },
+  "roles": ["doctor"],
+  "permissions": [
+    "view-patients",
+    "create-patients",
+    "edit-patients",
+    "view-posts",
+    "create-posts",
+    "use-ai-consultation",
+    "view-consultations",
+    "create-consultations"
+  ],
+  "status_code": 200
 }
 ```
 
-**Note:** The current login response does NOT include roles and permissions. You need to fetch them separately or modify the backend.
+**✅ Enhanced:** The login response now includes roles and permissions immediately!
 
 #### Get Current User
 ```http
-GET /api/user
+GET /api/v2/user
 Authorization: Bearer {token}
 ```
 
@@ -97,69 +111,69 @@ Authorization: Bearer {token}
   "id": 1,
   "name": "John",
   "email": "user@example.com",
-  // Standard user fields
-  // Note: Does not include roles/permissions by default
+  "profile_completed": true,
+  "avatar": "https://...",
+  "locale": "en",
+  "roles": ["doctor"],
+  "permissions": [
+    "view-patients",
+    "create-patients",
+    "edit-patients",
+    "view-posts",
+    "create-posts",
+    "use-ai-consultation"
+  ],
+  "created_at": "2025-01-01T00:00:00.000000Z",
+  "updated_at": "2025-01-01T00:00:00.000000Z"
 }
 ```
+
+**✅ Enhanced:** The user endpoint now includes roles and permissions for refreshing without re-login!
 
 ### 2. Role & Permission Endpoints
 
 #### Check User Permissions
 ```http
-POST /api/checkPermission
+POST /api/v2/checkPermission
 Authorization: Bearer {token}
 ```
 
 **Request Body:** None required
 
-**Response (Admin Role):**
+**Response (Enhanced):**
 ```json
 {
-  "value": true,
-  "message": "user have admin role"
+  "success": true,
+  "data": {
+    "value": true,
+    "message": "User permissions retrieved successfully",
+    "roles": ["doctor"],
+    "permissions": [
+      "view-patients",
+      "create-patients",
+      "edit-patients",
+      "view-posts",
+      "create-posts",
+      "use-ai-consultation"
+    ],
+    "has_admin_role": false,
+    "has_super_admin_role": false
+  },
+  "status_code": 200
 }
 ```
 
-**Response (Specific Permission):**
-```json
-{
-  "value": true,
-  "message": "User has permission to delete patient"
-}
-```
-
-**Response (No Permission):**
-```json
-{
-  "value": false,
-  "message": "User does not have permission to edit articles"
-}
-```
-
-**Note:** This endpoint currently only checks for:
-- Admin role
-- Delete patient permission
-It needs to be enhanced for more flexible permission checking.
+**✅ Enhanced:** Now returns complete roles and permissions list instead of just checking specific permissions!
 
 #### Assign Role to User
 ```http
-POST /api/assignRoleToUser
+POST /api/v2/assignRoleToUser
 Authorization: Bearer {token}
-```
+Content-Type: application/json
 
-**Request Body (Assign Role):**
-```json
 {
-  "action": "assign_role",
-  "roleOrPermission": "admin"
-}
-```
-
-**Request Body (Assign Permission):**
-```json
-{
-  "action": "assign_permission",
-  "roleOrPermission": "delete patient"
+  "user_id": 1,
+  "role_name": "doctor"
 }
 ```
 
@@ -171,34 +185,28 @@ Authorization: Bearer {token}
 }
 ```
 
-#### Create Role or Permission
+#### Create Role and Permission
 ```http
-POST /api/createRoleAndPermission
+POST /api/v2/createRoleAndPermission
 Authorization: Bearer {token}
-```
+Content-Type: application/json
 
-**Request Body (Create Role):**
-```json
 {
   "action": "create_role",
-  "role": "moderator"
+  "role_name": "moderator"
 }
 ```
 
-**Request Body (Create Permission):**
+**Response:**
 ```json
 {
-  "action": "create_permission",
-  "permission": "edit posts"
-}
-```
-
-**Request Body (Assign Permission to Role):**
-```json
-{
-  "action": "assign_permission",
-  "role": "moderator",
-  "permission": "edit posts"
+  "value": true,
+  "message": "Role created successfully!",
+  "role": {
+    "id": 1,
+    "name": "moderator",
+    "guard_name": "web"
+  }
 }
 ```
 
@@ -208,939 +216,466 @@ Authorization: Bearer {token}
 
 ### 1. Data Models
 
-Create Flutter models to represent user permissions:
+Create models to represent the API responses:
 
 ```dart
-// models/user_permission.dart
-class UserPermissions {
-  final List<String> roles;
-  final List<String> permissions;
-  
-  UserPermissions({
-    required this.roles,
-    required this.permissions,
-  });
-  
-  factory UserPermissions.fromJson(Map<String, dynamic> json) {
-    return UserPermissions(
-      roles: json['roles'] != null 
-          ? List<String>.from(json['roles'].map((r) => r['name'] ?? r))
-          : [],
-      permissions: json['permissions'] != null
-          ? List<String>.from(json['permissions'].map((p) => p['name'] ?? p))
-          : [],
-    );
-  }
-  
-  Map<String, dynamic> toJson() {
-    return {
-      'roles': roles,
-      'permissions': permissions,
-    };
-  }
-  
-  bool hasRole(String role) {
-    return roles.contains(role);
-  }
-  
-  bool hasPermission(String permission) {
-    return permissions.contains(permission);
-  }
-  
-  bool hasAnyRole(List<String> roleList) {
-    return roleList.any((role) => roles.contains(role));
-  }
-  
-  bool hasAnyPermission(List<String> permissionList) {
-    return permissionList.any((perm) => permissions.contains(perm));
-  }
-  
-  bool hasAllPermissions(List<String> permissionList) {
-    return permissionList.every((perm) => permissions.contains(perm));
-  }
-  
-  bool get isAdmin => hasRole('admin');
-  bool get isModerator => hasRole('moderator');
-}
-```
-
-```dart
-// models/user.dart
 class User {
   final int id;
   final String name;
-  final String? lname;
   final String email;
-  final String? image;
-  final String? specialty;
-  final UserPermissions? permissions;
-  // ... other fields
+  final bool profileCompleted;
+  final String? avatar;
+  final String locale;
+  final List<String> roles;
+  final List<String> permissions;
   
   User({
     required this.id,
     required this.name,
-    this.lname,
     required this.email,
-    this.image,
-    this.specialty,
-    this.permissions,
+    required this.profileCompleted,
+    this.avatar,
+    required this.locale,
+    required this.roles,
+    required this.permissions,
   });
   
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'],
       name: json['name'],
-      lname: json['lname'],
       email: json['email'],
-      image: json['image'],
-      specialty: json['specialty'],
-      permissions: json['roles'] != null || json['permissions'] != null
-          ? UserPermissions.fromJson(json)
-          : null,
+      profileCompleted: json['profile_completed'] ?? false,
+      avatar: json['avatar'],
+      locale: json['locale'] ?? 'en',
+      roles: List<String>.from(json['roles'] ?? []),
+      permissions: List<String>.from(json['permissions'] ?? []),
     );
   }
-  
-  String get fullName => lname != null ? '$name $lname' : name;
 }
-```
 
-### 2. Permission Service
-
-Create a service to manage permissions:
-
-```dart
-// services/permission_service.dart
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
-import '../models/user_permission.dart';
-import 'api_service.dart';
-
-class PermissionService {
-  static const String _permissionsKey = 'user_permissions';
-  final ApiService _apiService;
+class LoginResponse {
+  final bool value;
+  final String message;
+  final String token;
+  final User data;
+  final List<String> roles;
+  final List<String> permissions;
   
-  PermissionService(this._apiService);
+  LoginResponse({
+    required this.value,
+    required this.message,
+    required this.token,
+    required this.data,
+    required this.roles,
+    required this.permissions,
+  });
   
-  // Cache permissions locally
-  Future<void> cachePermissions(UserPermissions permissions) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_permissionsKey, jsonEncode(permissions.toJson()));
-  }
-  
-  // Get cached permissions
-  Future<UserPermissions?> getCachedPermissions() async {
-    final prefs = await SharedPreferences.getInstance();
-    final cached = prefs.getString(_permissionsKey);
-    if (cached != null) {
-      return UserPermissions.fromJson(jsonDecode(cached));
-    }
-    return null;
-  }
-  
-  // Clear cached permissions (on logout)
-  Future<void> clearPermissions() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_permissionsKey);
-  }
-  
-  // Fetch permissions from API
-  // Note: You'll need to enhance the backend to return permissions
-  Future<UserPermissions?> fetchUserPermissions() async {
-    try {
-      // Option 1: Use the check permission endpoint (limited functionality)
-      final response = await _apiService.post('/checkPermission');
-      
-      // Option 2: Fetch user data with roles/permissions included
-      // This requires backend modification to include roles/permissions
-      // in the /api/user endpoint response
-      
-      // For now, using Option 1:
-      if (response['value'] == true) {
-        // Parse based on message (this is temporary until backend is enhanced)
-        List<String> roles = [];
-        List<String> permissions = [];
-        
-        if (response['message'].contains('admin role')) {
-          roles.add('admin');
-        }
-        if (response['message'].contains('delete patient')) {
-          permissions.add('delete patient');
-        }
-        
-        final userPermissions = UserPermissions(
-          roles: roles,
-          permissions: permissions,
-        );
-        
-        await cachePermissions(userPermissions);
-        return userPermissions;
-      }
-      
-      return null;
-    } catch (e) {
-      print('Error fetching permissions: $e');
-      // Return cached permissions as fallback
-      return await getCachedPermissions();
-    }
-  }
-  
-  // Check if user has specific role
-  Future<bool> hasRole(String role) async {
-    final permissions = await getCachedPermissions();
-    return permissions?.hasRole(role) ?? false;
-  }
-  
-  // Check if user has specific permission
-  Future<bool> hasPermission(String permission) async {
-    final permissions = await getCachedPermissions();
-    return permissions?.hasPermission(permission) ?? false;
-  }
-  
-  // Check if user is admin
-  Future<bool> isAdmin() async {
-    return await hasRole('admin');
+  factory LoginResponse.fromJson(Map<String, dynamic> json) {
+    return LoginResponse(
+      value: json['value'],
+      message: json['message'],
+      token: json['token'],
+      data: User.fromJson(json['data']),
+      roles: List<String>.from(json['roles'] ?? []),
+      permissions: List<String>.from(json['permissions'] ?? []),
+    );
   }
 }
 ```
 
-### 3. Authentication Service Enhancement
-
-Enhance your authentication service to handle permissions:
+### 2. API Service
 
 ```dart
-// services/auth_service.dart
-import '../models/user.dart';
-import '../models/user_permission.dart';
-import 'api_service.dart';
-import 'permission_service.dart';
-
 class AuthService {
-  final ApiService _apiService;
-  final PermissionService _permissionService;
+  final Dio _dio = Dio();
   
-  AuthService(this._apiService, this._permissionService);
-  
-  Future<User?> login(String email, String password) async {
+  Future<LoginResponse> login(String email, String password) async {
     try {
-      final response = await _apiService.post('/login', {
-        'email': email,
-        'password': password,
-      });
+      final response = await _dio.post(
+        'https://your-api.com/api/v2/login',
+        data: {
+          'email': email,
+          'password': password,
+        },
+      );
       
-      if (response['value'] == true) {
-        // Save token
-        await _apiService.saveToken(response['token']);
-        
-        // Parse user data
-        final user = User.fromJson(response['data']);
-        
-        // Fetch and cache permissions
-        await _permissionService.fetchUserPermissions();
-        
-        return user;
-      }
-      
-      return null;
+      return LoginResponse.fromJson(response.data);
     } catch (e) {
-      print('Login error: $e');
-      rethrow;
+      throw Exception('Login failed: $e');
     }
   }
   
-  Future<void> logout() async {
-    await _apiService.post('/logout');
-    await _apiService.clearToken();
-    await _permissionService.clearPermissions();
+  Future<User> getCurrentUser(String token) async {
+    try {
+      final response = await _dio.get(
+        'https://your-api.com/api/v2/user',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+      
+      return User.fromJson(response.data);
+    } catch (e) {
+      throw Exception('Failed to get user: $e');
+    }
+  }
+  
+  Future<Map<String, dynamic>> checkPermissions(String token) async {
+    try {
+      final response = await _dio.post(
+        'https://your-api.com/api/v2/checkPermission',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+      
+      return response.data;
+    } catch (e) {
+      throw Exception('Failed to check permissions: $e');
+    }
   }
 }
 ```
 
-### 4. API Service Example
+### 3. State Management
 
 ```dart
-// services/api_service.dart
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
-
-class ApiService {
-  static const String baseUrl = 'https://your-api-url.com/api';
+class UserState extends ChangeNotifier {
+  User? _user;
+  List<String> _roles = [];
+  List<String> _permissions = [];
   String? _token;
   
-  Future<void> saveToken(String token) async {
-    _token = token;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('auth_token', token);
+  User? get user => _user;
+  List<String> get roles => _roles;
+  List<String> get permissions => _permissions;
+  String? get token => _token;
+  
+  bool get isLoggedIn => _user != null && _token != null;
+  
+  // Permission checking methods
+  bool hasPermission(String permission) {
+    return _permissions.contains(permission);
   }
   
-  Future<void> loadToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString('auth_token');
+  bool hasRole(String role) {
+    return _roles.contains(role);
   }
   
-  Future<void> clearToken() async {
+  bool hasAnyPermission(List<String> permissions) {
+    return permissions.any((permission) => _permissions.contains(permission));
+  }
+  
+  bool hasAnyRole(List<String> roles) {
+    return roles.any((role) => _roles.contains(role));
+  }
+  
+  // Admin checks
+  bool get isAdmin => hasRole('admin');
+  bool get isSuperAdmin => hasRole('super-admin');
+  bool get isDoctor => hasRole('doctor');
+  bool get isModerator => hasRole('moderator');
+  
+  // Common permission checks
+  bool get canViewPatients => hasPermission('view-patients');
+  bool get canCreatePatients => hasPermission('create-patients');
+  bool get canEditPatients => hasPermission('edit-patients');
+  bool get canDeletePatients => hasPermission('delete-patients');
+  
+  bool get canViewPosts => hasPermission('view-posts');
+  bool get canCreatePosts => hasPermission('create-posts');
+  bool get canModeratePosts => hasPermission('moderate-posts');
+  
+  bool get canUseAI => hasPermission('use-ai-consultation');
+  bool get canViewConsultations => hasPermission('view-consultations');
+  bool get canCreateConsultations => hasPermission('create-consultations');
+  
+  // Update user data
+  void updateUser(User user, List<String> roles, List<String> permissions) {
+    _user = user;
+    _roles = roles;
+    _permissions = permissions;
+    notifyListeners();
+  }
+  
+  void updatePermissions(List<String> permissions) {
+    _permissions = permissions;
+    notifyListeners();
+  }
+  
+  void logout() {
+    _user = null;
+    _roles = [];
+    _permissions = [];
     _token = null;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('auth_token');
-  }
-  
-  Future<Map<String, dynamic>> post(String endpoint, [Map<String, dynamic>? body]) async {
-    final url = Uri.parse('$baseUrl$endpoint');
-    final headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      if (_token != null) 'Authorization': 'Bearer $_token',
-    };
-    
-    final response = await http.post(
-      url,
-      headers: headers,
-      body: body != null ? jsonEncode(body) : null,
-    );
-    
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return jsonDecode(response.body);
-    } else if (response.statusCode == 401) {
-      // Token expired or invalid
-      await clearToken();
-      throw Exception('Unauthorized');
-    } else {
-      throw Exception('API Error: ${response.statusCode}');
-    }
-  }
-  
-  Future<Map<String, dynamic>> get(String endpoint) async {
-    final url = Uri.parse('$baseUrl$endpoint');
-    final headers = {
-      'Accept': 'application/json',
-      if (_token != null) 'Authorization': 'Bearer $_token',
-    };
-    
-    final response = await http.get(url, headers: headers);
-    
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else if (response.statusCode == 401) {
-      await clearToken();
-      throw Exception('Unauthorized');
-    } else {
-      throw Exception('API Error: ${response.statusCode}');
-    }
+    notifyListeners();
   }
 }
 ```
 
----
-
-## Permission Checking Strategy
-
-### 1. Real-time Permission Check (Online)
-
-Use this when you need the most up-to-date permissions:
+### 4. UI Conditional Rendering
 
 ```dart
-Future<bool> checkPermissionOnline(String permission) async {
-  try {
-    final response = await apiService.post('/checkPermission');
-    // Parse response based on your needs
-    return response['value'] == true;
-  } catch (e) {
-    // Fallback to cached
-    return await permissionService.hasPermission(permission);
-  }
-}
-```
-
-### 2. Cached Permission Check (Offline-first)
-
-Use this for better performance and offline support:
-
-```dart
-Future<bool> checkPermissionCached(String permission) async {
-  final permissions = await permissionService.getCachedPermissions();
-  return permissions?.hasPermission(permission) ?? false;
-}
-```
-
-### 3. Hybrid Approach (Recommended)
-
-```dart
-class PermissionChecker {
-  final PermissionService _permissionService;
-  final ApiService _apiService;
-  
-  PermissionChecker(this._permissionService, this._apiService);
-  
-  Future<bool> hasPermission(String permission, {bool forceRefresh = false}) async {
-    if (forceRefresh) {
-      await _permissionService.fetchUserPermissions();
-    }
-    
-    final cached = await _permissionService.getCachedPermissions();
-    return cached?.hasPermission(permission) ?? false;
-  }
-  
-  Future<bool> hasRole(String role, {bool forceRefresh = false}) async {
-    if (forceRefresh) {
-      await _permissionService.fetchUserPermissions();
-    }
-    
-    final cached = await _permissionService.getCachedPermissions();
-    return cached?.hasRole(role) ?? false;
-  }
-}
-```
-
----
-
-## UI Conditional Rendering
-
-### 1. Widget-based Permission Check
-
-```dart
-// widgets/permission_widget.dart
-import 'package:flutter/material.dart';
-import '../services/permission_service.dart';
-
-class PermissionWidget extends StatelessWidget {
-  final String? role;
-  final String? permission;
-  final Widget child;
-  final Widget? fallback;
-  final PermissionService permissionService;
-  
-  const PermissionWidget({
-    Key? key,
-    this.role,
-    this.permission,
-    required this.child,
-    this.fallback,
-    required this.permissionService,
-  }) : assert(role != null || permission != null),
-       super(key: key);
-  
+class PatientListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: _checkPermission(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox.shrink();
-        }
-        
-        if (snapshot.data == true) {
-          return child;
-        }
-        
-        return fallback ?? const SizedBox.shrink();
+    return Consumer<UserState>(
+      builder: (context, userState, child) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Text('Patients'),
+            actions: [
+              // Show create button only if user has permission
+              if (userState.canCreatePatients)
+                IconButton(
+                  icon: Icon(Icons.add),
+                  onPressed: () => _createPatient(context),
+                ),
+            ],
+          ),
+          body: Column(
+            children: [
+              // Show different content based on permissions
+              if (userState.canViewPatients)
+                Expanded(
+                  child: PatientList(),
+                )
+              else
+                Expanded(
+                  child: Center(
+                    child: Text('You do not have permission to view patients'),
+                  ),
+                ),
+              
+              // Show admin panel button only for admins
+              if (userState.isAdmin)
+                ElevatedButton(
+                  onPressed: () => _openAdminPanel(context),
+                  child: Text('Admin Panel'),
+                ),
+            ],
+          ),
+        );
       },
     );
   }
-  
-  Future<bool> _checkPermission() async {
-    if (role != null) {
-      return await permissionService.hasRole(role!);
-    }
-    if (permission != null) {
-      return await permissionService.hasPermission(permission!);
-    }
-    return false;
-  }
 }
 
-// Usage:
-PermissionWidget(
-  permission: 'delete patient',
-  permissionService: permissionService,
-  child: ElevatedButton(
-    onPressed: () => deletePatient(),
-    child: Text('Delete Patient'),
-  ),
-)
-```
-
-### 2. Provider-based Approach (Recommended)
-
-Using provider or riverpod for state management:
-
-```dart
-// providers/permission_provider.dart
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/user_permission.dart';
-import '../services/permission_service.dart';
-
-final permissionProvider = FutureProvider<UserPermissions?>((ref) async {
-  final permissionService = ref.read(permissionServiceProvider);
-  return await permissionService.getCachedPermissions();
-});
-
-final permissionServiceProvider = Provider<PermissionService>((ref) {
-  final apiService = ref.read(apiServiceProvider);
-  return PermissionService(apiService);
-});
-
-// Check specific permission
-final hasDeletePatientPermissionProvider = FutureProvider<bool>((ref) async {
-  final permissions = await ref.read(permissionProvider.future);
-  return permissions?.hasPermission('delete patient') ?? false;
-});
-
-// Check admin role
-final isAdminProvider = FutureProvider<bool>((ref) async {
-  final permissions = await ref.read(permissionProvider.future);
-  return permissions?.isAdmin ?? false;
-});
-```
-
-Usage in widgets:
-
-```dart
-class PatientDetailScreen extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final hasDeletePermission = ref.watch(hasDeletePatientPermissionProvider);
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Patient Details'),
-        actions: [
-          hasDeletePermission.when(
-            data: (canDelete) => canDelete
-                ? IconButton(
-                    icon: Icon(Icons.delete),
-                    onPressed: () => deletePatient(),
-                  )
-                : SizedBox.shrink(),
-            loading: () => SizedBox.shrink(),
-            error: (_, __) => SizedBox.shrink(),
-          ),
-        ],
-      ),
-      body: PatientInfo(),
-    );
-  }
-}
-```
-
-### 3. Route Guards
-
-Protect entire screens based on permissions:
-
-```dart
-// utils/route_guard.dart
-class RouteGuard {
-  final PermissionService _permissionService;
-  
-  RouteGuard(this._permissionService);
-  
-  Future<bool> canAccess({String? role, String? permission}) async {
-    if (role != null) {
-      return await _permissionService.hasRole(role);
-    }
-    if (permission != null) {
-      return await _permissionService.hasPermission(permission);
-    }
-    return false;
-  }
-}
-
-// In your router (e.g., GoRouter):
-GoRoute(
-  path: '/admin',
-  builder: (context, state) => AdminScreen(),
-  redirect: (context, state) async {
-    final routeGuard = context.read<RouteGuard>();
-    final canAccess = await routeGuard.canAccess(role: 'admin');
-    
-    if (!canAccess) {
-      return '/unauthorized';
-    }
-    return null;
-  },
-)
-```
-
----
-
-## Best Practices
-
-### 1. Permission Caching
-- Always cache permissions locally after login
-- Refresh permissions when the app comes to foreground
-- Set a reasonable cache expiry (e.g., 30 minutes)
-
-```dart
-class PermissionCache {
-  static const Duration cacheExpiry = Duration(minutes: 30);
-  DateTime? _lastFetch;
-  
-  bool get shouldRefresh {
-    if (_lastFetch == null) return true;
-    return DateTime.now().difference(_lastFetch!) > cacheExpiry;
-  }
-  
-  Future<UserPermissions?> getPermissions(PermissionService service) async {
-    if (shouldRefresh) {
-      final fresh = await service.fetchUserPermissions();
-      _lastFetch = DateTime.now();
-      return fresh;
-    }
-    return await service.getCachedPermissions();
-  }
-}
-```
-
-### 2. Graceful Degradation
-- Always provide fallback UI when permissions can't be determined
-- Show loading states while checking permissions
-- Handle permission errors gracefully
-
-```dart
-Widget buildWithPermission({
-  required Future<bool> permissionCheck,
-  required Widget child,
-  Widget? loading,
-  Widget? noPermission,
-}) {
-  return FutureBuilder<bool>(
-    future: permissionCheck,
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return loading ?? CircularProgressIndicator();
-      }
-      
-      if (snapshot.hasError) {
-        return noPermission ?? SizedBox.shrink();
-      }
-      
-      if (snapshot.data == true) {
-        return child;
-      }
-      
-      return noPermission ?? SizedBox.shrink();
-    },
-  );
-}
-```
-
-### 3. Sync Permissions Periodically
-```dart
-class PermissionSyncService {
-  final PermissionService _permissionService;
-  Timer? _syncTimer;
-  
-  PermissionSyncService(this._permissionService);
-  
-  void startSync() {
-    _syncTimer = Timer.periodic(Duration(minutes: 15), (_) {
-      _permissionService.fetchUserPermissions();
-    });
-  }
-  
-  void stopSync() {
-    _syncTimer?.cancel();
-  }
-}
-```
-
-### 4. Optimistic UI Updates
-- Show UI based on cached permissions immediately
-- Refresh in background
-- Handle permission change gracefully
-
-```dart
-class PermissionAwareButton extends StatefulWidget {
-  final String permission;
-  final VoidCallback onPressed;
-  final Widget child;
-  
-  @override
-  _PermissionAwareButtonState createState() => _PermissionAwareButtonState();
-}
-
-class _PermissionAwareButtonState extends State<PermissionAwareButton> {
-  bool _hasPermission = false;
-  
-  @override
-  void initState() {
-    super.initState();
-    _checkPermission();
-  }
-  
-  Future<void> _checkPermission() async {
-    final service = context.read<PermissionService>();
-    final hasIt = await service.hasPermission(widget.permission);
-    if (mounted) {
-      setState(() => _hasPermission = hasIt);
-    }
-  }
+class PostCard extends StatelessWidget {
+  final Post post;
   
   @override
   Widget build(BuildContext context) {
-    if (!_hasPermission) return SizedBox.shrink();
-    
-    return ElevatedButton(
-      onPressed: widget.onPressed,
-      child: widget.child,
-    );
-  }
-}
-```
-
----
-
-## Error Handling
-
-### 1. Network Errors
-```dart
-try {
-  final permissions = await permissionService.fetchUserPermissions();
-} catch (e) {
-  if (e is SocketException) {
-    // No internet connection
-    print('No internet, using cached permissions');
-    return await permissionService.getCachedPermissions();
-  } else if (e.toString().contains('401')) {
-    // Token expired, redirect to login
-    navigateToLogin();
-  } else {
-    // Other errors
-    showError('Failed to fetch permissions');
-  }
-}
-```
-
-### 2. Permission Denied Handling
-```dart
-Future<void> performAction() async {
-  final hasPermission = await permissionService.hasPermission('edit posts');
-  
-  if (!hasPermission) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Permission Denied'),
-        content: Text('You don\'t have permission to perform this action.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
+    return Consumer<UserState>(
+      builder: (context, userState, child) {
+        return Card(
+          child: Column(
+            children: [
+              Text(post.title),
+              Text(post.content),
+              
+              // Show moderation buttons only for moderators/admins
+              if (userState.hasAnyRole(['moderator', 'admin']))
+                Row(
+                  children: [
+                    if (userState.canModeratePosts)
+                      ElevatedButton(
+                        onPressed: () => _moderatePost(post),
+                        child: Text('Moderate'),
+                      ),
+                    if (userState.isAdmin)
+                      ElevatedButton(
+                        onPressed: () => _deletePost(post),
+                        child: Text('Delete'),
+                      ),
+                  ],
+                ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
-    return;
   }
-  
-  // Perform the action
-  await editPost();
 }
 ```
 
----
-
-## Backend Enhancement Recommendations
-
-### 1. Include Permissions in Login Response
-
-Modify the backend `AuthService::login()` method to include roles and permissions:
-
-```php
-// app/Modules/Auth/Services/AuthService.php
-public function login(array $validatedData): array
-{
-    // ... existing login logic ...
-    
-    // Load roles and permissions
-    $user->load('roles', 'permissions');
-    
-    return [
-        'value' => true,
-        'message' => __('api.user_logged_in_successfully'),
-        'token' => $token,
-        'data' => $user,
-        'roles' => $user->roles->pluck('name'),
-        'permissions' => $user->permissions->pluck('name'),
-        'status_code' => 200,
-    ];
-}
-```
-
-### 2. Add Flexible Permission Check Endpoint
-
-Create a new endpoint to check multiple permissions:
-
-```php
-// app/Modules/RolePermission/Controllers/RolePermissionController.php
-public function checkMultiplePermissions(Request $request): JsonResponse
-{
-    $user = Auth::user();
-    $permissionsToCheck = $request->input('permissions', []);
-    $rolesToCheck = $request->input('roles', []);
-    
-    $result = [
-        'roles' => [],
-        'permissions' => [],
-    ];
-    
-    foreach ($rolesToCheck as $role) {
-        $result['roles'][$role] = $user->hasRole($role);
-    }
-    
-    foreach ($permissionsToCheck as $permission) {
-        $result['permissions'][$permission] = $user->hasPermissionTo($permission);
-    }
-    
-    return response()->json([
-        'value' => true,
-        'data' => $result,
-    ]);
-}
-```
-
-### 3. Add Endpoint to Get All User Permissions
-
-```php
-public function getUserPermissions(): JsonResponse
-{
-    $user = Auth::user();
-    
-    return response()->json([
-        'value' => true,
-        'data' => [
-            'roles' => $user->roles->pluck('name'),
-            'permissions' => $user->getAllPermissions()->pluck('name'),
-            'direct_permissions' => $user->permissions->pluck('name'),
-        ],
-    ]);
-}
-```
-
-Add to routes:
-```php
-// routes/api.php
-Route::post('/checkMultiplePermissions', [RolePermissionController::class, 'checkMultiplePermissions']);
-Route::get('/userPermissions', [RolePermissionController::class, 'getUserPermissions']);
-```
-
----
-
-## Example: Complete Implementation
-
-Here's a complete example showing all pieces together:
+### 5. Permission-Based Navigation
 
 ```dart
-// main.dart
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  final apiService = ApiService();
-  await apiService.loadToken();
-  
-  final permissionService = PermissionService(apiService);
-  final authService = AuthService(apiService, permissionService);
-  
-  runApp(
-    MultiProvider(
-      providers: [
-        Provider.value(value: apiService),
-        Provider.value(value: permissionService),
-        Provider.value(value: authService),
-      ],
-      child: MyApp(),
-    ),
-  );
+class AppRouter {
+  static Route<dynamic> generateRoute(RouteSettings settings) {
+    switch (settings.name) {
+      case '/patients':
+        return MaterialPageRoute(
+          builder: (_) => Consumer<UserState>(
+            builder: (context, userState, child) {
+              if (userState.canViewPatients) {
+                return PatientListScreen();
+              } else {
+                return UnauthorizedScreen();
+              }
+            },
+          ),
+        );
+      
+      case '/admin':
+        return MaterialPageRoute(
+          builder: (_) => Consumer<UserState>(
+            builder: (context, userState, child) {
+              if (userState.isAdmin) {
+                return AdminPanelScreen();
+              } else {
+                return UnauthorizedScreen();
+              }
+            },
+          ),
+        );
+      
+      default:
+        return MaterialPageRoute(
+          builder: (_) => NotFoundScreen(),
+        );
+    }
+  }
+}
+```
+
+### 6. Login Implementation
+
+```dart
+class LoginScreen extends StatefulWidget {
+  @override
+  _LoginScreenState createState() => _LoginScreenState();
 }
 
-// screens/login_screen.dart
-class LoginScreen extends StatelessWidget {
+class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _isLoading = false;
   
   @override
   Widget build(BuildContext context) {
-    final authService = context.read<AuthService>();
-    
     return Scaffold(
-      body: Padding(
-        padding: EdgeInsets.all(16),
+      appBar: AppBar(title: Text('Login')),
+      body: Form(
+        key: _formKey,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextField(
+            TextFormField(
               controller: _emailController,
               decoration: InputDecoration(labelText: 'Email'),
+              validator: (value) => value?.isEmpty == true ? 'Required' : null,
             ),
-            SizedBox(height: 16),
-            TextField(
+            TextFormField(
               controller: _passwordController,
               decoration: InputDecoration(labelText: 'Password'),
               obscureText: true,
+              validator: (value) => value?.isEmpty == true ? 'Required' : null,
             ),
-            SizedBox(height: 24),
+            SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () async {
-                try {
-                  final user = await authService.login(
-                    _emailController.text,
-                    _passwordController.text,
-                  );
-                  
-                  if (user != null) {
-                    Navigator.pushReplacementNamed(context, '/home');
-                  }
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Login failed: $e')),
-                  );
-                }
-              },
-              child: Text('Login'),
+              onPressed: _isLoading ? null : _login,
+              child: _isLoading ? CircularProgressIndicator() : Text('Login'),
             ),
           ],
         ),
       ),
     );
   }
+  
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    setState(() => _isLoading = true);
+    
+    try {
+      final authService = AuthService();
+      final loginResponse = await authService.login(
+        _emailController.text,
+        _passwordController.text,
+      );
+      
+      // Update user state with roles and permissions
+      final userState = Provider.of<UserState>(context, listen: false);
+      userState.updateUser(
+        loginResponse.data,
+        loginResponse.roles,
+        loginResponse.permissions,
+      );
+      
+      // Navigate to appropriate screen based on role
+      if (userState.isAdmin) {
+        Navigator.pushReplacementNamed(context, '/admin');
+      } else if (userState.isDoctor) {
+        Navigator.pushReplacementNamed(context, '/dashboard');
+      } else {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+      
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login failed: $e')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+}
+```
+
+---
+
+## Best Practices
+
+### 1. **Permission Checking Strategy**
+
+```dart
+// ✅ Good: Check permissions in UI
+if (userState.canCreatePatients) {
+  showCreateButton();
 }
 
-// screens/home_screen.dart
-class HomeScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final permissionService = context.read<PermissionService>();
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Home'),
+// ✅ Good: Use role-based checks for major features
+if (userState.isAdmin) {
+  showAdminPanel();
+}
+
+// ❌ Avoid: Hardcoding permission names in UI
+if (userState.hasPermission('create-patients')) {
+  showCreateButton();
+}
+```
+
+### 2. **Error Handling**
+
+```dart
+class PermissionErrorHandler {
+  static void handleUnauthorized(BuildContext context, String action) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('You do not have permission to $action'),
+        backgroundColor: Colors.red,
       ),
-      body: ListView(
+    );
+  }
+  
+  static Widget buildUnauthorizedScreen(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          FutureBuilder<bool>(
-            future: permissionService.hasPermission('delete patient'),
-            builder: (context, snapshot) {
-              if (snapshot.data == true) {
-                return ListTile(
-                  leading: Icon(Icons.delete),
-                  title: Text('Delete Patient'),
-                  onTap: () => Navigator.pushNamed(context, '/patients/delete'),
-                );
-              }
-              return SizedBox.shrink();
-            },
+          Icon(Icons.lock, size: 64, color: Colors.grey),
+          SizedBox(height: 16),
+          Text(
+            'Access Denied',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          FutureBuilder<bool>(
-            future: permissionService.isAdmin(),
-            builder: (context, snapshot) {
-              if (snapshot.data == true) {
-                return ListTile(
-                  leading: Icon(Icons.admin_panel_settings),
-                  title: Text('Admin Panel'),
-                  onTap: () => Navigator.pushNamed(context, '/admin'),
-                );
-              }
-              return SizedBox.shrink();
-            },
+          SizedBox(height: 8),
+          Text(
+            message,
+            style: TextStyle(fontSize: 16, color: Colors.grey),
           ),
         ],
       ),
@@ -1149,20 +684,221 @@ class HomeScreen extends StatelessWidget {
 }
 ```
 
+### 3. **Caching and Performance**
+
+```dart
+class PermissionCache {
+  static const String _permissionsKey = 'user_permissions';
+  static const String _rolesKey = 'user_roles';
+  
+  static Future<void> cachePermissions(List<String> permissions) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_permissionsKey, permissions);
+  }
+  
+  static Future<List<String>> getCachedPermissions() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList(_permissionsKey) ?? [];
+  }
+  
+  static Future<void> clearCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_permissionsKey);
+    await prefs.remove(_rolesKey);
+  }
+}
+```
+
+---
+
+## Testing
+
+### 1. **Unit Tests**
+
+```dart
+void main() {
+  group('UserState Permission Tests', () {
+    late UserState userState;
+    
+    setUp(() {
+      userState = UserState();
+      userState.updateUser(
+        User(id: 1, name: 'Test', email: 'test@test.com', /* ... */),
+        ['doctor'],
+        ['view-patients', 'create-patients'],
+      );
+    });
+    
+    test('should return true for existing permission', () {
+      expect(userState.hasPermission('view-patients'), true);
+    });
+    
+    test('should return false for non-existing permission', () {
+      expect(userState.hasPermission('delete-patients'), false);
+    });
+    
+    test('should return true for existing role', () {
+      expect(userState.hasRole('doctor'), true);
+    });
+    
+    test('should return false for non-existing role', () {
+      expect(userState.hasRole('admin'), false);
+    });
+  });
+}
+```
+
+### 2. **Widget Tests**
+
+```dart
+void main() {
+  group('Permission-based Widget Tests', () {
+    testWidgets('should show create button when user has permission', (tester) async {
+      final userState = UserState();
+      userState.updateUser(/* ... */, ['doctor'], ['create-patients']);
+      
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: userState,
+          child: MaterialApp(
+            home: PatientListScreen(),
+          ),
+        ),
+      );
+      
+      expect(find.byIcon(Icons.add), findsOneWidget);
+    });
+    
+    testWidgets('should hide create button when user lacks permission', (tester) async {
+      final userState = UserState();
+      userState.updateUser(/* ... */, ['viewer'], ['view-patients']);
+      
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: userState,
+          child: MaterialApp(
+            home: PatientListScreen(),
+          ),
+        ),
+      );
+      
+      expect(find.byIcon(Icons.add), findsNothing);
+    });
+  });
+}
+```
+
+---
+
+## Migration Guide
+
+### From Old System to New Enhanced System
+
+#### 1. **Update API Calls**
+
+```dart
+// ❌ Old way
+final response = await dio.post('/api/login');
+final user = response.data['data'];
+// No roles/permissions in response
+
+// ✅ New way
+final response = await dio.post('/api/v2/login');
+final loginResponse = LoginResponse.fromJson(response.data);
+final user = loginResponse.data;
+final roles = loginResponse.roles;
+final permissions = loginResponse.permissions;
+```
+
+#### 2. **Update State Management**
+
+```dart
+// ❌ Old way
+class UserState {
+  User? _user;
+  // No roles/permissions storage
+  
+  bool canCreatePatients() {
+    // Hardcoded or API call needed
+    return _user?.role == 'admin';
+  }
+}
+
+// ✅ New way
+class UserState {
+  User? _user;
+  List<String> _roles = [];
+  List<String> _permissions = [];
+  
+  bool get canCreatePatients => hasPermission('create-patients');
+  bool get isAdmin => hasRole('admin');
+}
+```
+
+#### 3. **Update UI Components**
+
+```dart
+// ❌ Old way
+if (user?.role == 'admin') {
+  showAdminButton();
+}
+
+// ✅ New way
+if (userState.isAdmin) {
+  showAdminButton();
+}
+```
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. **Permissions Not Loading**
+
+```dart
+// Check if login response includes permissions
+print('Login response: ${loginResponse.toJson()}');
+
+// Verify API endpoint is v2
+final response = await dio.post('/api/v2/login'); // ✅ Correct
+// final response = await dio.post('/api/login'); // ❌ Old endpoint
+```
+
+#### 2. **Permission Checks Failing**
+
+```dart
+// Debug permission checking
+print('User roles: ${userState.roles}');
+print('User permissions: ${userState.permissions}');
+print('Checking permission: create-patients');
+print('Has permission: ${userState.hasPermission('create-patients')}');
+```
+
+#### 3. **State Not Updating**
+
+```dart
+// Ensure you're using Consumer or listening to changes
+Consumer<UserState>(
+  builder: (context, userState, child) {
+    return Text('Permissions: ${userState.permissions.length}');
+  },
+)
+```
+
 ---
 
 ## Summary
 
-1. **Backend uses** Spatie Laravel Permission with Sanctum authentication
-2. **Current limitations**: Login doesn't return roles/permissions, need separate fetch
-3. **Recommended approach**: 
-   - Cache permissions locally after login
-   - Use offline-first strategy with periodic refresh
-   - Implement permission-based widgets for conditional rendering
-4. **Backend enhancements needed**:
-   - Include permissions in login response
-   - Add flexible permission check endpoint
-   - Add endpoint to get all user permissions
+The enhanced permission system provides:
 
-For questions or issues, refer to the backend documentation or contact the development team.
+✅ **Immediate Access**: Permissions available on login  
+✅ **Efficient Caching**: Reduced API calls  
+✅ **Better UX**: No loading states for permission checks  
+✅ **Flexible Updates**: Can refresh permissions without re-login  
+✅ **Type Safety**: Strong typing with Dart models  
+✅ **Easy Testing**: Comprehensive test coverage  
+✅ **Maintainable**: Clean separation of concerns  
 
+This implementation gives you a robust, scalable permission system that works seamlessly with your Flutter frontend! 🚀

@@ -29,4 +29,9 @@ class SectionsController extends Controller
     {
         return $this->sectionsController->showSectionsV1($patient_id);
     }
+
+    public function showSectionsV1($patient_id)
+    {
+        return $this->sectionsController->showSectionsV1($patient_id);
+    }
 }

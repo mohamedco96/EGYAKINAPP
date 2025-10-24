@@ -50,7 +50,7 @@ class AuthService
 
             // Send welcome email notification
             try {
-                $user->notify(new WelcomeMailNotification());
+                $user->notify(new WelcomeMailNotification);
                 Log::info('Welcome email sent successfully', [
                     'user_id' => $user->id,
                     'email' => $user->email,
@@ -158,9 +158,17 @@ class AuthService
         // Generate new token
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        // Load roles and permissions for frontend
+        $user->load(['roles:id,name', 'permissions:id,name']);
+
+        // Get all permissions (direct + from roles)
+        $allPermissions = $user->getAllPermissions()->pluck('name')->unique()->values();
+
         Log::info('User logged in successfully', [
             'user_id' => $user->id,
             'email' => $email,
+            'roles' => $user->roles->pluck('name'),
+            'permissions_count' => $allPermissions->count(),
         ]);
 
         return [
@@ -168,6 +176,8 @@ class AuthService
             'message' => __('api.user_logged_in_successfully'),
             'token' => $token,
             'data' => $user,
+            'roles' => $user->roles->pluck('name'),
+            'permissions' => $allPermissions,
             'status_code' => 200,
         ];
     }
@@ -324,16 +334,26 @@ class AuthService
 
             // Update user
             $user->fill($sanitized);
+
+            // Check if profile is complete (has both name and email)
+            if ($user->name && $user->email) {
+                $user->profile_completed = true;
+            }
+
             $user->save();
 
             Log::info('User updated', [
                 'user_id' => $user->id,
                 'fields' => array_keys($validatedData),
+                'profile_completed' => $user->profile_completed,
             ]);
 
             return [
                 'value' => true,
                 'message' => __('api.user_updated_successfully'),
+                'data' => [
+                    'profile_completed' => $user->profile_completed,
+                ],
                 'status_code' => 200,
             ];
         });

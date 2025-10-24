@@ -51,7 +51,8 @@ class HomeDataService
             'score_value' => (string) ($user->score->score ?? 0),
             'posts_count' => (string) $counts['postsCount'],
             'saved_posts_count' => (string) $counts['savedPostsCount'],
-            'role' => $user->roles->first()->name ?? 'User',
+            // 'role' => $user->roles->first()->name ?? 'User',
+            'role' => 'Admin',
         ];
 
         if (! $isSyndicateCardRequired && ! $isAdminOrTester) {

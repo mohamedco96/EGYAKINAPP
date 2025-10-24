@@ -381,7 +381,7 @@ return [
     'department_distribution' => 'Department Distribution',
     'provisional_diagnosis' => 'Provisional Diagnosis',
     'cause_of_aki' => 'Cause of AKI',
-    'patient_outcomes_status' => 'Patient Outcomes & Status',
+    'patient_outcomes_status' => 'Patient Outcomes',
     'outcome_status' => 'Outcome Status',
     'submit_status' => 'Submit Status',
     'outcome_values' => 'Outcome Values',

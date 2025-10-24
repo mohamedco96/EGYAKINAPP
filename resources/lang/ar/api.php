@@ -381,7 +381,7 @@ return [
     'department_distribution' => 'توزيع الأقسام',
     'provisional_diagnosis' => 'التشخيص المبدئي',
     'cause_of_aki' => 'سبب الفشل الكلوي الحاد',
-    'patient_outcomes_status' => 'نتائج المرضى والحالة',
+    'patient_outcomes_status' => 'نتائج المرضى',
     'outcome_status' => 'حالة النتيجة',
     'submit_status' => 'حالة التسليم',
     'outcome_values' => 'قيم النتائج',

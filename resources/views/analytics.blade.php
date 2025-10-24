@@ -368,7 +368,7 @@
                 </h3>
                 
                 <!-- Status Counts -->
-                <div class="mb-6">
+                <!-- <div class="mb-6">
                     <div class="grid grid-cols-2 gap-4">
                         <div class="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg transition-colors duration-300">
                             <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">{{ __('api.outcome_status') }}</p>
@@ -379,7 +379,7 @@
                             <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ $analytics['outcome_stats']['submit_status_count'] ?? 0 }}</p>
                         </div>
                     </div>
-                </div>
+                </div> -->
                 
                 <!-- Outcome Values from Question ID 79 -->
                 @if(isset($analytics['outcome_stats']['outcome_values']) && count($analytics['outcome_stats']['outcome_values']) > 0)

@@ -312,6 +312,7 @@ class AnalyticsController extends Controller
             ->where('patients.hidden', false)
             ->whereNotNull('answers.answer')
             ->where('answers.answer', '!=', '')
+            ->whereNull('answers.type')
             ->selectRaw('
                 CASE 
                     WHEN JSON_VALID(answers.answer) = 1 

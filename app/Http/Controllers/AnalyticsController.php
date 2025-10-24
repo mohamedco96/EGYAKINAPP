@@ -214,6 +214,8 @@ class AnalyticsController extends Controller
         $diagnosisStats = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $diagnosisQuestionId)
             ->where('patients.hidden', false)
+            ->whereNotNull('answers.answer')
+            ->where('answers.answer', '!=', '')
             ->selectRaw('
                 CASE 
                     WHEN JSON_VALID(answers.answer) = 1 
@@ -226,7 +228,8 @@ class AnalyticsController extends Controller
                         AND TRIM(answers.answer) != ""
                         AND TRIM(answers.answer) IS NOT NULL
                         AND answers.answer != "null"
-                    THEN answers.answer
+                        AND answers.answer != "\"\""
+                    THEN TRIM(BOTH \'"\' FROM answers.answer)
                     ELSE "Not Registered"
                 END as diagnosis_name,
                 COUNT(*) as count
@@ -246,6 +249,8 @@ class AnalyticsController extends Controller
         $akiStats = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $akiQuestionId)
             ->where('patients.hidden', false)
+            ->whereNotNull('answers.answer')
+            ->where('answers.answer', '!=', '')
             ->selectRaw('
                 CASE 
                     WHEN JSON_VALID(answers.answer) = 1 
@@ -258,7 +263,8 @@ class AnalyticsController extends Controller
                         AND TRIM(answers.answer) != ""
                         AND TRIM(answers.answer) IS NOT NULL
                         AND answers.answer != "null"
-                    THEN answers.answer
+                        AND answers.answer != "\"\""
+                    THEN TRIM(BOTH \'"\' FROM answers.answer)
                     ELSE "Not Registered"
                 END as aki_cause,
                 COUNT(*) as count
@@ -304,6 +310,8 @@ class AnalyticsController extends Controller
         $outcomeStats = Answers::join('patients', 'answers.patient_id', '=', 'patients.id')
             ->where('answers.question_id', $outcomeQuestionId)
             ->where('patients.hidden', false)
+            ->whereNotNull('answers.answer')
+            ->where('answers.answer', '!=', '')
             ->selectRaw('
                 CASE 
                     WHEN JSON_VALID(answers.answer) = 1 
@@ -316,7 +324,8 @@ class AnalyticsController extends Controller
                         AND TRIM(answers.answer) != ""
                         AND TRIM(answers.answer) IS NOT NULL
                         AND answers.answer != "null"
-                    THEN answers.answer
+                        AND answers.answer != "\"\""
+                    THEN TRIM(BOTH \'"\' FROM answers.answer)
                     ELSE "Not Registered"
                 END as outcome_value,
                 COUNT(*) as count

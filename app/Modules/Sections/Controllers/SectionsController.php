@@ -9,6 +9,7 @@ use App\Modules\Sections\Requests\UpdateFinalSubmitRequest;
 use App\Modules\Sections\Services\GfrCalculationService;
 use App\Modules\Sections\Services\ScoringService;
 use App\Modules\Sections\Services\SectionManagementService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class SectionsController extends Controller
@@ -156,12 +157,16 @@ class SectionsController extends Controller
             $gfrData = $this->sectionManagementService->getPatientGfrData($patientId);
             $gfrValues = $this->gfrCalculationService->calculateAllGfrValuesLegacy($gfrData);
 
+            // Check if patient is marked by authenticated user
+            $isMarked = Auth::check() && Auth::user()->markedPatients()->where('patient_id', $patientId)->exists();
+
             Log::info("Showing sections for patient ID: $patientId (LEGACY FORMAT)", [
                 'submit_status' => $patientData['submit_status'],
                 'patient_name' => $patientData['patient_name'],
                 'doctor_id' => $patientData['doctor_id'],
                 'sections_count' => count($sectionsData),
                 'gfr' => $gfrValues,
+                'is_marked' => $isMarked,
             ]);
 
             return response()->json([
@@ -170,6 +175,7 @@ class SectionsController extends Controller
                 'patient_name' => $patientData['patient_name'],
                 'doctor_Id' => $patientData['doctor_id'],
                 'gfr' => $gfrValues,
+                'is_marked' => $isMarked,
                 'data' => $sectionsData,
             ]);
 
@@ -220,12 +226,16 @@ class SectionsController extends Controller
             $gfrData = $this->sectionManagementService->getPatientGfrData($patientId);
             $gfrValues = $this->gfrCalculationService->calculateAllGfrValues($gfrData);
 
+            // Check if patient is marked by authenticated user
+            $isMarked = Auth::check() && Auth::user()->markedPatients()->where('patient_id', $patientId)->exists();
+
             Log::info("Showing sections for patient ID: $patientId (V1 FORMAT)", [
                 'submit_status' => $patientData['submit_status'],
                 'patient_name' => $patientData['patient_name'],
                 'doctor_id' => $patientData['doctor_id'],
                 'sections_count' => count($sectionsData),
                 'gfr' => $gfrValues,
+                'is_marked' => $isMarked,
             ]);
 
             return response()->json([
@@ -234,6 +244,7 @@ class SectionsController extends Controller
                 'patient_name' => $patientData['patient_name'],
                 'doctor_Id' => $patientData['doctor_id'],
                 'gfr' => $gfrValues,
+                'is_marked' => $isMarked,
                 'data' => $sectionsData,
             ]);
 

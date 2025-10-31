@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\V2\SectionsController;
 use App\Http\Controllers\Api\V2\SettingsController;
 use App\Http\Controllers\Api\V2\ShareController;
 use App\Http\Controllers\Api\V2\UserLocaleController;
+use App\Http\Controllers\SocialAuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -70,6 +71,21 @@ Route::post('/settings', [SettingsController::class, 'store']);
 Route::get('/settings/{settings}', [SettingsController::class, 'show']);
 Route::put('/settings/{settings}', [SettingsController::class, 'update']);
 Route::delete('/settings/{settings}', [SettingsController::class, 'destroy']);
+
+// Social Authentication Routes
+Route::prefix('auth/social')->group(function () {
+    // Web-based OAuth flows (for web applications) - requires session for OAuth state
+    Route::middleware(['web'])->group(function () {
+        Route::get('/google', [SocialAuthController::class, 'redirectToGoogle']);
+        Route::get('/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
+        Route::get('/apple', [SocialAuthController::class, 'redirectToApple']);
+        Route::match(['get', 'post'], '/apple/callback', [SocialAuthController::class, 'handleAppleCallback']);
+    });
+
+    // API-based authentication (for mobile applications)
+    Route::post('/google', [SocialAuthController::class, 'googleAuth']);
+    Route::post('/apple', [SocialAuthController::class, 'appleAuth']);
+});
 
 // Protected routes (require auth:sanctum middleware)
 Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function () {

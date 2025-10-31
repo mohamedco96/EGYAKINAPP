@@ -33,6 +33,17 @@ class SocialAuthController extends Controller
     public function handleGoogleCallback(Request $request)
     {
         try {
+            // Check if there's an error from Google
+            if ($request->has('error')) {
+                Log::warning('Google OAuth error: '.$request->get('error'));
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Google authentication was cancelled or failed',
+                    'error' => $request->get('error'),
+                ], 400);
+            }
+
             $socialUser = Socialite::driver('google')->user();
 
             return $this->handleSocialCallback('google', $socialUser);
@@ -42,6 +53,7 @@ class SocialAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Google authentication failed',
+                'error' => $e->getMessage(),
             ], 400);
         }
     }
@@ -69,6 +81,17 @@ class SocialAuthController extends Controller
     public function handleAppleCallback(Request $request)
     {
         try {
+            // Check if there's an error from Apple
+            if ($request->has('error')) {
+                Log::warning('Apple OAuth error: '.$request->get('error'));
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Apple authentication was cancelled or failed',
+                    'error' => $request->get('error'),
+                ], 400);
+            }
+
             $socialUser = Socialite::driver('apple')->user();
 
             return $this->handleSocialCallback('apple', $socialUser);
@@ -78,6 +101,7 @@ class SocialAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Apple authentication failed',
+                'error' => $e->getMessage(),
             ], 400);
         }
     }
@@ -88,12 +112,24 @@ class SocialAuthController extends Controller
     private function handleSocialCallback(string $provider, SocialiteUser $socialUser)
     {
         try {
+            // Validate required social user data
+            if (! $socialUser->getId()) {
+                Log::error("Missing user ID from {$provider}");
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid user data from social provider',
+                ], 400);
+            }
+
             // Check if user exists by social ID
             $user = User::findBySocialId($provider, $socialUser->getId());
 
             if (! $user) {
-                // Check if user exists by email
-                $user = User::where('email', $socialUser->getEmail())->first();
+                // Check if user exists by email (if email is provided)
+                if ($socialUser->getEmail()) {
+                    $user = User::where('email', $socialUser->getEmail())->first();
+                }
 
                 if ($user) {
                     // Link social account to existing user
@@ -105,6 +141,11 @@ class SocialAuthController extends Controller
                 } else {
                     // Create new user
                     $user = User::createFromSocial($provider, $socialUser);
+                }
+            } else {
+                // Update existing social user avatar if available
+                if ($socialUser->getAvatar() && $user->avatar !== $socialUser->getAvatar()) {
+                    $user->update(['avatar' => $socialUser->getAvatar()]);
                 }
             }
 
@@ -137,11 +178,14 @@ class SocialAuthController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error("Social authentication callback failed for {$provider}: ".$e->getMessage());
+            Log::error("Social authentication callback failed for {$provider}: ".$e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Authentication failed',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -152,15 +196,26 @@ class SocialAuthController extends Controller
     public function googleAuth(Request $request)
     {
         try {
+            $request->validate([
+                'access_token' => 'required|string',
+            ]);
+
             $googleUser = Socialite::driver('google')->userFromToken($request->input('access_token'));
 
             return $this->handleSocialCallback('google', $googleUser);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             Log::error('Google API authentication failed: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
                 'message' => 'Google authentication failed',
+                'error' => $e->getMessage(),
             ], 400);
         }
     }
@@ -171,11 +226,15 @@ class SocialAuthController extends Controller
     public function appleAuth(Request $request)
     {
         try {
+            $request->validate([
+                'identity_token' => 'required|string',
+            ]);
+
             // For Apple, we need to handle the identity token
             $identityToken = $request->input('identity_token');
 
             // Decode and verify the Apple identity token
-            $appleUser = $this->verifyAppleIdentityToken($identityToken);
+            $appleUser = $this->verifyAppleIdentityToken($identityToken, $request);
 
             if (! $appleUser) {
                 return response()->json([
@@ -185,12 +244,19 @@ class SocialAuthController extends Controller
             }
 
             return $this->handleSocialCallback('apple', $appleUser);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             Log::error('Apple API authentication failed: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
                 'message' => 'Apple authentication failed',
+                'error' => $e->getMessage(),
             ], 400);
         }
     }
@@ -198,7 +264,7 @@ class SocialAuthController extends Controller
     /**
      * Verify Apple identity token
      */
-    private function verifyAppleIdentityToken(string $identityToken)
+    private function verifyAppleIdentityToken(string $identityToken, Request $request)
     {
         try {
             // Decode the JWT token
@@ -213,12 +279,24 @@ class SocialAuthController extends Controller
                 return null;
             }
 
-            // Create a mock SocialiteUser object for Apple
+            // Get optional user info from request (Apple sends this on first sign-in only)
+            $userInfo = $request->input('user');
+            $name = null;
+
+            if ($userInfo && is_array($userInfo)) {
+                $firstName = $userInfo['name']['firstName'] ?? '';
+                $lastName = $userInfo['name']['lastName'] ?? '';
+                $name = trim($firstName.' '.$lastName);
+            }
+
+            // Create a SocialiteUser object for Apple with proper structure
             $appleUser = new SocialiteUser;
-            $appleUser->id = $payload['sub'];
-            $appleUser->email = $payload['email'] ?? null;
-            $appleUser->name = $payload['name'] ?? null;
-            $appleUser->avatar = null; // Apple doesn't provide avatar
+            $appleUser->map([
+                'id' => $payload['sub'],
+                'email' => $payload['email'] ?? null,
+                'name' => $name,
+                'avatar' => null, // Apple doesn't provide avatar
+            ]);
 
             return $appleUser;
         } catch (\Exception $e) {

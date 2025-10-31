@@ -174,8 +174,8 @@ class SectionsController extends Controller
                 'submit_status' => $patientData['submit_status'],
                 'patient_name' => $patientData['patient_name'],
                 'doctor_Id' => $patientData['doctor_id'],
-                'gfr' => $gfrValues,
                 'is_marked' => $isMarked,
+                'gfr' => $gfrValues,
                 'data' => $sectionsData,
             ]);
 
@@ -243,8 +243,8 @@ class SectionsController extends Controller
                 'submit_status' => $patientData['submit_status'],
                 'patient_name' => $patientData['patient_name'],
                 'doctor_Id' => $patientData['doctor_id'],
-                'gfr' => $gfrValues,
                 'is_marked' => $isMarked,
+                'gfr' => $gfrValues,
                 'data' => $sectionsData,
             ]);
 

@@ -133,11 +133,24 @@ class SocialAuthController extends Controller
 
                 if ($user) {
                     // Link social account to existing user
-                    $user->update([
+                    // Check if email is not a placeholder
+                    $hasRealEmail = $socialUser->getEmail() &&
+                                    !str_contains($socialUser->getEmail(), '@apple-user.egyakin.com') &&
+                                    !str_contains($socialUser->getEmail(), '@google-user.egyakin.com');
+
+                    $updateData = [
                         $provider.'_id' => $socialUser->getId(),
                         'avatar' => $socialUser->getAvatar(),
                         'social_verified_at' => now(),
-                    ]);
+                    ];
+
+                    // Update email if social provider gives a real email
+                    if ($hasRealEmail && $user->email !== $socialUser->getEmail()) {
+                        $updateData['email'] = $socialUser->getEmail();
+                        $updateData['profile_completed'] = true;
+                    }
+
+                    $user->update($updateData);
                 } else {
                     // Create new user
                     $user = User::createFromSocial($provider, $socialUser);
@@ -160,6 +173,16 @@ class SocialAuthController extends Controller
             // Generate token for API authentication
             $token = $user->createToken('social-auth')->plainTextToken;
 
+            // Determine if profile is complete - should be false only if email is missing/placeholder
+            $isPlaceholderEmail = str_contains($user->email, '@apple-user.egyakin.com') ||
+                                  str_contains($user->email, '@google-user.egyakin.com');
+            $profileCompleted = !$isPlaceholderEmail;
+
+            // Update profile_completed if it has changed
+            if ($user->profile_completed !== $profileCompleted) {
+                $user->update(['profile_completed' => $profileCompleted]);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Authentication successful',
@@ -168,7 +191,7 @@ class SocialAuthController extends Controller
                         'id' => $user->id,
                         'name' => $user->name,
                         'email' => $user->email,
-                        'profile_completed' => $user->profile_completed,
+                        'profile_completed' => $profileCompleted,
                         'avatar' => $user->avatar,
                         'locale' => $user->locale,
                     ],

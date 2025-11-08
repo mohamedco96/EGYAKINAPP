@@ -447,7 +447,19 @@ class PatientService
     private function updateAnswerLogic(int $questionId, $value, int $patientId, int $sectionId): void
     {
         if ($this->isFileTypeQuestion($questionId)) {
+            Log::info('Processing file upload for question', [
+                'question_id' => $questionId,
+                'value_type' => gettype($value),
+                'value' => $value
+            ]);
+
             $fileUrls = $this->handleFileUploads($value);
+
+            Log::info('File upload result', [
+                'question_id' => $questionId,
+                'file_urls' => $fileUrls
+            ]);
+
             $this->updateAnswer($questionId, json_encode($fileUrls), $patientId, false, $sectionId);
         } else {
             if (isset($value['answers'])) {
@@ -465,7 +477,19 @@ class PatientService
     private function saveAnswerLogic(int $doctorId, int $questionId, $value, int $patientId, int $sectionId): void
     {
         if ($this->isFileTypeQuestion($questionId)) {
+            Log::info('Processing file upload for new question', [
+                'question_id' => $questionId,
+                'value_type' => gettype($value),
+                'value' => $value
+            ]);
+
             $fileUrls = $this->handleFileUploads($value);
+
+            Log::info('File upload result for new question', [
+                'question_id' => $questionId,
+                'file_urls' => $fileUrls
+            ]);
+
             $this->saveAnswer($doctorId, $questionId, json_encode($fileUrls), $patientId, false, $sectionId);
         } else {
             if (isset($value['answers'])) {
@@ -490,11 +514,48 @@ class PatientService
     /**
      * Handle file uploads
      */
-    private function handleFileUploads(array $files): array
+    private function handleFileUploads($files): array
     {
-        // This method would contain the file upload logic
-        // Implementation would be moved from the controller
-        return [];
+        if (empty($files) || !is_array($files)) {
+            return [];
+        }
+
+        $fileUploadService = app(\App\Services\FileUploadService::class);
+        $filePaths = [];
+
+        try {
+            // Check if files are in the expected format (array of file data)
+            foreach ($files as $file) {
+                if (is_array($file) && isset($file['file_data']) && isset($file['file_name'])) {
+                    // Files are in base64 format
+                    $fileContent = base64_decode($file['file_data']);
+                    $fileName = $file['file_name'];
+
+                    // Generate unique filename
+                    $uniqueFileName = random_int(500, 10000000000) . '_' . $fileName;
+                    $filePath = 'medical_reports/' . $uniqueFileName;
+
+                    \Illuminate\Support\Facades\Storage::disk('public')->put($filePath, $fileContent);
+                    $filePaths[] = $filePath;
+
+                    Log::info("File uploaded successfully for patient question", [
+                        'file_name' => $fileName,
+                        'file_path' => $filePath
+                    ]);
+                } elseif (is_string($file)) {
+                    // File path already exists, just add it
+                    $filePaths[] = $file;
+                }
+            }
+
+            return $filePaths;
+        } catch (\Exception $e) {
+            Log::error('Error handling file uploads in PatientService', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return [];
+        }
     }
 
     /**

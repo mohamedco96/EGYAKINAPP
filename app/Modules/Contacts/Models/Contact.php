@@ -20,6 +20,8 @@ class Contact extends Model
     protected $fillable = [
         'doctor_id',
         'message',
+        'status',
+        'priority',
     ];
 
     protected $casts = [

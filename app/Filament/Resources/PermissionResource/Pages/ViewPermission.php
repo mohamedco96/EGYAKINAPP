@@ -92,7 +92,7 @@ class ViewPermission extends ViewRecord
 
                         TextEntry::make('total_users_with_permission')
                             ->label('Total Users with Permission')
-                            ->state(fn ($record) => $record->users()->count() + $record->roles()->withCount('users')->get()->sum('users_count'))
+                            ->state(fn ($state, $record) => $record->users()->count() + $record->roles()->withCount('users')->get()->sum('users_count'))
                             ->numeric()
                             ->badge()
                             ->color('warning'),

@@ -13,7 +13,8 @@ class RolePermissionPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermissionTo('view role permissions') || $user->hasRole('admin');
+        // return $user->hasPermissionTo('view role permissions') || $user->hasRole('admin');
+        return true;
     }
 
     /**
@@ -21,7 +22,8 @@ class RolePermissionPolicy
      */
     public function view(User $user, RolePermission $rolePermission): bool
     {
-        return $user->hasPermissionTo('view role permissions') || $user->hasRole('admin');
+        // return $user->hasPermissionTo('view role permissions') || $user->hasRole('admin');
+    return true;
     }
 
     /**

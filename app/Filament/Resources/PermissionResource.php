@@ -33,7 +33,7 @@ class PermissionResource extends Resource
 
     protected static ?string $navigationGroup = '👨‍⚕️ User Management';
 
-    protected static ?int $navigationSort = 30;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $recordTitleAttribute = 'name';
 

@@ -35,7 +35,7 @@ class RoleResource extends Resource
 
     protected static ?string $navigationLabel = 'Roles & Permissions';
 
-    protected static ?int $navigationSort = 20;
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'name';
 

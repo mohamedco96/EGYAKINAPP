@@ -21,7 +21,7 @@ class PatientResource extends Resource
 
     protected static ?string $navigationGroup = '🏥 Patient Management';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 3;
 
     public static function getNavigationBadge(): ?string
     {

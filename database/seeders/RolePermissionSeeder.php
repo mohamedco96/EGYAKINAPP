@@ -236,6 +236,19 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'view-audit-logs', 'category' => 'admin', 'description' => 'View audit logs'],
             ['name' => 'export-audit-logs', 'category' => 'admin', 'description' => 'Export audit logs'],
             ['name' => 'manage-system-health', 'category' => 'admin', 'description' => 'Manage system health'],
+
+            // Filament Resource Permissions
+            ['name' => 'view role permissions', 'category' => 'filament', 'description' => 'View role permissions resource'],
+            ['name' => 'view::role::permission', 'category' => 'filament', 'description' => 'View role permission details'],
+            ['name' => 'create role permissions', 'category' => 'filament', 'description' => 'Create role permissions'],
+            ['name' => 'update role permissions', 'category' => 'filament', 'description' => 'Update role permissions'],
+            ['name' => 'delete role permissions', 'category' => 'filament', 'description' => 'Delete role permissions'],
+            ['name' => 'view audit logs', 'category' => 'filament', 'description' => 'View audit logs resource'],
+            ['name' => 'view fcm tokens', 'category' => 'filament', 'description' => 'View FCM tokens resource'],
+            ['name' => 'view answers', 'category' => 'filament', 'description' => 'View answers resource'],
+            ['name' => 'create answers', 'category' => 'filament', 'description' => 'Create answers'],
+            ['name' => 'update answers', 'category' => 'filament', 'description' => 'Update answers'],
+            ['name' => 'delete answers', 'category' => 'filament', 'description' => 'Delete answers'],
         ];
 
         $permissionCount = 0;

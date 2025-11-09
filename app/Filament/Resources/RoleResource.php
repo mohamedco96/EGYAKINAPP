@@ -31,7 +31,7 @@ class RoleResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-shield-check';
 
-    protected static ?string $navigationGroup = '👨‍⚕️ User Management';
+    protected static ?string $navigationGroup = '👥 User Management';
 
     protected static ?string $navigationLabel = 'Roles & Permissions';
 
@@ -108,7 +108,7 @@ class RoleResource extends Resource
                             ->gridDirection('row')
                             ->bulkToggleable()
                             ->searchable()
-                            ->getOptionLabelFromRecordUsing(fn (Permission $record): string => ucwords(str_replace(['-', '_'], ' ', $record->name)))
+                            ->getOptionLabelUsing(fn ($value): string => ucwords(str_replace(['-', '_'], ' ', Permission::find($value)?->name ?? '')))
                             ->descriptions(
                                 fn (): array => Permission::all()->pluck('name', 'id')->map(
                                     fn ($name) => 'Grant access to '.str_replace(['-', '_'], ' ', $name).' functionality'

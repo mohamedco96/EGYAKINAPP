@@ -31,7 +31,7 @@ class PermissionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-key';
 
-    protected static ?string $navigationGroup = '👨‍⚕️ User Management';
+    protected static ?string $navigationGroup = '👥 User Management';
 
     protected static ?int $navigationSort = 2;
 
@@ -119,7 +119,7 @@ class PermissionResource extends Resource
                             ->gridDirection('row')
                             ->bulkToggleable()
                             ->searchable()
-                            ->getOptionLabelFromRecordUsing(fn (Role $record): string => ucwords(str_replace(['-', '_'], ' ', $record->name)))
+                            ->getOptionLabelUsing(fn ($value): string => ucwords(str_replace(['-', '_'], ' ', Role::find($value)?->name ?? '')))
                             ->descriptions(
                                 fn (): array => Role::all()->pluck('name', 'id')->map(
                                     fn ($name) => 'Assign this permission to '.ucwords(str_replace(['-', '_'], ' ', $name)).' role'

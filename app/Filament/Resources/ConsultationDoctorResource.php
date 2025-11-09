@@ -44,17 +44,41 @@ class ConsultationDoctorResource extends Resource
                 Tables\Columns\TextColumn::make('doctor.name')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->since(),
             ])
-            ->actions([Tables\Actions\ViewAction::make(), Tables\Actions\DeleteAction::make()])
-            ->bulkActions([Tables\Actions\DeleteBulkAction::make(), ExportBulkAction::make()]);
+            ->actions([
+                Tables\Actions\ViewAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    ExportBulkAction::make(),
+                ]),
+            ]);
     }
 
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListConsultationDoctors::route('/'),
-            'create' => Pages\CreateConsultationDoctor::route('/create'),
             'view' => Pages\ViewConsultationDoctor::route('/{record}'),
-            'edit' => Pages\EditConsultationDoctor::route('/{record}/edit'),
         ];
+    }
+
+    public static function canCreate(): bool
+    {
+        return false;
+    }
+
+    public static function canEdit($record): bool
+    {
+        return false;
+    }
+
+    public static function canDelete($record): bool
+    {
+        return false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return false;
     }
 }

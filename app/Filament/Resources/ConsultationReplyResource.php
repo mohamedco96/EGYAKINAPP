@@ -44,17 +44,41 @@ class ConsultationReplyResource extends Resource
                 Tables\Columns\TextColumn::make('reply')->limit(60)->wrap(),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->since(),
             ])
-            ->actions([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make()])
-            ->bulkActions([Tables\Actions\DeleteBulkAction::make(), ExportBulkAction::make()]);
+            ->actions([
+                Tables\Actions\ViewAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    ExportBulkAction::make(),
+                ]),
+            ]);
     }
 
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListConsultationReplies::route('/'),
-            'create' => Pages\CreateConsultationReply::route('/create'),
             'view' => Pages\ViewConsultationReply::route('/{record}'),
-            'edit' => Pages\EditConsultationReply::route('/{record}/edit'),
         ];
+    }
+
+    public static function canCreate(): bool
+    {
+        return false;
+    }
+
+    public static function canEdit($record): bool
+    {
+        return false;
+    }
+
+    public static function canDelete($record): bool
+    {
+        return false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return false;
     }
 }

@@ -28,12 +28,30 @@ class DoctorMonthlyTrialResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Section::make('Trial Information')->schema([
-                Forms\Components\Select::make('doctor_id')->relationship('doctor', 'name')->searchable()->preload()->required(),
-                Forms\Components\TextInput::make('month')->required()->maxLength(255),
-                Forms\Components\TextInput::make('trials_used')->numeric()->default(0)->required(),
-                Forms\Components\TextInput::make('trials_limit')->numeric()->default(10)->required(),
-            ])->columns(2),
+            Forms\Components\Section::make('AI Trial Information')
+                ->description('Monthly AI consultation trial tracking')
+                ->schema([
+                    Forms\Components\Select::make('doctor_id')
+                        ->relationship('doctor', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->label('Doctor')
+                        ->helperText('Select the doctor for trial tracking'),
+
+                    Forms\Components\TextInput::make('trial_count')
+                        ->numeric()
+                        ->default(3)
+                        ->required()
+                        ->label('Trial Count')
+                        ->helperText('Number of AI trials remaining this month'),
+
+                    Forms\Components\DatePicker::make('reset_date')
+                        ->required()
+                        ->label('Reset Date')
+                        ->default(now()->addMonth()->startOfMonth())
+                        ->helperText('Date when trials will reset (usually next month)'),
+                ])->columns(2),
         ]);
     }
 
@@ -41,15 +59,113 @@ class DoctorMonthlyTrialResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->badge()->color('gray'),
-                Tables\Columns\TextColumn::make('doctor.name')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('month')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('trials_used')->badge()->color('info')->sortable(),
-                Tables\Columns\TextColumn::make('trials_limit')->badge()->color('success')->sortable(),
-                Tables\Columns\TextColumn::make('created_at')->dateTime()->since(),
+                Tables\Columns\TextColumn::make('id')
+                    ->label('ID')
+                    ->badge()
+                    ->color('gray')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: false),
+
+                Tables\Columns\TextColumn::make('doctor.name')
+                    ->label('Doctor')
+                    ->searchable(['users.name', 'users.lname'])
+                    ->sortable()
+                    ->formatStateUsing(fn ($record) => $record->doctor ? $record->doctor->name . ' ' . ($record->doctor->lname ?? '') : 'N/A')
+                    ->description(fn ($record) => $record->doctor?->email)
+                    ->weight('bold')
+                    ->toggleable(isToggledHiddenByDefault: false),
+
+                Tables\Columns\TextColumn::make('trial_count')
+                    ->label('Trials Remaining')
+                    ->badge()
+                    ->color(fn (int $state): string => match (true) {
+                        $state === 0 => 'danger',
+                        $state <= 1 => 'warning',
+                        default => 'success',
+                    })
+                    ->icon('heroicon-o-cpu-chip')
+                    ->sortable()
+                    ->alignCenter()
+                    ->toggleable(isToggledHiddenByDefault: false),
+
+                Tables\Columns\TextColumn::make('reset_date')
+                    ->label('Reset Date')
+                    ->date()
+                    ->sortable()
+                    ->description(fn ($record) => $record->reset_date ? 'Resets ' . \Carbon\Carbon::parse($record->reset_date)->diffForHumans() : null)
+                    ->toggleable(isToggledHiddenByDefault: false),
+
+                Tables\Columns\IconColumn::make('is_active')
+                    ->label('Active')
+                    ->getStateUsing(fn ($record) => \Carbon\Carbon::parse($record->reset_date)->isFuture())
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger')
+                    ->toggleable(isToggledHiddenByDefault: false),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Created')
+                    ->dateTime()
+                    ->sortable()
+                    ->since()
+                    ->tooltip(fn ($record) => $record->created_at?->format('M d, Y H:i:s'))
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Last Updated')
+                    ->dateTime()
+                    ->sortable()
+                    ->since()
+                    ->tooltip(fn ($record) => $record->updated_at?->format('M d, Y H:i:s'))
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->actions([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make()])
-            ->bulkActions([Tables\Actions\DeleteBulkAction::make(), ExportBulkAction::make()]);
+            ->defaultSort('reset_date', 'desc')
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
+            ->filters([
+                Tables\Filters\SelectFilter::make('doctor_id')
+                    ->label('Doctor')
+                    ->relationship('doctor', 'name')
+                    ->searchable()
+                    ->preload(),
+
+                Tables\Filters\Filter::make('no_trials_remaining')
+                    ->label('No Trials Remaining')
+                    ->toggle()
+                    ->query(fn ($query) => $query->where('trial_count', '<=', 0)),
+
+                Tables\Filters\Filter::make('expired')
+                    ->label('Expired (Past Reset Date)')
+                    ->toggle()
+                    ->query(fn ($query) => $query->whereDate('reset_date', '<', now())),
+            ], layout: Tables\Enums\FiltersLayout::AboveContent)
+            ->filtersFormColumns(3)
+            ->actions([
+                Tables\Actions\ViewAction::make(),
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->after(function () {
+                        Cache::forget('doctor_monthly_trials_count');
+                    }),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->after(function () {
+                            Cache::forget('doctor_monthly_trials_count');
+                        }),
+                    ExportBulkAction::make(),
+                ]),
+            ])
+            ->emptyStateActions([
+                Tables\Actions\CreateAction::make(),
+            ])
+            ->emptyStateHeading('No trial records yet')
+            ->emptyStateDescription('Doctor monthly AI trial records will appear here.')
+            ->emptyStateIcon('heroicon-o-calendar');
     }
 
     public static function getPages(): array

@@ -316,4 +316,28 @@ class User extends Authenticatable implements FilamentUser
         return $this->belongsToMany(Patients::class, 'marked_patients', 'user_id', 'patient_id')
             ->withTimestamps();
     }
+
+    /**
+     * Get the user's full name (first name + last name)
+     */
+    public function getFullNameAttribute(): string
+    {
+        return trim($this->name . ' ' . ($this->lname ?? ''));
+    }
+
+    /**
+     * Get the user's full name with email in parentheses
+     */
+    public function getFullNameWithEmailAttribute(): string
+    {
+        return $this->full_name . ' (' . $this->email . ')';
+    }
+
+    /**
+     * Get the user's full name with specialty in parentheses
+     */
+    public function getFullNameWithSpecialtyAttribute(): string
+    {
+        return $this->full_name . ' (' . ($this->specialty ?? 'No Specialty') . ')';
+    }
 }

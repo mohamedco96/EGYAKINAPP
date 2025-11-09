@@ -50,7 +50,12 @@ class FeedPostResource extends Resource
                             ->preload()
                             ->required()
                             ->label('Doctor')
-                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->name . ' ' . $record->lname . ' (' . $record->email . ')')
+                            ->getSearchResultsUsing(fn (string $search) => \App\Models\User::where(function($query) use ($search) {
+                                $query->where('name', 'like', "%{$search}%")
+                                    ->orWhere('lname', 'like', "%{$search}%")
+                                    ->orWhere('email', 'like', "%{$search}%");
+                            })->limit(50)->get()->pluck('full_name_with_email', 'id'))
+                            ->getOptionLabelUsing(fn ($value): ?string => \App\Models\User::find($value)?->full_name_with_email)
                             ->helperText('Select the doctor who created this post'),
 
                         Forms\Components\Select::make('group_id')
@@ -113,19 +118,13 @@ class FeedPostResource extends Resource
                 Section::make('Statistics')
                     ->description('Post engagement metrics (read-only)')
                     ->schema([
-                        Forms\Components\TextInput::make('likes_count')
+                        Forms\Components\Placeholder::make('likes_count')
                             ->label('Likes Count')
-                            ->numeric()
-                            ->default(0)
-                            ->disabled()
-                            ->dehydrated(false),
+                            ->content(fn ($record) => $record ? $record->likes()->count() : 0),
 
-                        Forms\Components\TextInput::make('comments_count')
+                        Forms\Components\Placeholder::make('comments_count')
                             ->label('Comments Count')
-                            ->numeric()
-                            ->default(0)
-                            ->disabled()
-                            ->dehydrated(false),
+                            ->content(fn ($record) => $record ? $record->comments()->count() : 0),
                     ])->columns(2)->collapsible()->collapsed(),
             ]);
     }
@@ -213,8 +212,9 @@ class FeedPostResource extends Resource
                     ->placeholder('No Group')
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('likes_count')
+                Tables\Columns\TextColumn::make('likes.count')
                     ->label('Likes')
+                    ->counts('likes')
                     ->badge()
                     ->color('danger')
                     ->icon('heroicon-o-heart')
@@ -222,32 +222,15 @@ class FeedPostResource extends Resource
                     ->alignCenter()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('comments_count')
+                Tables\Columns\TextColumn::make('comments.count')
                     ->label('Comments')
+                    ->counts('comments')
                     ->badge()
                     ->color('info')
                     ->icon('heroicon-o-chat-bubble-left-right')
                     ->sortable()
                     ->alignCenter()
                     ->toggleable(isToggledHiddenByDefault: false),
-
-                Tables\Columns\TextColumn::make('comments.count')
-                    ->label('Total Comments')
-                    ->counts('comments')
-                    ->badge()
-                    ->color('primary')
-                    ->icon('heroicon-o-chat-bubble-bottom-center-text')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('likes.count')
-                    ->label('Total Likes')
-                    ->counts('likes')
-                    ->badge()
-                    ->color('danger')
-                    ->icon('heroicon-o-heart')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('saves.count')
                     ->label('Saves')
@@ -314,7 +297,7 @@ class FeedPostResource extends Resource
                     ->relationship('doctor', 'name')
                     ->searchable()
                     ->preload()
-                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->name . ' ' . $record->lname),
+                    ->getOptionLabelUsing(fn ($value): ?string => \App\Models\User::find($value)?->full_name),
 
                 Tables\Filters\SelectFilter::make('group_id')
                     ->label('Group')
@@ -330,7 +313,7 @@ class FeedPostResource extends Resource
                 Tables\Filters\Filter::make('popular')
                     ->label('Popular Posts (10+ likes)')
                     ->toggle()
-                    ->query(fn (Builder $query): Builder => $query->where('likes_count', '>=', 10)),
+                    ->query(fn (Builder $query): Builder => $query->has('likes', '>=', 10)),
 
                 Tables\Filters\Filter::make('created_at')
                     ->form([

@@ -29,7 +29,32 @@ class AnswersResource extends Resource
     {
         return $form->schema([
             Forms\Components\Section::make('Answer Information')->schema([
-                Forms\Components\Select::make('patient_id')->relationship('patient', 'name')->searchable()->preload()->required(),
+                Forms\Components\Select::make('patient_id')
+                    ->relationship('patient', 'id')
+                    ->getSearchResultsUsing(function (string $search) {
+                        return \App\Models\Patient::query()
+                            ->where('id', 'like', "%{$search}%")
+                            ->orWhereHas('doctor', function ($query) use ($search) {
+                                $query->where('name', 'like', "%{$search}%")
+                                    ->orWhere('lname', 'like', "%{$search}%");
+                            })
+                            ->limit(50)
+                            ->get()
+                            ->mapWithKeys(function ($patient) {
+                                $doctorName = $patient->doctor ? $patient->doctor->name . ' ' . ($patient->doctor->lname ?? '') : 'Unknown';
+                                return [$patient->id => "Patient #{$patient->id} (Doctor: {$doctorName})"];
+                            });
+                    })
+                    ->getOptionLabelUsing(function ($value) {
+                        $patient = \App\Models\Patient::find($value);
+                        if (!$patient) return "Patient #{$value}";
+                        $doctorName = $patient->doctor ? $patient->doctor->name . ' ' . ($patient->doctor->lname ?? '') : 'Unknown';
+                        return "Patient #{$patient->id} (Doctor: {$doctorName})";
+                    })
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->label('Patient'),
                 Forms\Components\Select::make('question_id')->relationship('question', 'question')->searchable()->preload()->required(),
                 Forms\Components\Textarea::make('answer')->required()->rows(3)->columnSpanFull(),
             ])->columns(2),
@@ -41,7 +66,21 @@ class AnswersResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')->badge()->color('gray')->sortable(),
-                Tables\Columns\TextColumn::make('patient.name')->searchable()->sortable(),
+                Tables\Columns\TextColumn::make('patient_id')
+                    ->label('Patient')
+                    ->formatStateUsing(function ($record) {
+                        if (!$record->patient) return "Patient #{$record->patient_id}";
+                        $doctorName = $record->patient->doctor ? $record->patient->doctor->name . ' ' . ($record->patient->doctor->lname ?? '') : 'Unknown';
+                        return "Patient #{$record->patient_id} (Doctor: {$doctorName})";
+                    })
+                    ->searchable(query: function ($query, string $search) {
+                        return $query->where('patient_id', 'like', "%{$search}%")
+                            ->orWhereHas('patient.doctor', function ($q) use ($search) {
+                                $q->where('name', 'like', "%{$search}%")
+                                    ->orWhere('lname', 'like', "%{$search}%");
+                            });
+                    })
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('question.question')->limit(40)->searchable(),
                 Tables\Columns\TextColumn::make('answer')->limit(50)->wrap(),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->since()->sortable(),

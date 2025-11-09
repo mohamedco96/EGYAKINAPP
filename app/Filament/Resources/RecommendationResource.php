@@ -43,7 +43,27 @@ class RecommendationResource extends Resource
                     ->description('Medical recommendation details')
                     ->schema([
                         Forms\Components\Select::make('patient_id')
-                            ->relationship('patient', 'name')
+                            ->relationship('patient', 'id')
+                            ->getSearchResultsUsing(function (string $search) {
+                                return \App\Models\Patient::query()
+                                    ->where('id', 'like', "%{$search}%")
+                                    ->orWhereHas('doctor', function ($query) use ($search) {
+                                        $query->where('name', 'like', "%{$search}%")
+                                            ->orWhere('lname', 'like', "%{$search}%");
+                                    })
+                                    ->limit(50)
+                                    ->get()
+                                    ->mapWithKeys(function ($patient) {
+                                        $doctorName = $patient->doctor ? $patient->doctor->name . ' ' . ($patient->doctor->lname ?? '') : 'Unknown';
+                                        return [$patient->id => "Patient #{$patient->id} (Doctor: {$doctorName})"];
+                                    });
+                            })
+                            ->getOptionLabelUsing(function ($value) {
+                                $patient = \App\Models\Patient::find($value);
+                                if (!$patient) return "Patient #{$value}";
+                                $doctorName = $patient->doctor ? $patient->doctor->name . ' ' . ($patient->doctor->lname ?? '') : 'Unknown';
+                                return "Patient #{$patient->id} (Doctor: {$doctorName})";
+                            })
                             ->searchable()
                             ->preload()
                             ->required()
@@ -116,9 +136,20 @@ class RecommendationResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('patient.name')
+                Tables\Columns\TextColumn::make('patient_id')
                     ->label('Patient')
-                    ->searchable()
+                    ->formatStateUsing(function ($record) {
+                        if (!$record->patient) return "Patient #{$record->patient_id}";
+                        $doctorName = $record->patient->doctor ? $record->patient->doctor->name . ' ' . ($record->patient->doctor->lname ?? '') : 'Unknown';
+                        return "Patient #{$record->patient_id} (Doctor: {$doctorName})";
+                    })
+                    ->searchable(query: function ($query, string $search) {
+                        return $query->where('patient_id', 'like', "%{$search}%")
+                            ->orWhereHas('patient.doctor', function ($q) use ($search) {
+                                $q->where('name', 'like', "%{$search}%")
+                                    ->orWhere('lname', 'like', "%{$search}%");
+                            });
+                    })
                     ->sortable()
                     ->weight('bold')
                     ->toggleable(isToggledHiddenByDefault: false),
@@ -230,7 +261,13 @@ class RecommendationResource extends Resource
 
                 Tables\Filters\SelectFilter::make('patient_id')
                     ->label('Patient')
-                    ->relationship('patient', 'name')
+                    ->relationship('patient', 'id')
+                    ->getOptionLabelUsing(function ($value) {
+                        $patient = \App\Models\Patient::find($value);
+                        if (!$patient) return "Patient #{$value}";
+                        $doctorName = $patient->doctor ? $patient->doctor->name . ' ' . ($patient->doctor->lname ?? '') : 'Unknown';
+                        return "Patient #{$patient->id} (Doctor: {$doctorName})";
+                    })
                     ->searchable()
                     ->preload(),
 

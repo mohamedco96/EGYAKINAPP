@@ -34,10 +34,39 @@ class GroupResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Section::make('Group Information')->schema([                Forms\Components\TextInput::make('name')->required()->maxLength(255),
-                Forms\Components\Textarea::make('description')->required()->rows(3),
-                Forms\Components\Select::make('privacy')->options([])->required(),
-                Forms\Components\Select::make('owner_id')->relationship('owner', 'name')->searchable()->preload()->required()
+            Forms\Components\Section::make('Group Information')->schema([
+                Forms\Components\TextInput::make('name')
+                    ->required()
+                    ->maxLength(255)
+                    ->label('Group Name')
+                    ->helperText('The name of the group'),
+                Forms\Components\Select::make('owner_id')
+                    ->relationship('owner', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->label('Group Owner')
+                    ->getSearchResultsUsing(fn (string $search) => \App\Models\User::where(function($query) use ($search) {
+                        $query->where('name', 'like', "%{$search}%")
+                            ->orWhere('lname', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    })->limit(50)->get()->pluck('full_name_with_email', 'id'))
+                    ->getOptionLabelUsing(fn ($value): ?string => \App\Models\User::find($value)?->full_name_with_email),
+                Forms\Components\Select::make('privacy')
+                    ->options([
+                        'public' => 'Public',
+                        'private' => 'Private',
+                    ])
+                    ->default('public')
+                    ->required()
+                    ->native(false)
+                    ->label('Privacy Setting')
+                    ->helperText('Public groups are visible to all, private groups require approval'),
+                Forms\Components\Textarea::make('description')
+                    ->nullable()
+                    ->rows(3)
+                    ->columnSpanFull()
+                    ->label('Group Description'),
             ])->columns(2),
         ]);
     }
@@ -47,14 +76,46 @@ class GroupResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')->label('ID')->badge()->color('gray')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('name')->searchable()->sortable()->limit(50),
-                Tables\Columns\TextColumn::make('description')->searchable()->sortable()->limit(50),
-                Tables\Columns\TextColumn::make('privacy')->searchable()->sortable()->limit(50),
-                Tables\Columns\TextColumn::make('owner.name')->label('Owner')->searchable()->sortable(),
+                Tables\Columns\TextColumn::make('name')
+                    ->searchable()
+                    ->sortable()
+                    ->weight('bold')
+                    ->limit(40),
+                Tables\Columns\TextColumn::make('privacy')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'public' => 'success',
+                        'private' => 'warning',
+                        default => 'gray',
+                    })
+                    ->icon(fn (string $state): string => match ($state) {
+                        'public' => 'heroicon-o-globe-alt',
+                        'private' => 'heroicon-o-lock-closed',
+                        default => 'heroicon-o-question-mark-circle',
+                    })
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('owner.name')
+                    ->label('Owner')
+                    ->formatStateUsing(fn ($record) => $record->owner ? $record->owner->name . ' ' . ($record->owner->lname ?? '') : 'N/A')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('description')
+                    ->searchable()
+                    ->limit(50)
+                    ->wrap()
+                    ->placeholder('No description')
+                    ->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('created_at')->label('Created')->dateTime()->sortable()->since()->toggleable(),
             ])
             ->defaultSort('created_at', 'desc')
-            ->filters([])
+            ->filters([
+                Tables\Filters\SelectFilter::make('privacy')
+                    ->options([
+                        'public' => 'Public',
+                        'private' => 'Private',
+                    ]),
+            ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),

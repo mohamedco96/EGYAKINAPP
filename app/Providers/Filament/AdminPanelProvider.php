@@ -35,6 +35,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->brandName('EGYAKIN')
             ->colors([
                 'primary' => Color::Amber,
             ])
@@ -46,18 +47,7 @@ class AdminPanelProvider extends PanelProvider
                 DoseResource::class,
             ])
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
-            ->pages([
-                \App\Filament\Pages\Dashboard::class,
-            ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
-            ->widgets([
-                CoreMedicalOverview::class,
-                ConsultationTrendsChart::class,
-                RecentActivityTable::class,
-                RecentConsultationsTable::class,
-                QuickActionsWidget::class,
-                RolePermissionChartWidget::class,
-            ])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

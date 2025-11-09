@@ -28,10 +28,45 @@ class FcmTokenResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Section::make('Token Information')->schema([
-                Forms\Components\Select::make('doctor_id')->relationship('doctor', 'name')->searchable()->preload()->required(),
-                Forms\Components\Textarea::make('fcm_token')->required()->rows(3)->columnSpanFull(),
-            ])->columns(2),
+            Forms\Components\Section::make('Token Information')
+                ->description('FCM (Firebase Cloud Messaging) token details')
+                ->schema([
+                    Forms\Components\Select::make('doctor_id')
+                        ->relationship('doctor', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->label('Doctor')
+                        ->helperText('Select the doctor/user who owns this token'),
+
+                    Forms\Components\Textarea::make('token')
+                        ->required()
+                        ->rows(4)
+                        ->columnSpanFull()
+                        ->label('FCM Token')
+                        ->helperText('Firebase Cloud Messaging token for push notifications')
+                        ->placeholder('Enter the FCM token...'),
+
+                    Forms\Components\TextInput::make('device_id')
+                        ->label('Device ID')
+                        ->maxLength(50)
+                        ->helperText('Unique device identifier'),
+
+                    Forms\Components\Select::make('device_type')
+                        ->label('Device Type')
+                        ->options([
+                            'ios' => 'iOS',
+                            'android' => 'Android',
+                            'web' => 'Web',
+                        ])
+                        ->native(false)
+                        ->helperText('Type of device'),
+
+                    Forms\Components\TextInput::make('app_version')
+                        ->label('App Version')
+                        ->maxLength(20)
+                        ->helperText('Application version'),
+                ])->columns(2),
         ]);
     }
 
@@ -39,13 +74,124 @@ class FcmTokenResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->badge()->color('gray'),
-                Tables\Columns\TextColumn::make('doctor.name')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('fcm_token')->limit(30)->copyable(),
-                Tables\Columns\TextColumn::make('created_at')->dateTime()->since(),
+                Tables\Columns\TextColumn::make('id')
+                    ->label('ID')
+                    ->badge()
+                    ->color('gray')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: false),
+
+                Tables\Columns\TextColumn::make('doctor.name')
+                    ->label('Doctor')
+                    ->searchable(['users.name', 'users.lname'])
+                    ->sortable()
+                    ->formatStateUsing(fn ($record) => $record->doctor ? $record->doctor->name . ' ' . ($record->doctor->lname ?? '') : 'N/A')
+                    ->description(fn ($record) => $record->doctor?->email)
+                    ->weight('bold')
+                    ->toggleable(isToggledHiddenByDefault: false),
+
+                Tables\Columns\TextColumn::make('token')
+                    ->label('FCM Token')
+                    ->limit(40)
+                    ->copyable()
+                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                        $state = $column->getState();
+                        if (strlen($state) > 40) {
+                            return $state;
+                        }
+                        return null;
+                    })
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: false),
+
+                Tables\Columns\TextColumn::make('device_id')
+                    ->label('Device ID')
+                    ->limit(20)
+                    ->copyable()
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: false),
+
+                Tables\Columns\TextColumn::make('device_type')
+                    ->label('Device')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'ios' => 'info',
+                        'android' => 'success',
+                        'web' => 'warning',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state): string => strtoupper($state))
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: false),
+
+                Tables\Columns\TextColumn::make('app_version')
+                    ->label('App Version')
+                    ->badge()
+                    ->color('gray')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Created')
+                    ->dateTime()
+                    ->sortable()
+                    ->since()
+                    ->tooltip(fn ($record) => $record->created_at?->format('M d, Y H:i:s'))
+                    ->toggleable(isToggledHiddenByDefault: false),
+
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Last Updated')
+                    ->dateTime()
+                    ->sortable()
+                    ->since()
+                    ->tooltip(fn ($record) => $record->updated_at?->format('M d, Y H:i:s'))
+                    ->toggleable(isToggledHiddenByDefault: false),
             ])
-            ->actions([Tables\Actions\ViewAction::make(), Tables\Actions\DeleteAction::make()])
-            ->bulkActions([Tables\Actions\DeleteBulkAction::make(), ExportBulkAction::make()]);
+            ->defaultSort('updated_at', 'desc')
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
+            ->filters([
+                Tables\Filters\SelectFilter::make('doctor_id')
+                    ->label('Doctor')
+                    ->relationship('doctor', 'name')
+                    ->searchable()
+                    ->preload(),
+
+                Tables\Filters\SelectFilter::make('device_type')
+                    ->label('Device Type')
+                    ->options([
+                        'ios' => 'iOS',
+                        'android' => 'Android',
+                        'web' => 'Web',
+                    ])
+                    ->multiple()
+                    ->searchable(),
+            ], layout: Tables\Enums\FiltersLayout::AboveContent)
+            ->filtersFormColumns(2)
+            ->actions([
+                Tables\Actions\ViewAction::make(),
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->after(function () {
+                        Cache::forget('fcm_tokens_count');
+                    }),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->after(function () {
+                            Cache::forget('fcm_tokens_count');
+                        }),
+                    ExportBulkAction::make(),
+                ]),
+            ])
+            ->emptyStateActions([
+                Tables\Actions\CreateAction::make(),
+            ])
+            ->emptyStateHeading('No FCM tokens registered')
+            ->emptyStateDescription('Device FCM tokens for push notifications will appear here.')
+            ->emptyStateIcon('heroicon-o-device-phone-mobile');
     }
 
     public static function getPages(): array

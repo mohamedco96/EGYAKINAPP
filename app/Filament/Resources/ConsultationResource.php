@@ -58,15 +58,36 @@ class ConsultationResource extends Resource
                             ->preload()
                             ->required()
                             ->label('Requesting Doctor')
-                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->name . ' ' . $record->lname . ' (' . $record->specialty . ')')
+                            ->getSearchResultsUsing(fn (string $search) => \App\Models\User::where(function($query) use ($search) {
+                                $query->where('name', 'like', "%{$search}%")
+                                    ->orWhere('lname', 'like', "%{$search}%")
+                                    ->orWhere('specialty', 'like', "%{$search}%");
+                            })->limit(50)->get()->pluck('full_name_with_specialty', 'id'))
+                            ->getOptionLabelUsing(fn ($value): ?string => \App\Models\User::find($value)?->full_name_with_specialty)
                             ->helperText('Doctor who is requesting the consultation'),
 
                         Forms\Components\Select::make('patient_id')
-                            ->relationship('patient', 'name')
+                            ->relationship('patient', 'id')
                             ->searchable()
                             ->preload()
                             ->required()
                             ->label('Patient')
+                            ->getSearchResultsUsing(fn (string $search) => \App\Modules\Patients\Models\Patients::where('id', 'like', "%{$search}%")
+                                ->orWhereHas('doctor', function($query) use ($search) {
+                                    $query->where('name', 'like', "%{$search}%")
+                                        ->orWhere('email', 'like', "%{$search}%");
+                                })
+                                ->with('doctor')
+                                ->limit(50)
+                                ->get()
+                                ->mapWithKeys(fn ($patient) => [
+                                    $patient->id => 'Patient #' . $patient->id . ' (Doctor: ' . ($patient->doctor?->name ?? 'N/A') . ')'
+                                ]))
+                            ->getOptionLabelUsing(fn ($value): ?string =>
+                                \App\Modules\Patients\Models\Patients::with('doctor')->find($value)
+                                    ? 'Patient #' . $value . ' (Doctor: ' . (\App\Modules\Patients\Models\Patients::with('doctor')->find($value)?->doctor?->name ?? 'N/A') . ')'
+                                    : 'Patient #' . $value
+                            )
                             ->helperText('Patient for whom the consultation is requested'),
 
                         Forms\Components\Select::make('status')
@@ -119,8 +140,10 @@ class ConsultationResource extends Resource
                     ->weight('bold')
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('patient.name')
+                Tables\Columns\TextColumn::make('patient_id')
                     ->label('Patient')
+                    ->formatStateUsing(fn ($record) => 'Patient #' . $record->patient_id)
+                    ->description(fn ($record) => $record->patient?->doctor ? 'Doctor: ' . $record->patient->doctor->name : null)
                     ->searchable()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
@@ -226,13 +249,14 @@ class ConsultationResource extends Resource
                     ->relationship('doctor', 'name')
                     ->searchable()
                     ->preload()
-                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->name . ' ' . $record->lname),
+                    ->getOptionLabelUsing(fn ($value): ?string => \App\Models\User::find($value)?->full_name),
 
                 Tables\Filters\SelectFilter::make('patient_id')
                     ->label('Patient')
-                    ->relationship('patient', 'name')
+                    ->relationship('patient', 'id')
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    ->getOptionLabelUsing(fn ($value): ?string => 'Patient #' . $value),
 
                 Tables\Filters\Filter::make('created_at')
                     ->form([
@@ -280,89 +304,11 @@ class ConsultationResource extends Resource
                 Tables\Actions\ViewAction::make()
                     ->modalHeading('Consultation Details')
                     ->modalWidth('4xl'),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('markAsCompleted')
-                    ->label('Complete')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    ->visible(fn ($record) => $record->status !== 'completed')
-                    ->action(function ($record) {
-                        $record->update(['status' => 'completed', 'is_open' => false]);
-                        Cache::forget('consultations_open_count');
-                    })
-                    ->successNotificationTitle('Consultation marked as completed'),
-                Tables\Actions\Action::make('toggleOpen')
-                    ->label(fn ($record) => $record->is_open ? 'Close' : 'Open')
-                    ->icon(fn ($record) => $record->is_open ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
-                    ->color(fn ($record) => $record->is_open ? 'danger' : 'success')
-                    ->action(function ($record) {
-                        $record->update(['is_open' => !$record->is_open]);
-                        Cache::forget('consultations_open_count');
-                    })
-                    ->successNotificationTitle('Consultation status toggled'),
-                Tables\Actions\DeleteAction::make()
-                    ->after(function () {
-                        Cache::forget('consultations_count');
-                        Cache::forget('consultations_open_count');
-                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('changeStatus')
-                        ->label('Change Status')
-                        ->icon('heroicon-o-arrow-path')
-                        ->color('info')
-                        ->form([
-                            Forms\Components\Select::make('status')
-                                ->label('New Status')
-                                ->options([
-                                    'pending' => 'Pending',
-                                    'in-progress' => 'In Progress',
-                                    'completed' => 'Completed',
-                                    'cancelled' => 'Cancelled',
-                                ])
-                                ->required()
-                                ->native(false),
-                        ])
-                        ->action(function (Collection $records, array $data) {
-                            $records->each->update(['status' => $data['status']]);
-                            if ($data['status'] === 'completed') {
-                                $records->each->update(['is_open' => false]);
-                            }
-                            Cache::forget('consultations_open_count');
-                        })
-                        ->deselectRecordsAfterCompletion()
-                        ->successNotificationTitle('Status updated for selected consultations'),
-                    Tables\Actions\BulkAction::make('markAsCompleted')
-                        ->label('Mark as Completed')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->action(function (Collection $records) {
-                            $records->each->update(['status' => 'completed', 'is_open' => false]);
-                            Cache::forget('consultations_open_count');
-                        })
-                        ->deselectRecordsAfterCompletion()
-                        ->successNotificationTitle('Selected consultations marked as completed'),
-                    Tables\Actions\BulkAction::make('closeConsultations')
-                        ->label('Close Consultations')
-                        ->icon('heroicon-o-lock-closed')
-                        ->color('warning')
-                        ->action(function (Collection $records) {
-                            $records->each->update(['is_open' => false]);
-                            Cache::forget('consultations_open_count');
-                        })
-                        ->deselectRecordsAfterCompletion()
-                        ->successNotificationTitle('Selected consultations closed'),
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->after(function () {
-                            Cache::forget('consultations_count');
-                            Cache::forget('consultations_open_count');
-                        }),
                     ExportBulkAction::make(),
                 ]),
-            ])
-            ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
             ])
             ->emptyStateHeading('No consultations yet')
             ->emptyStateDescription('Doctor consultation requests will appear here.')
@@ -380,9 +326,27 @@ class ConsultationResource extends Resource
     {
         return [
             'index' => Pages\ListConsultations::route('/'),
-            'create' => Pages\CreateConsultation::route('/create'),
             'view' => Pages\ViewConsultation::route('/{record}'),
-            'edit' => Pages\EditConsultation::route('/{record}/edit'),
         ];
+    }
+
+    public static function canCreate(): bool
+    {
+        return false;
+    }
+
+    public static function canEdit($record): bool
+    {
+        return false;
+    }
+
+    public static function canDelete($record): bool
+    {
+        return false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return false;
     }
 }

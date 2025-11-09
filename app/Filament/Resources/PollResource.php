@@ -34,10 +34,28 @@ class PollResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Section::make('Poll Information')->schema([                Forms\Components\Select::make('feed_post_id')->relationship('feed_post', 'name')->searchable()->preload()->required(),
-                Forms\Components\TextInput::make('question')->required()->maxLength(255),
-                Forms\Components\Toggle::make('allow_add_options')->default(false),
-                Forms\Components\Toggle::make('allow_multiple_choice')->default(false)
+            Forms\Components\Section::make('Poll Information')->schema([
+                Forms\Components\Select::make('feed_post_id')
+                    ->relationship('feedPost', 'id')
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->label('Feed Post')
+                    ->getOptionLabelUsing(fn ($value) => 'Post #' . $value)
+                    ->helperText('Select the feed post for this poll'),
+                Forms\Components\TextInput::make('question')
+                    ->required()
+                    ->maxLength(255)
+                    ->label('Poll Question')
+                    ->columnSpanFull(),
+                Forms\Components\Toggle::make('allow_add_options')
+                    ->label('Allow Users to Add Options')
+                    ->default(false)
+                    ->inline(false),
+                Forms\Components\Toggle::make('allow_multiple_choice')
+                    ->label('Allow Multiple Choice')
+                    ->default(false)
+                    ->inline(false),
             ])->columns(2),
         ]);
     }
@@ -47,10 +65,40 @@ class PollResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')->label('ID')->badge()->color('gray')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('feed_post.name')->label('Feed_post')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('question')->searchable()->sortable()->limit(50),
-                Tables\Columns\IconColumn::make('allow_add_options')->boolean()->sortable(),
-                Tables\Columns\IconColumn::make('allow_multiple_choice')->boolean()->sortable(),
+                Tables\Columns\TextColumn::make('feed_post_id')
+                    ->label('Feed Post')
+                    ->badge()
+                    ->color('info')
+                    ->formatStateUsing(fn ($state) => 'Post #' . $state)
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('question')
+                    ->searchable()
+                    ->limit(50)
+                    ->wrap()
+                    ->weight('bold'),
+                Tables\Columns\IconColumn::make('allow_add_options')
+                    ->label('User Options')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->sortable(),
+                Tables\Columns\IconColumn::make('allow_multiple_choice')
+                    ->label('Multiple Choice')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('options.count')
+                    ->label('Options')
+                    ->counts('options')
+                    ->badge()
+                    ->color('primary')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')->label('Created')->dateTime()->sortable()->since()->toggleable(),
             ])
             ->defaultSort('created_at', 'desc')

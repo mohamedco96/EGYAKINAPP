@@ -48,15 +48,36 @@ class AIConsultationResource extends Resource
                             ->preload()
                             ->required()
                             ->label('Doctor')
-                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->name . ' ' . $record->lname . ' (' . $record->email . ')')
+                            ->getSearchResultsUsing(fn (string $search) => \App\Models\User::where(function($query) use ($search) {
+                                $query->where('name', 'like', "%{$search}%")
+                                    ->orWhere('lname', 'like', "%{$search}%")
+                                    ->orWhere('email', 'like', "%{$search}%");
+                            })->limit(50)->get()->pluck('full_name_with_email', 'id'))
+                            ->getOptionLabelUsing(fn ($value): ?string => \App\Models\User::find($value)?->full_name_with_email)
                             ->helperText('Doctor who requested the AI consultation'),
 
                         Forms\Components\Select::make('patient_id')
-                            ->relationship('patient', 'name')
+                            ->relationship('patient', 'id')
                             ->searchable()
                             ->preload()
                             ->required()
                             ->label('Patient')
+                            ->getSearchResultsUsing(fn (string $search) => \App\Modules\Patients\Models\Patients::where('id', 'like', "%{$search}%")
+                                ->orWhereHas('doctor', function($query) use ($search) {
+                                    $query->where('name', 'like', "%{$search}%")
+                                        ->orWhere('email', 'like', "%{$search}%");
+                                })
+                                ->with('doctor')
+                                ->limit(50)
+                                ->get()
+                                ->mapWithKeys(fn ($patient) => [
+                                    $patient->id => 'Patient #' . $patient->id . ' (Doctor: ' . ($patient->doctor?->name ?? 'N/A') . ')'
+                                ]))
+                            ->getOptionLabelUsing(fn ($value): ?string =>
+                                \App\Modules\Patients\Models\Patients::with('doctor')->find($value)
+                                    ? 'Patient #' . $value . ' (Doctor: ' . (\App\Modules\Patients\Models\Patients::with('doctor')->find($value)?->doctor?->name ?? 'N/A') . ')'
+                                    : 'Patient #' . $value
+                            )
                             ->helperText('Patient for whom the consultation is requested'),
 
                         Forms\Components\Textarea::make('question')
@@ -100,8 +121,10 @@ class AIConsultationResource extends Resource
                     ->weight('bold')
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('patient.name')
+                Tables\Columns\TextColumn::make('patient_id')
                     ->label('Patient')
+                    ->formatStateUsing(fn ($record) => 'Patient #' . $record->patient_id)
+                    ->description(fn ($record) => $record->patient?->doctor ? 'Doctor: ' . $record->patient->doctor->name : null)
                     ->searchable()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
@@ -170,13 +193,14 @@ class AIConsultationResource extends Resource
                     ->relationship('doctor', 'name')
                     ->searchable()
                     ->preload()
-                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->name . ' ' . $record->lname),
+                    ->getOptionLabelUsing(fn ($value): ?string => \App\Models\User::find($value)?->full_name),
 
                 Tables\Filters\SelectFilter::make('patient_id')
                     ->label('Patient')
-                    ->relationship('patient', 'name')
+                    ->relationship('patient', 'id')
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    ->getOptionLabelUsing(fn ($value): ?string => 'Patient #' . $value),
 
                 Tables\Filters\Filter::make('has_response')
                     ->label('Has AI Response')
@@ -236,23 +260,11 @@ class AIConsultationResource extends Resource
                 Tables\Actions\ViewAction::make()
                     ->modalHeading('AI Consultation Details')
                     ->modalWidth('5xl'),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
-                    ->after(function () {
-                        Cache::forget('ai_consultations_count');
-                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->after(function () {
-                            Cache::forget('ai_consultations_count');
-                        }),
                     ExportBulkAction::make(),
                 ]),
-            ])
-            ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
             ])
             ->emptyStateHeading('No AI consultations yet')
             ->emptyStateDescription('AI consultation requests will appear here.')
@@ -270,9 +282,27 @@ class AIConsultationResource extends Resource
     {
         return [
             'index' => Pages\ListAIConsultations::route('/'),
-            'create' => Pages\CreateAIConsultation::route('/create'),
             'view' => Pages\ViewAIConsultation::route('/{record}'),
-            'edit' => Pages\EditAIConsultation::route('/{record}/edit'),
         ];
+    }
+
+    public static function canCreate(): bool
+    {
+        return false;
+    }
+
+    public static function canEdit($record): bool
+    {
+        return false;
+    }
+
+    public static function canDelete($record): bool
+    {
+        return false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return false;
     }
 }

@@ -29,9 +29,23 @@ class PollOptionResource extends Resource
     {
         return $form->schema([
             Forms\Components\Section::make('Poll Option')->schema([
-                Forms\Components\Select::make('poll_id')->relationship('poll', 'question')->searchable()->preload()->required(),
-                Forms\Components\TextInput::make('option_text')->required()->maxLength(255),
-                Forms\Components\TextInput::make('votes_count')->numeric()->default(0),
+                Forms\Components\Select::make('poll_id')
+                    ->relationship('poll', 'question')
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->label('Poll Question')
+                    ->helperText('Select the poll for this option'),
+                Forms\Components\TextInput::make('option_text')
+                    ->required()
+                    ->maxLength(255)
+                    ->label('Option Text')
+                    ->helperText('The text for this poll option')
+                    ->columnSpanFull(),
+                Forms\Components\Placeholder::make('votes_info')
+                    ->label('Vote Count')
+                    ->content(fn ($record) => $record ? $record->votes()->count() . ' votes' : '0 votes (read-only)')
+                    ->columnSpanFull(),
             ])->columns(2),
         ]);
     }
@@ -40,14 +54,52 @@ class PollOptionResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->badge()->color('gray'),
-                Tables\Columns\TextColumn::make('poll.question')->limit(30)->searchable(),
-                Tables\Columns\TextColumn::make('option_text')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('votes_count')->badge()->color('success')->sortable(),
-                Tables\Columns\TextColumn::make('created_at')->dateTime()->since(),
+                Tables\Columns\TextColumn::make('id')
+                    ->label('ID')
+                    ->badge()
+                    ->color('gray')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('poll.question')
+                    ->label('Poll Question')
+                    ->limit(40)
+                    ->searchable()
+                    ->wrap()
+                    ->weight('bold'),
+                Tables\Columns\TextColumn::make('option_text')
+                    ->label('Option')
+                    ->searchable()
+                    ->sortable()
+                    ->limit(50)
+                    ->wrap(),
+                Tables\Columns\TextColumn::make('votes.count')
+                    ->label('Votes')
+                    ->counts('votes')
+                    ->badge()
+                    ->color('success')
+                    ->icon('heroicon-o-hand-thumb-up')
+                    ->sortable()
+                    ->alignCenter(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Created')
+                    ->dateTime()
+                    ->since()
+                    ->sortable(),
             ])
-            ->actions([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make()])
-            ->bulkActions([Tables\Actions\DeleteBulkAction::make(), ExportBulkAction::make()]);
+            ->defaultSort('created_at', 'desc')
+            ->filters([])
+            ->actions([
+                Tables\Actions\ViewAction::make(),
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->after(fn () => Cache::forget('poll_options_count')),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->after(fn () => Cache::forget('poll_options_count')),
+                    ExportBulkAction::make(),
+                ]),
+            ]);
     }
 
     public static function getPages(): array

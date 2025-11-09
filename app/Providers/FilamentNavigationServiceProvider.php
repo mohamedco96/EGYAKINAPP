@@ -20,38 +20,45 @@ class FilamentNavigationServiceProvider extends ServiceProvider
             // Define navigation groups with emoji prefixes (no icons per Filament UX guidelines)
             // Individual resources have icons, so groups use emojis for visual distinction
             Filament::registerNavigationGroups([
-                NavigationGroup::make('🏠 Dashboard')
-                    ->collapsed(false),
-
-                NavigationGroup::make('🔐 Access Control')
-                    ->collapsed(false),
-
-                NavigationGroup::make('👨‍⚕️ Medical Team')
-                    ->collapsed(false),
-
                 NavigationGroup::make('🏥 Patient Management')
-                    ->collapsed(true),
+                    ->collapsible()
+                    ->collapsed(false),
+
+                NavigationGroup::make('👥 User Management')
+                    ->collapsible()
+                    ->collapsed(false),
 
                 NavigationGroup::make('📊 Medical Data')
+                    ->collapsible()
+                    ->collapsed(true),
+
+                NavigationGroup::make('App Data')
+                    ->collapsible()
                     ->collapsed(true),
 
                 NavigationGroup::make('📝 Content Management')
+                    ->collapsible()
+                    ->collapsed(true),
+
+                NavigationGroup::make('💬 AI & Consultations')
+                    ->collapsible()
+                    ->collapsed(true),
+
+                NavigationGroup::make('📱 Social Feed')
+                    ->collapsible()
                     ->collapsed(true),
 
                 NavigationGroup::make('📢 Communications')
+                    ->collapsible()
                     ->collapsed(true),
 
-                NavigationGroup::make('⚙️ System Settings')
+                NavigationGroup::make('🔐 Access Control')
+                    ->collapsible()
                     ->collapsed(true),
-            ]);
 
-            // Add custom navigation items
-            Filament::registerNavigationItems([
-                NavigationItem::make('Dashboard')
-                    ->url('/admin')
-                    ->icon('heroicon-o-home')
-                    ->group('🏠 Dashboard')
-                    ->sort(1),
+                NavigationGroup::make('🔒 System Administration')
+                    ->collapsible()
+                    ->collapsed(true),
             ]);
         });
     }

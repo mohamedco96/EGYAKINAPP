@@ -29,7 +29,7 @@ class UserResource extends Resource
 
     protected static ?string $navigationLabel = 'Doctors';
 
-    protected static ?string $navigationGroup = '👨‍⚕️ User Management';
+    protected static ?string $navigationGroup = '👥 User Management';
 
     protected static ?int $navigationSort = 1;
 
@@ -116,7 +116,7 @@ class UserResource extends Resource
                             ->gridDirection('row')
                             ->bulkToggleable()
                             ->searchable()
-                            ->getOptionLabelFromRecordUsing(fn (Role $record): string => ucwords(str_replace(['-', '_'], ' ', $record->name)))
+                            ->getOptionLabelUsing(fn ($value): string => ucwords(str_replace(['-', '_'], ' ', Role::find($value)?->name ?? '')))
                             ->descriptions(
                                 fn (): array => Role::all()->pluck('name', 'id')->map(
                                     fn ($name) => 'Assign '.ucwords(str_replace(['-', '_'], ' ', $name)).' role'
@@ -129,7 +129,7 @@ class UserResource extends Resource
                             ->gridDirection('row')
                             ->bulkToggleable()
                             ->searchable()
-                            ->getOptionLabelFromRecordUsing(fn (Permission $record): string => ucwords(str_replace(['-', '_'], ' ', $record->name)))
+                            ->getOptionLabelUsing(fn ($value): string => ucwords(str_replace(['-', '_'], ' ', Permission::find($value)?->name ?? '')))
                             ->descriptions(
                                 fn (): array => Permission::all()->pluck('name', 'id')->map(
                                     fn ($name) => 'Grant '.str_replace(['-', '_'], ' ', $name).' permission'

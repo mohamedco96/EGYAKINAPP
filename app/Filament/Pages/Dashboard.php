@@ -13,6 +13,10 @@ class Dashboard extends BaseDashboard
 {
     protected static ?string $navigationIcon = 'heroicon-o-home';
 
+    protected static ?string $navigationGroup = null;
+
+    protected static ?int $navigationSort = -1;
+
     protected static string $view = 'filament.pages.dashboard';
 
     public function getWidgets(): array
@@ -42,27 +46,11 @@ class Dashboard extends BaseDashboard
 
     public function getHeading(): string
     {
-        $greeting = $this->getGreeting();
-        $user = auth()->user();
-
-        return "{$greeting}, ".($user->name ?? 'Admin').'!';
+        return '';
     }
 
     public function getSubheading(): ?string
     {
-        return 'Welcome to your medical practice dashboard. Here\'s an overview of your key metrics and recent activity.';
-    }
-
-    private function getGreeting(): string
-    {
-        $hour = now()->hour;
-
-        if ($hour < 12) {
-            return 'Good morning';
-        } elseif ($hour < 17) {
-            return 'Good afternoon';
-        } else {
-            return 'Good evening';
-        }
+        return null;
     }
 }

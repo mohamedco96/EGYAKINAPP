@@ -54,6 +54,7 @@ class User extends Authenticatable implements FilamentUser
         'social_verified_at',
         'profile_completed',
         'permissions_changed',
+        'user_type',
     ];
 
     /**
@@ -81,6 +82,17 @@ class User extends Authenticatable implements FilamentUser
         'permissions_changed' => 'boolean',
         'locale' => 'string',
     ];
+
+    /**
+     * Get available user types
+     */
+    public static function getUserTypes(): array
+    {
+        return [
+            'normal' => 'Normal User',
+            'medical_statistics' => 'Medical Statistics',
+        ];
+    }
 
     /**
      * Get the user's image URL with prefix.
@@ -324,7 +336,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function getFullNameAttribute(): string
     {
-        return trim($this->name . ' ' . ($this->lname ?? ''));
+        return trim($this->name.' '.($this->lname ?? ''));
     }
 
     /**
@@ -332,7 +344,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function getFullNameWithEmailAttribute(): string
     {
-        return $this->full_name . ' (' . $this->email . ')';
+        return $this->full_name.' ('.$this->email.')';
     }
 
     /**
@@ -340,7 +352,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function getFullNameWithSpecialtyAttribute(): string
     {
-        return $this->full_name . ' (' . ($this->specialty ?? 'No Specialty') . ')';
+        return $this->full_name.' ('.($this->specialty ?? 'No Specialty').')';
     }
 
     /**
@@ -351,10 +363,10 @@ class User extends Authenticatable implements FilamentUser
     {
         // Remove all existing roles
         $this->roles()->detach();
-        
+
         // Assign new role
         $this->assignRole($roleName);
-        
+
         // Mark permissions as changed
         $this->update(['permissions_changed' => true]);
     }
@@ -373,6 +385,7 @@ class User extends Authenticatable implements FilamentUser
     public function getRolePermissions()
     {
         $role = $this->roles()->first();
+
         return $role ? $role->permissions()->pluck('name')->values() : collect();
     }
 }

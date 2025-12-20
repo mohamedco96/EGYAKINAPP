@@ -720,6 +720,7 @@ class AuthService
             'job' => $sanitized['job'] ?? null,
             'highestdegree' => $sanitized['highestdegree'] ?? null,
             'registration_number' => $sanitized['registration_number'],
+            'user_type' => $sanitized['user_type'] ?? 'normal',
         ]);
     }
 

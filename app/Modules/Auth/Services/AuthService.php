@@ -172,12 +172,15 @@ class AuthService
             'permissions_count' => $permissions->count(),
         ]);
 
+        // Convert user to array and add role to data
+        $userData = $user->toArray();
+        $userData['role'] = $roleName;
+
         return [
             'value' => true,
             'message' => __('api.user_logged_in_successfully'),
             'token' => $token,
-            'data' => $user,
-            'role' => $roleName,
+            'data' => $userData,
             'permissions' => $permissions,
             'status_code' => 200,
         ];

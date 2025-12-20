@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\PermissionResource\Pages;
 
 use App\Filament\Resources\PermissionResource;
+use App\Models\User;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -38,5 +39,19 @@ class EditPermission extends EditRecord
         $data['name'] = strtolower(str_replace(' ', '-', $data['name']));
 
         return $data;
+    }
+
+    /**
+     * After saving permission, mark all users with assigned roles as having permissions changed
+     */
+    protected function afterSave(): void
+    {
+        $permission = $this->record;
+        $permission->refresh(); // Refresh to get latest role assignments
+        
+        // Mark all users with roles that have this permission as having permissions changed
+        foreach ($permission->roles as $role) {
+            User::role($role->name)->update(['permissions_changed' => true]);
+        }
     }
 }

@@ -14,6 +14,14 @@ class RolePermission extends Model
     protected $table = 'role_has_permissions';
 
     /**
+     * Indicates if the model uses auto-incrementing IDs.
+     * This is a pivot table without an id column
+     *
+     * @var bool
+     */
+    public $incrementing = false;
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array

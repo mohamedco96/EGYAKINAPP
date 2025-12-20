@@ -52,6 +52,7 @@ class HomeDataService
             'posts_count' => (string) $counts['postsCount'],
             'saved_posts_count' => (string) $counts['savedPostsCount'],
             'role' => $user->roles->first()->name ?? 'User',
+            'permissions_changed' => $user->permissions_changed ?? false,
         ];
 
         if (! $isSyndicateCardRequired && ! $isAdminOrTester) {

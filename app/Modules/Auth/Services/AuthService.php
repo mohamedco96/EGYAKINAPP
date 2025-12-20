@@ -158,17 +158,18 @@ class AuthService
         // Generate new token
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        // Load roles and permissions for frontend
-        $user->load(['roles:id,name', 'permissions:id,name']);
+        // Get user's single role (enforcing one role per user)
+        $role = $user->roles()->first();
+        $roleName = $role ? $role->name : null;
 
-        // Get all permissions (direct + from roles)
-        $allPermissions = $user->getAllPermissions()->pluck('name')->unique()->values();
+        // Get permissions from role only (not direct permissions)
+        $permissions = $role ? $role->permissions()->pluck('name')->values() : collect();
 
         Log::info('User logged in successfully', [
             'user_id' => $user->id,
             'email' => $email,
-            'roles' => $user->roles->pluck('name'),
-            'permissions_count' => $allPermissions->count(),
+            'role' => $roleName,
+            'permissions_count' => $permissions->count(),
         ]);
 
         return [
@@ -176,8 +177,8 @@ class AuthService
             'message' => __('api.user_logged_in_successfully'),
             'token' => $token,
             'data' => $user,
-            'roles' => $user->roles->pluck('name'),
-            'permissions' => $allPermissions,
+            'role' => $roleName,
+            'permissions' => $permissions,
             'status_code' => 200,
         ];
     }

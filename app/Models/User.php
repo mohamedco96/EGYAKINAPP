@@ -53,6 +53,7 @@ class User extends Authenticatable implements FilamentUser
         'avatar',
         'social_verified_at',
         'profile_completed',
+        'permissions_changed',
     ];
 
     /**
@@ -77,6 +78,7 @@ class User extends Authenticatable implements FilamentUser
         'blocked' => 'boolean',
         'limited' => 'boolean',
         'profile_completed' => 'boolean',
+        'permissions_changed' => 'boolean',
         'locale' => 'string',
     ];
 
@@ -339,5 +341,38 @@ class User extends Authenticatable implements FilamentUser
     public function getFullNameWithSpecialtyAttribute(): string
     {
         return $this->full_name . ' (' . ($this->specialty ?? 'No Specialty') . ')';
+    }
+
+    /**
+     * Assign a single role to user (removes existing roles)
+     * Enforces single role per user
+     */
+    public function assignSingleRole(string $roleName): void
+    {
+        // Remove all existing roles
+        $this->roles()->detach();
+        
+        // Assign new role
+        $this->assignRole($roleName);
+        
+        // Mark permissions as changed
+        $this->update(['permissions_changed' => true]);
+    }
+
+    /**
+     * Get user's single role name
+     */
+    public function getRoleName(): ?string
+    {
+        return $this->roles()->first()?->name;
+    }
+
+    /**
+     * Get permissions from user's role only
+     */
+    public function getRolePermissions()
+    {
+        $role = $this->roles()->first();
+        return $role ? $role->permissions()->pluck('name')->values() : collect();
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\RoleResource\Pages;
 
 use App\Filament\Resources\RoleResource;
+use App\Models\User;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -30,5 +31,18 @@ class EditRole extends EditRecord
             ->success()
             ->title('Role Updated')
             ->body('The role has been updated successfully.');
+    }
+
+    /**
+     * After saving, mark all users with this role as having permissions changed
+     * This catches permission syncs via Filament relationship form
+     */
+    protected function afterSave(): void
+    {
+        // Refresh the role to get latest permissions
+        $this->record->refresh();
+        
+        // Mark all users with this role as having permissions changed
+        User::role($this->record->name)->update(['permissions_changed' => true]);
     }
 }

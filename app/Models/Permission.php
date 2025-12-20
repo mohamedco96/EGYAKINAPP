@@ -44,12 +44,21 @@ class Permission extends SpatiePermission
     public static function getCategories(): array
     {
         return [
-            'users' => 'User Management',
-            'roles' => 'Role Management',
-            'posts' => 'Content Management',
-            'reports' => 'Reports & Analytics',
-            'settings' => 'System Settings',
-            'other' => 'Other',
+            'home' => 'Home & Dashboard',
+            'patients' => 'Patient Management',
+            'patient-comments' => 'Patient Comments',
+            'recommendations' => 'Recommendations',
+            'doses' => 'Doses/Medications',
+            'profile' => 'User Profile',
+            'admin' => 'Admin Management',
+            'files' => 'File Uploads',
+            'consultations' => 'Consultations',
+            'ai' => 'AI Consultations',
+            'feed' => 'Feed Posts',
+            'feed-comments' => 'Feed Comments',
+            'legacy-posts' => 'Legacy Posts',
+            'groups' => 'Groups',
+            'polls' => 'Polls',
         ];
     }
 

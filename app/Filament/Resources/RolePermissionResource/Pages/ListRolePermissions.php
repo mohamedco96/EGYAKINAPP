@@ -18,6 +18,11 @@ class ListRolePermissions extends ListRecords
         ];
     }
 
+    protected function getTableQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getTableQuery()->orderBy('role_id')->orderBy('permission_id');
+    }
+
     protected function afterDelete(): void
     {
         Cache::forget('role_permissions_count');

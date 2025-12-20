@@ -23,7 +23,8 @@ class RolePermissionSeeder extends Seeder
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
         $this->command->info('✓ Cleared permission cache');
 
-        // Drop all existing permissions
+        // Drop all existing roles and permissions
+        $this->dropExistingRoles();
         $this->dropExistingPermissions();
 
         // Create all permissions based on Flutter endpoints
@@ -33,6 +34,29 @@ class RolePermissionSeeder extends Seeder
         $this->createRoles();
 
         $this->command->info('✅ Permissions and Roles seeded successfully!');
+    }
+
+    /**
+     * Drop all existing roles and their relationships
+     */
+    private function dropExistingRoles(): void
+    {
+        $this->command->info('🗑️  Dropping existing roles...');
+
+        // Disable foreign key checks temporarily
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+
+        // Delete from pivot tables first (roles are referenced in these tables)
+        DB::table('model_has_roles')->truncate();
+        DB::table('role_has_permissions')->truncate();
+
+        // Delete all roles
+        DB::table('roles')->truncate();
+
+        // Re-enable foreign key checks
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+        $this->command->info('✓ All existing roles dropped');
     }
 
     /**
@@ -46,7 +70,7 @@ class RolePermissionSeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
         // Delete from pivot tables first
-        DB::table('role_has_permissions')->truncate();
+        // Note: role_has_permissions was already truncated in dropExistingRoles()
         DB::table('model_has_permissions')->truncate();
 
         // Delete all permissions

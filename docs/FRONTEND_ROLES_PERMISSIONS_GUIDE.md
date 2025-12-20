@@ -11,12 +11,17 @@ The application uses a **Role-Based Access Control (RBAC)** system where:
 ## Key Concepts
 
 ### Roles
-Available roles in the system:
-- **super-admin**: Full access to all permissions
-- **admin**: Administrative access (most permissions)
-- **doctor**: Standard medical professional permissions
-- **junior-doctor**: Limited doctor permissions
-- **viewer**: Read-only access
+Available roles in the system (each user has exactly one role):
+
+| Role Name | Description | Permission Count | Use Case |
+|-----------|-------------|------------------|----------|
+| **super-admin** | Full system access | All permissions (~91) | System administrators with complete control |
+| **admin** | Administrative access | Most permissions (~91) | Department heads, system management, user verification |
+| **doctor** | Standard medical professional | ~70 permissions | Most common role for medical professionals |
+| **junior-doctor** | Limited doctor access | ~30 permissions | New doctors, residents, training period |
+| **viewer** | Read-only access | ~10 permissions | View-only access for observers, auditors |
+
+**Note:** The exact permission count may vary as permissions are added or removed. The frontend should always check individual permissions rather than relying on role names alone.
 
 ### Permissions
 - Each permission is linked to a specific API endpoint

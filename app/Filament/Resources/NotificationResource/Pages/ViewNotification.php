@@ -48,6 +48,7 @@ class ViewNotification extends ViewRecord
     public function infolist(Infolist $infolist): Infolist
     {
         return $infolist
+            ->record($this->getRecord())
             ->schema([
                 Infolists\Components\Section::make('Notification Information')
                     ->schema([

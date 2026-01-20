@@ -135,8 +135,8 @@ class SocialAuthController extends Controller
                     // Link social account to existing user
                     // Check if email is not a placeholder
                     $hasRealEmail = $socialUser->getEmail() &&
-                                    !str_contains($socialUser->getEmail(), '@apple-user.egyakin.com') &&
-                                    !str_contains($socialUser->getEmail(), '@google-user.egyakin.com');
+                                    ! str_contains($socialUser->getEmail(), '@apple-user.egyakin.com') &&
+                                    ! str_contains($socialUser->getEmail(), '@google-user.egyakin.com');
 
                     $updateData = [
                         $provider.'_id' => $socialUser->getId(),
@@ -176,7 +176,7 @@ class SocialAuthController extends Controller
             // Determine if profile is complete - should be false only if email is missing/placeholder
             $isPlaceholderEmail = str_contains($user->email, '@apple-user.egyakin.com') ||
                                   str_contains($user->email, '@google-user.egyakin.com');
-            $profileCompleted = !$isPlaceholderEmail;
+            $profileCompleted = ! $isPlaceholderEmail;
 
             // Update profile_completed if it has changed
             if ($user->profile_completed !== $profileCompleted) {
@@ -193,15 +193,16 @@ class SocialAuthController extends Controller
             // Convert user to array and add role to data
             $userData = $user->toArray();
             $userData['role'] = $roleName;
-            // Add social provider info to user data if needed, or keep it consistent with login
-            $userData['provider'] = $provider;
 
             return response()->json([
-                'value' => true,
-                'message' => __('api.user_logged_in_successfully'),
-                'token' => $token,
-                'data' => $userData,
-                'permissions' => $permissions,
+                'success' => true,
+                'message' => 'Authentication successful',
+                'data' => [
+                    'user' => $userData,
+                    'token' => $token,
+                    'provider' => $provider,
+                    'permissions' => $permissions,
+                ],
             ]);
 
         } catch (\Exception $e) {

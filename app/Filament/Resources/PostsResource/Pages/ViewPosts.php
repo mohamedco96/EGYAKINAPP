@@ -17,13 +17,13 @@ class ViewPosts extends ViewRecord
     {
         return [
             Actions\Action::make('toggleVisibility')
-                ->label(fn ($state, $record) => $record->hidden ? 'Publish' : 'Hide')
-                ->icon(fn ($state, $record) => $record->hidden ? 'heroicon-o-eye' : 'heroicon-o-eye-slash')
-                ->color(fn ($state, $record) => $record->hidden ? 'success' : 'warning')
-                ->action(function ($state, $record) {
-                    $record->update(['hidden' => !$record->hidden]);
+                ->label(fn ($record) => $record->hidden ? 'Publish' : 'Hide')
+                ->icon(fn ($record) => $record->hidden ? 'heroicon-o-eye' : 'heroicon-o-eye-slash')
+                ->color(fn ($record) => $record->hidden ? 'success' : 'warning')
+                ->action(function ($record) {
+                    $record->update(['hidden' => ! $record->hidden]);
                 })
-                ->successNotificationTitle(fn ($state, $record) => $record->hidden ? 'Post hidden' : 'Post published'),
+                ->successNotificationTitle(fn ($record) => $record->hidden ? 'Post hidden' : 'Post published'),
             Actions\EditAction::make(),
             Actions\DeleteAction::make()
                 ->after(function () {
@@ -86,13 +86,13 @@ class ViewPosts extends ViewRecord
                             ->schema([
                                 Infolists\Components\TextEntry::make('content')
                                     ->label('Character Count')
-                                    ->formatStateUsing(fn ($state) => strlen(strip_tags($state)) . ' characters')
+                                    ->formatStateUsing(fn ($state) => strlen(strip_tags($state)).' characters')
                                     ->badge()
                                     ->color('info'),
 
                                 Infolists\Components\TextEntry::make('content')
                                     ->label('Word Count')
-                                    ->formatStateUsing(fn ($state) => str_word_count(strip_tags($state)) . ' words')
+                                    ->formatStateUsing(fn ($state) => str_word_count(strip_tags($state)).' words')
                                     ->badge()
                                     ->color('info'),
                             ]),
@@ -105,14 +105,12 @@ class ViewPosts extends ViewRecord
                             ->schema([
                                 Infolists\Components\TextEntry::make('doctor.name')
                                     ->label('Doctor Name')
-                                    ->formatStateUsing(fn ($state, $record) =>
-                                        $record->doctor
-                                            ? $record->doctor->name . ' ' . $record->doctor->lname
+                                    ->formatStateUsing(fn ($state, $record) => $record->doctor
+                                            ? $record->doctor->name.' '.$record->doctor->lname
                                             : 'N/A'
                                     )
                                     ->icon('heroicon-o-user-circle')
-                                    ->url(fn ($state, $record) =>
-                                        $record->doctor_id
+                                    ->url(fn ($state, $record) => $record->doctor_id
                                             ? route('filament.admin.resources.users.edit', ['record' => $record->doctor_id])
                                             : null
                                     )
@@ -163,18 +161,24 @@ class ViewPosts extends ViewRecord
                                     ->formatStateUsing(function ($state, $record) {
                                         $diff = $record->created_at->diff(now());
                                         if ($diff->days > 0) {
-                                            return $diff->days . ' days old';
+                                            return $diff->days.' days old';
                                         }
                                         if ($diff->h > 0) {
-                                            return $diff->h . ' hours old';
+                                            return $diff->h.' hours old';
                                         }
-                                        return $diff->i . ' minutes old';
+
+                                        return $diff->i.' minutes old';
                                     })
                                     ->badge()
                                     ->color(function ($state, $record) {
                                         $days = $record->created_at->diffInDays(now());
-                                        if ($days < 7) return 'success';
-                                        if ($days < 30) return 'warning';
+                                        if ($days < 7) {
+                                            return 'success';
+                                        }
+                                        if ($days < 30) {
+                                            return 'warning';
+                                        }
+
                                         return 'info';
                                     })
                                     ->icon('heroicon-o-clock'),

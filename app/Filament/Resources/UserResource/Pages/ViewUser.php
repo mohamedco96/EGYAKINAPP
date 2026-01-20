@@ -17,14 +17,14 @@ class ViewUser extends ViewRecord
     {
         return [
             Actions\Action::make('block')
-                ->label(fn ($state, $record) => $record->blocked ? 'Unblock' : 'Block')
-                ->icon(fn ($state, $record) => $record->blocked ? 'heroicon-o-lock-open' : 'heroicon-o-lock-closed')
-                ->color(fn ($state, $record) => $record->blocked ? 'success' : 'danger')
+                ->label(fn ($record) => $record->blocked ? 'Unblock' : 'Block')
+                ->icon(fn ($record) => $record->blocked ? 'heroicon-o-lock-open' : 'heroicon-o-lock-closed')
+                ->color(fn ($record) => $record->blocked ? 'success' : 'danger')
                 ->requiresConfirmation()
-                ->action(function ($state, $record) {
-                    $record->update(['blocked' => !$record->blocked]);
+                ->action(function ($record) {
+                    $record->update(['blocked' => ! $record->blocked]);
                 })
-                ->successNotificationTitle(fn ($state, $record) => $record->blocked ? 'User blocked' : 'User unblocked'),
+                ->successNotificationTitle(fn ($record) => $record->blocked ? 'User blocked' : 'User unblocked'),
             Actions\EditAction::make(),
             Actions\DeleteAction::make()
                 ->after(function () {
@@ -72,14 +72,14 @@ class ViewUser extends ViewRecord
                                 Infolists\Components\ImageEntry::make('syndicate_card')
                                     ->label('Syndicate Card')
                                     ->height(150)
-                                    ->visible(fn ($state, $record) => !empty($record->syndicate_card)),
+                                    ->visible(fn ($state, $record) => ! empty($record->syndicate_card)),
                             ]),
 
                         Infolists\Components\Grid::make(2)
                             ->schema([
                                 Infolists\Components\TextEntry::make('name')
                                     ->label('Full Name')
-                                    ->formatStateUsing(fn ($state, $record) => $record->name . ' ' . $record->lname)
+                                    ->formatStateUsing(fn ($state, $record) => $record->name.' '.$record->lname)
                                     ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                                     ->weight('bold')
                                     ->icon('heroicon-o-user'),
@@ -147,13 +147,13 @@ class ViewUser extends ViewRecord
                                 Infolists\Components\TextEntry::make('isSyndicateCardRequired')
                                     ->label('Syndicate Card Status')
                                     ->badge()
-                                    ->color(fn ($state) => match($state) {
+                                    ->color(fn ($state) => match ($state) {
                                         'Verified' => 'success',
                                         'Pending' => 'warning',
                                         'Required' => 'danger',
                                         default => 'gray',
                                     })
-                                    ->icon(fn ($state) => match($state) {
+                                    ->icon(fn ($state) => match ($state) {
                                         'Verified' => 'heroicon-o-check-circle',
                                         'Pending' => 'heroicon-o-clock',
                                         'Required' => 'heroicon-o-exclamation-triangle',
@@ -245,18 +245,24 @@ class ViewUser extends ViewRecord
                             ->formatStateUsing(function ($state, $record) {
                                 $diff = $record->created_at->diff(now());
                                 if ($diff->days > 0) {
-                                    return $diff->days . ' days';
+                                    return $diff->days.' days';
                                 }
                                 if ($diff->h > 0) {
-                                    return $diff->h . ' hours';
+                                    return $diff->h.' hours';
                                 }
-                                return $diff->i . ' minutes';
+
+                                return $diff->i.' minutes';
                             })
                             ->badge()
                             ->color(function ($state, $record) {
                                 $days = $record->created_at->diffInDays(now());
-                                if ($days < 30) return 'success';
-                                if ($days < 365) return 'warning';
+                                if ($days < 30) {
+                                    return 'success';
+                                }
+                                if ($days < 365) {
+                                    return 'warning';
+                                }
+
                                 return 'info';
                             })
                             ->icon('heroicon-o-clock'),

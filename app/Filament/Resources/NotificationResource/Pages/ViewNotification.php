@@ -20,8 +20,8 @@ class ViewNotification extends ViewRecord
                 ->label('Mark as Read')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
-                ->visible(fn ($state, $record) => !$record->read)
-                ->action(function ($state, $record) {
+                ->visible(fn ($record) => ! $record->read)
+                ->action(function ($record) {
                     $record->update(['read' => true]);
                     Cache::forget('notifications_unread_count');
                 })
@@ -30,8 +30,8 @@ class ViewNotification extends ViewRecord
                 ->label('Mark as Unread')
                 ->icon('heroicon-o-x-circle')
                 ->color('warning')
-                ->visible(fn ($state, $record) => $record->read)
-                ->action(function ($state, $record) {
+                ->visible(fn ($record) => $record->read)
+                ->action(function ($record) {
                     $record->update(['read' => false]);
                     Cache::forget('notifications_unread_count');
                 })
@@ -106,14 +106,12 @@ class ViewNotification extends ViewRecord
                             ->schema([
                                 Infolists\Components\TextEntry::make('doctor.name')
                                     ->label('Doctor')
-                                    ->formatStateUsing(fn ($state, $record) =>
-                                        $record->doctor
-                                            ? $record->doctor->name . ' ' . $record->doctor->lname
+                                    ->formatStateUsing(fn ($state, $record) => $record->doctor
+                                            ? $record->doctor->name.' '.$record->doctor->lname
                                             : 'N/A'
                                     )
                                     ->icon('heroicon-o-user-circle')
-                                    ->url(fn ($state, $record) =>
-                                        $record->doctor_id
+                                    ->url(fn ($state, $record) => $record->doctor_id
                                             ? route('filament.admin.resources.users.edit', ['record' => $record->doctor_id])
                                             : null
                                     )
@@ -135,7 +133,7 @@ class ViewNotification extends ViewRecord
                                 Infolists\Components\TextEntry::make('type_id')
                                     ->label('Type ID')
                                     ->badge()
-                                    ->visible(fn ($state, $record) => !empty($record->type_id)),
+                                    ->visible(fn ($state, $record) => ! empty($record->type_id)),
                             ]),
                     ])
                     ->columns(2)
@@ -155,7 +153,7 @@ class ViewNotification extends ViewRecord
                     ->columns(1)
                     ->collapsible()
                     ->collapsed()
-                    ->visible(fn ($state, $record) => !empty($record->localization_key) || !empty($record->localization_params)),
+                    ->visible(fn ($state, $record) => ! empty($record->localization_key) || ! empty($record->localization_params)),
 
                 Infolists\Components\Section::make('Metadata')
                     ->schema([
@@ -176,7 +174,7 @@ class ViewNotification extends ViewRecord
                                 Infolists\Components\TextEntry::make('type_doctor_id')
                                     ->label('Type Doctor ID')
                                     ->badge()
-                                    ->visible(fn ($state, $record) => !empty($record->type_doctor_id)),
+                                    ->visible(fn ($state, $record) => ! empty($record->type_doctor_id)),
                             ]),
                     ])
                     ->columns(3)

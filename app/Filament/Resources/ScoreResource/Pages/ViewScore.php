@@ -28,6 +28,7 @@ class ViewScore extends ViewRecord
     public function infolist(Infolist $infolist): Infolist
     {
         return $infolist
+            ->record($this->getRecord())
             ->schema([
                 Infolists\Components\Section::make('Score Information')
                     ->schema([

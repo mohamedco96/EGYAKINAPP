@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+                if (Schema::hasTable('recommendations')) {
+            return;
+        }
+
         Schema::create('recommendations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('patient_id')

@@ -8,6 +8,10 @@ class CreateGroupUserTable extends Migration
 {
     public function up()
     {
+        if (Schema::hasTable('group_user')) {
+            return;
+        }
+
         Schema::create('group_user', function (Blueprint $table) {
             $table->id();
             $table->foreignId('group_id')->constrained('groups')->onDelete('cascade');

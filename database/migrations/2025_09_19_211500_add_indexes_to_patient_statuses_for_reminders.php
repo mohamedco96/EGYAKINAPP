@@ -13,13 +13,19 @@ return new class extends Migration
     {
         Schema::table('patient_statuses', function (Blueprint $table) {
             // Composite index for reminder queries (key + status + created_at)
-            $table->index(['key', 'status', 'created_at'], 'idx_patient_statuses_reminder_lookup');
+            if (!$this->indexExists('patient_statuses', 'idx_patient_statuses_reminder_lookup')) {
+                $table->index(['key', 'status', 'created_at'], 'idx_patient_statuses_reminder_lookup');
+            }
 
             // Composite index for patient-doctor-key lookups
-            $table->index(['patient_id', 'doctor_id', 'key'], 'idx_patient_statuses_patient_doctor_key');
+            if (!$this->indexExists('patient_statuses', 'idx_patient_statuses_patient_doctor_key')) {
+                $table->index(['patient_id', 'doctor_id', 'key'], 'idx_patient_statuses_patient_doctor_key');
+            }
 
             // Index for status queries by key
-            $table->index(['key', 'status'], 'idx_patient_statuses_key_status');
+            if (!$this->indexExists('patient_statuses', 'idx_patient_statuses_key_status')) {
+                $table->index(['key', 'status'], 'idx_patient_statuses_key_status');
+            }
         });
     }
 
@@ -33,5 +39,18 @@ return new class extends Migration
             $table->dropIndex('idx_patient_statuses_patient_doctor_key');
             $table->dropIndex('idx_patient_statuses_key_status');
         });
+    }
+
+    private function indexExists(string $table, string $indexName): bool
+    {
+        try {
+            $connection = Schema::getConnection();
+            $schemaManager = $connection->getDoctrineSchemaManager();
+            $indexes = $schemaManager->listTableIndexes($table);
+
+            return array_key_exists($indexName, $indexes);
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 };

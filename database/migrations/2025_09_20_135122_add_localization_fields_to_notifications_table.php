@@ -13,11 +13,17 @@ return new class extends Migration
     {
         Schema::table('notifications', function (Blueprint $table) {
             // Add localization fields
-            $table->string('localization_key')->nullable()->after('content');
-            $table->json('localization_params')->nullable()->after('localization_key');
+            if (!Schema::hasColumn('notifications', 'localization_key')) {
+                $table->string('localization_key')->nullable()->after('content');
+            }
+            if (!Schema::hasColumn('notifications', 'localization_params')) {
+                $table->json('localization_params')->nullable()->after('localization_key');
+            }
 
             // Add index for better performance
-            $table->index('localization_key');
+            if (!$this->indexExists('notifications', 'notifications_localization_key_index')) {
+                $table->index('localization_key');
+            }
         });
     }
 
@@ -30,5 +36,18 @@ return new class extends Migration
             $table->dropIndex(['localization_key']);
             $table->dropColumn(['localization_key', 'localization_params']);
         });
+    }
+
+    private function indexExists(string $table, string $indexName): bool
+    {
+        try {
+            $connection = Schema::getConnection();
+            $schemaManager = $connection->getDoctrineSchemaManager();
+            $indexes = $schemaManager->listTableIndexes($table);
+
+            return array_key_exists($indexName, $indexes);
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 };

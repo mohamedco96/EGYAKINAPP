@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up()
     {
+        if (Schema::hasTable('polls')) {
+            return;
+        }
+
         Schema::create('polls', function (Blueprint $table) {
             $table->id();
             $table->foreignId('feed_post_id')->constrained('feed_posts')->onDelete('cascade');

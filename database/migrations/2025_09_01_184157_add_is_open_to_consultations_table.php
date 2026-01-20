@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('consultations', function (Blueprint $table) {
-            $table->boolean('is_open')->default(true)->after('status');
+            if (!Schema::hasColumn('consultations', 'is_open')) {
+                $table->boolean('is_open')->default(true)->after('status');
+            }
         });
     }
 

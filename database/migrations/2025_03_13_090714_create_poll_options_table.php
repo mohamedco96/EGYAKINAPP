@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up()
     {
+        if (Schema::hasTable('poll_options')) {
+            return;
+        }
+
         Schema::create('poll_options', function (Blueprint $table) {
             $table->id();
             $table->foreignId('poll_id')->constrained('polls')->onDelete('cascade');

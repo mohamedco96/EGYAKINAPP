@@ -8,6 +8,10 @@ class CreateGroupsTable extends Migration
 {
     public function up()
     {
+        if (Schema::hasTable('groups')) {
+            return;
+        }
+
         Schema::create('groups', function (Blueprint $table) {
             $table->id();
             $table->string('name');

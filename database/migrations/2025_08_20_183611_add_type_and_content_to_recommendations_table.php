@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('recommendations', function (Blueprint $table) {
-            $table->enum('type', ['note', 'rec'])->default('rec')->after('patient_id');
-            $table->text('content')->nullable()->after('type');
+            if (!Schema::hasColumn('recommendations', 'type')) {
+                $table->enum('type', ['note', 'rec'])->default('rec')->after('patient_id');
+            }
+            if (!Schema::hasColumn('recommendations', 'content')) {
+                $table->text('content')->nullable()->after('type');
+            }
         });
     }
 

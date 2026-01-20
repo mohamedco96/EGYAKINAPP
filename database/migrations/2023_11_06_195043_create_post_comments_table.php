@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+                if (Schema::hasTable('post_comments')) {
+            return;
+        }
+
         Schema::create('post_comments', function (Blueprint $table) {
             $table->id();
             $table->text('content');

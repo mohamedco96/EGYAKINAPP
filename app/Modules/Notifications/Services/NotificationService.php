@@ -357,8 +357,9 @@ class NotificationService
             ];
 
             // Fetch today's notifications (no pagination)
+            // Use whereBetween to utilize the composite index (doctor_id, created_at)
             $todayNotifications = AppNotification::where('doctor_id', $doctorId)
-                ->whereDate('created_at', $today)
+                ->whereBetween('created_at', [$today->copy()->startOfDay(), $today->copy()->endOfDay()])
                 ->select('id', 'read', 'content', 'type', 'type_id', 'patient_id', 'doctor_id', 'type_doctor_id', 'localization_key', 'localization_params', 'created_at')
                 ->with($withRelations)
                 ->latest()
@@ -367,9 +368,10 @@ class NotificationService
             $transformedTodayRecords = $this->transformNotifications($todayNotifications);
 
             // Fetch recent (before today) notifications with DB-side pagination
+            // Use simple comparison to utilize the composite index
             $perPage = 10;
             $recentPaginated = AppNotification::where('doctor_id', $doctorId)
-                ->whereDate('created_at', '<', $today)
+                ->where('created_at', '<', $today->copy()->startOfDay())
                 ->select('id', 'read', 'content', 'type', 'type_id', 'patient_id', 'doctor_id', 'type_doctor_id', 'localization_key', 'localization_params', 'created_at')
                 ->with($withRelations)
                 ->latest()

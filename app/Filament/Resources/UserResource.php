@@ -112,11 +112,15 @@ class UserResource extends Resource
                     ->schema([
                         CheckboxList::make('roles')
                             ->relationship('roles', 'name')
+                            ->options(
+                                fn (): array => Role::all()->pluck('name', 'id')->map(
+                                    fn ($name) => ucwords(str_replace(['-', '_'], ' ', $name))
+                                )->toArray()
+                            )
                             ->columns(3)
                             ->gridDirection('row')
                             ->bulkToggleable()
                             ->searchable()
-                            ->getOptionLabelUsing(fn ($value): string => ucwords(str_replace(['-', '_'], ' ', Role::find($value)?->name ?? '')))
                             ->descriptions(
                                 fn (): array => Role::all()->pluck('name', 'id')->map(
                                     fn ($name) => 'Assign '.ucwords(str_replace(['-', '_'], ' ', $name)).' role'
@@ -125,11 +129,15 @@ class UserResource extends Resource
 
                         CheckboxList::make('permissions')
                             ->relationship('permissions', 'name')
+                            ->options(
+                                fn (): array => Permission::all()->pluck('name', 'id')->map(
+                                    fn ($name) => ucwords(str_replace(['-', '_'], ' ', $name))
+                                )->toArray()
+                            )
                             ->columns(3)
                             ->gridDirection('row')
                             ->bulkToggleable()
                             ->searchable()
-                            ->getOptionLabelUsing(fn ($value): string => ucwords(str_replace(['-', '_'], ' ', Permission::find($value)?->name ?? '')))
                             ->descriptions(
                                 fn (): array => Permission::all()->pluck('name', 'id')->map(
                                     fn ($name) => 'Grant '.str_replace(['-', '_'], ' ', $name).' permission'

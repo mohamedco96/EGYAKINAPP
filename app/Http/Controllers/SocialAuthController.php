@@ -183,21 +183,25 @@ class SocialAuthController extends Controller
                 $user->update(['profile_completed' => $profileCompleted]);
             }
 
+            // Get user's single role (enforcing one role per user)
+            $role = $user->roles()->first();
+            $roleName = $role ? $role->name : null;
+
+            // Get permissions from role only (not direct permissions)
+            $permissions = $role ? $role->permissions()->pluck('name')->values() : collect();
+
+            // Convert user to array and add role to data
+            $userData = $user->toArray();
+            $userData['role'] = $roleName;
+            // Add social provider info to user data if needed, or keep it consistent with login
+            $userData['provider'] = $provider;
+
             return response()->json([
-                'success' => true,
-                'message' => 'Authentication successful',
-                'data' => [
-                    'user' => [
-                        'id' => $user->id,
-                        'name' => $user->name,
-                        'email' => $user->email,
-                        'profile_completed' => $profileCompleted,
-                        'avatar' => $user->avatar,
-                        'locale' => $user->locale,
-                    ],
-                    'token' => $token,
-                    'provider' => $provider,
-                ],
+                'value' => true,
+                'message' => __('api.user_logged_in_successfully'),
+                'token' => $token,
+                'data' => $userData,
+                'permissions' => $permissions,
             ]);
 
         } catch (\Exception $e) {

@@ -234,7 +234,7 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
     // Achievement management routes
     Route::post('/achievements', [AchievementController::class, 'createAchievement']);
     Route::get('/achievements', [AchievementController::class, 'listAchievements']);
-    Route::get('/users/{user}/achievements', [AchievementController::class, 'getUserAchievements']);
+    Route::get('/users/{userId}/achievements', [AchievementController::class, 'getUserAchievements']);
     Route::post('/checkAndAssignAchievementsForAllUsers', [AchievementController::class, 'checkAndAssignAchievementsForAllUsers']);
 
     // Feed Post routes

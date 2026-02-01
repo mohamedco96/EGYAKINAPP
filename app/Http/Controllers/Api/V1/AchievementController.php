@@ -56,7 +56,12 @@ class AchievementController extends Controller
     public function getUserAchievements($user)
     {
         // Resolve the user from the route parameter (could be ID or other identifier)
-        $userModel = User::findOrFail($user);
+        $userModel = User::find($user);
+
+        // Return empty array if user not found (same format as when user has no achievements)
+        if (!$userModel) {
+            return response()->json([], 200);
+        }
 
         return $this->achievementController->getUserAchievements($userModel);
     }

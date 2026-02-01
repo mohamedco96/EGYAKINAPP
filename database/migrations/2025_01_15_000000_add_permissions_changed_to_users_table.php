@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             if (!Schema::hasColumn('users', 'permissions_changed')) {
-                $table->boolean('permissions_changed')->default(false)->after('profile_completed');
+                $table->boolean('permissions_changed')->default(false);
             }
         });
     }

@@ -233,6 +233,14 @@ class ChatService
         $sectionsInfos = SectionsInfo::all();
         $data = [];
 
+        // Ensure answers are loaded
+        if (!$patient->relationLoaded('answers')) {
+            $patient->load('answers');
+        }
+
+        // Index answers by question_id for O(1) lookups
+        $answersIndexed = $patient->answers->keyBy('question_id');
+
         // Fetch all questions
         $questions = Questions::with('section')->get();
 
@@ -257,8 +265,8 @@ class ChatService
                 'updated_at' => $question->updated_at,
             ];
 
-            // Find the answer for this question
-            $answer = $patient->answers->where('question_id', $question->id)->first();
+            // Find the answer for this question using indexed collection
+            $answer = $answersIndexed->get($question->id);
 
             if ($question->type === 'multiple') {
                 // Initialize the answer array

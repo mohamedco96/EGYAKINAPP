@@ -176,8 +176,8 @@ class NotificationService
     public function getAllNotifications(): array
     {
         try {
+            $unreadCount = AppNotification::where('read', false)->count();
             $notifications = AppNotification::latest()->get();
-            $unreadCount = $notifications->where('read', false)->count();
 
             Log::info('Successfully fetched all notifications', [
                 'total_count' => $notifications->count(),

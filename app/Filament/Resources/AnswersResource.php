@@ -9,6 +9,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
@@ -64,6 +65,7 @@ class AnswersResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['patient.doctor', 'question']))
             ->columns([
                 Tables\Columns\TextColumn::make('id')->badge()->color('gray')->sortable(),
                 Tables\Columns\TextColumn::make('patient_id')

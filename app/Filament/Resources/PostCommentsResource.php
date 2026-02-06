@@ -9,6 +9,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
@@ -39,6 +40,7 @@ class PostCommentsResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['Posts:id,title', 'doctor']))
             ->columns([
                 Tables\Columns\TextColumn::make('id')->badge()->color('gray'),
                 Tables\Columns\TextColumn::make('post.title')->limit(30)->searchable(),

@@ -411,10 +411,20 @@ class GroupController extends Controller
         try {
             DB::beginTransaction();
 
+            // Pre-fetch existing statuses and FCM tokens to avoid N+1 queries
+            $existingStatuses = $group->doctors()
+                ->whereIn('doctor_id', $validated['doctor_ids'])
+                ->pluck('status', 'doctor_id');
+
+            $fcmTokensByDoctor = FcmToken::whereIn('doctor_id', $validated['doctor_ids'])
+                ->get()
+                ->groupBy('doctor_id')
+                ->map(fn ($tokens) => $tokens->pluck('token')->toArray());
+
             // Iterate over each doctor_id in the list
             foreach ($validated['doctor_ids'] as $doctorId) {
                 // Check if the doctor is already invited or a member of the group
-                $existingStatus = $group->doctors()->where('doctor_id', $doctorId)->value('status');
+                $existingStatus = $existingStatuses->get($doctorId);
 
                 if ($existingStatus === 'joined') {
                     // Log the attempt to invite an existing member
@@ -449,9 +459,7 @@ class GroupController extends Controller
                         Log::info('Notification sent to group owner ID: '.$group->owner_id.' for group ID: '.$groupId);
 
                         // Get FCM tokens for push notification
-                        $tokens = FcmToken::where('doctor_id', $doctorId)
-                            ->pluck('token')
-                            ->toArray();
+                        $tokens = $fcmTokensByDoctor->get($doctorId, []);
 
                         if (! empty($tokens)) {
                             $this->notificationService->sendPushNotification(
@@ -501,9 +509,7 @@ class GroupController extends Controller
                         Log::info('Notification sent to group owner ID: '.$group->owner_id.' for group ID: '.$groupId);
 
                         // Get FCM tokens for push notification
-                        $tokens = FcmToken::where('doctor_id', $doctorId)
-                            ->pluck('token')
-                            ->toArray();
+                        $tokens = $fcmTokensByDoctor->get($doctorId, []);
 
                         if (! empty($tokens)) {
                             $this->notificationService->sendPushNotification(
@@ -1677,22 +1683,25 @@ class GroupController extends Controller
 
             // Add user status and member count to each group
             $userId = Auth::id();
+
+            // Pre-fetch user statuses and member counts to avoid N+1 queries
+            $groupIds = $latestGroups->pluck('id')->toArray();
+
+            $userStatuses = DB::table('group_user')
+                ->whereIn('group_id', $groupIds)
+                ->where('doctor_id', $userId)
+                ->pluck('status', 'group_id');
+
+            $memberCounts = DB::table('group_user')
+                ->whereIn('group_id', $groupIds)
+                ->where('status', 'joined')
+                ->selectRaw('group_id, count(*) as count')
+                ->groupBy('group_id')
+                ->pluck('count', 'group_id');
+
             foreach ($latestGroups as $group) {
-                // Fetch user status for the authenticated user
-                $userStatus = DB::table('group_user')
-                    ->where('group_id', $group->id)
-                    ->where('doctor_id', $userId)
-                    ->value('status');
-
-                $group->user_status = $userStatus ?? null;
-
-                // Fetch member count for the group from the group_user table
-                $memberCount = DB::table('group_user')
-                    ->where('group_id', $group->id)
-                    ->where('status', 'joined')
-                    ->count();
-
-                $group->member_count = (int) $memberCount; // Add member count to the group object
+                $group->user_status = $userStatuses->get($group->id);
+                $group->member_count = (int) ($memberCounts->get($group->id, 0));
             }
 
             // Get groups where the user is a joined member
@@ -1815,15 +1824,18 @@ class GroupController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
 
+            // Pre-fetch member counts to avoid N+1 queries
+            $groupIds = $invitations->pluck('id')->toArray();
+            $memberCounts = DB::table('group_user')
+                ->whereIn('group_id', $groupIds)
+                ->where('status', 'joined')
+                ->selectRaw('group_id, count(*) as count')
+                ->groupBy('group_id')
+                ->pluck('count', 'group_id');
+
             // Add member count and invitation_id to each group
             foreach ($invitations as $group) {
-                // Fetch member count for the group
-                $memberCount = DB::table('group_user')
-                    ->where('group_id', $group->id)
-                    ->where('status', 'joined')
-                    ->count();
-
-                $group->member_count = (int) $memberCount;
+                $group->member_count = (int) ($memberCounts->get($group->id, 0));
                 $group->user_status = 'invited';
                 // Add the invitation_id from the pivot table
                 $group->invitation_id = $group->doctors->first() ? (int) $group->doctors->first()->invitation_id : null;

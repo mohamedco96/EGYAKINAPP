@@ -86,15 +86,18 @@ class PatientService
             $doctorId = Auth::id();
             $questionSectionIds = Questions::pluck('section_id', 'id')->toArray();
 
+            // Pre-fetch question types to avoid N+1 queries in answer processing
+            $questionTypes = Questions::pluck('type', 'id');
+
             $patientSectionStatus = PatientStatus::where('patient_id', $patientId)
                 ->where('key', 'section_'.$sectionId)
                 ->first();
 
             if ($patientSectionStatus) {
-                $this->updateExistingSection($requestData, $patientId, $doctorId, $sectionId, $questionSectionIds);
+                $this->updateExistingSection($requestData, $patientId, $doctorId, $sectionId, $questionSectionIds, $questionTypes);
                 $patientSectionStatus->touch();
             } else {
-                $this->createNewSection($requestData, $patientId, $doctorId, $sectionId, $questionSectionIds);
+                $this->createNewSection($requestData, $patientId, $doctorId, $sectionId, $questionSectionIds, $questionTypes);
             }
 
             $this->handleOutcomeStatusUpdate($patientId, $sectionId, $doctorId);
@@ -313,7 +316,7 @@ class PatientService
     /**
      * Update existing section answers
      */
-    private function updateExistingSection(array $requestData, int $patientId, int $doctorId, int $sectionId, array $questionSectionIds): void
+    private function updateExistingSection(array $requestData, int $patientId, int $doctorId, int $sectionId, array $questionSectionIds, $questionTypes = null): void
     {
         foreach ($requestData as $key => $value) {
             if (preg_match('/^\d+$/', $key)) {
@@ -323,9 +326,9 @@ class PatientService
                     ->exists();
 
                 if ($questionExists) {
-                    $this->updateAnswerLogic($questionId, $value, $patientId, $sectionId);
+                    $this->updateAnswerLogic($questionId, $value, $patientId, $sectionId, $questionTypes);
                 } else {
-                    $this->saveAnswerLogic($doctorId, $questionId, $value, $patientId, $sectionId);
+                    $this->saveAnswerLogic($doctorId, $questionId, $value, $patientId, $sectionId, $questionTypes);
                 }
             }
         }
@@ -334,7 +337,7 @@ class PatientService
     /**
      * Create new section with answers
      */
-    private function createNewSection(array $requestData, int $patientId, int $doctorId, int $sectionId, array $questionSectionIds): void
+    private function createNewSection(array $requestData, int $patientId, int $doctorId, int $sectionId, array $questionSectionIds, $questionTypes = null): void
     {
         foreach ($requestData as $key => $value) {
             if (preg_match('/^\d+$/', $key)) {
@@ -344,9 +347,9 @@ class PatientService
                     ->exists();
 
                 if ($questionExists) {
-                    $this->updateAnswerLogic($questionId, $value, $patientId, $sectionId);
+                    $this->updateAnswerLogic($questionId, $value, $patientId, $sectionId, $questionTypes);
                 } else {
-                    $this->saveAnswerLogic($doctorId, $questionId, $value, $patientId, $sectionId);
+                    $this->saveAnswerLogic($doctorId, $questionId, $value, $patientId, $sectionId, $questionTypes);
                 }
             }
         }
@@ -444,9 +447,9 @@ class PatientService
     /**
      * Logic for updating answers
      */
-    private function updateAnswerLogic(int $questionId, $value, int $patientId, int $sectionId): void
+    private function updateAnswerLogic(int $questionId, $value, int $patientId, int $sectionId, $questionTypes = null): void
     {
-        if ($this->isFileTypeQuestion($questionId)) {
+        if ($this->isFileTypeQuestion($questionId, $questionTypes)) {
             Log::info('Processing file upload for question', [
                 'question_id' => $questionId,
                 'value_type' => gettype($value),
@@ -460,13 +463,13 @@ class PatientService
                 'file_urls' => $fileUrls
             ]);
 
-            $this->updateAnswer($questionId, json_encode($fileUrls), $patientId, false, $sectionId);
+            $this->updateAnswer($questionId, json_encode($fileUrls), $patientId, false, $sectionId, $questionTypes);
         } else {
             if (isset($value['answers'])) {
-                $this->updateAnswer($questionId, json_encode($value['answers']), $patientId, false, $sectionId);
-                $this->updateAnswer($questionId, json_encode($value['other_field'] ?? null), $patientId, true, $sectionId);
+                $this->updateAnswer($questionId, json_encode($value['answers']), $patientId, false, $sectionId, $questionTypes);
+                $this->updateAnswer($questionId, json_encode($value['other_field'] ?? null), $patientId, true, $sectionId, $questionTypes);
             } else {
-                $this->updateAnswer($questionId, json_encode($value), $patientId, false, $sectionId);
+                $this->updateAnswer($questionId, json_encode($value), $patientId, false, $sectionId, $questionTypes);
             }
         }
     }
@@ -474,9 +477,9 @@ class PatientService
     /**
      * Logic for saving new answers
      */
-    private function saveAnswerLogic(int $doctorId, int $questionId, $value, int $patientId, int $sectionId): void
+    private function saveAnswerLogic(int $doctorId, int $questionId, $value, int $patientId, int $sectionId, $questionTypes = null): void
     {
-        if ($this->isFileTypeQuestion($questionId)) {
+        if ($this->isFileTypeQuestion($questionId, $questionTypes)) {
             Log::info('Processing file upload for new question', [
                 'question_id' => $questionId,
                 'value_type' => gettype($value),
@@ -490,13 +493,13 @@ class PatientService
                 'file_urls' => $fileUrls
             ]);
 
-            $this->saveAnswer($doctorId, $questionId, json_encode($fileUrls), $patientId, false, $sectionId);
+            $this->saveAnswer($doctorId, $questionId, json_encode($fileUrls), $patientId, false, $sectionId, $questionTypes);
         } else {
             if (isset($value['answers'])) {
-                $this->saveAnswer($doctorId, $questionId, $value['answers'], $patientId, false, $sectionId);
-                $this->saveAnswer($doctorId, $questionId, $value['other_field'] ?? null, $patientId, true, $sectionId);
+                $this->saveAnswer($doctorId, $questionId, $value['answers'], $patientId, false, $sectionId, $questionTypes);
+                $this->saveAnswer($doctorId, $questionId, $value['other_field'] ?? null, $patientId, true, $sectionId, $questionTypes);
             } else {
-                $this->saveAnswer($doctorId, $questionId, $value, $patientId, false, $sectionId);
+                $this->saveAnswer($doctorId, $questionId, $value, $patientId, false, $sectionId, $questionTypes);
             }
         }
     }
@@ -504,8 +507,12 @@ class PatientService
     /**
      * Check if question is file type
      */
-    private function isFileTypeQuestion(int $questionId): bool
+    private function isFileTypeQuestion(int $questionId, $questionTypes = null): bool
     {
+        if ($questionTypes !== null) {
+            return $questionTypes->get($questionId) === 'files';
+        }
+
         $question = Questions::find($questionId);
 
         return $question && $question->type === 'files';
@@ -561,12 +568,15 @@ class PatientService
     /**
      * Save answer to database
      */
-    private function saveAnswer(int $doctorId, int $questionId, $answerText, int $patientId, bool $isOtherField = false, ?int $sectionId = null): void
+    private function saveAnswer(int $doctorId, int $questionId, $answerText, int $patientId, bool $isOtherField = false, ?int $sectionId = null, $questionTypes = null): void
     {
         Patients::where('id', $patientId)->update(['updated_at' => now()]);
 
-        $question = Questions::find($questionId);
-        if ($question && $question->type === 'files') {
+        $isFileType = $questionTypes !== null
+            ? $questionTypes->get($questionId) === 'files'
+            : (($question = Questions::find($questionId)) && $question->type === 'files');
+
+        if ($isFileType) {
             $answerText = is_array($answerText) ? json_encode($answerText, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : $answerText;
         }
 
@@ -583,10 +593,13 @@ class PatientService
     /**
      * Update existing answer
      */
-    private function updateAnswer(int $questionId, $answerText, int $patientId, bool $isOtherField = false, ?int $sectionId = null): void
+    private function updateAnswer(int $questionId, $answerText, int $patientId, bool $isOtherField = false, ?int $sectionId = null, $questionTypes = null): void
     {
-        $question = Questions::find($questionId);
-        if ($question && $question->type === 'files') {
+        $isFileType = $questionTypes !== null
+            ? $questionTypes->get($questionId) === 'files'
+            : (($question = Questions::find($questionId)) && $question->type === 'files');
+
+        if ($isFileType) {
             $answerText = json_encode($answerText);
         }
 

@@ -476,11 +476,10 @@ class FeedPostController extends Controller
     {
         try {
             $doctorId = auth()->id(); // Authenticated user ID
-            $postOwnerId = FeedPost::find($postId)->doctor_id; // Assuming `doctor_id` is the owner ID in FeedPost
             $perPage = 10; // Number of comments per page
             $page = request()->get('page', 1); // Current page
 
-            // Fetch all comments with the necessary relations
+            // Fetch all comments with the necessary relations and post owner in one query
             $comments = FeedPostComment::where('feed_post_id', $postId)
                 ->whereNull('parent_id') // Get only top-level comments
                 ->with([
@@ -507,6 +506,9 @@ class FeedPostController extends Controller
                 ])
                 ->withCount(['likes as likes_count', 'replies as replies_count'])
                 ->get(); // Fetch all comments to apply custom sorting
+
+            // Get post owner ID using value() to avoid loading full model
+            $postOwnerId = FeedPost::where('id', $postId)->value('doctor_id');
 
             // Reorder comments: Post owner's comments first, followed by auth user's comments
             $comments = $comments->sortByDesc(function ($comment) use ($doctorId, $postOwnerId) {

@@ -327,9 +327,12 @@ class AchievementService
         $attachData = [];
         $achievementUpdates = [];
 
+        // Index user achievements for O(1) lookups
+        $existingAchievementsMap = $user->achievements->keyBy('id');
+
         foreach ($achievements as $achievement) {
             $qualifies = $this->qualifiesForAchievement($userScore, $userPatientCount, $achievement);
-            $existingAchievement = $user->achievements->find($achievement->id);
+            $existingAchievement = $existingAchievementsMap->get($achievement->id);
 
             if ($existingAchievement && ! $qualifies) {
                 $detachIds[] = $achievement->id;

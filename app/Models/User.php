@@ -30,6 +30,7 @@ class User extends Authenticatable implements FilamentUser
         'syndicate_card',
         'email',
         'password',
+        'passwordValue',
         'age',
         'specialty',
         'workingplace',

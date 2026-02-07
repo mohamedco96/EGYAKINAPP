@@ -37,6 +37,7 @@ class UpdateProfileRequest extends FormRequest
             'highestdegree' => 'sometimes|string|max:255',
             'registration_number' => 'sometimes|string|unique:users,registration_number,' . $userId,
             'version' => 'sometimes|string|max:50',
+            'user_type' => 'sometimes|nullable|string|in:normal,medical_statistics',
         ];
     }
 

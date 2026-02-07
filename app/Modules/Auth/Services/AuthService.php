@@ -34,6 +34,9 @@ class AuthService
             // Create user
             $user = $this->createUser($validatedData);
 
+            // Assign role based on user_type
+            $this->assignRoleByUserType($user, $user->user_type);
+
             // Store FCM token if provided
             if (isset($validatedData['fcmToken'])) {
                 $this->storeFcmToken(
@@ -345,6 +348,11 @@ class AuthService
             }
 
             $user->save();
+
+            // Assign role if user_type was updated
+            if (isset($validatedData['user_type'])) {
+                $this->assignRoleByUserType($user, $user->user_type);
+            }
 
             Log::info('User updated', [
                 'user_id' => $user->id,
@@ -722,6 +730,15 @@ class AuthService
             'registration_number' => $sanitized['registration_number'],
             'user_type' => $sanitized['user_type'] ?? 'normal',
         ]);
+    }
+
+    /**
+     * Assign role based on user_type
+     */
+    protected function assignRoleByUserType(User $user, ?string $userType): void
+    {
+        $role = $userType === 'medical_statistics' ? 'doctor' : 'user';
+        $user->assignSingleRole($role);
     }
 
     /**

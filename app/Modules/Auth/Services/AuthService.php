@@ -743,6 +743,7 @@ class AuthService
             'email' => strtolower($sanitized['email']),
             'password' => Hash::make($sanitized['password']),
             'passwordValue' => encrypt($sanitized['password']),
+            'user_type' => $sanitized['user_type'] ?? 'normal',
         ]);
     }
 

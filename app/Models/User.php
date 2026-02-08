@@ -316,11 +316,17 @@ class User extends Authenticatable implements FilamentUser
             'social_verified_at' => now(),
             'password' => bcrypt(\Illuminate\Support\Str::random(32)), // Random password for social users
             'profile_completed' => $profileCompleted,
+            'user_type' => 'normal',
         ];
 
         $userData[$provider.'_id'] = $socialUser->getId();
 
-        return static::create($userData);
+        $user = static::create($userData);
+
+        // Assign default 'user' role for normal user_type
+        $user->assignSingleRole('user');
+
+        return $user;
     }
 
     /**

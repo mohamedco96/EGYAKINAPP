@@ -150,7 +150,17 @@ class SocialAuthController extends Controller
                         $updateData['profile_completed'] = true;
                     }
 
+                    // Set user_type to 'normal' if not already set
+                    if (! $user->user_type) {
+                        $updateData['user_type'] = 'normal';
+                    }
+
                     $user->update($updateData);
+
+                    // Assign 'user' role if no role assigned yet
+                    if (! $user->roles()->exists()) {
+                        $user->assignSingleRole('user');
+                    }
                 } else {
                     // Create new user
                     $user = User::createFromSocial($provider, $socialUser);

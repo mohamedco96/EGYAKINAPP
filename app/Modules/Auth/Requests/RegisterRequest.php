@@ -26,6 +26,11 @@ class RegisterRequest extends FormRequest
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8',
+            'user_type' => 'nullable|string|in:normal,medical_statistics',
+            'fcmToken' => 'nullable|string',
+            'deviceId' => 'nullable|string',
+            'deviceType' => 'nullable|string',
+            'appVersion' => 'nullable|string',
         ];
     }
 

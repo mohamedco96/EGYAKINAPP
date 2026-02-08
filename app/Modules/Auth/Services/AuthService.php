@@ -728,18 +728,9 @@ class AuthService
 
         return User::create([
             'name' => $sanitized['name'],
-            'lname' => $sanitized['lname'],
             'email' => strtolower($sanitized['email']),
             'password' => Hash::make($sanitized['password']),
             'passwordValue' => encrypt($sanitized['password']),
-            'age' => $sanitized['age'] ?? null,
-            'specialty' => $sanitized['specialty'] ?? null,
-            'workingplace' => $sanitized['workingplace'] ?? null,
-            'phone' => $sanitized['phone'] ?? null,
-            'job' => $sanitized['job'] ?? null,
-            'highestdegree' => $sanitized['highestdegree'] ?? null,
-            'registration_number' => $sanitized['registration_number'],
-            'user_type' => $sanitized['user_type'] ?? 'normal',
         ]);
     }
 

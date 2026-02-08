@@ -100,7 +100,7 @@ class PatientFilterService
     public function getDoctorPatients(bool $allPatients = false): \Illuminate\Pagination\LengthAwarePaginator
     {
         $user = Auth::user();
-        $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+        $isAdminOrTester = $user->hasRole('admin') || $user->hasRole('tester');
 
         $query = $allPatients
             ? Patients::select('id', 'doctor_id', 'updated_at')

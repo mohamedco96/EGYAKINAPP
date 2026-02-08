@@ -165,26 +165,21 @@ class RolePermissionSeeder extends Seeder
     {
         $this->command->info('👥 Creating roles...');
 
-        // Super Admin - All permissions
-        $superAdmin = Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);
-        $superAdmin->syncPermissions(Permission::where('guard_name', 'web')->get());
-        $this->command->info('✓ Super Admin role created with ALL permissions');
-
         // Admin Role - No permissions assigned (to be configured later)
         Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $this->command->info('✓ Admin role created');
+
+        // User Role - Basic user permissions (to be configured later)
+        Role::firstOrCreate(['name' => 'user', 'guard_name' => 'web']);
+        $this->command->info('✓ User role created');
 
         // Doctor Role - No permissions assigned (to be configured later)
         Role::firstOrCreate(['name' => 'doctor', 'guard_name' => 'web']);
         $this->command->info('✓ Doctor role created');
 
-        // Junior Doctor Role - No permissions assigned (to be configured later)
-        Role::firstOrCreate(['name' => 'junior-doctor', 'guard_name' => 'web']);
-        $this->command->info('✓ Junior Doctor role created');
-
-        // Viewer Role - No permissions assigned (to be configured later)
-        Role::firstOrCreate(['name' => 'viewer', 'guard_name' => 'web']);
-        $this->command->info('✓ Viewer role created');
+        // Tester Role - For testing purposes
+        Role::firstOrCreate(['name' => 'tester', 'guard_name' => 'web']);
+        $this->command->info('✓ Tester role created');
 
         $this->command->info('✓ All roles created');
     }

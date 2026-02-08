@@ -584,7 +584,7 @@ class PatientsController extends Controller
 
             // Check if user has admin role when exporting all patients
             $user = auth()->user();
-            if ($onlyMyPatients === false && ! $user->hasRole('Admin')) {
+            if ($onlyMyPatients === false && ! $user->hasRole('admin')) {
                 return response()->json([
                     'value' => false,
                     'message' => 'Access denied. Admin role required to export all patients.',

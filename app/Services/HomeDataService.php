@@ -31,7 +31,7 @@ class HomeDataService
             $query->where('hidden', false);
         }]);
 
-        $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+        $isAdminOrTester = $user->hasRole('admin') || $user->hasRole('tester');
         $isVerified = ! is_null($user->email_verified_at);
         $isSyndicateCardRequired = $user->isSyndicateCardRequired === 'Verified';
 
@@ -51,7 +51,7 @@ class HomeDataService
             'score_value' => (string) ($user->score->score ?? 0),
             'posts_count' => (string) $counts['postsCount'],
             'saved_posts_count' => (string) $counts['savedPostsCount'],
-            'role' => $user->roles->first()->name ?? 'User',
+            'role' => $user->roles->first()->name ?? 'user',
             'user_type' => $user->user_type,
             'permissions_changed' => $user->permissions_changed ?? false,
         ];

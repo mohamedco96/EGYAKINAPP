@@ -363,12 +363,24 @@ class AuthService
             // Assign role if user_type was updated
             if (isset($validatedData['user_type'])) {
                 $this->assignRoleByUserType($user, $user->user_type);
+
+                // Reload the user's roles to reflect the change
+                $user->load('roles');
+
+                Log::info('User role updated based on user_type', [
+                    'user_id' => $user->id,
+                    'user_type' => $user->user_type,
+                    'assigned_role' => $user->roles->first()?->name ?? 'none',
+                    'permissions_changed' => $user->permissions_changed,
+                ]);
             }
 
             Log::info('User updated', [
                 'user_id' => $user->id,
                 'fields' => array_keys($validatedData),
                 'profile_completed' => $user->profile_completed,
+                'user_type' => $user->user_type ?? 'not set',
+                'role' => $user->roles->first()?->name ?? 'no role',
             ]);
 
             return [
@@ -546,7 +558,7 @@ class AuthService
                 ->with(['roles:id,name'])
                 ->findOrFail($id);
 
-            $isAdminOrTester = $user->hasRole(['Admin', 'Tester']);
+            $isAdminOrTester = $user->hasRole(['admin', 'tester']);
 
             // Optimize query with eager loading and specific selections
             $currentPatients = $user->patients()
@@ -740,7 +752,29 @@ class AuthService
     protected function assignRoleByUserType(User $user, ?string $userType): void
     {
         $role = $userType === 'medical_statistics' ? 'doctor' : 'user';
+
+        Log::info('Assigning role based on user_type', [
+            'user_id' => $user->id,
+            'user_type' => $userType,
+            'role_to_assign' => $role,
+        ]);
+
         $user->assignSingleRole($role);
+
+        // Verify role was assigned
+        $assignedRole = $user->roles()->first();
+        if ($assignedRole && $assignedRole->name === $role) {
+            Log::info('Role assigned successfully', [
+                'user_id' => $user->id,
+                'role' => $role,
+            ]);
+        } else {
+            Log::error('Role assignment may have failed', [
+                'user_id' => $user->id,
+                'expected_role' => $role,
+                'actual_role' => $assignedRole?->name ?? 'none',
+            ]);
+        }
     }
 
     /**
@@ -822,7 +856,7 @@ class AuthService
     protected function sendSyndicateCardNotifications(User $user): void
     {
         // Retrieve all doctors with role 'admin' or 'tester' except the authenticated user
-        $doctors = User::role(['Admin', 'Tester'])
+        $doctors = User::role(['admin', 'tester'])
             ->where('id', '!=', Auth::id())
             ->with('fcmTokens:id,doctor_id,token')
             ->get();

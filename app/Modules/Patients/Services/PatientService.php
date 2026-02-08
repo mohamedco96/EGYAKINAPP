@@ -44,7 +44,7 @@ class PatientService
         return DB::transaction(function () use ($requestData) {
             $doctorId = Auth::id();
             $user = Auth::user();
-            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+            $isAdminOrTester = $user->hasRole('admin') || $user->hasRole('tester');
 
             $questionSectionIds = Questions::pluck('section_id', 'id')->toArray();
 

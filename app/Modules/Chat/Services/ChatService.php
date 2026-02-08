@@ -30,7 +30,7 @@ class ChatService
         $user = Auth::user();
 
         // Check if user is admin
-        if ($user->hasRole('Admin')) {
+        if ($user->hasRole('admin')) {
             return true;
         }
 

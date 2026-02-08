@@ -29,6 +29,18 @@ class UpdateProfileRequest extends FormRequest
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $userId,
             'password' => 'nullable|string|min:8',
+            'user_type' => 'nullable|string|in:normal,medical_statistics',
+            'lname' => 'nullable|string|max:255',
+            'age' => 'nullable|integer|min:0|max:150',
+            'specialty' => 'nullable|string|max:255',
+            'workingplace' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'job' => 'nullable|string|max:255',
+            'highestdegree' => 'nullable|string|max:255',
+            'gender' => 'nullable|string|in:male,female,other',
+            'birth_date' => 'nullable|date',
+            'registration_number' => 'nullable|string|max:255',
+            'locale' => 'nullable|string|in:en,ar',
         ];
     }
 

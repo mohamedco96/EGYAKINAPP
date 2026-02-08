@@ -1138,7 +1138,7 @@ class FeedPostController extends Controller
             $post = FeedPost::with('hashtags')->findOrFail($id);
 
             $user = Auth::user();
-            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+            $isAdminOrTester = $user->hasRole('admin') || $user->hasRole('tester');
 
             // Allow only the post owner or Admin/Tester
             if ($post->doctor_id !== $user->id && ! $isAdminOrTester) {
@@ -1491,7 +1491,7 @@ class FeedPostController extends Controller
             $comment = FeedPostComment::findOrFail($commentId);
 
             $user = Auth::user();
-            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+            $isAdminOrTester = $user->hasRole('admin') || $user->hasRole('tester');
 
             // Allow only the post owner or Admin/Tester
             if ($comment->doctor_id !== $user->id && ! $isAdminOrTester) {

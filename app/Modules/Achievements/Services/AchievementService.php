@@ -404,7 +404,7 @@ class AchievementService
             'achievement_id' => $achievement->id,
         ]);
 
-        $doctorIds = User::role(['Admin', 'Tester'])->pluck('id');
+        $doctorIds = User::role(['admin', 'tester'])->pluck('id');
         $tokens = $this->notificationService->getDoctorTokens($doctorIds->toArray());
 
         $this->notificationService->sendPushNotification($title, $body, $tokens);

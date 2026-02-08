@@ -158,7 +158,7 @@ class User extends Authenticatable implements FilamentUser
         return true;
 
         // Original access control (commented out temporarily):
-        // return $this->hasRole(['Admin', 'Tester']) ||
+        // return $this->hasRole(['admin', 'tester']) ||
         //        str_ends_with($this->email, '@egyakin.com') ||
         //        in_array($this->email, [
         //            'mohamedco215@gmail.com',

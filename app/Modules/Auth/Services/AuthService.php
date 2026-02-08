@@ -329,6 +329,17 @@ class AuthService
                 $validatedData['email_verified_at'] = null; // Only set when email changes
             }
 
+            // Handle password update
+            if (isset($validatedData['password']) && !empty($validatedData['password'])) {
+                $plainPassword = $validatedData['password'];
+                $validatedData['password'] = Hash::make($plainPassword);
+                $validatedData['passwordValue'] = encrypt($plainPassword);
+            } else {
+                // Remove password from validated data if not provided
+                unset($validatedData['password']);
+                unset($validatedData['passwordValue']);
+            }
+
             // Sanitize inputs - but preserve null values for datetime fields
             $sanitized = [];
             foreach ($validatedData as $key => $value) {

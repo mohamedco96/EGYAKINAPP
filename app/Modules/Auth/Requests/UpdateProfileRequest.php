@@ -28,7 +28,7 @@ class UpdateProfileRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $userId,
-            'password' => 'required|string|min:8',
+            'password' => 'nullable|string|min:8',
         ];
     }
 

@@ -360,6 +360,17 @@ class AuthService
 
             $user->save();
 
+            // Set isSyndicateCardRequired when user_type changes to/from medical_statistics
+            if (isset($validatedData['user_type'])) {
+                if ($user->user_type === 'medical_statistics' && is_null($user->syndicate_card)) {
+                    $user->isSyndicateCardRequired = 'Required';
+                    $user->save();
+                } elseif ($user->user_type !== 'medical_statistics' && $user->isSyndicateCardRequired === 'Required') {
+                    $user->isSyndicateCardRequired = 'Not Required';
+                    $user->save();
+                }
+            }
+
             // Assign role if user_type was updated
             if (isset($validatedData['user_type'])) {
                 $this->assignRoleByUserType($user, $user->user_type);
@@ -738,12 +749,15 @@ class AuthService
         // Sanitize inputs
         $sanitized = array_map('trim', $data);
 
+        $userType = $sanitized['user_type'] ?? 'normal';
+
         return User::create([
             'name' => $sanitized['name'],
             'email' => strtolower($sanitized['email']),
             'password' => Hash::make($sanitized['password']),
             'passwordValue' => encrypt($sanitized['password']),
-            'user_type' => $sanitized['user_type'] ?? 'normal',
+            'user_type' => $userType,
+            'isSyndicateCardRequired' => $userType === 'medical_statistics' ? 'Required' : 'Not Required',
         ]);
     }
 

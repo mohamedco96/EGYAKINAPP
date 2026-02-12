@@ -67,6 +67,7 @@ class User extends Authenticatable implements FilamentUser
         'password',
         'remember_token',
         'passwordValue',
+        'avatar',
     ];
 
     /**
@@ -102,7 +103,12 @@ class User extends Authenticatable implements FilamentUser
      */
     public function getImageAttribute($value): ?string
     {
-        return $this->getPrefixedUrl($value);
+        if ($value) {
+            return $this->getPrefixedUrl($value);
+        }
+
+        // Fall back to social provider avatar (already a full URL)
+        return $this->attributes['avatar'] ?? null;
     }
 
     /**
@@ -285,15 +291,20 @@ class User extends Authenticatable implements FilamentUser
      */
     public static function createFromSocial($provider, $socialUser)
     {
-        // Extract name with fallbacks
-        $name = $socialUser->getName() ?: $socialUser->getNickname();
+        // Extract full name with fallbacks
+        $fullName = $socialUser->getName() ?: $socialUser->getNickname();
 
         // If still no name, use email username or generate a placeholder
-        if (! $name && $socialUser->getEmail()) {
-            $name = explode('@', $socialUser->getEmail())[0];
-        } elseif (! $name) {
-            $name = ucfirst($provider).' User'; // Fallback: "Apple User" or "Google User"
+        if (! $fullName && $socialUser->getEmail()) {
+            $fullName = explode('@', $socialUser->getEmail())[0];
+        } elseif (! $fullName) {
+            $fullName = ucfirst($provider).' User'; // Fallback: "Apple User" or "Google User"
         }
+
+        // Split full name into first and last name
+        $nameParts = explode(' ', trim($fullName), 2);
+        $firstName = $nameParts[0];
+        $lastName = $nameParts[1] ?? null;
 
         // Handle email - Apple sometimes doesn't provide it
         $email = $socialUser->getEmail();
@@ -310,10 +321,12 @@ class User extends Authenticatable implements FilamentUser
         $profileCompleted = $hasRealEmail && $hasRealName;
 
         $userData = [
-            'name' => $name,
+            'name' => $firstName,
+            'lname' => $lastName,
             'email' => $email,
             'avatar' => $socialUser->getAvatar(),
             'social_verified_at' => now(),
+            'email_verified_at' => $hasRealEmail ? now() : null,
             'password' => bcrypt(\Illuminate\Support\Str::random(32)), // Random password for social users
             'profile_completed' => $profileCompleted,
             'user_type' => 'normal',

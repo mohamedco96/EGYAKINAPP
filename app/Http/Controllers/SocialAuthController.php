@@ -150,6 +150,11 @@ class SocialAuthController extends Controller
                         $updateData['profile_completed'] = true;
                     }
 
+                    // Mark email as verified if real email provided and not already verified
+                    if ($hasRealEmail && ! $user->email_verified_at) {
+                        $updateData['email_verified_at'] = now();
+                    }
+
                     // Set user_type to 'normal' if not already set
                     if (! $user->user_type) {
                         $updateData['user_type'] = 'normal';

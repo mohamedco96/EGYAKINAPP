@@ -497,7 +497,9 @@ class PatientService
         } else {
             if (isset($value['answers'])) {
                 $this->saveAnswer($doctorId, $questionId, $value['answers'], $patientId, false, $sectionId, $questionTypes);
-                $this->saveAnswer($doctorId, $questionId, $value['other_field'] ?? null, $patientId, true, $sectionId, $questionTypes);
+                if (isset($value['other_field']) && $value['other_field'] !== null) {
+                    $this->saveAnswer($doctorId, $questionId, $value['other_field'], $patientId, true, $sectionId, $questionTypes);
+                }
             } else {
                 $this->saveAnswer($doctorId, $questionId, $value, $patientId, false, $sectionId, $questionTypes);
             }

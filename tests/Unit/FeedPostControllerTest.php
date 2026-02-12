@@ -8,6 +8,7 @@ use App\Models\FeedPost;
 use App\Models\FeedPostComment;
 use App\Models\FeedPostLike;
 use App\Models\Hashtag;
+use App\Modules\Notifications\Services\NotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Tests\TestCase;
@@ -18,6 +19,8 @@ class FeedPostControllerTest extends TestCase
 
     protected $mainControllerMock;
 
+    protected $notificationServiceMock;
+
     protected $feedPostController;
 
     protected function setUp(): void
@@ -25,7 +28,8 @@ class FeedPostControllerTest extends TestCase
         parent::setUp();
 
         $this->mainControllerMock = $this->createMock(MainController::class);
-        $this->feedPostController = new FeedPostController($this->mainControllerMock);
+        $this->notificationServiceMock = $this->createMock(NotificationService::class);
+        $this->feedPostController = new FeedPostController($this->mainControllerMock, $this->notificationServiceMock);
     }
 
     public function testExtractHashtags()
@@ -63,16 +67,16 @@ class FeedPostControllerTest extends TestCase
     {
         $post = FeedPost::factory()->create();
 
-        $response = $this->feedPostController->show($post->id);
+        $response = $this->feedPostController->getPostById($post->id);
 
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertJson($response->getContent());
-        $this->assertStringContainsString('Post retrieved successfully', $response->getContent());
+        $this->assertStringContainsString('Feed posts retrieved successfully', $response->getContent());
     }
 
     public function testShowNotFound()
     {
-        $response = $this->feedPostController->show(999);
+        $response = $this->feedPostController->getPostById(999);
 
         $this->assertEquals(404, $response->getStatusCode());
         $this->assertJson($response->getContent());
@@ -98,7 +102,7 @@ class FeedPostControllerTest extends TestCase
 
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertJson($response->getContent());
-        $this->assertStringContainsString('Post retrieved successfully', $response->getContent());
+        $this->assertStringContainsString('Feed posts retrieved successfully', $response->getContent());
     }
 
     public function testGetPostLikes()
@@ -110,7 +114,7 @@ class FeedPostControllerTest extends TestCase
 
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertJson($response->getContent());
-        $this->assertStringContainsString('Post likes retrieved successfully', $response->getContent());
+        $this->assertStringContainsString('Feed posts retrieved successfully', $response->getContent());
     }
 
     public function testGetPostComments()
@@ -122,7 +126,7 @@ class FeedPostControllerTest extends TestCase
 
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertJson($response->getContent());
-        $this->assertStringContainsString('Post comments retrieved successfully', $response->getContent());
+        $this->assertStringContainsString('Feed posts retrieved successfully', $response->getContent());
     }
 
     public function testStore()

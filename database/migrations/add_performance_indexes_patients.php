@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -87,10 +88,33 @@ return new class extends Migration
      */
     private function indexExists(string $table, string $indexName): bool
     {
-        $indexes = Schema::getConnection()
-            ->getDoctrineSchemaManager()
-            ->listTableIndexes($table);
+        try {
+            $connection = Schema::getConnection();
+            $indexes = $connection->getDoctrineSchemaManager()->listTableIndexes($table);
+            return array_key_exists($indexName, $indexes);
+        } catch (\Exception $e) {
+            // Laravel 11+ - doctrine is not available, use alternative approach
+            $driver = DB::connection()->getDriverName();
 
-        return array_key_exists($indexName, $indexes);
+            if ($driver === 'sqlite') {
+                // For SQLite, use PRAGMA index_list
+                $indexes = DB::select("PRAGMA index_list({$table})");
+                foreach ($indexes as $index) {
+                    if ($index->name === $indexName) {
+                        return true;
+                    }
+                }
+            } else {
+                // For MySQL/MariaDB, use SHOW INDEX
+                $indexes = DB::select("SHOW INDEX FROM {$table}");
+                foreach ($indexes as $index) {
+                    if ($index->Key_name === $indexName) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
     }
 };

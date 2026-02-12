@@ -37,7 +37,7 @@ return new class extends Migration
             $table->timestamp('phone_verified_at')->nullable();
             $table->boolean('blocked')->default(false);
             $table->boolean('limited')->default(false);
-            $table->boolean('isSyndicateCardRequired')->default(false);
+            $table->string('isSyndicateCardRequired')->default('Not Required');
             $table->rememberToken();
             $table->timestamps();
         });

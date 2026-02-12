@@ -32,6 +32,7 @@ foreach ([145, 146, 147, 148] as $fileQuestionId) {
 }
 
 // Generic function to process a question based on its type
+if (!function_exists('processQuestion')) {
 function processQuestion($answers, $questionId) {
     if (!isset($answers[$questionId])) {
         return null;
@@ -71,8 +72,10 @@ function processQuestion($answers, $questionId) {
 
     return $result;
 }
+}
 
 // Helper function to process "multiple" type answers
+if (!function_exists('processMultipleAnswers')) {
 function processMultipleAnswers($answers, $questionId) {
     $question = $answers[$questionId];
     
@@ -99,8 +102,10 @@ function processMultipleAnswers($answers, $questionId) {
 
     return $answersText;
 }
+}
 
 // Helper function to process "select" type answers
+if (!function_exists('processSelectAnswer')) {
 function processSelectAnswer($answers, $questionId) {
     $question = $answers[$questionId] ?? [];
     $answerData = $question['answer'] ?? [];
@@ -119,8 +124,10 @@ function processSelectAnswer($answers, $questionId) {
 
     return $answer;
 }
+}
 
 // Helper function to process "files" type answers
+if (!function_exists('processFileAnswers')) {
 function processFileAnswers($answers, $questionId) {
     $question = $answers[$questionId] ?? null;
     
@@ -148,8 +155,10 @@ function processFileAnswers($answers, $questionId) {
     // Return array of URLs for individual display
     return $fileUrls;
 }
+}
 
 // Safe wrapper for processQuestion to prevent array to string conversion errors
+if (!function_exists('safeProcessQuestion')) {
 function safeProcessQuestion($answers, $questionId) {
     try {
         $result = processQuestion($answers, $questionId);
@@ -173,6 +182,7 @@ function safeProcessQuestion($answers, $questionId) {
         error_log("PDF Template Error - Exception in processQuestion for question $questionId: " . $e->getMessage());
         return 'Error processing answer';
     }
+}
 }
 
 ?>

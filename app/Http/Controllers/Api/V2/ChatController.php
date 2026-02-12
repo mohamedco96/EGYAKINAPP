@@ -17,7 +17,7 @@ class ChatController extends Controller
 
     public function sendConsultation(Request $request, $patientId)
     {
-        return $this->chatController->sendConsultation($patientId);
+        return $this->chatController->sendConsultation($request, $patientId);
     }
 
     public function getConsultationHistory($patientId)

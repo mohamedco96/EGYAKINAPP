@@ -797,7 +797,7 @@ class AuthService
     /**
      * Store the FCM token for the user if it does not already exist
      */
-    protected function storeFcmToken(int $userId, string $token, ?string $deviceId = null, ?string $deviceType = null, ?string $appVersion = null): void
+    public function storeFcmToken(int $userId, string $token, ?string $deviceId = null, ?string $deviceType = null, ?string $appVersion = null): void
     {
         // Validate token format
         if (! preg_match('/^[a-zA-Z0-9:_-]+$/', $token) || strlen($token) === 0) {

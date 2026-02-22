@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Modules\Auth\Services\AuthService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
@@ -10,6 +11,8 @@ use Laravel\Socialite\Two\User as SocialiteUser;
 
 class SocialAuthController extends Controller
 {
+    public function __construct(protected AuthService $authService) {}
+
     /**
      * Redirect to Google OAuth
      */
@@ -109,7 +112,7 @@ class SocialAuthController extends Controller
     /**
      * Handle social authentication callback
      */
-    private function handleSocialCallback(string $provider, SocialiteUser $socialUser)
+    private function handleSocialCallback(string $provider, SocialiteUser $socialUser, ?Request $request = null)
     {
         try {
             // Validate required social user data
@@ -188,6 +191,17 @@ class SocialAuthController extends Controller
             // Generate token for API authentication
             $token = $user->createToken('social-auth')->plainTextToken;
 
+            // Store FCM token if provided
+            if ($request && $request->filled('fcmToken')) {
+                $this->authService->storeFcmToken(
+                    $user->id,
+                    $request->input('fcmToken'),
+                    $request->input('deviceId'),
+                    $request->input('deviceType'),
+                    $request->input('appVersion')
+                );
+            }
+
             // Determine if profile is complete - should be false only if email is missing/placeholder
             $isPlaceholderEmail = str_contains($user->email, '@apple-user.egyakin.com') ||
                                   str_contains($user->email, '@google-user.egyakin.com');
@@ -241,11 +255,15 @@ class SocialAuthController extends Controller
         try {
             $request->validate([
                 'access_token' => 'required|string',
+                'fcmToken'     => 'nullable|string',
+                'deviceId'     => 'nullable|string',
+                'deviceType'   => 'nullable|string',
+                'appVersion'   => 'nullable|string',
             ]);
 
             $googleUser = Socialite::driver('google')->userFromToken($request->input('access_token'));
 
-            return $this->handleSocialCallback('google', $googleUser);
+            return $this->handleSocialCallback('google', $googleUser, $request);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -271,6 +289,10 @@ class SocialAuthController extends Controller
         try {
             $request->validate([
                 'identity_token' => 'required|string',
+                'fcmToken'       => 'nullable|string',
+                'deviceId'       => 'nullable|string',
+                'deviceType'     => 'nullable|string',
+                'appVersion'     => 'nullable|string',
             ]);
 
             // For Apple, we need to handle the identity token
@@ -286,7 +308,7 @@ class SocialAuthController extends Controller
                 ], 400);
             }
 
-            return $this->handleSocialCallback('apple', $appleUser);
+            return $this->handleSocialCallback('apple', $appleUser, $request);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,

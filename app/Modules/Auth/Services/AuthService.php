@@ -870,8 +870,8 @@ class AuthService
      */
     protected function sendSyndicateCardNotifications(User $user): void
     {
-        // Retrieve all doctors with role 'admin' or 'tester' except the authenticated user
-        $doctors = User::role(['admin', 'tester'])
+        // Retrieve all admins except the authenticated user
+        $doctors = User::role(['admin'])
             ->where('id', '!=', Auth::id())
             ->with('fcmTokens:id,doctor_id,token')
             ->get();

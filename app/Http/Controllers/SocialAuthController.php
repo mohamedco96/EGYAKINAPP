@@ -221,6 +221,7 @@ class SocialAuthController extends Controller
 
             // Convert user to array and add role to data
             $userData = $user->toArray();
+            $userData['image'] = $user->image; // Force accessor call — on first login, image is absent from attributes
             $userData['role'] = $roleName;
 
             return response()->json([

@@ -753,9 +753,11 @@ class AuthService
 
         return User::create([
             'name' => $sanitized['name'],
+            'lname' => $sanitized['lname'] ?? null,
             'email' => strtolower($sanitized['email']),
             'password' => Hash::make($sanitized['password']),
             'passwordValue' => encrypt($sanitized['password']),
+            'image' => 'profile_images/profile_image.jpg',
             'user_type' => $userType,
             'isSyndicateCardRequired' => $userType === 'medical_statistics' ? 'Required' : 'Not Required',
         ]);

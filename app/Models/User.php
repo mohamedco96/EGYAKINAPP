@@ -108,7 +108,12 @@ class User extends Authenticatable implements FilamentUser
         }
 
         // Fall back to social provider avatar (already a full URL)
-        return $this->attributes['avatar'] ?? null;
+        if (!empty($this->attributes['avatar'])) {
+            return $this->attributes['avatar'];
+        }
+
+        // Default profile image
+        return config('app.url') . '/storage/profile_images/profile_image.jpg';
     }
 
     /**

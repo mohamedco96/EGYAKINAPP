@@ -33,7 +33,6 @@ class HomeDataService
 
         $isAdminOrTester = $user->hasRole('admin') || $user->hasRole('tester');
         $isVerified = ! is_null($user->email_verified_at);
-        $isSyndicateCardRequired = $user->isSyndicateCardRequired === 'Verified';
 
         $feedPosts = $this->getFeedPosts($user);
         $counts = $this->getBasicCounts($user);
@@ -55,10 +54,6 @@ class HomeDataService
             'user_type' => $user->user_type,
             'permissions_changed' => $user->permissions_changed ?? false,
         ];
-
-        if (! $isSyndicateCardRequired && ! $isAdminOrTester) {
-            return $this->getLimitedHomeData($baseResponse, $feedPosts, $user);
-        }
 
         return $this->getFullHomeData($baseResponse, $feedPosts, $user, $isAdminOrTester);
     }

@@ -9,17 +9,6 @@ use Spatie\Permission\Models\Role;
 class RoleObserver
 {
     /**
-     * Handle the Role "updated" event.
-     * When permissions are synced to a role, mark all users with that role as having permissions changed
-     */
-    public function updated(Role $role): void
-    {
-        // Mark all users with this role as having permissions changed
-        // This will trigger when permissions are synced via Filament or API
-        $this->markUsersPermissionsChanged($role);
-    }
-
-    /**
      * Handle the Role "saved" event.
      * This catches permission syncs via relationship
      */

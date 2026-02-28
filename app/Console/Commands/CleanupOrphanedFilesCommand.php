@@ -548,8 +548,13 @@ class CleanupOrphanedFilesCommand extends Command
     {
         // If already a relative path (not a full URL), use it directly
         if (!filter_var($url, FILTER_VALIDATE_URL)) {
-            // Remove leading slash if present and return
-            return ltrim($url, '/');
+            // Remove leading slash, then strip a leading "storage/" segment so
+            // the result matches the keys returned by Storage::allFiles(...).
+            $relative = ltrim($url, '/');
+            if (str_starts_with($relative, 'storage/')) {
+                $relative = substr($relative, strlen('storage/'));
+            }
+            return $relative;
         }
 
         // Handle full URLs - extract path component

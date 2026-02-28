@@ -159,11 +159,17 @@ class AuthService
         $token = $user->createToken('auth_token')->plainTextToken;
 
         // Get user's single role (enforcing one role per user)
-        $role = $user->roles()->first();
-        $roleName = $role ? $role->name : null;
+        $roles = $user->roles()->get();
+        if ($roles->count() !== 1) {
+            throw new \RuntimeException(
+                "User {$user->id} must have exactly one role, found {$roles->count()}."
+            );
+        }
+        $role = $roles->first();
+        $roleName = $role->name;
 
         // Get permissions from role only (not direct permissions)
-        $permissions = $role ? $role->permissions()->pluck('name')->values() : collect();
+        $permissions = $role->permissions()->pluck('name')->values();
 
         Log::info('User logged in successfully', [
             'user_id' => $user->id,

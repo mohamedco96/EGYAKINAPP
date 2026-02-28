@@ -9,6 +9,7 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasPermissions;
@@ -361,14 +362,16 @@ class User extends Authenticatable implements FilamentUser
      */
     public function assignSingleRole(string $roleName): void
     {
-        // Remove all existing roles
-        $this->roles()->detach();
+        DB::transaction(function () use ($roleName) {
+            // Remove all existing roles
+            $this->roles()->detach();
 
-        // Assign new role
-        $this->assignRole($roleName);
+            // Assign new role
+            $this->assignRole($roleName);
 
-        // Mark permissions as changed
-        $this->update(['permissions_changed' => true]);
+            // Mark permissions as changed
+            $this->update(['permissions_changed' => true]);
+        });
     }
 
     /**

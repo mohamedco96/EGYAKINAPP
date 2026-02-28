@@ -448,14 +448,8 @@ class RolePermissionService
             ];
         }
 
-        // Remove all existing roles (enforce single role)
-        $user->roles()->detach();
-
-        // Assign new role
-        $user->assignRole($roleOrPermission);
-
-        // Mark permissions as changed
-        $user->update(['permissions_changed' => true]);
+        // Remove all existing roles, assign new role, and flag permissions atomically
+        $user->assignSingleRole($roleOrPermission);
 
         Log::info('Role assigned to user successfully', [
             'user_id' => $user->id,

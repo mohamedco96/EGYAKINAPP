@@ -1,11 +1,13 @@
 <?php
 
+use App\Database\Concerns\HasIndexHelpers;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    use HasIndexHelpers;
     /**
      * Run the migrations.
      */
@@ -38,16 +40,4 @@ return new class extends Migration
         });
     }
 
-    private function indexExists(string $table, string $indexName): bool
-    {
-        try {
-            $connection = Schema::getConnection();
-            $schemaManager = $connection->getDoctrineSchemaManager();
-            $indexes = $schemaManager->listTableIndexes($table);
-
-            return array_key_exists($indexName, $indexes);
-        } catch (\Throwable $e) {
-            return false;
-        }
-    }
 };

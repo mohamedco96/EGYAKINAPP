@@ -195,7 +195,7 @@ class PatientStatusesResource extends Resource
                             $colorClass = $completed ? 'text-green-600 bg-green-50' : 'text-orange-600 bg-orange-50';
                             $html .= '<div class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium '.$colorClass.' mr-1 mb-1">';
                             $html .= '<span>'.$status.'</span>';
-                            $html .= '<span>'.$name.'</span>';
+                            $html .= '<span>'.e($name).'</span>';
                             $html .= '</div>';
                         }
                         $html .= '</div>';

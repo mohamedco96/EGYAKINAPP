@@ -1,11 +1,13 @@
 <?php
 
+use App\Database\Concerns\HasIndexHelpers;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    use HasIndexHelpers;
     /**
      * Run the migrations.
      */
@@ -63,18 +65,4 @@ return new class extends Migration
         });
     }
 
-    private function indexExists(string $table, string $indexName): bool
-    {
-        // Laravel doesn't expose a direct cross-DB way; use Doctrine schema manager if available
-        try {
-            $connection = Schema::getConnection();
-            $schemaManager = $connection->getDoctrineSchemaManager();
-            $indexes = $schemaManager->listTableIndexes($table);
-
-            return array_key_exists($indexName, $indexes);
-        } catch (\Throwable $e) {
-            // Fallback: assume missing to avoid hard failure; duplicate index create is harmless in most DBs
-            return false;
-        }
-    }
 };

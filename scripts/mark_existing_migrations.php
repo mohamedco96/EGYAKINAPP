@@ -14,7 +14,6 @@ $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 $migrationsPath = __DIR__ . '/../database/migrations';
 $migrationFiles = glob($migrationsPath . '/*.php');
@@ -31,10 +30,6 @@ foreach ($migrationFiles as $file) {
     // Pattern: YYYY_MM_DD_HHMMSS_create_table_name_table.php
     if (preg_match('/create_([a-z_]+)_table\.php$/i', $filename, $matches)) {
         $tableName = $matches[1];
-        
-        // Handle special cases
-        $tableName = str_replace('_', '', $tableName); // Remove underscores for camelCase
-        $tableName = Str::snake($tableName); // Convert back to snake_case
         
         // Check if table exists
         if (Schema::hasTable($tableName)) {

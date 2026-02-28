@@ -547,6 +547,17 @@ class PatientService
                     $fileName = basename($file['file_name']);
                     $fileName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $fileName) ?: 'file';
 
+                    // Reject dangerous extensions (mirrors FileUploadService blocklist)
+                    $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+                    $blocked = ['php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'phar', 'sh', 'bash', 'py', 'rb', 'pl', 'cgi', 'exe', 'bat', 'cmd'];
+                    if (in_array($ext, $blocked, true)) {
+                        Log::warning('Blocked dangerous file extension in patient upload', [
+                            'file_name' => $fileName,
+                            'extension' => $ext,
+                        ]);
+                        continue;
+                    }
+
                     // Generate unique filename
                     $uniqueFileName = random_int(500, 10000000000) . '_' . $fileName;
                     $filePath = 'medical_reports/' . $uniqueFileName;

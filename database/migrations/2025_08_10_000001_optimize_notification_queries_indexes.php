@@ -65,16 +65,8 @@ return new class extends Migration
 
     private function indexExists(string $table, string $indexName): bool
     {
-        // Laravel doesn't expose a direct cross-DB way; use Doctrine schema manager if available
-        try {
-            $connection = Schema::getConnection();
-            $schemaManager = $connection->getDoctrineSchemaManager();
-            $indexes = $schemaManager->listTableIndexes($table);
+        $indexes = array_column(Schema::getIndexes($table), null, 'name');
 
-            return array_key_exists($indexName, $indexes);
-        } catch (\Throwable $e) {
-            // Fallback: assume missing to avoid hard failure; duplicate index create is harmless in most DBs
-            return false;
-        }
+        return isset($indexes[$indexName]);
     }
 };

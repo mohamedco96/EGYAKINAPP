@@ -33,21 +33,22 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('notifications', function (Blueprint $table) {
-            $table->dropIndex(['localization_key']);
-            $table->dropColumn(['localization_key', 'localization_params']);
+            if ($this->indexExists('notifications', 'notifications_localization_key_index')) {
+                $table->dropIndex(['localization_key']);
+            }
+            if (Schema::hasColumn('notifications', 'localization_key')) {
+                $table->dropColumn('localization_key');
+            }
+            if (Schema::hasColumn('notifications', 'localization_params')) {
+                $table->dropColumn('localization_params');
+            }
         });
     }
 
     private function indexExists(string $table, string $indexName): bool
     {
-        try {
-            $connection = Schema::getConnection();
-            $schemaManager = $connection->getDoctrineSchemaManager();
-            $indexes = $schemaManager->listTableIndexes($table);
+        $indexes = array_column(Schema::getIndexes($table), null, 'name');
 
-            return array_key_exists($indexName, $indexes);
-        } catch (\Throwable $e) {
-            return false;
-        }
+        return isset($indexes[$indexName]);
     }
 };

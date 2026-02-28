@@ -537,8 +537,15 @@ class PatientService
             foreach ($files as $file) {
                 if (is_array($file) && isset($file['file_data']) && isset($file['file_name'])) {
                     // Files are in base64 format
-                    $fileContent = base64_decode($file['file_data']);
-                    $fileName = $file['file_name'];
+                    $fileContent = base64_decode($file['file_data'], true);
+                    if ($fileContent === false) {
+                        Log::warning('Invalid base64 file data, skipping', ['file_name' => $file['file_name']]);
+                        continue;
+                    }
+
+                    // Sanitize filename to prevent path traversal
+                    $fileName = basename($file['file_name']);
+                    $fileName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $fileName) ?: 'file';
 
                     // Generate unique filename
                     $uniqueFileName = random_int(500, 10000000000) . '_' . $fileName;

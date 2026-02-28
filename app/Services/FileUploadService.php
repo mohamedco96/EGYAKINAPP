@@ -19,6 +19,29 @@ class FileUploadService
     }
 
     /**
+     * Decode base64 data strictly and reject dangerous file extensions.
+     *
+     * @throws \Exception
+     */
+    private function decodeBase64File(string $fileData, string $fileName): string
+    {
+        $blocked = ['php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'phar', 'sh', 'bash', 'py', 'rb', 'pl', 'cgi', 'exe', 'bat', 'cmd'];
+        $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+        if (in_array($ext, $blocked, true)) {
+            throw new \Exception("File type '{$ext}' is not allowed.");
+        }
+
+        $decoded = base64_decode($fileData, true);
+
+        if ($decoded === false) {
+            throw new \Exception('Invalid base64 file data.');
+        }
+
+        return $decoded;
+    }
+
+    /**
      * Upload a single file and return its path
      */
     public function uploadFile($file, string $directory = 'reports'): array
@@ -72,7 +95,7 @@ class FileUploadService
                     $fileName = $this->sanitizeFilename($fileName);
 
                     try {
-                        $fileContent = base64_decode($fileData);
+                        $fileContent = $this->decodeBase64File($fileData, $fileName);
                         $filePath = 'medical_reports/' . $fileName;
 
                         Storage::disk('public')->put($filePath, $fileContent);
@@ -110,7 +133,7 @@ class FileUploadService
             $fileName = $this->sanitizeFilename($fileName);
 
             try {
-                $fileContent = base64_decode($fileData);
+                $fileContent = $this->decodeBase64File($fileData, $fileName);
                 $filePath = 'medical_reports/' . $fileName;
 
                 Storage::disk('public')->put($filePath, $fileContent);

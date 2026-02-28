@@ -19,10 +19,9 @@ return [
 
     'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
-    'allowed_origins' => [
-        'https://test.egyakin.com',
-        'https://api.egyakin.com',
-    ],
+    'allowed_origins' => array_filter(
+        explode(',', env('CORS_ALLOWED_ORIGINS', 'https://test.egyakin.com,https://api.egyakin.com'))
+    ),
 
     'allowed_origins_patterns' => [],
 

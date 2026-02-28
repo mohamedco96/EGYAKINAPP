@@ -39,7 +39,7 @@ class UpdateProfileRequest extends FormRequest
             'highestdegree' => 'nullable|string|max:255',
             'gender' => 'nullable|string|in:male,female,other',
             'birth_date' => 'nullable|date',
-            'registration_number' => 'nullable|string|max:255',
+            'registration_number' => 'nullable|string|max:255|unique:users,registration_number,'.$userId,
             'locale' => 'nullable|string|in:en,ar',
         ];
     }

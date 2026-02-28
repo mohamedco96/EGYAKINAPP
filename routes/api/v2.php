@@ -54,11 +54,13 @@ Route::middleware('throttle:auth')->group(function () {
     Route::post('/resetpassword', [ResetPasswordController::class, 'resetpassword']);
 });
 
-// Localization test routes (for development and testing)
-Route::get('/localization/test', [LocalizationTestController::class, 'test']);
-Route::post('/localization/login', [LocalizationTestController::class, 'login']);
-Route::post('/localization/patient', [LocalizationTestController::class, 'createPatient']);
-Route::post('/localization/points', [LocalizationTestController::class, 'awardPoints']);
+// Localization test routes (development and staging only — never production)
+if (! app()->isProduction()) {
+    Route::get('/localization/test', [LocalizationTestController::class, 'test']);
+    Route::post('/localization/login', [LocalizationTestController::class, 'login']);
+    Route::post('/localization/patient', [LocalizationTestController::class, 'createPatient']);
+    Route::post('/localization/points', [LocalizationTestController::class, 'awardPoints']);
+}
 
 // Email verification routes
 Route::post('/email/verification-notification', [EmailVerificationController::class, 'sendVerificationEmail']);
@@ -123,7 +125,6 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
     Route::post('/resendemailverification', [OtpController::class, 'resendOtp']);
 
     // Role & Permission routes
-    Route::post('/role', [AuthController::class, 'roletest']);
     Route::post('/createRoleAndPermission', [RolePermissionController::class, 'createRoleAndPermission']);
     Route::post('/assignRoleToUser', [RolePermissionController::class, 'assignRoleToUser']);
     Route::post('/checkPermission', [RolePermissionController::class, 'checkRoleAndPermission']);

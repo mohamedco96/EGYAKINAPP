@@ -107,7 +107,6 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
     Route::post('/resendemailverification', [OtpController::class, 'resendOtp']);
 
     // Role & Permission
-    Route::post('/role', [AuthController::class, 'roletest']);
     Route::post('/createRoleAndPermission', [RolePermissionController::class, 'createRoleAndPermission']);
     Route::post('/assignRoleToUser', [RolePermissionController::class, 'assignRoleToUser']);
     Route::post('/checkPermission', [RolePermissionController::class, 'checkRoleAndPermission']);

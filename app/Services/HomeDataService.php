@@ -157,6 +157,8 @@ class HomeDataService
         $currentPatients = $this->getCurrentPatients($user, $isAdminOrTester);
         $topDoctors = $this->getTopDoctors();
         $pendingSyndicateCard = $this->getPendingSyndicateCard($isAdminOrTester);
+        $trendingHashtags = Hashtag::orderBy('usage_count', 'desc')->limit(5)->get();
+        $latestGroups = $this->getLatestGroups($user);
 
         $transformPatientData = [$this->patientService, 'transformPatientData'];
 
@@ -167,8 +169,8 @@ class HomeDataService
             'current_patient' => $currentPatients->map($transformPatientData),
             'posts' => $posts,
             'feed_posts' => $feedPosts,
-            'trending_hashtags' => [],
-            'latest_groups' => [],
+            'trending_hashtags' => $trendingHashtags,
+            'latest_groups' => $latestGroups,
         ];
 
         return $baseResponse;

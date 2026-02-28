@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Permission;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Role;
 
 class RolePermissionSeeder extends Seeder
@@ -43,18 +44,14 @@ class RolePermissionSeeder extends Seeder
     {
         $this->command->info('🗑️  Dropping existing roles...');
 
-        // Disable foreign key checks temporarily
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        Schema::withoutForeignKeyConstraints(function () {
+            // Delete from pivot tables first (roles are referenced in these tables)
+            DB::table('model_has_roles')->truncate();
+            DB::table('role_has_permissions')->truncate();
 
-        // Delete from pivot tables first (roles are referenced in these tables)
-        DB::table('model_has_roles')->truncate();
-        DB::table('role_has_permissions')->truncate();
-
-        // Delete all roles
-        DB::table('roles')->truncate();
-
-        // Re-enable foreign key checks
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            // Delete all roles
+            DB::table('roles')->truncate();
+        });
 
         $this->command->info('✓ All existing roles dropped');
     }
@@ -66,18 +63,14 @@ class RolePermissionSeeder extends Seeder
     {
         $this->command->info('🗑️  Dropping existing permissions...');
 
-        // Disable foreign key checks temporarily
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        Schema::withoutForeignKeyConstraints(function () {
+            // Delete from pivot tables first
+            // Note: role_has_permissions was already truncated in dropExistingRoles()
+            DB::table('model_has_permissions')->truncate();
 
-        // Delete from pivot tables first
-        // Note: role_has_permissions was already truncated in dropExistingRoles()
-        DB::table('model_has_permissions')->truncate();
-
-        // Delete all permissions
-        DB::table('permissions')->truncate();
-
-        // Re-enable foreign key checks
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            // Delete all permissions
+            DB::table('permissions')->truncate();
+        });
 
         $this->command->info('✓ All existing permissions dropped');
     }

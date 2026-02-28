@@ -22,6 +22,7 @@ use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use App\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -218,20 +219,16 @@ class RoleResource extends Resource
                         ->action(function (Role $record, array $data) {
                             $userIds = $data['users'] ?? [];
                             $assignedCount = 0;
-                            
-                            // Remove all existing role assignments first (enforce single role)
-                            foreach ($userIds as $userId) {
-                                $user = User::find($userId);
-                                if ($user) {
-                                    // Remove all existing roles (enforce single role)
-                                    $user->roles()->detach();
-                                    // Assign new role
-                                    $user->assignRole($record->name);
-                                    // Mark permissions as changed
-                                    $user->update(['permissions_changed' => true]);
-                                    $assignedCount++;
+
+                            DB::transaction(function () use ($record, $userIds, &$assignedCount) {
+                                foreach ($userIds as $userId) {
+                                    $user = User::find($userId);
+                                    if ($user) {
+                                        $user->assignSingleRole($record->name);
+                                        $assignedCount++;
+                                    }
                                 }
-                            }
+                            });
                             
                             \Filament\Notifications\Notification::make()
                                 ->title('Users assigned successfully')
@@ -253,7 +250,7 @@ class RoleResource extends Resource
                         ])
                         ->action(function (Role $record, array $data) {
                             $categories = $data['categories'] ?? [];
-                            $permissions = Permission::whereIn('category', $categories)->pluck('id');
+                            $permissions = Permission::whereIn('category', $categories)->where('guard_name', $record->guard_name)->pluck('id');
                             
                             // Get current permissions and merge
                             $currentPermissions = $record->permissions()->pluck('id');

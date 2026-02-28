@@ -67,10 +67,7 @@ class RolePermissionResource extends Resource
                     ->sortable(),
             ])
             ->defaultSort('role_id')
-            ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\DeleteAction::make(),
-            ])
+            ->actions([])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
                 ExportBulkAction::make(),
@@ -82,8 +79,6 @@ class RolePermissionResource extends Resource
         return [
             'index' => Pages\ListRolePermissions::route('/'),
             'create' => Pages\CreateRolePermission::route('/create'),
-            'view' => Pages\ViewRolePermission::route('/{record}'),
-            'edit' => Pages\EditRolePermission::route('/{record}/edit'),
         ];
     }
 }

@@ -42,16 +42,25 @@ class EditPermission extends EditRecord
     }
 
     /**
-     * After saving permission, mark all users with assigned roles as having permissions changed
+     * After saving permission, mark all users with assigned roles as having permissions changed.
+     * Includes roles that were removed during the edit so those users are also notified.
      */
     protected function afterSave(): void
     {
         $permission = $this->record;
-        $permission->refresh(); // Refresh to get latest role assignments
-        
-        // Mark all users with roles that have this permission as having permissions changed
-        foreach ($permission->roles as $role) {
-            User::role($role->name)->update(['permissions_changed' => true]);
+
+        // Capture role names before refreshing so removed roles are included.
+        $beforeRoles = $permission->roles->pluck('name')->toArray();
+
+        $permission->refresh();
+
+        $afterRoles = $permission->roles->pluck('name')->toArray();
+
+        // Union of both sets covers added, retained, and removed roles.
+        $allRoles = array_unique(array_merge($beforeRoles, $afterRoles));
+
+        foreach ($allRoles as $roleName) {
+            User::role($roleName)->update(['permissions_changed' => true]);
         }
     }
 }

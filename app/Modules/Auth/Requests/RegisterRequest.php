@@ -28,10 +28,10 @@ class RegisterRequest extends FormRequest
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8',
             'user_type' => 'nullable|string|in:normal,medical_statistics',
-            'fcmToken' => 'nullable|string',
-            'deviceId' => 'nullable|string',
-            'deviceType' => 'nullable|string',
-            'appVersion' => 'nullable|string',
+            'fcmToken' => 'nullable|string|max:255|regex:/^[a-zA-Z0-9:_-]+$/',
+            'deviceId' => 'nullable|string|max:255',
+            'deviceType' => 'nullable|string|in:ios,android,web',
+            'appVersion' => 'nullable|string|max:20|regex:/^[0-9.]+$/',
         ];
     }
 

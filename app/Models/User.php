@@ -10,6 +10,7 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasPermissions;
 use Spatie\Permission\Traits\HasRoles;
@@ -30,7 +31,6 @@ class User extends Authenticatable implements FilamentUser
         'syndicate_card',
         'email',
         'password',
-        'passwordValue',
         'age',
         'specialty',
         'workingplace',
@@ -112,8 +112,8 @@ class User extends Authenticatable implements FilamentUser
             return $this->attributes['avatar'];
         }
 
-        // Default profile image
-        return config('app.url') . '/storage/profile_images/profile_image.jpg';
+        // Default profile image (uses same prefix as other image fields)
+        return $this->getPrefixedUrl('profile_images/profile_image.jpg');
     }
 
     /**
@@ -164,18 +164,13 @@ class User extends Authenticatable implements FilamentUser
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        // TEMPORARY: Allow all users to access Filament panel
-        // TODO: Restore proper access control after fixing permission issues
-        return true;
-
-        // Original access control (commented out temporarily):
-        // return $this->hasRole(['admin', 'tester']) ||
-        //        str_ends_with($this->email, '@egyakin.com') ||
-        //        in_array($this->email, [
-        //            'mohamedco215@gmail.com',
-        //            'Darsh1980@mans.edu.eg',
-        //            'aboelkhaer@yandex.com',
-        //        ]);
+        return $this->hasRole(['admin', 'tester']) ||
+               str_ends_with($this->email, '@egyakin.com') ||
+               in_array($this->email, [
+                   'mohamedco215@gmail.com',
+                   'Darsh1980@mans.edu.eg',
+                   'aboelkhaer@yandex.com',
+               ]);
     }
 
     public function patients()
@@ -386,14 +381,12 @@ class User extends Authenticatable implements FilamentUser
      */
     public function assignSingleRole(string $roleName): void
     {
-        // Remove all existing roles
-        $this->roles()->detach();
-
-        // Assign new role
-        $this->assignRole($roleName);
-
-        // Mark permissions as changed
-        $this->update(['permissions_changed' => true]);
+        DB::transaction(function () use ($roleName) {
+            // Remove all existing roles then assign new one atomically
+            $this->roles()->detach();
+            $this->assignRole($roleName);
+            $this->update(['permissions_changed' => true]);
+        });
     }
 
     /**

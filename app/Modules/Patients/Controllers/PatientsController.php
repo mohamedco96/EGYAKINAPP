@@ -578,9 +578,9 @@ class PatientsController extends Controller
             $userFilterCacheKey = 'latest_filter_params_user_'.auth()->id();
             $filterParams = Cache::get($userFilterCacheKey, []);
 
-            // Get the scope parameter from cache
+            // Get the scope parameter from cache (default true = own patients only)
             $userScopeCacheKey = 'latest_filter_scope_user_'.auth()->id();
-            $onlyMyPatients = Cache::get($userScopeCacheKey, false);
+            $onlyMyPatients = Cache::get($userScopeCacheKey, true);
 
             $user = auth()->user();
             $canExportAll = $user->hasPermissionTo('view-export-patients-report-in-all-patients-button-for-admin');

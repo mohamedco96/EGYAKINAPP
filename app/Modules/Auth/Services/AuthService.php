@@ -438,6 +438,13 @@ class AuthService
             $this->handleSyndicateCardUpdate($user, $requestData['isSyndicateCardRequired']);
         }
 
+        // Hash password before persisting; skip null/empty/blank values
+        if (isset($requestData['password']) && trim((string) $requestData['password']) !== '') {
+            $requestData['password'] = Hash::make($requestData['password']);
+        } else {
+            unset($requestData['password']);
+        }
+
         // Update the user's data
         $user->fill($requestData);
         $user->save();

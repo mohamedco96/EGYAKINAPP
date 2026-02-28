@@ -1,11 +1,13 @@
 <?php
 
+use App\Database\Concerns\HasIndexHelpers;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    use HasIndexHelpers;
     /**
      * Run the migrations.
      */
@@ -13,11 +15,17 @@ return new class extends Migration
     {
         Schema::table('notifications', function (Blueprint $table) {
             // Add localization fields
-            $table->string('localization_key')->nullable()->after('content');
-            $table->json('localization_params')->nullable()->after('localization_key');
+            if (!Schema::hasColumn('notifications', 'localization_key')) {
+                $table->string('localization_key')->nullable()->after('content');
+            }
+            if (!Schema::hasColumn('notifications', 'localization_params')) {
+                $table->json('localization_params')->nullable()->after('localization_key');
+            }
 
             // Add index for better performance
-            $table->index('localization_key');
+            if (!$this->indexExists('notifications', 'notifications_localization_key_index')) {
+                $table->index('localization_key');
+            }
         });
     }
 
@@ -31,4 +39,5 @@ return new class extends Migration
             $table->dropColumn(['localization_key', 'localization_params']);
         });
     }
+
 };

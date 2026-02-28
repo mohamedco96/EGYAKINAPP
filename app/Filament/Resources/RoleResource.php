@@ -22,7 +22,8 @@ use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Spatie\Permission\Models\Permission;
+use App\Models\Permission;
+use Closure;
 use Spatie\Permission\Models\Role;
 
 class RoleResource extends Resource
@@ -99,24 +100,34 @@ class RoleResource extends Resource
                     ])->columns(2),
 
                 Section::make('Permissions Assignment')
-                    ->description('Select which permissions this role should have')
+                    ->description('Select which permissions this role should have. Permissions are organized by category.')
                     ->icon('heroicon-o-key')
                     ->schema([
                         CheckboxList::make('permissions')
                             ->relationship('permissions', 'name')
-                            ->columns(4)
+                            ->columns(3)
                             ->gridDirection('row')
                             ->bulkToggleable()
                             ->searchable()
-                            ->getOptionLabelUsing(fn ($value): string => ucwords(str_replace(['-', '_'], ' ', Permission::find($value)?->name ?? '')))
                             ->descriptions(
-                                fn (): array => Permission::all()->pluck('name', 'id')->map(
-                                    fn ($name) => 'Grant access to '.str_replace(['-', '_'], ' ', $name).' functionality'
-                                )->toArray()
+                                fn (): array => Permission::all()->mapWithKeys(function ($permission) {
+                                    $category = $permission->category ? Permission::getCategories()[$permission->category] ?? ucwords(str_replace(['-', '_'], ' ', $permission->category)) : 'Other';
+                                    $description = $permission->description ?: 'No description';
+                                    return [
+                                        $permission->id => "{$category} | {$description}"
+                                    ];
+                                })->toArray()
                             )
-                            ->hint('Select all permissions that users with this role should have')
-                            ->hintColor('primary'),
-                    ])->collapsible(),
+                            ->hint('💡 Tip: Use the search box to quickly find permissions by name or description. Permissions are grouped by category.')
+                            ->hintColor('primary')
+                            ->helperText('Select all permissions that users with this role should have access to.')
+                            ->rules([
+                                fn (): Closure => function (string $attribute, $value, Closure $fail) {
+                                    static::validatePermissionConflicts($value ?? [], $fail);
+                                },
+                            ]),
+                    ])->collapsible()
+                    ->collapsed(false),
             ]);
     }
 
@@ -199,7 +210,7 @@ class RoleResource extends Resource
                     EditAction::make()
                         ->color('warning'),
                     Action::make('assign_users')
-                        ->label('Assign Users')
+                        ->label('Assign Users to Role')
                         ->icon('heroicon-o-users')
                         ->color('success')
                         ->form([
@@ -207,12 +218,110 @@ class RoleResource extends Resource
                                 ->label('Select Users')
                                 ->options(User::all()->pluck('name', 'id'))
                                 ->columns(2)
-                                ->searchable(),
+                                ->searchable()
+                                ->helperText('⚠️ This will replace the user\'s current role with this role (single role per user)'),
                         ])
                         ->action(function (Role $record, array $data) {
-                            $record->users()->sync($data['users'] ?? []);
+                            $userIds = $data['users'] ?? [];
+                            $assignedCount = 0;
+                            $skippedUsers = [];
+
+                            $rolePermissionNames = $record->permissions()->pluck('name')->toArray();
+
+                            foreach ($userIds as $userId) {
+                                $user = User::find($userId);
+                                if ($user) {
+                                    $userDirectPermissions = $user->permissions()->pluck('name')->toArray();
+                                    $combined = array_unique(array_merge($rolePermissionNames, $userDirectPermissions));
+
+                                    $hasConflict = false;
+                                    foreach (static::conflictPairs() as $pair) {
+                                        if (
+                                            !empty(array_intersect($combined, $pair['a'])) &&
+                                            !empty(array_intersect($combined, $pair['b']))
+                                        ) {
+                                            $hasConflict = true;
+                                            break;
+                                        }
+                                    }
+
+                                    if ($hasConflict) {
+                                        $skippedUsers[] = $user->name;
+                                        continue;
+                                    }
+
+                                    // Remove all existing roles (enforce single role)
+                                    $user->roles()->detach();
+                                    // Assign new role
+                                    $user->assignRole($record->name);
+                                    // Mark permissions as changed
+                                    $user->update(['permissions_changed' => true]);
+                                    $assignedCount++;
+                                }
+                            }
+
+                            if (!empty($skippedUsers)) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Some users were skipped')
+                                    ->body("{$assignedCount} user(s) assigned. Skipped due to permission conflicts: " . implode(', ', $skippedUsers) . '. Their direct permissions conflict with this role\'s permissions.')
+                                    ->warning()
+                                    ->send();
+                            } else {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Users assigned successfully')
+                                    ->body("{$assignedCount} user(s) assigned to '{$record->name}' role. Their permissions have been updated.")
+                                    ->success()
+                                    ->send();
+                            }
+                        }),
+                    Action::make('assign_permissions_by_category')
+                        ->label('Quick Assign by Category')
+                        ->icon('heroicon-o-funnel')
+                        ->color('info')
+                        ->form([
+                            \Filament\Forms\Components\CheckboxList::make('categories')
+                                ->label('Select Categories')
+                                ->options(Permission::getCategories())
+                                ->columns(2)
+                                ->searchable()
+                                ->helperText('Select categories to assign all permissions from those categories to this role'),
+                        ])
+                        ->action(function (Role $record, array $data) {
+                            $categories = $data['categories'] ?? [];
+                            $newPermissions = Permission::whereIn('category', $categories)->pluck('id');
+
+                            // Get current permissions and merge
+                            $currentPermissions = $record->permissions()->pluck('id');
+                            $allPermissions = $currentPermissions->merge($newPermissions)->unique();
+
+                            // Validate conflicts before applying
+                            $allPermissionNames = Permission::whereIn('id', $allPermissions)->pluck('name')->toArray();
+                            foreach (static::conflictPairs() as $pair) {
+                                $matchA = array_values(array_intersect($allPermissionNames, $pair['a']));
+                                $matchB = array_values(array_intersect($allPermissionNames, $pair['b']));
+
+                                if ($matchA && $matchB) {
+                                    \Filament\Notifications\Notification::make()
+                                        ->title('Permission Conflict Detected')
+                                        ->body(
+                                            'Cannot assign: [' . implode(', ', $matchA) . '] cannot coexist with [' . implode(', ', $matchB) . ']. '
+                                            . $pair['message']
+                                        )
+                                        ->danger()
+                                        ->persistent()
+                                        ->send();
+                                    return;
+                                }
+                            }
+
+                            $record->syncPermissions($allPermissions);
+
+                            // Mark all users with this role as having permissions changed
+                            \App\Models\User::role($record->name)->update(['permissions_changed' => true]);
+
                             \Filament\Notifications\Notification::make()
-                                ->title('Users assigned successfully')
+                                ->title('Permissions assigned successfully')
+                                ->body(count($newPermissions) . ' permission(s) from selected categories assigned to ' . $record->name)
                                 ->success()
                                 ->send();
                         }),
@@ -257,6 +366,43 @@ class RoleResource extends Resource
             'view' => Pages\ViewRole::route('/{record}'),
             'edit' => Pages\EditRole::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Mutually exclusive permission pairs.
+     * Any permission in 'a' cannot coexist with any permission in 'b'.
+     */
+    private static function conflictPairs(): array
+    {
+        return [
+            [
+                'a'       => ['view-all-patients', 'view-current-patients'],
+                'b'       => ['view-groups-in-home', 'view-trend-hashtags-in-home'],
+                'message' => 'Patient management permissions and home content permissions are mutually exclusive.',
+            ],
+            [
+                'a'       => ['add-post-in-home'],
+                'b'       => ['add-patient-in-home'],
+                'message' => 'add-post-in-home and add-patient-in-home cannot be assigned together.',
+            ],
+        ];
+    }
+
+    private static function validatePermissionConflicts(array $permissionIds, Closure $fail): void
+    {
+        $selectedNames = Permission::whereIn('id', $permissionIds)->pluck('name')->toArray();
+
+        foreach (static::conflictPairs() as $pair) {
+            $matchA = array_values(array_intersect($selectedNames, $pair['a']));
+            $matchB = array_values(array_intersect($selectedNames, $pair['b']));
+
+            if ($matchA && $matchB) {
+                $fail(
+                    'Permission conflict: [' . implode(', ', $matchA) . '] cannot be combined with [' . implode(', ', $matchB) . ']. '
+                    . $pair['message']
+                );
+            }
+        }
     }
 
     public static function getNavigationLabel(): string

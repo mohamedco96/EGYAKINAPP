@@ -24,24 +24,14 @@ class RegisterRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
-            'lname' => 'required|string|max:255',
+            'lname' => 'nullable|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => [
-                'required',
-                'string',
-                'min:6',
-            ],
-            'age' => 'nullable|integer|min:18|max:100',
-            'specialty' => 'nullable|string|max:255',
-            'workingplace' => 'nullable|string|max:255',
-            'phone' => 'nullable|string|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
-            'job' => 'nullable|string|max:255',
-            'highestdegree' => 'nullable|string|max:255',
-            'registration_number' => 'nullable|string|unique:users',
-            'fcmToken' => 'nullable|string|max:255|regex:/^[a-zA-Z0-9:_-]+$/',
+            'password' => 'required|string|min:8',
+            'user_type' => 'nullable|string|in:normal,medical_statistics',
+            'fcmToken' => 'nullable|string',
             'deviceId' => 'nullable|string',
-            'deviceType' => 'nullable|string|in:ios,android,web',
-            'appVersion' => 'nullable|string|max:20|regex:/^[0-9.]+$/',
+            'deviceType' => 'nullable|string',
+            'appVersion' => 'nullable|string',
         ];
     }
 

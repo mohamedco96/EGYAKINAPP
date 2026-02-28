@@ -406,7 +406,7 @@ class ConsultationController extends Controller
     {
         try {
             $user = Auth::user();
-            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+            $isAdminOrTester = $user->hasRole('admin') || $user->hasRole('tester');
 
             // Explode the input string into words
             $keywords = explode(' ', $data);

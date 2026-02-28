@@ -32,6 +32,7 @@ class ViewDose extends ViewRecord
     public function infolist(Infolist $infolist): Infolist
     {
         return $infolist
+            ->record($this->getRecord())
             ->schema([
                 Section::make('Dose Modifier Details')
                     ->description('Complete information about this dose modifier')

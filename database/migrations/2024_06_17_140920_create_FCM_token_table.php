@@ -11,11 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
+                if (Schema::hasTable('fcm_tokens')) {
+            return;
+        }
+
         Schema::create('fcm_tokens', function (Blueprint $table) {
             $table->id();
             $table->bigInteger('doctor_id')->unsigned()->index();
             $table->foreign('doctor_id')->references('id')->on('users')->onDelete('cascade');
-            $table->text('token')->unique();
+            $table->string('token', 500)->unique(); // Changed from text to string with length
             $table->timestamps();
         });
     }

@@ -12,10 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('google_id')->nullable()->unique();
-            $table->string('apple_id')->nullable()->unique();
-            $table->string('avatar')->nullable();
-            $table->timestamp('social_verified_at')->nullable();
+            if (!Schema::hasColumn('users', 'google_id')) {
+                $table->string('google_id')->nullable()->unique();
+            }
+            if (!Schema::hasColumn('users', 'apple_id')) {
+                $table->string('apple_id')->nullable()->unique();
+            }
+            if (!Schema::hasColumn('users', 'avatar')) {
+                $table->string('avatar')->nullable();
+            }
+            if (!Schema::hasColumn('users', 'social_verified_at')) {
+                $table->timestamp('social_verified_at')->nullable();
+            }
         });
     }
 

@@ -81,9 +81,12 @@ class DeepLinkController extends Controller
                 return redirect()->away("egyakin://patient/$id");
             }
 
+            // Index answers for O(1) lookups
+            $answersIndexed = $patient->answers->keyBy('question_id');
+
             // Get patient name from answers
-            $patientName = optional($patient->answers->where('question_id', 1)->first())->answer ?? 'Patient';
-            $hospital = optional($patient->answers->where('question_id', 2)->first())->answer ?? '';
+            $patientName = $answersIndexed->get(1)?->answer ?? 'Patient';
+            $hospital = $answersIndexed->get(2)?->answer ?? '';
 
             $metaData = [
                 'title' => "$patientName - EGYAKIN Patient",
@@ -183,7 +186,7 @@ class DeepLinkController extends Controller
                 return redirect()->away("egyakin://consultation/$id");
             }
 
-            $patientName = optional($consultation->patient->answers->first())->answer ?? 'Patient';
+            $patientName = $consultation->patient->answers->first()?->answer ?? 'Patient';
 
             $metaData = [
                 'title' => "Medical Consultation - $patientName - EGYAKIN",

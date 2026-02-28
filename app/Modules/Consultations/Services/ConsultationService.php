@@ -34,7 +34,7 @@ class ConsultationService
         $user = Auth::user();
 
         // Check if user is admin
-        if ($user->hasRole('Admin')) {
+        if ($user->hasRole('admin')) {
             return true;
         }
 
@@ -121,11 +121,16 @@ class ConsultationService
             ->orderBy('updated_at', 'desc')
             ->get();
 
+        // Pre-fetch patient names to avoid N+1 queries
+        $patientIds = $consultations->pluck('patient_id')->unique()->toArray();
+        $patientNames = Answers::whereIn('patient_id', $patientIds)
+            ->where('question_id', '1')
+            ->pluck('answer', 'patient_id');
+
         $response = [];
 
         foreach ($consultations as $consultation) {
-            $patientId = $consultation->patient_id;
-            $patientName = $this->getPatientName($patientId);
+            $patientName = $patientNames->get($consultation->patient_id);
 
             $consultationData = [
                 'id' => strval($consultation->id),
@@ -162,11 +167,17 @@ class ConsultationService
             ->orderBy('updated_at', 'desc')
             ->get();
 
+        // Pre-fetch patient names to avoid N+1 queries
+        $patientIds = $consultationDoctors->pluck('consultation.patient_id')->unique()->toArray();
+        $patientNames = Answers::whereIn('patient_id', $patientIds)
+            ->where('question_id', '1')
+            ->pluck('answer', 'patient_id');
+
         $response = [];
 
         foreach ($consultationDoctors as $consultationDoctor) {
             $patientId = $consultationDoctor->consultation->patient_id;
-            $patientName = $this->getPatientName($patientId);
+            $patientName = $patientNames->get($patientId);
 
             $consultationData = [
                 'id' => strval($consultationDoctor->consultation->id),
@@ -403,7 +414,7 @@ class ConsultationService
     {
         try {
             $user = Auth::user();
-            $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+            $isAdminOrTester = $user->hasRole('admin') || $user->hasRole('tester');
 
             // Explode the input string into words
             $keywords = explode(' ', $data);

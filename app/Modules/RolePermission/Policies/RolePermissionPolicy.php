@@ -31,7 +31,7 @@ class RolePermissionPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo('create role permissions') || $user->hasRole('admin');
+        return $user->hasRole(['admin', 'super-admin']);
     }
 
     /**
@@ -39,7 +39,7 @@ class RolePermissionPolicy
      */
     public function update(User $user, RolePermission $rolePermission): bool
     {
-        return $user->hasPermissionTo('update role permissions') || $user->hasRole('admin');
+        return $user->hasRole(['admin', 'super-admin']);
     }
 
     /**
@@ -47,7 +47,7 @@ class RolePermissionPolicy
      */
     public function delete(User $user, RolePermission $rolePermission): bool
     {
-        return $user->hasPermissionTo('delete role permissions') || $user->hasRole('admin');
+        return $user->hasRole(['admin', 'super-admin']);
     }
 
     /**
@@ -55,7 +55,7 @@ class RolePermissionPolicy
      */
     public function restore(User $user, RolePermission $rolePermission): bool
     {
-        return $user->hasPermissionTo('restore role permissions') || $user->hasRole('admin');
+        return $user->hasRole(['admin', 'super-admin']);
     }
 
     /**
@@ -63,7 +63,7 @@ class RolePermissionPolicy
      */
     public function forceDelete(User $user, RolePermission $rolePermission): bool
     {
-        return $user->hasPermissionTo('force delete role permissions') || $user->hasRole('admin');
+        return $user->hasRole(['admin', 'super-admin']);
     }
 
     /**
@@ -71,7 +71,7 @@ class RolePermissionPolicy
      */
     public function manage(User $user): bool
     {
-        return $user->hasPermissionTo('manage roles and permissions') || $user->hasRole('admin');
+        return $user->hasRole(['admin', 'super-admin']);
     }
 
     /**
@@ -79,7 +79,7 @@ class RolePermissionPolicy
      */
     public function assignRole(User $user): bool
     {
-        return $user->hasPermissionTo('assign roles') || $user->hasRole('admin');
+        return $user->hasRole(['admin', 'super-admin']);
     }
 
     /**
@@ -87,6 +87,6 @@ class RolePermissionPolicy
      */
     public function assignPermission(User $user): bool
     {
-        return $user->hasPermissionTo('assign permissions') || $user->hasRole('admin');
+        return $user->hasRole(['admin', 'super-admin']);
     }
 }

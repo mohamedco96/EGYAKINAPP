@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\DoseController as V1DoseController;
 use App\Modules\Doses\Requests\StoreDoseRequest;
 use App\Modules\Doses\Requests\UpdateDoseRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class DoseController extends Controller
 {
@@ -24,6 +25,15 @@ class DoseController extends Controller
 
     public function store(StoreDoseRequest $request)
     {
+        $user = Auth::user();
+
+        if ($user->isSyndicateCardRequired !== 'Verified') {
+            return response()->json([
+                'value' => false,
+                'message' => 'Unauthorized: Your syndicate card has not been verified.',
+            ], 403);
+        }
+
         return $this->doseController->store($request);
     }
 

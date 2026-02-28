@@ -1,11 +1,13 @@
 <?php
 
+use App\Database\Concerns\HasIndexHelpers;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    use HasIndexHelpers;
     /**
      * Run the migrations.
      */
@@ -13,13 +15,19 @@ return new class extends Migration
     {
         Schema::table('patient_statuses', function (Blueprint $table) {
             // Composite index for reminder queries (key + status + created_at)
-            $table->index(['key', 'status', 'created_at'], 'idx_patient_statuses_reminder_lookup');
+            if (!$this->indexExists('patient_statuses', 'idx_patient_statuses_reminder_lookup')) {
+                $table->index(['key', 'status', 'created_at'], 'idx_patient_statuses_reminder_lookup');
+            }
 
             // Composite index for patient-doctor-key lookups
-            $table->index(['patient_id', 'doctor_id', 'key'], 'idx_patient_statuses_patient_doctor_key');
+            if (!$this->indexExists('patient_statuses', 'idx_patient_statuses_patient_doctor_key')) {
+                $table->index(['patient_id', 'doctor_id', 'key'], 'idx_patient_statuses_patient_doctor_key');
+            }
 
             // Index for status queries by key
-            $table->index(['key', 'status'], 'idx_patient_statuses_key_status');
+            if (!$this->indexExists('patient_statuses', 'idx_patient_statuses_key_status')) {
+                $table->index(['key', 'status'], 'idx_patient_statuses_key_status');
+            }
         });
     }
 
@@ -34,4 +42,5 @@ return new class extends Migration
             $table->dropIndex('idx_patient_statuses_key_status');
         });
     }
+
 };

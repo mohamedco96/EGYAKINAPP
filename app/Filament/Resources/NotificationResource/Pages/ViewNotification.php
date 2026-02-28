@@ -20,8 +20,8 @@ class ViewNotification extends ViewRecord
                 ->label('Mark as Read')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
-                ->visible(fn ($state, $record) => !$record->read)
-                ->action(function ($state, $record) {
+                ->visible(fn ($record) => !$record->read)
+                ->action(function ($record) {
                     $record->update(['read' => true]);
                     Cache::forget('notifications_unread_count');
                 })
@@ -30,8 +30,8 @@ class ViewNotification extends ViewRecord
                 ->label('Mark as Unread')
                 ->icon('heroicon-o-x-circle')
                 ->color('warning')
-                ->visible(fn ($state, $record) => $record->read)
-                ->action(function ($state, $record) {
+                ->visible(fn ($record) => $record->read)
+                ->action(function ($record) {
                     $record->update(['read' => false]);
                     Cache::forget('notifications_unread_count');
                 })
@@ -48,6 +48,7 @@ class ViewNotification extends ViewRecord
     public function infolist(Infolist $infolist): Infolist
     {
         return $infolist
+            ->record($this->getRecord())
             ->schema([
                 Infolists\Components\Section::make('Notification Information')
                     ->schema([

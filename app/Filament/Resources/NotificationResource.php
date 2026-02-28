@@ -55,6 +55,7 @@ class NotificationResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['doctor']))
             ->columns([
                 Tables\Columns\TextColumn::make('id')
                     ->label('ID')

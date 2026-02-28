@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up()
     {
+        if (Schema::hasTable('feed_post_comment_likes')) {
+            return;
+        }
+
         Schema::create('feed_post_comment_likes', function (Blueprint $table) {
             $table->id();
             $table->foreignId('post_comment_id')->constrained('feed_post_comments')->onDelete('cascade');

@@ -122,6 +122,7 @@ class ConsultationResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['doctor', 'patient.doctor']))
             ->columns([
                 Tables\Columns\TextColumn::make('id')
                     ->label('ID')

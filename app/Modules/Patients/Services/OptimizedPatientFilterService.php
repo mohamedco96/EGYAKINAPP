@@ -29,7 +29,7 @@ class OptimizedPatientFilterService
     public function getDoctorPatients(bool $allPatients = false, int $perPage = 10): Paginator
     {
         $user = Auth::user();
-        $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+        $isAdminOrTester = $user->hasRole('admin') || $user->hasRole('tester');
 
         // Create cache key for this specific request
         $cacheKey = "doctor_patients_{$user->id}_{$allPatients}_{$perPage}_".request('page', 1);
@@ -119,7 +119,7 @@ class OptimizedPatientFilterService
     public function getDoctorPatientsUltraFast(bool $allPatients = false, int $perPage = 10): array
     {
         $user = Auth::user();
-        $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+        $isAdminOrTester = $user->hasRole('admin') || $user->hasRole('tester');
 
         // Build WHERE conditions
         $whereConditions = [];

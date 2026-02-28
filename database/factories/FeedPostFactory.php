@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\FeedPost;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class FeedPostFactory extends Factory
@@ -22,7 +23,7 @@ class FeedPostFactory extends Factory
             : $this->faker->url();
 
         return [
-            'doctor_id' => 1, // Assuming you have a doctor with ID 1
+            'doctor_id' => User::factory(),
             'content' => $this->faker->sentence,
             'media_type' => $mediaType,
             'media_path' => $mediaPath,

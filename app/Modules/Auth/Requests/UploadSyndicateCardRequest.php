@@ -22,7 +22,7 @@ class UploadSyndicateCardRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'syndicate_card' => 'required|image|mimes:jpeg,png,jpg,gif'
+            'syndicate_card' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120'
         ];
     }
 }

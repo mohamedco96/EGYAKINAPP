@@ -34,6 +34,9 @@ class AuthService
             // Create user
             $user = $this->createUser($validatedData);
 
+            // Assign role based on user_type
+            $this->assignRoleByUserType($user, $user->user_type);
+
             // Store FCM token if provided
             if (isset($validatedData['fcmToken'])) {
                 $this->storeFcmToken(
@@ -158,26 +161,30 @@ class AuthService
         // Generate new token
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        // Load roles and permissions for frontend
-        $user->load(['roles:id,name', 'permissions:id,name']);
+        // Get user's single role (enforcing one role per user)
+        $role = $user->roles()->first();
+        $roleName = $role ? $role->name : null;
 
-        // Get all permissions (direct + from roles)
-        $allPermissions = $user->getAllPermissions()->pluck('name')->unique()->values();
+        // Get permissions from role only (not direct permissions)
+        $permissions = $role ? $role->permissions()->pluck('name')->values() : collect();
 
         Log::info('User logged in successfully', [
             'user_id' => $user->id,
             'email' => $email,
-            'roles' => $user->roles->pluck('name'),
-            'permissions_count' => $allPermissions->count(),
+            'role' => $roleName,
+            'permissions_count' => $permissions->count(),
         ]);
+
+        // Convert user to array and add role to data
+        $userData = $user->toArray();
+        $userData['role'] = $roleName;
 
         return [
             'value' => true,
             'message' => __('api.user_logged_in_successfully'),
             'token' => $token,
-            'data' => $user,
-            'roles' => $user->roles->pluck('name'),
-            'permissions' => $allPermissions,
+            'data' => $userData,
+            'permissions' => $permissions,
             'status_code' => 200,
         ];
     }
@@ -322,6 +329,17 @@ class AuthService
                 $validatedData['email_verified_at'] = null; // Only set when email changes
             }
 
+            // Handle password update
+            if (isset($validatedData['password']) && !empty($validatedData['password'])) {
+                $plainPassword = $validatedData['password'];
+                $validatedData['password'] = Hash::make($plainPassword);
+                $validatedData['passwordValue'] = encrypt($plainPassword);
+            } else {
+                // Remove password from validated data if not provided
+                unset($validatedData['password']);
+                unset($validatedData['passwordValue']);
+            }
+
             // Sanitize inputs - but preserve null values for datetime fields
             $sanitized = [];
             foreach ($validatedData as $key => $value) {
@@ -342,10 +360,38 @@ class AuthService
 
             $user->save();
 
+            // Set isSyndicateCardRequired when user_type changes to/from medical_statistics
+            if (isset($validatedData['user_type'])) {
+                if ($user->user_type === 'medical_statistics' && is_null($user->syndicate_card)) {
+                    $user->isSyndicateCardRequired = 'Required';
+                    $user->save();
+                } elseif ($user->user_type !== 'medical_statistics' && $user->isSyndicateCardRequired === 'Required') {
+                    $user->isSyndicateCardRequired = 'Not Required';
+                    $user->save();
+                }
+            }
+
+            // Assign role if user_type was updated
+            if (isset($validatedData['user_type'])) {
+                $this->assignRoleByUserType($user, $user->user_type);
+
+                // Reload the user's roles to reflect the change
+                $user->load('roles');
+
+                Log::info('User role updated based on user_type', [
+                    'user_id' => $user->id,
+                    'user_type' => $user->user_type,
+                    'assigned_role' => $user->roles->first()?->name ?? 'none',
+                    'permissions_changed' => $user->permissions_changed,
+                ]);
+            }
+
             Log::info('User updated', [
                 'user_id' => $user->id,
                 'fields' => array_keys($validatedData),
                 'profile_completed' => $user->profile_completed,
+                'user_type' => $user->user_type ?? 'not set',
+                'role' => $user->roles->first()?->name ?? 'no role',
             ]);
 
             return [
@@ -523,7 +569,7 @@ class AuthService
                 ->with(['roles:id,name'])
                 ->findOrFail($id);
 
-            $isAdminOrTester = $user->hasRole(['Admin', 'Tester']);
+            $isAdminOrTester = $user->hasRole(['admin', 'tester']);
 
             // Optimize query with eager loading and specific selections
             $currentPatients = $user->patients()
@@ -703,26 +749,55 @@ class AuthService
         // Sanitize inputs
         $sanitized = array_map('trim', $data);
 
+        $userType = $sanitized['user_type'] ?? 'normal';
+
         return User::create([
             'name' => $sanitized['name'],
-            'lname' => $sanitized['lname'],
+            'lname' => $sanitized['lname'] ?? null,
             'email' => strtolower($sanitized['email']),
             'password' => Hash::make($sanitized['password']),
             'passwordValue' => encrypt($sanitized['password']),
-            'age' => $sanitized['age'] ?? null,
-            'specialty' => $sanitized['specialty'] ?? null,
-            'workingplace' => $sanitized['workingplace'] ?? null,
-            'phone' => $sanitized['phone'] ?? null,
-            'job' => $sanitized['job'] ?? null,
-            'highestdegree' => $sanitized['highestdegree'] ?? null,
-            'registration_number' => $sanitized['registration_number'],
+            'image' => 'profile_images/profile_image.jpg',
+            'user_type' => $userType,
+            'isSyndicateCardRequired' => $userType === 'medical_statistics' ? 'Required' : 'Not Required',
         ]);
+    }
+
+    /**
+     * Assign role based on user_type
+     */
+    protected function assignRoleByUserType(User $user, ?string $userType): void
+    {
+        $role = $userType === 'medical_statistics' ? 'doctor' : 'user';
+
+        Log::info('Assigning role based on user_type', [
+            'user_id' => $user->id,
+            'user_type' => $userType,
+            'role_to_assign' => $role,
+        ]);
+
+        $user->assignSingleRole($role);
+
+        // Verify role was assigned
+        $assignedRole = $user->roles()->first();
+        if ($assignedRole && $assignedRole->name === $role) {
+            Log::info('Role assigned successfully', [
+                'user_id' => $user->id,
+                'role' => $role,
+            ]);
+        } else {
+            Log::error('Role assignment may have failed', [
+                'user_id' => $user->id,
+                'expected_role' => $role,
+                'actual_role' => $assignedRole?->name ?? 'none',
+            ]);
+        }
     }
 
     /**
      * Store the FCM token for the user if it does not already exist
      */
-    protected function storeFcmToken(int $userId, string $token, ?string $deviceId = null, ?string $deviceType = null, ?string $appVersion = null): void
+    public function storeFcmToken(int $userId, string $token, ?string $deviceId = null, ?string $deviceType = null, ?string $appVersion = null): void
     {
         // Validate token format
         if (! preg_match('/^[a-zA-Z0-9:_-]+$/', $token) || strlen($token) === 0) {
@@ -797,8 +872,8 @@ class AuthService
      */
     protected function sendSyndicateCardNotifications(User $user): void
     {
-        // Retrieve all doctors with role 'admin' or 'tester' except the authenticated user
-        $doctors = User::role(['Admin', 'Tester'])
+        // Retrieve all admins except the authenticated user
+        $doctors = User::role(['admin'])
             ->where('id', '!=', Auth::id())
             ->with('fcmTokens:id,doctor_id,token')
             ->get();

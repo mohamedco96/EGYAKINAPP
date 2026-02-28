@@ -46,31 +46,27 @@ use Illuminate\Support\Facades\Route;
 */
 
 // Public routes for V2
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::middleware('throttle:auth')->group(function () {
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/forgotpassword', [ForgetPasswordController::class, 'forgotPassword']);
+    Route::post('/resetpasswordverification', [ResetPasswordController::class, 'resetpasswordverification']);
+    Route::post('/resetpassword', [ResetPasswordController::class, 'resetpassword']);
+});
 
 // Localization test routes (for development and testing)
 Route::get('/localization/test', [LocalizationTestController::class, 'test']);
 Route::post('/localization/login', [LocalizationTestController::class, 'login']);
 Route::post('/localization/patient', [LocalizationTestController::class, 'createPatient']);
 Route::post('/localization/points', [LocalizationTestController::class, 'awardPoints']);
-Route::post('/forgotpassword', [ForgetPasswordController::class, 'forgotPassword']);
-Route::post('/resetpasswordverification', [ResetPasswordController::class, 'resetpasswordverification']);
-Route::post('/resetpassword', [ResetPasswordController::class, 'resetpassword']);
-Route::get('/generatePDF/{patient_id}', [PatientsController::class, 'generatePatientPDF']);
-Route::post('/send-notification', [AuthController::class, 'sendPushNotificationTest']);
-Route::post('/sendAllPushNotification', [NotificationController::class, 'sendAllPushNotification']);
 
 // Email verification routes
 Route::post('/email/verification-notification', [EmailVerificationController::class, 'sendVerificationEmail']);
 Route::post('/email/verify', [EmailVerificationController::class, 'verifyEmail']);
 
-// Settings routes (public)
+// Settings read routes (public)
 Route::get('/settings', [SettingsController::class, 'index']);
-Route::post('/settings', [SettingsController::class, 'store']);
 Route::get('/settings/{settings}', [SettingsController::class, 'show']);
-Route::put('/settings/{settings}', [SettingsController::class, 'update']);
-Route::delete('/settings/{settings}', [SettingsController::class, 'destroy']);
 
 // Social Authentication Routes
 Route::prefix('auth/social')->group(function () {
@@ -108,7 +104,6 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
     Route::post('/upload-profile-image', [AuthController::class, 'uploadProfileImage']);
     Route::post('/uploadSyndicateCard', [AuthController::class, 'uploadSyndicateCard']);
     Route::post('/storeFCM', [NotificationController::class, 'storeFCM']);
-    Route::post('/decryptedPassword', [AuthController::class, 'decryptedPassword']);
 
     // User locale/language preference routes
     Route::post('/user/locale', [UserLocaleController::class, 'updateLocale']);
@@ -234,7 +229,7 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
     // Achievement management routes
     Route::post('/achievements', [AchievementController::class, 'createAchievement']);
     Route::get('/achievements', [AchievementController::class, 'listAchievements']);
-    Route::get('/users/{user}/achievements', [AchievementController::class, 'getUserAchievements']);
+    Route::get('/users/{userId}/achievements', [AchievementController::class, 'getUserAchievements']);
     Route::post('/checkAndAssignAchievementsForAllUsers', [AchievementController::class, 'checkAndAssignAchievementsForAllUsers']);
 
     // Feed Post routes
@@ -296,17 +291,31 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
     Route::post('/share/generate', [ShareController::class, 'generateUrl']);
     Route::post('/share/bulk', [ShareController::class, 'generateBulkUrls']);
     Route::get('/share/preview', [ShareController::class, 'getPreview']);
+
+    // Patient PDF (requires auth — patient data is sensitive)
+    Route::get('/generatePDF/{patient_id}', [PatientsController::class, 'generatePatientPDF']);
+
+    // Settings write routes (requires auth)
+    Route::post('/settings', [SettingsController::class, 'store']);
+    Route::put('/settings/{settings}', [SettingsController::class, 'update']);
+    Route::delete('/settings/{settings}', [SettingsController::class, 'destroy']);
+
+    // Admin-only routes
+    Route::middleware('role:admin|super-admin')->group(function () {
+        Route::post('/sendAllPushNotification', [NotificationController::class, 'sendAllPushNotification']);
+    });
 });
 
 // Authenticated user route with roles and permissions
 Route::middleware(['auth:sanctum', 'check.blocked.home'])->get('/user', function (Request $request) {
     $user = $request->user();
 
-    // Load roles and permissions
-    $user->load(['roles:id,name', 'permissions:id,name']);
+    // Get user's single role (enforcing one role per user)
+    $role = $user->roles()->first();
+    $roleName = $role ? $role->name : null;
 
-    // Get all permissions (direct + from roles)
-    $allPermissions = $user->getAllPermissions()->pluck('name')->unique()->values();
+    // Get permissions from role only (not direct permissions)
+    $permissions = $role ? $role->permissions()->pluck('name')->values() : collect();
 
     return [
         'id' => $user->id,
@@ -315,9 +324,31 @@ Route::middleware(['auth:sanctum', 'check.blocked.home'])->get('/user', function
         'profile_completed' => $user->profile_completed,
         'avatar' => $user->avatar,
         'locale' => $user->locale,
-        'roles' => $user->roles->pluck('name'),
-        'permissions' => $allPermissions,
+        'role' => $roleName,
+        'permissions' => $permissions,
         'created_at' => $user->created_at,
         'updated_at' => $user->updated_at,
+    ];
+});
+
+// Get user role and permissions endpoint (used when permissions_changed is true)
+Route::middleware(['auth:sanctum', 'check.blocked.home'])->get('/user/role-permissions', function (Request $request) {
+    $user = $request->user();
+
+    // Get user's single role (enforcing one role per user)
+    $role = $user->roles()->first();
+    $roleName = $role ? $role->name : null;
+
+    // Get permissions from role only (not direct permissions)
+    $permissions = $role ? $role->permissions()->pluck('name')->values() : collect();
+
+    // Reset permissions_changed flag after fetching
+    $user->update(['permissions_changed' => false]);
+
+    return [
+        'value' => true,
+        'message' => 'Role and permissions retrieved successfully',
+        'role' => $roleName,
+        'permissions' => $permissions,
     ];
 });

@@ -9,20 +9,34 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class RolePermissionResource extends Resource
 {
     protected static ?string $model = RolePermission::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-shield-check';
+
     protected static ?string $navigationLabel = 'Role Permissions';
+
     protected static ?string $navigationGroup = '🔐 Access Control';
+
     protected static ?int $navigationSort = 3;
+
+    /**
+     * Hide this resource from navigation
+     * Role-permission assignments are managed through Role and Permission resources
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
 
     public static function getNavigationBadge(): ?string
     {
-        return Cache::remember('role_permissions_count', 300, fn() => static::getModel()::count());
+        return Cache::remember('role_permissions_count', 300, fn () => static::getModel()::count());
     }
 
     public static function form(Form $form): Form
@@ -38,14 +52,31 @@ class RolePermissionResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['role', 'permission']))
             ->columns([
-                Tables\Columns\TextColumn::make('id')->badge()->color('gray'),
-                Tables\Columns\TextColumn::make('role.name')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('permission.name')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('created_at')->dateTime()->since(),
+                Tables\Columns\TextColumn::make('role.name')
+                    ->label('Role')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('permission.name')
+                    ->label('Permission')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('permission.category')
+                    ->label('Category')
+                    ->badge()
+                    ->color('info')
+                    ->sortable(),
             ])
-            ->actions([Tables\Actions\ViewAction::make(), Tables\Actions\DeleteAction::make()])
-            ->bulkActions([Tables\Actions\DeleteBulkAction::make(), ExportBulkAction::make()]);
+            ->defaultSort('role_id')
+            ->actions([
+                Tables\Actions\ViewAction::make(),
+                Tables\Actions\DeleteAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\DeleteBulkAction::make(),
+                ExportBulkAction::make(),
+            ]);
     }
 
     public static function getPages(): array

@@ -31,9 +31,8 @@ class HomeDataService
             $query->where('hidden', false);
         }]);
 
-        $isAdminOrTester = $user->hasRole('Admin') || $user->hasRole('Tester');
+        $isAdminOrTester = $user->hasRole('admin') || $user->hasRole('tester');
         $isVerified = ! is_null($user->email_verified_at);
-        $isSyndicateCardRequired = $user->isSyndicateCardRequired === 'Verified';
 
         $feedPosts = $this->getFeedPosts($user);
         $counts = $this->getBasicCounts($user);
@@ -51,12 +50,10 @@ class HomeDataService
             'score_value' => (string) ($user->score->score ?? 0),
             'posts_count' => (string) $counts['postsCount'],
             'saved_posts_count' => (string) $counts['savedPostsCount'],
-            'role' => $user->roles->first()->name ?? 'User',
+            'role' => $user->roles->first()->name ?? 'user',
+            'user_type' => $user->user_type,
+            'permissions_changed' => $user->permissions_changed ?? false,
         ];
-
-        if (! $isSyndicateCardRequired && ! $isAdminOrTester) {
-            return $this->getLimitedHomeData($baseResponse, $feedPosts, $user);
-        }
 
         return $this->getFullHomeData($baseResponse, $feedPosts, $user, $isAdminOrTester);
     }
@@ -160,6 +157,8 @@ class HomeDataService
         $currentPatients = $this->getCurrentPatients($user, $isAdminOrTester);
         $topDoctors = $this->getTopDoctors();
         $pendingSyndicateCard = $this->getPendingSyndicateCard($isAdminOrTester);
+        $trendingHashtags = Hashtag::orderBy('usage_count', 'desc')->limit(5)->get();
+        $latestGroups = $this->getLatestGroups($user);
 
         $transformPatientData = [$this->patientService, 'transformPatientData'];
 
@@ -170,8 +169,8 @@ class HomeDataService
             'current_patient' => $currentPatients->map($transformPatientData),
             'posts' => $posts,
             'feed_posts' => $feedPosts,
-            'trending_hashtags' => [],
-            'latest_groups' => [],
+            'trending_hashtags' => $trendingHashtags,
+            'latest_groups' => $latestGroups,
         ];
 
         return $baseResponse;

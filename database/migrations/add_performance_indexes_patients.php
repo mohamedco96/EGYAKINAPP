@@ -1,11 +1,13 @@
 <?php
 
+use App\Database\Concerns\HasIndexHelpers;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    use HasIndexHelpers;
     /**
      * Add critical performance indexes for patients endpoint
      *
@@ -82,15 +84,4 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Check if index exists
-     */
-    private function indexExists(string $table, string $indexName): bool
-    {
-        $indexes = Schema::getConnection()
-            ->getDoctrineSchemaManager()
-            ->listTableIndexes($table);
-
-        return array_key_exists($indexName, $indexes);
-    }
 };

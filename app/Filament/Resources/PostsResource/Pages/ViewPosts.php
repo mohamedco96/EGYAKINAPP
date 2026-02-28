@@ -17,13 +17,13 @@ class ViewPosts extends ViewRecord
     {
         return [
             Actions\Action::make('toggleVisibility')
-                ->label(fn ($state, $record) => $record->hidden ? 'Publish' : 'Hide')
-                ->icon(fn ($state, $record) => $record->hidden ? 'heroicon-o-eye' : 'heroicon-o-eye-slash')
-                ->color(fn ($state, $record) => $record->hidden ? 'success' : 'warning')
-                ->action(function ($state, $record) {
+                ->label(fn ($record) => $record->hidden ? 'Publish' : 'Hide')
+                ->icon(fn ($record) => $record->hidden ? 'heroicon-o-eye' : 'heroicon-o-eye-slash')
+                ->color(fn ($record) => $record->hidden ? 'success' : 'warning')
+                ->action(function ($record) {
                     $record->update(['hidden' => !$record->hidden]);
                 })
-                ->successNotificationTitle(fn ($state, $record) => $record->hidden ? 'Post hidden' : 'Post published'),
+                ->successNotificationTitle(fn ($record) => $record->hidden ? 'Post hidden' : 'Post published'),
             Actions\EditAction::make(),
             Actions\DeleteAction::make()
                 ->after(function () {
@@ -35,6 +35,7 @@ class ViewPosts extends ViewRecord
     public function infolist(Infolist $infolist): Infolist
     {
         return $infolist
+            ->record($this->getRecord())
             ->schema([
                 Infolists\Components\Section::make('Post Information')
                     ->schema([

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V2;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Http\Controllers\Api\V1\AchievementController as V1AchievementController;
+use App\Modules\Achievements\Controllers\AchievementController as ModuleAchievementController;
 use App\Modules\Achievements\Requests\StoreAchievementRequest;
 use App\Modules\Achievements\Requests\UpdateAchievementRequest;
 use Illuminate\Http\Request;
@@ -13,9 +14,12 @@ class AchievementController extends Controller
 {
     protected $achievementController;
 
-    public function __construct(V1AchievementController $achievementController)
+    protected $moduleAchievementController;
+
+    public function __construct(V1AchievementController $achievementController, ModuleAchievementController $moduleAchievementController)
     {
         $this->achievementController = $achievementController;
+        $this->moduleAchievementController = $moduleAchievementController;
     }
 
     public function index()
@@ -53,12 +57,25 @@ class AchievementController extends Controller
         return $this->achievementController->listAchievements();
     }
 
-    public function getUserAchievements($user)
+    public function getUserAchievements($userId)
     {
-        // Resolve the user from the route parameter (could be ID or other identifier)
-        $userModel = User::findOrFail($user);
+        // Handle case where $userId might already be a User model or Collection from route binding
+        if ($userId instanceof User) {
+            return $this->moduleAchievementController->getUserAchievements($userId);
+        }
 
-        return $this->achievementController->getUserAchievements($userModel);
+        if ($userId instanceof \Illuminate\Database\Eloquent\Collection) {
+            $userId = $userId->first()?->id;
+        }
+
+        $userModel = User::find($userId);
+
+        // Return empty array if user not found (same format as when user has no achievements)
+        if (!$userModel) {
+            return response()->json([], 200);
+        }
+
+        return $this->moduleAchievementController->getUserAchievements($userModel);
     }
 
     public function checkAndAssignAchievementsForAllUsers(Request $request)

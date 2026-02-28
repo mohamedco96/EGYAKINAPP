@@ -12,8 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('locale', 2)->default('en')->after('email_verified_at');
-            $table->index('locale'); // Add index for better performance
+            if (!Schema::hasColumn('users', 'locale')) {
+                $table->string('locale', 2)->default('en')->after('email_verified_at');
+                $table->index('locale'); // Add index for better performance
+            }
         });
     }
 

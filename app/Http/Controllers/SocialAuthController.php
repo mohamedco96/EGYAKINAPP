@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Modules\Auth\Services\AuthService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
@@ -10,6 +11,8 @@ use Laravel\Socialite\Two\User as SocialiteUser;
 
 class SocialAuthController extends Controller
 {
+    public function __construct(protected AuthService $authService) {}
+
     /**
      * Redirect to Google OAuth
      */
@@ -40,7 +43,6 @@ class SocialAuthController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Google authentication was cancelled or failed',
-                    'error' => $request->get('error'),
                 ], 400);
             }
 
@@ -53,7 +55,6 @@ class SocialAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Google authentication failed',
-                'error' => $e->getMessage(),
             ], 400);
         }
     }
@@ -88,7 +89,6 @@ class SocialAuthController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Apple authentication was cancelled or failed',
-                    'error' => $request->get('error'),
                 ], 400);
             }
 
@@ -101,7 +101,6 @@ class SocialAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Apple authentication failed',
-                'error' => $e->getMessage(),
             ], 400);
         }
     }
@@ -109,7 +108,7 @@ class SocialAuthController extends Controller
     /**
      * Handle social authentication callback
      */
-    private function handleSocialCallback(string $provider, SocialiteUser $socialUser)
+    private function handleSocialCallback(string $provider, SocialiteUser $socialUser, ?Request $request = null)
     {
         try {
             // Validate required social user data
@@ -135,8 +134,8 @@ class SocialAuthController extends Controller
                     // Link social account to existing user
                     // Check if email is not a placeholder
                     $hasRealEmail = $socialUser->getEmail() &&
-                                    !str_contains($socialUser->getEmail(), '@apple-user.egyakin.com') &&
-                                    !str_contains($socialUser->getEmail(), '@google-user.egyakin.com');
+                                    ! str_contains($socialUser->getEmail(), '@apple-user.egyakin.com') &&
+                                    ! str_contains($socialUser->getEmail(), '@google-user.egyakin.com');
 
                     $updateData = [
                         $provider.'_id' => $socialUser->getId(),
@@ -150,7 +149,22 @@ class SocialAuthController extends Controller
                         $updateData['profile_completed'] = true;
                     }
 
+                    // Mark email as verified if real email provided and not already verified
+                    if ($hasRealEmail && ! $user->email_verified_at) {
+                        $updateData['email_verified_at'] = now();
+                    }
+
+                    // Set user_type to 'normal' if not already set
+                    if (! $user->user_type) {
+                        $updateData['user_type'] = 'normal';
+                    }
+
                     $user->update($updateData);
+
+                    // Assign 'user' role if no role assigned yet
+                    if (! $user->roles()->exists()) {
+                        $user->assignSingleRole('user');
+                    }
                 } else {
                     // Create new user
                     $user = User::createFromSocial($provider, $socialUser);
@@ -173,30 +187,47 @@ class SocialAuthController extends Controller
             // Generate token for API authentication
             $token = $user->createToken('social-auth')->plainTextToken;
 
+            // Store FCM token if provided
+            if ($request && $request->filled('fcmToken')) {
+                $this->authService->storeFcmToken(
+                    $user->id,
+                    $request->input('fcmToken'),
+                    $request->input('deviceId'),
+                    $request->input('deviceType'),
+                    $request->input('appVersion')
+                );
+            }
+
             // Determine if profile is complete - should be false only if email is missing/placeholder
             $isPlaceholderEmail = str_contains($user->email, '@apple-user.egyakin.com') ||
                                   str_contains($user->email, '@google-user.egyakin.com');
-            $profileCompleted = !$isPlaceholderEmail;
+            $profileCompleted = ! $isPlaceholderEmail;
 
             // Update profile_completed if it has changed
             if ($user->profile_completed !== $profileCompleted) {
                 $user->update(['profile_completed' => $profileCompleted]);
             }
 
+            // Get user's single role (enforcing one role per user)
+            $role = $user->roles()->first();
+            $roleName = $role ? $role->name : null;
+
+            // Get permissions from role only (not direct permissions)
+            $permissions = $role ? $role->permissions()->pluck('name')->values() : collect();
+
+            // Convert user to array and add role to data
+            $userData = $user->toArray();
+            $userData['image'] = $user->image; // Force accessor call — on first login, image is absent from attributes
+            $userData['role'] = $roleName;
+
             return response()->json([
                 'success' => true,
                 'message' => 'Authentication successful',
                 'data' => [
-                    'user' => [
-                        'id' => $user->id,
-                        'name' => $user->name,
-                        'email' => $user->email,
-                        'profile_completed' => $profileCompleted,
-                        'avatar' => $user->avatar,
-                        'locale' => $user->locale,
-                    ],
+                    'user' => $userData,
                     'token' => $token,
                     'provider' => $provider,
+                    'permissions' => $permissions,
                 ],
             ]);
 
@@ -208,7 +239,6 @@ class SocialAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Authentication failed',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -221,11 +251,15 @@ class SocialAuthController extends Controller
         try {
             $request->validate([
                 'access_token' => 'required|string',
+                'fcmToken'     => 'nullable|string',
+                'deviceId'     => 'nullable|string',
+                'deviceType'   => 'nullable|string',
+                'appVersion'   => 'nullable|string',
             ]);
 
             $googleUser = Socialite::driver('google')->userFromToken($request->input('access_token'));
 
-            return $this->handleSocialCallback('google', $googleUser);
+            return $this->handleSocialCallback('google', $googleUser, $request);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -238,7 +272,6 @@ class SocialAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Google authentication failed',
-                'error' => $e->getMessage(),
             ], 400);
         }
     }
@@ -251,6 +284,10 @@ class SocialAuthController extends Controller
         try {
             $request->validate([
                 'identity_token' => 'required|string',
+                'fcmToken'       => 'nullable|string',
+                'deviceId'       => 'nullable|string',
+                'deviceType'     => 'nullable|string',
+                'appVersion'     => 'nullable|string',
             ]);
 
             // For Apple, we need to handle the identity token
@@ -266,7 +303,7 @@ class SocialAuthController extends Controller
                 ], 400);
             }
 
-            return $this->handleSocialCallback('apple', $appleUser);
+            return $this->handleSocialCallback('apple', $appleUser, $request);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -279,7 +316,6 @@ class SocialAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Apple authentication failed',
-                'error' => $e->getMessage(),
             ], 400);
         }
     }

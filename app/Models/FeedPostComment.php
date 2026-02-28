@@ -34,7 +34,7 @@ class FeedPostComment extends Model
     // Relationship to get child comments
     public function replies()
     {
-        return $this->hasMany(FeedPostComment::class, 'parent_id')->with('replies'); // Recursive relation for nested comments
+        return $this->hasMany(FeedPostComment::class, 'parent_id');
     }
 
     // Relationship to get likes for comments

@@ -53,10 +53,23 @@ class AchievementController extends Controller
         return $this->achievementController->listAchievements();
     }
 
-    public function getUserAchievements($user)
+    public function getUserAchievements($userId)
     {
-        // Resolve the user from the route parameter (could be ID or other identifier)
-        $userModel = User::findOrFail($user);
+        // Handle case where $userId might already be a User model or Collection from route binding
+        if ($userId instanceof User) {
+            return $this->achievementController->getUserAchievements($userId);
+        }
+
+        if ($userId instanceof \Illuminate\Database\Eloquent\Collection) {
+            $userId = $userId->first()?->id;
+        }
+
+        $userModel = User::find($userId);
+
+        // Return empty array if user not found (same format as when user has no achievements)
+        if (!$userModel) {
+            return response()->json([], 200);
+        }
 
         return $this->achievementController->getUserAchievements($userModel);
     }

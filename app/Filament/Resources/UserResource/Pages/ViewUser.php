@@ -17,14 +17,14 @@ class ViewUser extends ViewRecord
     {
         return [
             Actions\Action::make('block')
-                ->label(fn ($state, $record) => $record->blocked ? 'Unblock' : 'Block')
-                ->icon(fn ($state, $record) => $record->blocked ? 'heroicon-o-lock-open' : 'heroicon-o-lock-closed')
-                ->color(fn ($state, $record) => $record->blocked ? 'success' : 'danger')
+                ->label(fn ($record) => $record->blocked ? 'Unblock' : 'Block')
+                ->icon(fn ($record) => $record->blocked ? 'heroicon-o-lock-open' : 'heroicon-o-lock-closed')
+                ->color(fn ($record) => $record->blocked ? 'success' : 'danger')
                 ->requiresConfirmation()
-                ->action(function ($state, $record) {
+                ->action(function ($record) {
                     $record->update(['blocked' => !$record->blocked]);
                 })
-                ->successNotificationTitle(fn ($state, $record) => $record->blocked ? 'User blocked' : 'User unblocked'),
+                ->successNotificationTitle(fn ($record) => $record->blocked ? 'User blocked' : 'User unblocked'),
             Actions\EditAction::make(),
             Actions\DeleteAction::make()
                 ->after(function () {
@@ -36,6 +36,7 @@ class ViewUser extends ViewRecord
     public function infolist(Infolist $infolist): Infolist
     {
         return $infolist
+            ->record($this->getRecord())
             ->schema([
                 Infolists\Components\Section::make('Personal Information')
                     ->schema([

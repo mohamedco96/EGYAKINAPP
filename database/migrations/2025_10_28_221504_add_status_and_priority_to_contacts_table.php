@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('contacts', function (Blueprint $table) {
-            $table->string('status')->default('pending')->after('message')->index();
-            $table->string('priority')->default('medium')->after('status')->index();
+            if (!Schema::hasColumn('contacts', 'status')) {
+                $table->string('status')->default('pending')->after('message')->index();
+            }
+            if (!Schema::hasColumn('contacts', 'priority')) {
+                $table->string('priority')->default('medium')->after('status')->index();
+            }
         });
     }
 

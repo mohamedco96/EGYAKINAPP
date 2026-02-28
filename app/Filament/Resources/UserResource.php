@@ -4,12 +4,14 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
+use Closure;
 use Filament\Forms;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
@@ -112,36 +114,108 @@ class UserResource extends Resource
                     ->schema([
                         CheckboxList::make('roles')
                             ->relationship('roles', 'name')
+                            ->options(
+                                fn (): array => Role::all()->pluck('name', 'id')->map(
+                                    fn ($name) => ucwords(str_replace(['-', '_'], ' ', $name))
+                                )->toArray()
+                            )
                             ->columns(3)
                             ->gridDirection('row')
                             ->bulkToggleable()
                             ->searchable()
-                            ->getOptionLabelUsing(fn ($value): string => ucwords(str_replace(['-', '_'], ' ', Role::find($value)?->name ?? '')))
                             ->descriptions(
                                 fn (): array => Role::all()->pluck('name', 'id')->map(
                                     fn ($name) => 'Assign '.ucwords(str_replace(['-', '_'], ' ', $name)).' role'
                                 )->toArray()
-                            ),
+                            )
+                            ->live()
+                            ->rules([
+                                fn (Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
+                                    static::validateUserPermissionConflicts($value ?? [], $get('permissions') ?? [], $fail);
+                                },
+                            ]),
 
                         CheckboxList::make('permissions')
                             ->relationship('permissions', 'name')
+                            ->options(
+                                fn (): array => Permission::all()->pluck('name', 'id')->map(
+                                    fn ($name) => ucwords(str_replace(['-', '_'], ' ', $name))
+                                )->toArray()
+                            )
                             ->columns(3)
                             ->gridDirection('row')
                             ->bulkToggleable()
                             ->searchable()
-                            ->getOptionLabelUsing(fn ($value): string => ucwords(str_replace(['-', '_'], ' ', Permission::find($value)?->name ?? '')))
                             ->descriptions(
                                 fn (): array => Permission::all()->pluck('name', 'id')->map(
                                     fn ($name) => 'Grant '.str_replace(['-', '_'], ' ', $name).' permission'
                                 )->toArray()
-                            ),
+                            )
+                            ->live()
+                            ->rules([
+                                fn (Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
+                                    static::validateUserPermissionConflicts($get('roles') ?? [], $value ?? [], $fail);
+                                },
+                            ]),
                     ]),
             ]);
+    }
+
+    /**
+     * Mutually exclusive permission pairs (kept in sync with RoleResource::conflictPairs).
+     */
+    private static function conflictPairs(): array
+    {
+        return [
+            [
+                'a'       => ['view-all-patients', 'view-current-patients'],
+                'b'       => ['view-groups-in-home', 'view-trend-hashtags-in-home'],
+                'message' => 'Patient management permissions and home content permissions are mutually exclusive.',
+            ],
+            [
+                'a'       => ['add-post-in-home'],
+                'b'       => ['add-patient-in-home'],
+                'message' => 'add-post-in-home and add-patient-in-home cannot be assigned together.',
+            ],
+        ];
+    }
+
+    /**
+     * Validates that a user's combined permissions (via roles + direct) do not violate
+     * any conflict pair defined in conflictPairs().
+     */
+    private static function validateUserPermissionConflicts(array $roleIds, array $directPermissionIds, Closure $fail): void
+    {
+        // Collect permission names from selected roles
+        $rolePermissionNames = Role::whereIn('id', $roleIds)
+            ->with('permissions')
+            ->get()
+            ->flatMap(fn ($role) => $role->permissions)
+            ->pluck('name')
+            ->toArray();
+
+        // Collect direct permission names
+        $directPermissionNames = Permission::whereIn('id', $directPermissionIds)->pluck('name')->toArray();
+
+        $allPermissions = array_unique(array_merge($rolePermissionNames, $directPermissionNames));
+
+        foreach (static::conflictPairs() as $pair) {
+            $matchA = array_values(array_intersect($allPermissions, $pair['a']));
+            $matchB = array_values(array_intersect($allPermissions, $pair['b']));
+
+            if ($matchA && $matchB) {
+                $fail(
+                    'Permission conflict: [' . implode(', ', $matchA) . '] cannot be combined with [' . implode(', ', $matchB) . ']. '
+                    . $pair['message']
+                );
+            }
+        }
     }
 
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['roles']))
             ->columns([
                 Tables\Columns\TextColumn::make('id')
                     ->label('ID')

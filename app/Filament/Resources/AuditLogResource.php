@@ -273,12 +273,12 @@ class AuditLogResource extends Resource
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole(['admin', 'super_admin']) ?? false;
+        return auth()->user()?->hasRole(['admin', 'super-admin']) ?? false;
     }
 
     public static function canDeleteAny(): bool
     {
-        return auth()->user()?->hasRole(['admin', 'super_admin']) ?? false;
+        return auth()->user()?->hasRole(['admin', 'super-admin']) ?? false;
     }
 
     public static function getNavigationBadge(): ?string

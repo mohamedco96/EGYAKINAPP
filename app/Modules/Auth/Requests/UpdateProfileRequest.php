@@ -24,19 +24,23 @@ class UpdateProfileRequest extends FormRequest
     public function rules(): array
     {
         $userId = Auth::id();
-        
+
         return [
             'name' => 'sometimes|string|max:255',
-            'lname' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $userId,
-            'age' => 'sometimes|integer|min:18|max:100',
-            'specialty' => 'sometimes|string|max:255',
-            'workingplace' => 'sometimes|string|max:255',
-            'phone' => 'sometimes|string|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
-            'job' => 'sometimes|string|max:255',
-            'highestdegree' => 'sometimes|string|max:255',
-            'registration_number' => 'sometimes|string|unique:users,registration_number,' . $userId,
-            'version' => 'sometimes|string|max:50',
+            'password' => 'nullable|string|min:8',
+            'user_type' => 'nullable|string|in:normal,medical_statistics',
+            'lname' => 'nullable|string|max:255',
+            'age' => 'nullable|integer|min:0|max:150',
+            'specialty' => 'nullable|string|max:255',
+            'workingplace' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'job' => 'nullable|string|max:255',
+            'highestdegree' => 'nullable|string|max:255',
+            'gender' => 'nullable|string|in:male,female,other',
+            'birth_date' => 'nullable|date',
+            'registration_number' => 'nullable|string|max:255',
+            'locale' => 'nullable|string|in:en,ar',
         ];
     }
 

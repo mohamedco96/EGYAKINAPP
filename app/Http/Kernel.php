@@ -14,7 +14,7 @@ class Kernel extends HttpKernel
      * @var array<int, class-string|string>
      */
     protected $middleware = [
-        // \App\Http\Middleware\TrustHosts::class,
+        \App\Http\Middleware\TrustHosts::class,
         \App\Http\Middleware\TrustProxies::class,
         \Illuminate\Http\Middleware\HandleCors::class,
         \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
@@ -36,7 +36,7 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            // \App\Http\Middleware\AuditMiddleware::class, // DISABLED FOR DEV
+            \App\Http\Middleware\AuditMiddleware::class,
         ],
 
         'api' => [
@@ -44,7 +44,7 @@ class Kernel extends HttpKernel
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\SetLocale::class,
-            // \App\Http\Middleware\AuditMiddleware::class, // DISABLED FOR DEV
+            \App\Http\Middleware\AuditMiddleware::class,
         ],
     ];
 
@@ -71,5 +71,8 @@ class Kernel extends HttpKernel
         'audit' => \App\Http\Middleware\AuditMiddleware::class,
         'check.blocked' => \App\Http\Middleware\CheckBlockedUser::class,
         'check.blocked.home' => \App\Http\Middleware\CheckBlockedUserWithHomeAccess::class,
+        'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
+        'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+        'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
     ];
 }

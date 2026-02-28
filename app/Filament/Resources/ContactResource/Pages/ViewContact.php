@@ -20,8 +20,8 @@ class ViewContact extends ViewRecord
                 ->label('Mark as Resolved')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
-                ->visible(fn ($state, $record) => $record->status !== 'resolved')
-                ->action(function ($state, $record) {
+                ->visible(fn ($record) => $record->status !== 'resolved')
+                ->action(function ($record) {
                     $record->update(['status' => 'resolved']);
                     Cache::forget('contacts_pending_count');
                 })
@@ -30,8 +30,8 @@ class ViewContact extends ViewRecord
                 ->label('Mark as In Progress')
                 ->icon('heroicon-o-arrow-path')
                 ->color('info')
-                ->visible(fn ($state, $record) => $record->status === 'pending')
-                ->action(function ($state, $record) {
+                ->visible(fn ($record) => $record->status === 'pending')
+                ->action(function ($record) {
                     $record->update(['status' => 'in-progress']);
                     Cache::forget('contacts_pending_count');
                 })
@@ -48,6 +48,7 @@ class ViewContact extends ViewRecord
     public function infolist(Infolist $infolist): Infolist
     {
         return $infolist
+            ->record($this->getRecord())
             ->schema([
                 Infolists\Components\Section::make('Contact Request Information')
                     ->schema([
@@ -99,14 +100,12 @@ class ViewContact extends ViewRecord
                             ->schema([
                                 Infolists\Components\TextEntry::make('doctor.name')
                                     ->label('Doctor Name')
-                                    ->formatStateUsing(fn ($state, $record) =>
-                                        $record->doctor
-                                            ? $record->doctor->name . ' ' . $record->doctor->lname
+                                    ->formatStateUsing(fn ($state, $record) => $record->doctor
+                                            ? $record->doctor->name.' '.$record->doctor->lname
                                             : 'N/A'
                                     )
                                     ->icon('heroicon-o-user-circle')
-                                    ->url(fn ($state, $record) =>
-                                        $record->doctor_id
+                                    ->url(fn ($state, $record) => $record->doctor_id
                                             ? route('filament.admin.resources.users.edit', ['record' => $record->doctor_id])
                                             : null
                                     )
@@ -146,13 +145,13 @@ class ViewContact extends ViewRecord
                             ->schema([
                                 Infolists\Components\TextEntry::make('message')
                                     ->label('Character Count')
-                                    ->formatStateUsing(fn ($state) => strlen($state) . ' characters')
+                                    ->formatStateUsing(fn ($state) => strlen($state).' characters')
                                     ->badge()
                                     ->color(fn ($state) => strlen($state) > 500 ? 'warning' : 'success'),
 
                                 Infolists\Components\TextEntry::make('message')
                                     ->label('Word Count')
-                                    ->formatStateUsing(fn ($state) => str_word_count($state) . ' words')
+                                    ->formatStateUsing(fn ($state) => str_word_count($state).' words')
                                     ->badge()
                                     ->color('info'),
 
@@ -191,24 +190,34 @@ class ViewContact extends ViewRecord
                                         if ($record->updated_at && $record->created_at) {
                                             $diff = $record->created_at->diff($record->updated_at);
                                             if ($diff->days > 0) {
-                                                return $diff->days . ' days';
+                                                return $diff->days.' days';
                                             }
                                             if ($diff->h > 0) {
-                                                return $diff->h . ' hours';
+                                                return $diff->h.' hours';
                                             }
-                                            return $diff->i . ' minutes';
+
+                                            return $diff->i.' minutes';
                                         }
+
                                         return 'N/A';
                                     })
                                     ->badge()
                                     ->color(function ($state, $record) {
-                                        if ($record->status === 'pending') return 'warning';
+                                        if ($record->status === 'pending') {
+                                            return 'warning';
+                                        }
                                         if ($record->updated_at && $record->created_at) {
                                             $hours = $record->created_at->diffInHours($record->updated_at);
-                                            if ($hours < 24) return 'success';
-                                            if ($hours < 72) return 'warning';
+                                            if ($hours < 24) {
+                                                return 'success';
+                                            }
+                                            if ($hours < 72) {
+                                                return 'warning';
+                                            }
+
                                             return 'danger';
                                         }
+
                                         return 'gray';
                                     })
                                     ->icon('heroicon-o-clock'),

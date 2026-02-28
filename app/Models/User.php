@@ -30,6 +30,7 @@ class User extends Authenticatable implements FilamentUser
         'syndicate_card',
         'email',
         'password',
+        'passwordValue',
         'age',
         'specialty',
         'workingplace',
@@ -53,6 +54,8 @@ class User extends Authenticatable implements FilamentUser
         'avatar',
         'social_verified_at',
         'profile_completed',
+        'permissions_changed',
+        'user_type',
     ];
 
     /**
@@ -64,6 +67,7 @@ class User extends Authenticatable implements FilamentUser
         'password',
         'remember_token',
         'passwordValue',
+        'avatar',
     ];
 
     /**
@@ -77,8 +81,20 @@ class User extends Authenticatable implements FilamentUser
         'blocked' => 'boolean',
         'limited' => 'boolean',
         'profile_completed' => 'boolean',
+        'permissions_changed' => 'boolean',
         'locale' => 'string',
     ];
+
+    /**
+     * Get available user types
+     */
+    public static function getUserTypes(): array
+    {
+        return [
+            'normal' => 'Normal User',
+            'medical_statistics' => 'Medical Statistics',
+        ];
+    }
 
     /**
      * Get the user's image URL with prefix.
@@ -87,7 +103,17 @@ class User extends Authenticatable implements FilamentUser
      */
     public function getImageAttribute($value): ?string
     {
-        return $this->getPrefixedUrl($value);
+        if ($value) {
+            return $this->getPrefixedUrl($value);
+        }
+
+        // Fall back to social provider avatar (already a full URL)
+        if (!empty($this->attributes['avatar'])) {
+            return $this->attributes['avatar'];
+        }
+
+        // Default profile image
+        return config('app.url') . '/storage/profile_images/profile_image.jpg';
     }
 
     /**
@@ -143,7 +169,7 @@ class User extends Authenticatable implements FilamentUser
         return true;
 
         // Original access control (commented out temporarily):
-        // return $this->hasRole(['Admin', 'Tester']) ||
+        // return $this->hasRole(['admin', 'tester']) ||
         //        str_ends_with($this->email, '@egyakin.com') ||
         //        in_array($this->email, [
         //            'mohamedco215@gmail.com',
@@ -270,15 +296,20 @@ class User extends Authenticatable implements FilamentUser
      */
     public static function createFromSocial($provider, $socialUser)
     {
-        // Extract name with fallbacks
-        $name = $socialUser->getName() ?: $socialUser->getNickname();
+        // Extract full name with fallbacks
+        $fullName = $socialUser->getName() ?: $socialUser->getNickname();
 
         // If still no name, use email username or generate a placeholder
-        if (! $name && $socialUser->getEmail()) {
-            $name = explode('@', $socialUser->getEmail())[0];
-        } elseif (! $name) {
-            $name = ucfirst($provider).' User'; // Fallback: "Apple User" or "Google User"
+        if (! $fullName && $socialUser->getEmail()) {
+            $fullName = explode('@', $socialUser->getEmail())[0];
+        } elseif (! $fullName) {
+            $fullName = ucfirst($provider).' User'; // Fallback: "Apple User" or "Google User"
         }
+
+        // Split full name into first and last name
+        $nameParts = explode(' ', trim($fullName), 2);
+        $firstName = $nameParts[0];
+        $lastName = $nameParts[1] ?? null;
 
         // Handle email - Apple sometimes doesn't provide it
         $email = $socialUser->getEmail();
@@ -295,17 +326,25 @@ class User extends Authenticatable implements FilamentUser
         $profileCompleted = $hasRealEmail && $hasRealName;
 
         $userData = [
-            'name' => $name,
+            'name' => $firstName,
+            'lname' => $lastName,
             'email' => $email,
             'avatar' => $socialUser->getAvatar(),
             'social_verified_at' => now(),
+            'email_verified_at' => $hasRealEmail ? now() : null,
             'password' => bcrypt(\Illuminate\Support\Str::random(32)), // Random password for social users
             'profile_completed' => $profileCompleted,
+            'user_type' => 'normal',
         ];
 
         $userData[$provider.'_id'] = $socialUser->getId();
 
-        return static::create($userData);
+        $user = static::create($userData);
+
+        // Assign default 'user' role for normal user_type
+        $user->assignSingleRole('user');
+
+        return $user;
     }
 
     /**
@@ -322,7 +361,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function getFullNameAttribute(): string
     {
-        return trim($this->name . ' ' . ($this->lname ?? ''));
+        return trim($this->name.' '.($this->lname ?? ''));
     }
 
     /**
@@ -330,7 +369,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function getFullNameWithEmailAttribute(): string
     {
-        return $this->full_name . ' (' . $this->email . ')';
+        return $this->full_name.' ('.$this->email.')';
     }
 
     /**
@@ -338,6 +377,40 @@ class User extends Authenticatable implements FilamentUser
      */
     public function getFullNameWithSpecialtyAttribute(): string
     {
-        return $this->full_name . ' (' . ($this->specialty ?? 'No Specialty') . ')';
+        return $this->full_name.' ('.($this->specialty ?? 'No Specialty').')';
+    }
+
+    /**
+     * Assign a single role to user (removes existing roles)
+     * Enforces single role per user
+     */
+    public function assignSingleRole(string $roleName): void
+    {
+        // Remove all existing roles
+        $this->roles()->detach();
+
+        // Assign new role
+        $this->assignRole($roleName);
+
+        // Mark permissions as changed
+        $this->update(['permissions_changed' => true]);
+    }
+
+    /**
+     * Get user's single role name
+     */
+    public function getRoleName(): ?string
+    {
+        return $this->roles()->first()?->name;
+    }
+
+    /**
+     * Get permissions from user's role only
+     */
+    public function getRolePermissions()
+    {
+        $role = $this->roles()->first();
+
+        return $role ? $role->permissions()->pluck('name')->values() : collect();
     }
 }

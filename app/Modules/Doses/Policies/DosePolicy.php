@@ -30,7 +30,7 @@ class DosePolicy
     public function create(User $user): bool
     {
         // Add more specific authorization logic here if needed
-        return $user->hasRole(['Admin', 'Doctor', 'Tester']);
+        return $user->hasRole(['admin', 'doctor', 'tester']);
     }
 
     /**
@@ -39,7 +39,7 @@ class DosePolicy
     public function update(User $user, Dose $dose): bool
     {
         // Add more specific authorization logic here if needed
-        return $user->hasRole(['Admin', 'Doctor', 'Tester']);
+        return $user->hasRole(['admin', 'doctor', 'tester']);
     }
 
     /**
@@ -48,7 +48,7 @@ class DosePolicy
     public function delete(User $user, Dose $dose): bool
     {
         // Add more specific authorization logic here if needed
-        return $user->hasRole(['Admin', 'Tester']);
+        return $user->hasRole(['admin', 'tester']);
     }
 
     /**
@@ -56,7 +56,7 @@ class DosePolicy
      */
     public function restore(User $user, Dose $dose): bool
     {
-        return $user->hasRole(['Admin', 'Tester']);
+        return $user->hasRole(['admin', 'tester']);
     }
 
     /**
@@ -64,6 +64,6 @@ class DosePolicy
      */
     public function forceDelete(User $user, Dose $dose): bool
     {
-        return $user->hasRole(['Admin']);
+        return $user->hasRole(['admin']);
     }
 }

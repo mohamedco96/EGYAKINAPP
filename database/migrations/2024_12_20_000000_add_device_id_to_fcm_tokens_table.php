@@ -1,28 +1,42 @@
 <?php
 
+use App\Database\Concerns\HasIndexHelpers;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    use HasIndexHelpers;
     /**
      * Run the migrations.
      */
     public function up(): void
     {
         Schema::table('fcm_tokens', function (Blueprint $table) {
-            $table->string('device_id')->nullable()->after('token')->index();
-            $table->string('device_type')->nullable()->after('device_id'); // ios, android, web
-            $table->string('app_version')->nullable()->after('device_type');
+            if (!Schema::hasColumn('fcm_tokens', 'device_id')) {
+                $table->string('device_id')->nullable()->after('token')->index();
+            }
+            if (!Schema::hasColumn('fcm_tokens', 'device_type')) {
+                $table->string('device_type')->nullable()->after('device_id'); // ios, android, web
+            }
+            if (!Schema::hasColumn('fcm_tokens', 'app_version')) {
+                $table->string('app_version')->nullable()->after('device_type');
+            }
 
             // Add composite index for efficient queries
-            $table->index(['doctor_id', 'device_id'], 'fcm_tokens_doctor_device_index');
+            if (!$this->indexExists('fcm_tokens', 'fcm_tokens_doctor_device_index')) {
+                $table->index(['doctor_id', 'device_id'], 'fcm_tokens_doctor_device_index');
+            }
 
             // Drop the unique constraint on token to allow same token for different users
             // but add composite unique constraint for user + device
-            $table->dropUnique(['token']);
-            $table->unique(['doctor_id', 'device_id'], 'fcm_tokens_doctor_device_unique');
+            if ($this->indexExists('fcm_tokens', 'fcm_tokens_token_unique')) {
+                $table->dropUnique(['token']);
+            }
+            if (!$this->indexExists('fcm_tokens', 'fcm_tokens_doctor_device_unique')) {
+                $table->unique(['doctor_id', 'device_id'], 'fcm_tokens_doctor_device_unique');
+            }
         });
     }
 
@@ -40,4 +54,5 @@ return new class extends Migration
             $table->unique('token');
         });
     }
+
 };

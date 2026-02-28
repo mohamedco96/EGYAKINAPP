@@ -66,7 +66,7 @@ class NotificationPolicy
     public function forceDelete(User $user, AppNotification $notification): bool
     {
         // Only admins can force delete notifications
-        return $user->hasRole(['Admin']);
+        return $user->hasRole(['admin']);
     }
 
     /**
@@ -83,7 +83,7 @@ class NotificationPolicy
     public function sendPushNotifications(User $user): bool
     {
         // Allow doctors to send notifications to patients, admins can send to anyone
-        return $user->hasRole(['Admin', 'Doctor', 'Tester']);
+        return $user->hasRole(['admin', 'doctor', 'tester']);
     }
 
     /**
@@ -92,6 +92,6 @@ class NotificationPolicy
     public function sendBulkNotifications(User $user): bool
     {
         // Only admins and testers can send bulk notifications
-        return $user->hasRole(['Admin', 'Tester']);
+        return $user->hasRole(['admin', 'tester']);
     }
 }

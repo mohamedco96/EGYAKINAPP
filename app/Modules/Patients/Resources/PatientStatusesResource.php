@@ -26,9 +26,102 @@ class PatientStatusesResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    // Cache for preloaded data to avoid N+1 queries
+    protected static ?array $patientNamesCache = null;
+
+    protected static ?array $patientDoctorsCache = null;
+
+    protected static ?array $patientSectionsCache = null;
+
+    protected static ?array $sectionsInfoCache = null;
+
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::where('key', 'LIKE', 'section_%')->count();
+        return Cache::remember('patient_statuses_nav_badge', 60, function () {
+            return (string) static::getModel()::where('key', 'LIKE', 'section_%')->count();
+        });
+    }
+
+    /**
+     * Preload all data needed for the table to avoid N+1 queries
+     */
+    protected static function preloadTableData(array $patientIds): void
+    {
+        if (empty($patientIds)) {
+            return;
+        }
+
+        // Preload patient names from answers
+        if (static::$patientNamesCache === null) {
+            static::$patientNamesCache = \App\Models\Answers::whereIn('patient_id', $patientIds)
+                ->where('question_id', 1)
+                ->pluck('answer', 'patient_id')
+                ->map(fn ($name) => is_string($name) ? trim($name, '"') : null)
+                ->toArray();
+        }
+
+        // Preload patient doctors
+        if (static::$patientDoctorsCache === null) {
+            static::$patientDoctorsCache = \App\Modules\Patients\Models\Patients::whereIn('id', $patientIds)
+                ->with('doctor:id,name')
+                ->get()
+                ->mapWithKeys(fn ($patient) => [$patient->id => $patient->doctor?->name ?? 'Unassigned'])
+                ->toArray();
+        }
+
+        // Preload all sections info (small table, cache all)
+        if (static::$sectionsInfoCache === null) {
+            static::$sectionsInfoCache = SectionsInfo::pluck('section_name', 'id')->toArray();
+        }
+
+        // Preload all patient sections
+        if (static::$patientSectionsCache === null) {
+            $sections = PatientStatus::whereIn('patient_id', $patientIds)
+                ->where('key', 'LIKE', 'section_%')
+                ->orderBy('patient_id')
+                ->orderBy('key')
+                ->get();
+
+            static::$patientSectionsCache = [];
+            foreach ($sections as $section) {
+                if (! isset(static::$patientSectionsCache[$section->patient_id])) {
+                    static::$patientSectionsCache[$section->patient_id] = [];
+                }
+                static::$patientSectionsCache[$section->patient_id][] = $section;
+            }
+        }
+    }
+
+    /**
+     * Get cached patient name
+     */
+    protected static function getPatientName(int $patientId): string
+    {
+        return static::$patientNamesCache[$patientId] ?? "Patient #{$patientId}";
+    }
+
+    /**
+     * Get cached doctor name
+     */
+    protected static function getDoctorName(int $patientId): string
+    {
+        return static::$patientDoctorsCache[$patientId] ?? 'Unassigned';
+    }
+
+    /**
+     * Get cached section name
+     */
+    protected static function getSectionName(int $sectionId): string
+    {
+        return static::$sectionsInfoCache[$sectionId] ?? "Section {$sectionId}";
+    }
+
+    /**
+     * Get cached patient sections
+     */
+    protected static function getPatientSections(int $patientId): array
+    {
+        return static::$patientSectionsCache[$patientId] ?? [];
     }
 
     public static function form(Form $form): Form
@@ -45,9 +138,7 @@ class PatientStatusesResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('patient_id')
                     ->label('Patient ID')
-                    ->getStateUsing(function ($record) {
-                        return (string) $record->patient_id;
-                    })
+                    ->getStateUsing(fn ($record) => (string) $record->patient_id)
                     ->searchable()
                     ->sortable()
                     ->badge()
@@ -57,19 +148,7 @@ class PatientStatusesResource extends Resource
 
                 Tables\Columns\TextColumn::make('patient_name')
                     ->label('Patient Name')
-                    ->getStateUsing(function ($record) {
-                        return Cache::remember("patient_name_{$record->patient_id}", 300, function () use ($record) {
-                            $firstAnswer = \App\Models\Answers::where('patient_id', $record->patient_id)
-                                ->where('question_id', 1)
-                                ->first();
-
-                            if ($firstAnswer && is_string($firstAnswer->answer)) {
-                                return trim($firstAnswer->answer, '"');
-                            }
-
-                            return 'Patient #'.$record->patient_id;
-                        });
-                    })
+                    ->getStateUsing(fn ($record) => static::getPatientName($record->patient_id))
                     ->searchable()
                     ->limit(30)
                     ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
@@ -82,14 +161,7 @@ class PatientStatusesResource extends Resource
 
                 Tables\Columns\TextColumn::make('doctor_name')
                     ->label('Assigned Doctor')
-                    ->getStateUsing(function ($record) {
-                        return Cache::remember("patient_doctor_{$record->patient_id}", 300, function () use ($record) {
-                            $patient = \App\Modules\Patients\Models\Patients::with('doctor')
-                                ->find($record->patient_id);
-
-                            return $patient?->doctor?->name ?? 'Unassigned';
-                        });
-                    })
+                    ->getStateUsing(fn ($record) => static::getDoctorName($record->patient_id))
                     ->searchable()
                     ->sortable()
                     ->limit(25)
@@ -103,39 +175,32 @@ class PatientStatusesResource extends Resource
                 Tables\Columns\TextColumn::make('all_sections_status')
                     ->label('All Sections Status')
                     ->getStateUsing(function ($record) {
-                        // Ensure we have a valid patient_id
                         if (! isset($record->patient_id) || ! $record->patient_id) {
                             return 'No sections';
                         }
 
-                        return Cache::remember("patient_all_sections_{$record->patient_id}", 300, function () use ($record) {
-                            $sections = PatientStatus::where('patient_id', $record->patient_id)
-                                ->where('key', 'LIKE', 'section_%')
-                                ->orderBy('key')
-                                ->get();
+                        $sections = static::getPatientSections($record->patient_id);
 
-                            if ($sections->isEmpty()) {
-                                return 'No sections';
-                            }
+                        if (empty($sections)) {
+                            return 'No sections';
+                        }
 
-                            $html = '<div class="space-y-1">';
-                            foreach ($sections as $section) {
-                                $sectionId = str_replace('section_', '', $section->key);
-                                $sectionInfo = SectionsInfo::find($sectionId);
-                                $name = $sectionInfo?->section_name ?? "Section {$sectionId}";
-                                $status = $section->status ? '✅' : '❌';
-                                $completed = $section->status;
+                        $html = '<div class="space-y-1">';
+                        foreach ($sections as $section) {
+                            $sectionId = (int) str_replace('section_', '', $section->key);
+                            $name = static::getSectionName($sectionId);
+                            $status = $section->status ? '✅' : '❌';
+                            $completed = $section->status;
 
-                                $colorClass = $completed ? 'text-green-600 bg-green-50' : 'text-orange-600 bg-orange-50';
-                                $html .= '<div class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium '.$colorClass.' mr-1 mb-1">';
-                                $html .= '<span>'.$status.'</span>';
-                                $html .= '<span>'.$name.'</span>';
-                                $html .= '</div>';
-                            }
+                            $colorClass = $completed ? 'text-green-600 bg-green-50' : 'text-orange-600 bg-orange-50';
+                            $html .= '<div class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium '.$colorClass.' mr-1 mb-1">';
+                            $html .= '<span>'.$status.'</span>';
+                            $html .= '<span>'.e($name).'</span>';
                             $html .= '</div>';
+                        }
+                        $html .= '</div>';
 
-                            return $html;
-                        });
+                        return $html;
                     })
                     ->html()
                     ->wrap(),
@@ -143,26 +208,22 @@ class PatientStatusesResource extends Resource
                 Tables\Columns\TextColumn::make('completion_summary')
                     ->label('Summary')
                     ->getStateUsing(function ($record) {
-                        return Cache::remember("patient_completion_{$record->patient_id}", 300, function () use ($record) {
-                            $sections = PatientStatus::where('patient_id', $record->patient_id)
-                                ->where('key', 'LIKE', 'section_%')
-                                ->get();
+                        $sections = static::getPatientSections($record->patient_id);
 
-                            $total = $sections->count();
-                            $completed = $sections->where('status', true)->count();
-                            $percentage = $total > 0 ? round(($completed / $total) * 100) : 0;
+                        $total = count($sections);
+                        $completed = collect($sections)->where('status', true)->count();
+                        $percentage = $total > 0 ? round(($completed / $total) * 100) : 0;
 
-                            $color = match (true) {
-                                $percentage >= 80 => 'success',
-                                $percentage >= 50 => 'warning',
-                                default => 'danger'
-                            };
+                        $color = match (true) {
+                            $percentage >= 80 => 'success',
+                            $percentage >= 50 => 'warning',
+                            default => 'danger'
+                        };
 
-                            return '<div class="text-center">
-                                <div class="font-semibold text-'.$color.'-600">'.$percentage.'%</div>
-                                <div class="text-xs text-gray-500">'.$completed.'/'.$total.' completed</div>
-                            </div>';
-                        });
+                        return '<div class="text-center">
+                            <div class="font-semibold text-'.$color.'-600">'.$percentage.'%</div>
+                            <div class="text-xs text-gray-500">'.$completed.'/'.$total.' completed</div>
+                        </div>';
                     })
                     ->html()
                     ->alignCenter(),
@@ -170,25 +231,25 @@ class PatientStatusesResource extends Resource
                 Tables\Columns\TextColumn::make('last_activity')
                     ->label('Last Activity')
                     ->getStateUsing(function ($record) {
-                        $lastUpdate = PatientStatus::where('patient_id', $record->patient_id)
-                            ->where('key', 'LIKE', 'section_%')
-                            ->latest('updated_at')
-                            ->first();
-
-                        if ($lastUpdate && $lastUpdate->updated_at) {
-                            return $lastUpdate->updated_at->since();
+                        $sections = static::getPatientSections($record->patient_id);
+                        if (empty($sections)) {
+                            return 'No activity';
                         }
 
-                        return 'No activity';
+                        $lastUpdate = collect($sections)->sortByDesc('updated_at')->first();
+
+                        return $lastUpdate?->updated_at?->since() ?? 'No activity';
                     })
                     ->sortable()
                     ->color('gray')
                     ->size('sm')
                     ->tooltip(function ($record) {
-                        $lastUpdate = PatientStatus::where('patient_id', $record->patient_id)
-                            ->where('key', 'LIKE', 'section_%')
-                            ->latest('updated_at')
-                            ->first();
+                        $sections = static::getPatientSections($record->patient_id);
+                        if (empty($sections)) {
+                            return 'No activity';
+                        }
+
+                        $lastUpdate = collect($sections)->sortByDesc('updated_at')->first();
 
                         return $lastUpdate?->updated_at?->format('F j, Y \a\t g:i:s A') ?? 'No activity';
                     }),
@@ -308,14 +369,16 @@ class PatientStatusesResource extends Resource
                             ->reorderable(false),
                     ])
                     ->fillForm(function ($record) {
+                        // Load sections info once
+                        $sectionsInfo = SectionsInfo::pluck('section_name', 'id')->toArray();
+
                         $sections = PatientStatus::where('patient_id', $record->patient_id)
                             ->where('key', 'LIKE', 'section_%')
                             ->orderBy('key')
                             ->get()
-                            ->map(function ($section) {
-                                $sectionId = str_replace('section_', '', $section->key);
-                                $sectionInfo = SectionsInfo::find($sectionId);
-                                $name = $sectionInfo?->section_name ?? "Section {$sectionId}";
+                            ->map(function ($section) use ($sectionsInfo) {
+                                $sectionId = (int) str_replace('section_', '', $section->key);
+                                $name = $sectionsInfo[$sectionId] ?? "Section {$sectionId}";
 
                                 return [
                                     'section_id' => $section->id,
@@ -328,20 +391,20 @@ class PatientStatusesResource extends Resource
                         return ['sections' => $sections];
                     })
                     ->action(function ($record, $data) {
-                        foreach ($data['sections'] as $index => $sectionData) {
-                            $sections = PatientStatus::where('patient_id', $record->patient_id)
-                                ->where('key', 'LIKE', 'section_%')
-                                ->orderBy('key')
-                                ->get();
+                        // Get sections once, not inside the loop
+                        $sections = PatientStatus::where('patient_id', $record->patient_id)
+                            ->where('key', 'LIKE', 'section_%')
+                            ->orderBy('key')
+                            ->get();
 
+                        foreach ($data['sections'] as $index => $sectionData) {
                             if (isset($sections[$index])) {
                                 $sections[$index]->update(['status' => $sectionData['status']]);
                             }
                         }
 
-                        // Clear cache
-                        Cache::forget("patient_all_sections_{$record->patient_id}");
-                        Cache::forget("patient_completion_{$record->patient_id}");
+                        // Reset static caches so next page load gets fresh data
+                        static::$patientSectionsCache = null;
 
                         \Filament\Notifications\Notification::make()
                             ->success()
@@ -360,9 +423,8 @@ class PatientStatusesResource extends Resource
                             ->where('key', 'LIKE', 'section_%')
                             ->update(['status' => true]);
 
-                        // Clear cache
-                        Cache::forget("patient_all_sections_{$record->patient_id}");
-                        Cache::forget("patient_completion_{$record->patient_id}");
+                        // Reset static cache
+                        static::$patientSectionsCache = null;
 
                         \Filament\Notifications\Notification::make()
                             ->success()
@@ -381,15 +443,14 @@ class PatientStatusesResource extends Resource
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->action(function ($records) {
-                            foreach ($records as $record) {
-                                PatientStatus::where('patient_id', $record->patient_id)
-                                    ->where('key', 'LIKE', 'section_%')
-                                    ->update(['status' => true]);
+                            // Batch update all patients at once
+                            $patientIds = $records->pluck('patient_id')->toArray();
+                            PatientStatus::whereIn('patient_id', $patientIds)
+                                ->where('key', 'LIKE', 'section_%')
+                                ->update(['status' => true]);
 
-                                // Clear cache
-                                Cache::forget("patient_all_sections_{$record->patient_id}");
-                                Cache::forget("patient_completion_{$record->patient_id}");
-                            }
+                            // Reset static cache
+                            static::$patientSectionsCache = null;
 
                             \Filament\Notifications\Notification::make()
                                 ->success()
@@ -405,15 +466,14 @@ class PatientStatusesResource extends Resource
                         ->icon('heroicon-o-clock')
                         ->color('warning')
                         ->action(function ($records) {
-                            foreach ($records as $record) {
-                                PatientStatus::where('patient_id', $record->patient_id)
-                                    ->where('key', 'LIKE', 'section_%')
-                                    ->update(['status' => false]);
+                            // Batch update all patients at once
+                            $patientIds = $records->pluck('patient_id')->toArray();
+                            PatientStatus::whereIn('patient_id', $patientIds)
+                                ->where('key', 'LIKE', 'section_%')
+                                ->update(['status' => false]);
 
-                                // Clear cache
-                                Cache::forget("patient_all_sections_{$record->patient_id}");
-                                Cache::forget("patient_completion_{$record->patient_id}");
-                            }
+                            // Reset static cache
+                            static::$patientSectionsCache = null;
 
                             \Filament\Notifications\Notification::make()
                                 ->success()
@@ -435,19 +495,27 @@ class PatientStatusesResource extends Resource
             ->emptyStateIcon('heroicon-o-clipboard-document-check');
     }
 
-    protected static function getTableQuery(): Builder
+    public static function getEloquentQuery(): Builder
     {
-        // Create a custom query to get unique patients with section statuses
-        $patientIds = PatientStatus::where('key', 'LIKE', 'section_%')
-            ->distinct()
-            ->pluck('patient_id');
+        // Reset caches for fresh data on each page load
+        static::$patientNamesCache = null;
+        static::$patientDoctorsCache = null;
+        static::$patientSectionsCache = null;
+        static::$sectionsInfoCache = null;
 
-        return PatientStatus::query()
-            ->whereIn('patient_id', $patientIds)
+        // Get unique patient IDs with section statuses in a single query
+        $query = PatientStatus::query()
             ->where('key', 'LIKE', 'section_%')
             ->select('patient_id', DB::raw('MIN(id) as id'), DB::raw('MAX(updated_at) as updated_at'))
-            ->groupBy('patient_id')
-            ->orderBy('patient_id', 'asc');
+            ->groupBy('patient_id');
+
+        // Get all patient IDs for preloading (limited to reasonable amount for performance)
+        $patientIds = (clone $query)->limit(500)->pluck('patient_id')->toArray();
+
+        // Preload all related data in bulk
+        static::preloadTableData($patientIds);
+
+        return $query;
     }
 
     public static function getRelations(): array

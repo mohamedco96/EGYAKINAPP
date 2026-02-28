@@ -25,6 +25,11 @@ class AuditMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Only audit in production; passthrough in all other environments
+        if (! app()->isProduction()) {
+            return $next($request);
+        }
+
         // Skip auditing for certain routes/conditions
         if ($this->shouldSkipAudit($request)) {
             return $next($request);

@@ -582,21 +582,12 @@ class PatientsController extends Controller
             $userScopeCacheKey = 'latest_filter_scope_user_'.auth()->id();
             $onlyMyPatients = Cache::get($userScopeCacheKey, false);
 
-            // Check if user has admin role when exporting all patients
             $user = auth()->user();
-            if ($onlyMyPatients === false && ! $user->hasRole('admin')) {
-                return response()->json([
-                    'value' => false,
-                    'message' => 'Access denied. Admin role required to export all patients.',
-                ], 403);
-            }
+            $canExportAll = $user->hasPermissionTo('view-export-patients-report-in-all-patients-button-for-admin');
 
-            // If no cached filters found, return error
-            if (empty($filterParams)) {
-                return response()->json([
-                    'value' => false,
-                    'message' => 'No recent filter criteria found. Please apply filters first using the filteredPatients endpoint.',
-                ], 400);
+            // Users without the special permission can only export their own patients
+            if (! $canExportAll) {
+                $onlyMyPatients = true;
             }
 
             // Generate cache key from filter parameters and scope
@@ -606,11 +597,12 @@ class PatientsController extends Controller
             Cache::put($cacheKey.'_filters', $filterParams, now()->addHours(2));
             Cache::put($cacheKey.'_scope', $onlyMyPatients, now()->addHours(2));
 
-            Log::info('Starting filtered patients export with cached filters', [
+            Log::info('Starting filtered patients export', [
                 'user_id' => auth()->id(),
                 'filter_count' => count($filterParams),
                 'filter_params' => $filterParams,
                 'only_my_patients' => $onlyMyPatients,
+                'can_export_all' => $canExportAll,
                 'cache_key' => $cacheKey,
             ]);
 
@@ -621,7 +613,7 @@ class PatientsController extends Controller
             if ($patients->isEmpty()) {
                 return response()->json([
                     'value' => false,
-                    'message' => 'No patients found matching the cached filter criteria.',
+                    'message' => 'No patients found matching the filter criteria.',
                 ], 404);
             }
 

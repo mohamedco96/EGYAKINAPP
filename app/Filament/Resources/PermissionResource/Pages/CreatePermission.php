@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\PermissionResource\Pages;
 
 use App\Filament\Resources\PermissionResource;
+use App\Models\User;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -30,6 +31,19 @@ class CreatePermission extends CreateRecord
         $data['name'] = strtolower(str_replace(' ', '-', $data['name']));
 
         return $data;
+    }
+
+    /**
+     * After creating permission, mark all users with assigned roles as having permissions changed
+     */
+    protected function afterCreate(): void
+    {
+        $permission = $this->record;
+        
+        // Mark all users with roles that have this permission as having permissions changed
+        foreach ($permission->roles as $role) {
+            User::role($role->name)->update(['permissions_changed' => true]);
+        }
     }
 
     public function getTitle(): string

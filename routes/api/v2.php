@@ -302,11 +302,12 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
 Route::middleware(['auth:sanctum', 'check.blocked.home'])->get('/user', function (Request $request) {
     $user = $request->user();
 
-    // Load roles and permissions
-    $user->load(['roles:id,name', 'permissions:id,name']);
+    // Get user's single role (enforcing one role per user)
+    $role = $user->roles()->first();
+    $roleName = $role ? $role->name : null;
 
-    // Get all permissions (direct + from roles)
-    $allPermissions = $user->getAllPermissions()->pluck('name')->unique()->values();
+    // Get permissions from role only (not direct permissions)
+    $permissions = $role ? $role->permissions()->pluck('name')->values() : collect();
 
     return [
         'id' => $user->id,
@@ -315,9 +316,34 @@ Route::middleware(['auth:sanctum', 'check.blocked.home'])->get('/user', function
         'profile_completed' => $user->profile_completed,
         'avatar' => $user->avatar,
         'locale' => $user->locale,
-        'roles' => $user->roles->pluck('name'),
-        'permissions' => $allPermissions,
+        'role' => $roleName,
+        'permissions' => $permissions,
         'created_at' => $user->created_at,
         'updated_at' => $user->updated_at,
+    ];
+});
+
+// Get user role and permissions endpoint (used when permissions_changed is true)
+Route::middleware(['auth:sanctum', 'check.blocked.home'])->get('/user/role-permissions', function (Request $request) {
+    $user = $request->user();
+
+    // Get user's single role (enforcing one role per user)
+    $role = $user->roles()->first();
+    $roleName = $role ? $role->name : null;
+
+    // Get permissions from role only (not direct permissions)
+    $permissions = $role ? $role->permissions()->pluck('name')->values() : collect();
+
+    // Reset permissions_changed flag atomically — only clears if still true,
+    // so a concurrent role/permission update that re-set it is not lost.
+    \App\Models\User::where('id', $user->id)
+        ->where('permissions_changed', true)
+        ->update(['permissions_changed' => false]);
+
+    return [
+        'value' => true,
+        'message' => 'Role and permissions retrieved successfully',
+        'role' => $roleName,
+        'permissions' => $permissions,
     ];
 });

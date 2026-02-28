@@ -83,16 +83,10 @@ class PermissionResource extends Resource
 
                         Select::make('category')
                             ->label('Permission Category')
-                            ->options([
-                                'users' => 'User Management',
-                                'roles' => 'Role Management',
-                                'posts' => 'Content Management',
-                                'reports' => 'Reports & Analytics',
-                                'settings' => 'System Settings',
-                                'other' => 'Other',
-                            ])
+                            ->options(Permission::getCategories())
                             ->placeholder('Select category')
-                            ->helperText('Categorize this permission for better organization'),
+                            ->required()
+                            ->helperText('Categorize this permission for better organization and easier role assignment'),
 
                         Textarea::make('description')
                             ->placeholder('Optional description of what this permission allows...')
@@ -119,7 +113,6 @@ class PermissionResource extends Resource
                             ->gridDirection('row')
                             ->bulkToggleable()
                             ->searchable()
-                            ->getOptionLabelUsing(fn ($value): string => ucwords(str_replace(['-', '_'], ' ', Role::find($value)?->name ?? '')))
                             ->descriptions(
                                 fn (): array => Role::all()->pluck('name', 'id')->map(
                                     fn ($name) => 'Assign this permission to '.ucwords(str_replace(['-', '_'], ' ', $name)).' role'
@@ -146,10 +139,25 @@ class PermissionResource extends Resource
                     ->color('primary')
                     ->formatStateUsing(fn (string $state): string => ucwords(str_replace(['-', '_'], ' ', $state))),
 
+                TextColumn::make('category')
+                    ->label('Category')
+                    ->badge()
+                    ->color('info')
+                    ->formatStateUsing(fn (?string $state): string => $state ? (Permission::getCategories()[$state] ?? ucwords(str_replace(['-', '_'], ' ', $state))) : 'Uncategorized')
+                    ->sortable(),
+
+                TextColumn::make('description')
+                    ->label('Description')
+                    ->wrap()
+                    ->limit(50)
+                    ->tooltip(fn ($record) => $record->description)
+                    ->toggleable(),
+
                 TextColumn::make('guard_name')
                     ->label('Guard')
                     ->badge()
-                    ->color('secondary'),
+                    ->color('secondary')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('roles_count')
                     ->label('Roles')
@@ -186,14 +194,7 @@ class PermissionResource extends Resource
 
                 Tables\Filters\SelectFilter::make('category')
                     ->label('Category')
-                    ->options([
-                        'users' => 'User Management',
-                        'roles' => 'Role Management',
-                        'posts' => 'Content Management',
-                        'reports' => 'Reports & Analytics',
-                        'settings' => 'System Settings',
-                        'other' => 'Other',
-                    ])
+                    ->options(Permission::getCategories())
                     ->placeholder('All Categories'),
 
                 Filter::make('has_roles')

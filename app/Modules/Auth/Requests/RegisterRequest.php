@@ -42,6 +42,7 @@ class RegisterRequest extends FormRequest
             'deviceId' => 'nullable|string',
             'deviceType' => 'nullable|string|in:ios,android,web',
             'appVersion' => 'nullable|string|max:20|regex:/^[0-9.]+$/',
+            'user_type' => 'nullable|string|in:normal,medical_statistics',
         ];
     }
 

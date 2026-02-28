@@ -158,26 +158,36 @@ class AuthService
         // Generate new token
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        // Load roles and permissions for frontend
-        $user->load(['roles:id,name', 'permissions:id,name']);
+        // Get user's single role (enforcing one role per user)
+        $roles = $user->roles()->get();
+        if ($roles->count() !== 1) {
+            throw new \RuntimeException(
+                "User {$user->id} must have exactly one role, found {$roles->count()}."
+            );
+        }
+        $role = $roles->first();
+        $roleName = $role->name;
 
-        // Get all permissions (direct + from roles)
-        $allPermissions = $user->getAllPermissions()->pluck('name')->unique()->values();
+        // Get permissions from role only (not direct permissions)
+        $permissions = $role->permissions()->pluck('name')->values();
 
         Log::info('User logged in successfully', [
             'user_id' => $user->id,
             'email' => $email,
-            'roles' => $user->roles->pluck('name'),
-            'permissions_count' => $allPermissions->count(),
+            'role' => $roleName,
+            'permissions_count' => $permissions->count(),
         ]);
+
+        // Convert user to array and add role to data
+        $userData = $user->toArray();
+        $userData['role'] = $roleName;
 
         return [
             'value' => true,
             'message' => __('api.user_logged_in_successfully'),
             'token' => $token,
-            'data' => $user,
-            'roles' => $user->roles->pluck('name'),
-            'permissions' => $allPermissions,
+            'data' => $userData,
+            'permissions' => $permissions,
             'status_code' => 200,
         ];
     }
@@ -716,6 +726,7 @@ class AuthService
             'job' => $sanitized['job'] ?? null,
             'highestdegree' => $sanitized['highestdegree'] ?? null,
             'registration_number' => $sanitized['registration_number'],
+            'user_type' => $sanitized['user_type'] ?? 'normal',
         ]);
     }
 

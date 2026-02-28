@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\PermissionResource\Pages;
 
 use App\Filament\Resources\PermissionResource;
+use App\Models\User;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -38,5 +39,28 @@ class EditPermission extends EditRecord
         $data['name'] = strtolower(str_replace(' ', '-', $data['name']));
 
         return $data;
+    }
+
+    /**
+     * After saving permission, mark all users with assigned roles as having permissions changed.
+     * Includes roles that were removed during the edit so those users are also notified.
+     */
+    protected function afterSave(): void
+    {
+        $permission = $this->record;
+
+        // Capture role names before refreshing so removed roles are included.
+        $beforeRoles = $permission->roles->pluck('name')->toArray();
+
+        $permission->refresh();
+
+        $afterRoles = $permission->roles->pluck('name')->toArray();
+
+        // Union of both sets covers added, retained, and removed roles.
+        $allRoles = array_unique(array_merge($beforeRoles, $afterRoles));
+
+        foreach ($allRoles as $roleName) {
+            User::role($roleName)->update(['permissions_changed' => true]);
+        }
     }
 }

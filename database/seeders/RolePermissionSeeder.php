@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\Permission;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Role;
 
 class RolePermissionSeeder extends Seeder
@@ -11,8 +13,8 @@ class RolePermissionSeeder extends Seeder
     /**
      * Run the database seeds.
      *
-     * This seeder creates all permissions and roles for the EGYAKIN application.
-     * See docs/api/permissions/COMPREHENSIVE_PERMISSIONS_GUIDE.md for full documentation.
+     * This seeder creates permissions based on actual Flutter frontend endpoints.
+     * All existing permissions are dropped and recreated.
      */
     public function run(): void
     {
@@ -22,7 +24,11 @@ class RolePermissionSeeder extends Seeder
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
         $this->command->info('✓ Cleared permission cache');
 
-        // Create all permissions
+        // Drop all existing roles and permissions
+        $this->dropExistingRoles();
+        $this->dropExistingPermissions();
+
+        // Create all permissions based on Flutter endpoints
         $this->createPermissions();
 
         // Create roles and assign permissions
@@ -32,239 +38,198 @@ class RolePermissionSeeder extends Seeder
     }
 
     /**
-     * Create all permissions organized by category
+     * Drop all existing roles and their relationships
+     */
+    private function dropExistingRoles(): void
+    {
+        $this->command->info('🗑️  Dropping existing roles...');
+
+        Schema::withoutForeignKeyConstraints(function () {
+            // Delete from pivot tables first (roles are referenced in these tables)
+            DB::table('model_has_roles')->truncate();
+            DB::table('role_has_permissions')->truncate();
+
+            // Delete all roles
+            DB::table('roles')->truncate();
+        });
+
+        $this->command->info('✓ All existing roles dropped');
+    }
+
+    /**
+     * Drop all existing permissions and their relationships
+     */
+    private function dropExistingPermissions(): void
+    {
+        $this->command->info('🗑️  Dropping existing permissions...');
+
+        Schema::withoutForeignKeyConstraints(function () {
+            // Delete from pivot tables first
+            // Note: role_has_permissions was already truncated in dropExistingRoles()
+            DB::table('model_has_permissions')->truncate();
+
+            // Delete all permissions
+            DB::table('permissions')->truncate();
+        });
+
+        $this->command->info('✓ All existing permissions dropped');
+    }
+
+    /**
+     * Create all permissions based on Flutter frontend endpoints
+     *
+     * NOTE: The following endpoints DO NOT need permissions (public/auth endpoints):
+     * - POST /api/v2/login
+     * - POST /api/v2/register
+     * - POST /api/v2/logout
+     * - POST /api/v2/forgotpassword
+     * - POST /api/v2/resetpasswordverification
+     * - POST /api/v2/resetpassword
+     * - POST /api/v2/sendverificationmail
+     * - POST /api/v2/emailverification
+     * - POST /api/v2/auth/social/google
+     * - GET /api/v2/settings (app settings - public)
+     * - POST /api/v2/contact (contact us - public)
      */
     private function createPermissions(): void
     {
-        $this->command->info('📝 Creating permissions...');
+        $this->command->info('📝 Creating permissions based on Flutter endpoints...');
 
         $permissions = [
-            // User Management (14 permissions)
-            ['name' => 'view-users', 'category' => 'users', 'description' => 'View list of users'],
-            ['name' => 'view-user-profile', 'category' => 'users', 'description' => 'View user profiles'],
-            ['name' => 'create-users', 'category' => 'users', 'description' => 'Register new users'],
-            ['name' => 'edit-users', 'category' => 'users', 'description' => 'Edit user details'],
-            ['name' => 'delete-users', 'category' => 'users', 'description' => 'Delete users'],
-            ['name' => 'change-user-password', 'category' => 'users', 'description' => 'Change user passwords'],
-            ['name' => 'upload-profile-image', 'category' => 'users', 'description' => 'Upload profile images'],
-            ['name' => 'upload-syndicate-card', 'category' => 'users', 'description' => 'Upload syndicate cards'],
-            ['name' => 'view-user-achievements', 'category' => 'users', 'description' => 'View user achievements'],
-            ['name' => 'view-doctor-patients', 'category' => 'users', 'description' => 'View doctor patient lists'],
-            ['name' => 'view-doctor-score-history', 'category' => 'users', 'description' => 'View doctor scores'],
-            ['name' => 'block-users', 'category' => 'users', 'description' => 'Block/unblock users'],
-            ['name' => 'limit-users', 'category' => 'users', 'description' => 'Limit user access'],
-            ['name' => 'manage-user-locale', 'category' => 'users', 'description' => 'Manage user language'],
+            // Home & Dashboard
+            ['name' => 'access-home', 'category' => 'home', 'description' => 'Access home dashboard', 'endpoint' => 'GET /api/v2/homeNew'],
 
-            // Patient Management (16 permissions)
-            ['name' => 'view-patients', 'category' => 'patients', 'description' => 'View patient list'],
-            ['name' => 'view-patient-details', 'category' => 'patients', 'description' => 'View patient details'],
-            ['name' => 'create-patients', 'category' => 'patients', 'description' => 'Create patient records'],
-            ['name' => 'edit-patients', 'category' => 'patients', 'description' => 'Edit patient records'],
-            ['name' => 'delete-patients', 'category' => 'patients', 'description' => 'Delete patient records'],
-            ['name' => 'search-patients', 'category' => 'patients', 'description' => 'Search patients'],
-            ['name' => 'view-current-patients', 'category' => 'patients', 'description' => 'View assigned patients'],
-            ['name' => 'view-all-patients', 'category' => 'patients', 'description' => 'View all patients'],
-            ['name' => 'mark-patients', 'category' => 'patients', 'description' => 'Bookmark patients'],
-            ['name' => 'view-marked-patients', 'category' => 'patients', 'description' => 'View bookmarked patients'],
-            ['name' => 'upload-patient-files', 'category' => 'patients', 'description' => 'Upload patient files'],
-            ['name' => 'filter-patients', 'category' => 'patients', 'description' => 'Filter patient lists'],
-            ['name' => 'export-patients', 'category' => 'patients', 'description' => 'Export patient data'],
-            ['name' => 'generate-patient-pdf', 'category' => 'patients', 'description' => 'Generate patient PDFs'],
-            ['name' => 'submit-patient-sections', 'category' => 'patients', 'description' => 'Submit patient sections'],
-            ['name' => 'view-patient-sections', 'category' => 'patients', 'description' => 'View patient sections'],
+            // Patient Management
+            ['name' => 'view-all-patients', 'category' => 'patients', 'description' => 'View all patients', 'endpoint' => 'GET /api/v2/allPatientsNew'],
+            ['name' => 'view-current-patients', 'category' => 'patients', 'description' => 'View current/assigned patients', 'endpoint' => 'GET /api/v2/currentPatientsNew'],
+            ['name' => 'search-patients', 'category' => 'patients', 'description' => 'Search patients', 'endpoint' => 'POST /api/v2/searchNew'],
+            ['name' => 'view-patient-sections', 'category' => 'patients', 'description' => 'View patient sections', 'endpoint' => 'GET /api/v2/showSections/{patientId}'],
+            ['name' => 'view-patient-details', 'category' => 'patients', 'description' => 'View patient section details', 'endpoint' => 'GET /api/v2/patient/{sectionId}/{patientId}'],
+            ['name' => 'create-patient', 'category' => 'patients', 'description' => 'Create new patient', 'endpoint' => 'POST /api/v2/patient'],
+            ['name' => 'update-patient-section', 'category' => 'patients', 'description' => 'Update patient section', 'endpoint' => 'PUT /api/v2/patientsection/{sectionId}/{patientId}'],
+            ['name' => 'delete-patient', 'category' => 'patients', 'description' => 'Delete patient', 'endpoint' => 'DELETE /api/v2/patient/{patientId}'],
+            ['name' => 'get-patient-questions', 'category' => 'patients', 'description' => 'Get patient questions', 'endpoint' => 'GET /api/v2/questions/{sectionId}'],
+            ['name' => 'submit-patient-outcome', 'category' => 'patients', 'description' => 'Submit patient outcome', 'endpoint' => 'PUT /api/v2/patient/{sectionId}/{patientId}'],
+            ['name' => 'final-submit-patient', 'category' => 'patients', 'description' => 'Final submit patient', 'endpoint' => 'PUT /api/v2/submitStatus/{patientId}'],
+            ['name' => 'generate-patient-pdf', 'category' => 'patients', 'description' => 'Generate patient PDF report', 'endpoint' => 'GET /api/v2/generatePDF/{patientId}'],
+            ['name' => 'mark-patient', 'category' => 'patients', 'description' => 'Mark/bookmark patient', 'endpoint' => 'POST /api/v2/markedPatients/{patientId}'],
+            ['name' => 'unmark-patient', 'category' => 'patients', 'description' => 'Unmark patient', 'endpoint' => 'POST /api/v2/markedPatients/{patientId}'],
+            ['name' => 'apply-patient-filters', 'category' => 'patients', 'description' => 'Apply patient filters', 'endpoint' => 'POST /api/v2/patientFilters'],
+            ['name' => 'get-patient-filters', 'category' => 'patients', 'description' => 'Get patient filter options', 'endpoint' => 'GET /api/v2/patientFilters'],
+            ['name' => 'export-filtered-patients', 'category' => 'patients', 'description' => 'Export filtered patients', 'endpoint' => 'POST /api/v2/exportFilteredPatients'],
 
-            // Medical Data (16 permissions)
-            ['name' => 'view-questions', 'category' => 'medical', 'description' => 'View medical questions'],
-            ['name' => 'create-questions', 'category' => 'medical', 'description' => 'Create questions'],
-            ['name' => 'edit-questions', 'category' => 'medical', 'description' => 'Edit questions'],
-            ['name' => 'delete-questions', 'category' => 'medical', 'description' => 'Delete questions'],
-            ['name' => 'view-sections', 'category' => 'medical', 'description' => 'View medical sections'],
-            ['name' => 'create-sections', 'category' => 'medical', 'description' => 'Create sections'],
-            ['name' => 'edit-sections', 'category' => 'medical', 'description' => 'Edit sections'],
-            ['name' => 'delete-sections', 'category' => 'medical', 'description' => 'Delete sections'],
-            ['name' => 'view-scores', 'category' => 'medical', 'description' => 'View scores'],
-            ['name' => 'create-scores', 'category' => 'medical', 'description' => 'Create scores'],
-            ['name' => 'edit-scores', 'category' => 'medical', 'description' => 'Edit scores'],
-            ['name' => 'view-score-history', 'category' => 'medical', 'description' => 'View score history'],
-            ['name' => 'view-recommendations', 'category' => 'medical', 'description' => 'View recommendations'],
-            ['name' => 'create-recommendations', 'category' => 'medical', 'description' => 'Create recommendations'],
-            ['name' => 'edit-recommendations', 'category' => 'medical', 'description' => 'Edit recommendations'],
-            ['name' => 'delete-recommendations', 'category' => 'medical', 'description' => 'Delete recommendations'],
+            // Patient Comments
+            ['name' => 'view-patient-comments', 'category' => 'patient-comments', 'description' => 'View patient comments', 'endpoint' => 'GET /api/v2/comment/{patientId}'],
+            ['name' => 'create-patient-comment', 'category' => 'patient-comments', 'description' => 'Create patient comment', 'endpoint' => 'POST /api/v2/comment'],
+            ['name' => 'delete-patient-comment', 'category' => 'patient-comments', 'description' => 'Delete patient comment', 'endpoint' => 'DELETE /api/v2/comment/{commentId}'],
 
-            // Content Management - Posts (15 permissions)
-            ['name' => 'view-posts', 'category' => 'posts', 'description' => 'View posts'],
-            ['name' => 'create-posts', 'category' => 'posts', 'description' => 'Create posts'],
-            ['name' => 'edit-posts', 'category' => 'posts', 'description' => 'Edit own posts'],
-            ['name' => 'delete-posts', 'category' => 'posts', 'description' => 'Delete own posts'],
-            ['name' => 'edit-any-post', 'category' => 'posts', 'description' => 'Edit any post'],
-            ['name' => 'delete-any-post', 'category' => 'posts', 'description' => 'Delete any post'],
-            ['name' => 'moderate-posts', 'category' => 'posts', 'description' => 'Moderate posts'],
-            ['name' => 'like-posts', 'category' => 'posts', 'description' => 'Like/unlike posts'],
-            ['name' => 'save-posts', 'category' => 'posts', 'description' => 'Save/bookmark posts'],
-            ['name' => 'view-post-likes', 'category' => 'posts', 'description' => 'View post likes'],
-            ['name' => 'view-trending-posts', 'category' => 'posts', 'description' => 'View trending posts'],
-            ['name' => 'search-posts', 'category' => 'posts', 'description' => 'Search posts'],
-            ['name' => 'search-hashtags', 'category' => 'posts', 'description' => 'Search hashtags'],
-            ['name' => 'view-doctor-posts', 'category' => 'posts', 'description' => 'View doctor posts'],
-            ['name' => 'view-saved-posts', 'category' => 'posts', 'description' => 'View saved posts'],
+            // Recommendations
+            ['name' => 'view-recommendations', 'category' => 'recommendations', 'description' => 'View patient recommendations', 'endpoint' => 'GET /api/v2/recommendations/{patientId}'],
+            ['name' => 'create-recommendation', 'category' => 'recommendations', 'description' => 'Create patient recommendation', 'endpoint' => 'POST /api/v2/recommendations/{patientId}'],
+            ['name' => 'update-recommendation', 'category' => 'recommendations', 'description' => 'Update patient recommendation', 'endpoint' => 'PUT /api/v2/recommendations/{patientId}'],
+            ['name' => 'delete-recommendation', 'category' => 'recommendations', 'description' => 'Delete patient recommendation', 'endpoint' => 'DELETE /api/v2/recommendations/{patientId}'],
 
-            // Comments (11 permissions)
-            ['name' => 'view-comments', 'category' => 'comments', 'description' => 'View comments'],
-            ['name' => 'create-comments', 'category' => 'comments', 'description' => 'Create comments'],
-            ['name' => 'edit-comments', 'category' => 'comments', 'description' => 'Edit own comments'],
-            ['name' => 'delete-comments', 'category' => 'comments', 'description' => 'Delete own comments'],
-            ['name' => 'delete-any-comment', 'category' => 'comments', 'description' => 'Delete any comment'],
-            ['name' => 'like-comments', 'category' => 'comments', 'description' => 'Like comments'],
-            ['name' => 'moderate-comments', 'category' => 'comments', 'description' => 'Moderate comments'],
-            ['name' => 'view-patient-comments', 'category' => 'comments', 'description' => 'View patient comments'],
-            ['name' => 'create-patient-comments', 'category' => 'comments', 'description' => 'Create patient comments'],
-            ['name' => 'edit-patient-comments', 'category' => 'comments', 'description' => 'Edit patient comments'],
-            ['name' => 'delete-patient-comments', 'category' => 'comments', 'description' => 'Delete patient comments'],
+            // Doses/Medications
+            ['name' => 'search-doses', 'category' => 'doses', 'description' => 'Search for doses/medications', 'endpoint' => 'GET /api/v2/dose/search/{dose}'],
+            ['name' => 'create-dose', 'category' => 'doses', 'description' => 'Create new medicine/dose', 'endpoint' => 'POST /api/v2/dose'],
 
-            // Groups (16 permissions)
-            ['name' => 'view-groups', 'category' => 'groups', 'description' => 'View groups'],
-            ['name' => 'view-group-details', 'category' => 'groups', 'description' => 'View group details'],
-            ['name' => 'create-groups', 'category' => 'groups', 'description' => 'Create groups'],
-            ['name' => 'edit-groups', 'category' => 'groups', 'description' => 'Edit own groups'],
-            ['name' => 'delete-groups', 'category' => 'groups', 'description' => 'Delete own groups'],
-            ['name' => 'delete-any-group', 'category' => 'groups', 'description' => 'Delete any group'],
-            ['name' => 'join-groups', 'category' => 'groups', 'description' => 'Join groups'],
-            ['name' => 'leave-groups', 'category' => 'groups', 'description' => 'Leave groups'],
-            ['name' => 'view-my-groups', 'category' => 'groups', 'description' => 'View my groups'],
-            ['name' => 'invite-group-members', 'category' => 'groups', 'description' => 'Invite members'],
-            ['name' => 'remove-group-members', 'category' => 'groups', 'description' => 'Remove members'],
-            ['name' => 'handle-group-invitations', 'category' => 'groups', 'description' => 'Handle invitations'],
-            ['name' => 'handle-join-requests', 'category' => 'groups', 'description' => 'Handle join requests'],
-            ['name' => 'view-group-members', 'category' => 'groups', 'description' => 'View members'],
-            ['name' => 'search-group-members', 'category' => 'groups', 'description' => 'Search members'],
-            ['name' => 'view-group-invitations', 'category' => 'groups', 'description' => 'View invitations'],
+            // User Profile
+            ['name' => 'update-profile', 'category' => 'profile', 'description' => 'Update user profile', 'endpoint' => 'PUT /api/v2/users'],
+            ['name' => 'upload-profile-image', 'category' => 'profile', 'description' => 'Upload profile image', 'endpoint' => 'POST /api/v2/upload-profile-image'],
+            ['name' => 'upload-syndicate-card', 'category' => 'profile', 'description' => 'Upload syndicate card', 'endpoint' => 'POST /api/v2/uploadSyndicateCard'],
+            ['name' => 'change-password', 'category' => 'profile', 'description' => 'Change password', 'endpoint' => 'POST /api/v2/changePassword'],
+            ['name' => 'view-doctor-profile', 'category' => 'profile', 'description' => 'View doctor profile', 'endpoint' => 'GET /api/v2/showAnotherProfile/{doctorId}'],
+            ['name' => 'view-doctor-patients', 'category' => 'profile', 'description' => 'View doctor patients', 'endpoint' => 'GET /api/v2/doctorProfileGetPatients/{doctorId}'],
+            ['name' => 'view-doctor-score-history', 'category' => 'profile', 'description' => 'View doctor score history', 'endpoint' => 'GET /api/v2/doctorProfileGetScoreHistory/{doctorId}'],
+            ['name' => 'view-doctor-achievements', 'category' => 'profile', 'description' => 'View doctor achievements', 'endpoint' => 'GET /api/v2/users/{doctorId}/achievements'],
 
-            // Consultations (10 permissions)
-            ['name' => 'view-consultations', 'category' => 'consultations', 'description' => 'View consultations'],
-            ['name' => 'create-consultations', 'category' => 'consultations', 'description' => 'Create consultations'],
-            ['name' => 'view-consultation-details', 'category' => 'consultations', 'description' => 'View details'],
-            ['name' => 'edit-consultations', 'category' => 'consultations', 'description' => 'Edit consultations'],
-            ['name' => 'add-consultation-doctors', 'category' => 'consultations', 'description' => 'Add doctors'],
-            ['name' => 'remove-consultation-doctors', 'category' => 'consultations', 'description' => 'Remove doctors'],
-            ['name' => 'toggle-consultation-status', 'category' => 'consultations', 'description' => 'Change status'],
-            ['name' => 'view-consultation-members', 'category' => 'consultations', 'description' => 'View members'],
-            ['name' => 'reply-consultations', 'category' => 'consultations', 'description' => 'Add replies'],
-            ['name' => 'search-consultation-doctors', 'category' => 'consultations', 'description' => 'Search doctors'],
+            // Admin User Management (Admin only)
+            ['name' => 'verify-syndicate-card', 'category' => 'admin', 'description' => 'Verify syndicate card (Admin)', 'endpoint' => 'PUT /api/v2/users/{doctorId}'],
+            ['name' => 'block-user', 'category' => 'admin', 'description' => 'Block/unblock user (Admin)', 'endpoint' => 'PUT /api/v2/users/{doctorId}'],
+            ['name' => 'verify-user-email', 'category' => 'admin', 'description' => 'Verify user email (Admin)', 'endpoint' => 'PUT /api/v2/users/{doctorId}'],
 
-            // AI Chat (2 permissions)
-            ['name' => 'use-ai-consultation', 'category' => 'ai', 'description' => 'Use AI consultation'],
-            ['name' => 'view-ai-history', 'category' => 'ai', 'description' => 'View AI history'],
+            // File Uploads
+            ['name' => 'upload-patient-files', 'category' => 'files', 'description' => 'Upload patient files', 'endpoint' => 'POST /api/v2/uploadFileNew'],
 
-            // Communication (13 permissions)
-            ['name' => 'view-notifications', 'category' => 'communication', 'description' => 'View notifications'],
-            ['name' => 'view-new-notifications', 'category' => 'communication', 'description' => 'View new notifications'],
-            ['name' => 'mark-notification-read', 'category' => 'communication', 'description' => 'Mark as read'],
-            ['name' => 'mark-all-notifications-read', 'category' => 'communication', 'description' => 'Mark all as read'],
-            ['name' => 'create-notifications', 'category' => 'communication', 'description' => 'Create notifications'],
-            ['name' => 'delete-notifications', 'category' => 'communication', 'description' => 'Delete notifications'],
-            ['name' => 'send-push-notifications', 'category' => 'communication', 'description' => 'Send push notifications'],
-            ['name' => 'send-bulk-push-notifications', 'category' => 'communication', 'description' => 'Send bulk push'],
-            ['name' => 'manage-fcm-tokens', 'category' => 'communication', 'description' => 'Manage FCM tokens'],
-            ['name' => 'view-contacts', 'category' => 'communication', 'description' => 'View contacts'],
-            ['name' => 'create-contacts', 'category' => 'communication', 'description' => 'Create contacts'],
-            ['name' => 'edit-contacts', 'category' => 'communication', 'description' => 'Edit contacts'],
-            ['name' => 'delete-contacts', 'category' => 'communication', 'description' => 'Delete contacts'],
+            // Consultations
+            ['name' => 'search-consultation-doctors', 'category' => 'consultations', 'description' => 'Search doctors for consultation', 'endpoint' => 'POST /api/v2/consultationDoctorSearch/{searchContent}'],
+            ['name' => 'create-consultation', 'category' => 'consultations', 'description' => 'Create consultation', 'endpoint' => 'POST /api/v2/consultations'],
+            ['name' => 'view-sent-consultations', 'category' => 'consultations', 'description' => 'View sent consultations', 'endpoint' => 'GET /api/v2/consultations/sent'],
+            ['name' => 'view-received-consultations', 'category' => 'consultations', 'description' => 'View received consultations', 'endpoint' => 'GET /api/v2/consultations/received'],
+            ['name' => 'view-consultation-details', 'category' => 'consultations', 'description' => 'View consultation details', 'endpoint' => 'GET /api/v2/consultations/{consultationId}'],
+            ['name' => 'reply-consultation', 'category' => 'consultations', 'description' => 'Reply to consultation', 'endpoint' => 'PUT /api/v2/consultations/{consultationId}'],
+            ['name' => 'view-consultation-members', 'category' => 'consultations', 'description' => 'View consultation members', 'endpoint' => 'GET /api/v2/consultations/{consultationId}/members'],
+            ['name' => 'toggle-consultation-status', 'category' => 'consultations', 'description' => 'Lock/unlock consultation', 'endpoint' => 'PUT /api/v2/consultations/{consultationId}/toggle-status'],
+            ['name' => 'remove-consultation-member', 'category' => 'consultations', 'description' => 'Remove member from consultation', 'endpoint' => 'DELETE /api/v2/consultations/{consultationId}/doctors/{doctorId}'],
+            ['name' => 'add-consultation-doctors', 'category' => 'consultations', 'description' => 'Add doctors to consultation', 'endpoint' => 'POST /api/v2/consultations/{consultationId}/add-doctors'],
 
-            // Polls (5 permissions)
-            ['name' => 'view-polls', 'category' => 'polls', 'description' => 'View polls'],
-            ['name' => 'create-polls', 'category' => 'polls', 'description' => 'Create polls'],
-            ['name' => 'vote-polls', 'category' => 'polls', 'description' => 'Vote in polls'],
-            ['name' => 'view-poll-voters', 'category' => 'polls', 'description' => 'View voters'],
-            ['name' => 'add-poll-options', 'category' => 'polls', 'description' => 'Add poll options'],
+            // AI Consultations
+            ['name' => 'view-ai-consultation-history', 'category' => 'ai', 'description' => 'View AI consultation history', 'endpoint' => 'GET /api/v2/AIconsultation-history/{patientId}'],
+            ['name' => 'send-ai-consultation', 'category' => 'ai', 'description' => 'Send AI consultation request', 'endpoint' => 'POST /api/v2/AIconsultation/{patientId}'],
 
-            // Doses (5 permissions)
-            ['name' => 'view-doses', 'category' => 'doses', 'description' => 'View doses'],
-            ['name' => 'create-doses', 'category' => 'doses', 'description' => 'Create doses'],
-            ['name' => 'edit-doses', 'category' => 'doses', 'description' => 'Edit doses'],
-            ['name' => 'delete-doses', 'category' => 'doses', 'description' => 'Delete doses'],
-            ['name' => 'search-doses', 'category' => 'doses', 'description' => 'Search doses'],
+            // Feed Posts
+            ['name' => 'view-feed-posts', 'category' => 'feed', 'description' => 'View feed posts', 'endpoint' => 'GET /api/v2/feed/posts'],
+            ['name' => 'create-feed-post', 'category' => 'feed', 'description' => 'Create feed post', 'endpoint' => 'POST /api/v2/feed/posts'],
+            ['name' => 'edit-feed-post', 'category' => 'feed', 'description' => 'Edit feed post', 'endpoint' => 'POST /api/v2/feed/posts/{postId}'],
+            ['name' => 'delete-feed-post', 'category' => 'feed', 'description' => 'Delete feed post', 'endpoint' => 'DELETE /api/v2/feed/posts/{postId}'],
+            ['name' => 'like-feed-post', 'category' => 'feed', 'description' => 'Like/unlike feed post', 'endpoint' => 'POST /api/v2/feed/posts/{postId}/likeOrUnlikePost'],
+            ['name' => 'save-feed-post', 'category' => 'feed', 'description' => 'Save/unsave feed post', 'endpoint' => 'POST /api/v2/feed/posts/{postId}/saveOrUnsavePost'],
+            ['name' => 'view-feed-post', 'category' => 'feed', 'description' => 'View single feed post', 'endpoint' => 'GET /api/v2/feed/posts/{postId}'],
+            ['name' => 'view-trending-posts', 'category' => 'feed', 'description' => 'View trending posts', 'endpoint' => 'GET /api/v2/feed/trendingPosts'],
+            ['name' => 'search-feed-posts', 'category' => 'feed', 'description' => 'Search feed posts', 'endpoint' => 'POST /api/v2/feed/searchPosts'],
+            ['name' => 'view-doctor-posts', 'category' => 'feed', 'description' => 'View doctor posts', 'endpoint' => 'GET /api/v2/doctorposts/{doctorId}'],
+            ['name' => 'view-saved-posts', 'category' => 'feed', 'description' => 'View saved posts', 'endpoint' => 'GET /api/v2/doctorsavedposts/{doctorId}'],
 
-            // Achievements (7 permissions)
-            ['name' => 'view-achievements', 'category' => 'achievements', 'description' => 'View achievements'],
-            ['name' => 'view-achievement-details', 'category' => 'achievements', 'description' => 'View details'],
-            ['name' => 'create-achievements', 'category' => 'achievements', 'description' => 'Create achievements'],
-            ['name' => 'edit-achievements', 'category' => 'achievements', 'description' => 'Edit achievements'],
-            ['name' => 'delete-achievements', 'category' => 'achievements', 'description' => 'Delete achievements'],
-            ['name' => 'view-user-achievements', 'category' => 'achievements', 'description' => 'View user achievements'],
-            ['name' => 'assign-achievements', 'category' => 'achievements', 'description' => 'Assign achievements'],
+            // Feed Comments
+            ['name' => 'view-feed-comments', 'category' => 'feed-comments', 'description' => 'View feed post comments', 'endpoint' => 'GET /api/v2/posts/{postId}/comments'],
+            ['name' => 'create-feed-comment', 'category' => 'feed-comments', 'description' => 'Create feed comment', 'endpoint' => 'POST /api/v2/feed/posts/{postId}/comment'],
+            ['name' => 'delete-feed-comment', 'category' => 'feed-comments', 'description' => 'Delete feed comment', 'endpoint' => 'DELETE /api/v2/feed/comments/{commentId}'],
+            ['name' => 'like-feed-comment', 'category' => 'feed-comments', 'description' => 'Like/unlike feed comment', 'endpoint' => 'POST /api/v2/comments/{commentId}/likeOrUnlikeComment'],
+            ['name' => 'reply-feed-comment', 'category' => 'feed-comments', 'description' => 'Reply to feed comment', 'endpoint' => 'POST /api/v2/feed/posts/{postId}/comment'],
 
-            // Reports & Analytics (5 permissions)
-            ['name' => 'view-reports', 'category' => 'reports', 'description' => 'View reports'],
-            ['name' => 'export-patient-data', 'category' => 'reports', 'description' => 'Export patient data'],
-            ['name' => 'export-filtered-patients', 'category' => 'reports', 'description' => 'Export filtered data'],
-            ['name' => 'view-analytics', 'category' => 'reports', 'description' => 'View analytics'],
-            ['name' => 'view-statistics', 'category' => 'reports', 'description' => 'View statistics'],
+            // Legacy Posts (Old system)
+            ['name' => 'view-legacy-posts', 'category' => 'legacy-posts', 'description' => 'View legacy posts', 'endpoint' => 'GET /api/v2/post'],
+            ['name' => 'view-legacy-post-comments', 'category' => 'legacy-posts', 'description' => 'View legacy post comments', 'endpoint' => 'GET /api/v2/Postcomments/{postId}'],
+            ['name' => 'create-legacy-post-comment', 'category' => 'legacy-posts', 'description' => 'Create legacy post comment', 'endpoint' => 'POST /api/v2/Postcomments'],
+            ['name' => 'delete-legacy-post-comment', 'category' => 'legacy-posts', 'description' => 'Delete legacy post comment', 'endpoint' => 'DELETE /api/v2/Postcomments/{commentId}'],
 
-            // Settings (4 permissions)
-            ['name' => 'view-settings', 'category' => 'settings', 'description' => 'View settings'],
-            ['name' => 'edit-settings', 'category' => 'settings', 'description' => 'Edit settings'],
-            ['name' => 'delete-settings', 'category' => 'settings', 'description' => 'Delete settings'],
-            ['name' => 'manage-app-settings', 'category' => 'settings', 'description' => 'Manage app settings'],
+            // Groups
+            ['name' => 'view-groups', 'category' => 'groups', 'description' => 'View all groups', 'endpoint' => 'GET /api/v2/groups'],
+            ['name' => 'view-groups-tab', 'category' => 'groups', 'description' => 'View groups tab', 'endpoint' => 'GET /api/v2/latest-groups-with-random-posts'],
+            ['name' => 'view-group-details', 'category' => 'groups', 'description' => 'View group details', 'endpoint' => 'GET /api/v2/groups/{groupId}/detailsWithPosts'],
+            ['name' => 'create-group', 'category' => 'groups', 'description' => 'Create group', 'endpoint' => 'POST /api/v2/groups'],
+            ['name' => 'update-group', 'category' => 'groups', 'description' => 'Update group', 'endpoint' => 'POST /api/v2/groups/{groupId}'],
+            ['name' => 'delete-group', 'category' => 'groups', 'description' => 'Delete group', 'endpoint' => 'DELETE /api/v2/groups/{groupId}'],
+            ['name' => 'join-group', 'category' => 'groups', 'description' => 'Join group', 'endpoint' => 'POST /api/v2/groups/{groupId}/join'],
+            ['name' => 'leave-group', 'category' => 'groups', 'description' => 'Leave group', 'endpoint' => 'POST /api/v2/groups/{groupId}/leave'],
+            ['name' => 'view-group-members', 'category' => 'groups', 'description' => 'View group members', 'endpoint' => 'GET /api/v2/groups/{groupId}/members'],
+            ['name' => 'view-my-groups', 'category' => 'groups', 'description' => 'View my groups', 'endpoint' => 'GET /api/v2/mygroups'],
+            ['name' => 'send-group-invitation', 'category' => 'groups', 'description' => 'Send group invitation', 'endpoint' => 'POST /api/v2/groups/{groupId}/invite'],
+            ['name' => 'remove-group-member', 'category' => 'groups', 'description' => 'Remove group member', 'endpoint' => 'POST /api/v2/groups/{groupId}/removeMember'],
+            ['name' => 'view-group-invitations', 'category' => 'groups', 'description' => 'View group invitations', 'endpoint' => 'GET /api/v2/groups/invitations/{doctorId}'],
+            ['name' => 'handle-group-invitation', 'category' => 'groups', 'description' => 'Accept/decline group invitation', 'endpoint' => 'POST /api/v2/groups/{groupId}/invitation'],
 
-            // Roles & Permissions (11 permissions)
-            ['name' => 'view-roles', 'category' => 'roles', 'description' => 'View roles'],
-            ['name' => 'create-roles', 'category' => 'roles', 'description' => 'Create roles'],
-            ['name' => 'edit-roles', 'category' => 'roles', 'description' => 'Edit roles'],
-            ['name' => 'delete-roles', 'category' => 'roles', 'description' => 'Delete roles'],
-            ['name' => 'view-permissions', 'category' => 'roles', 'description' => 'View permissions'],
-            ['name' => 'create-permissions', 'category' => 'roles', 'description' => 'Create permissions'],
-            ['name' => 'edit-permissions', 'category' => 'roles', 'description' => 'Edit permissions'],
-            ['name' => 'delete-permissions', 'category' => 'roles', 'description' => 'Delete permissions'],
-            ['name' => 'assign-roles', 'category' => 'roles', 'description' => 'Assign roles'],
-            ['name' => 'assign-permissions', 'category' => 'roles', 'description' => 'Assign permissions'],
-            ['name' => 'check-permissions', 'category' => 'roles', 'description' => 'Check permissions'],
+            // Polls
+            ['name' => 'vote-poll', 'category' => 'polls', 'description' => 'Vote on poll', 'endpoint' => 'POST /api/v2/polls/{pollId}/vote'],
+            ['name' => 'add-poll-option', 'category' => 'polls', 'description' => 'Add poll option', 'endpoint' => 'POST /api/v2/polls/{pollId}/options'],
+            ['name' => 'view-poll-voters', 'category' => 'polls', 'description' => 'View poll voters', 'endpoint' => 'GET /api/v2/polls/{pollId}/options/{optionId}/voters'],
 
-            // Media (4 permissions)
-            ['name' => 'upload-images', 'category' => 'media', 'description' => 'Upload images'],
-            ['name' => 'upload-videos', 'category' => 'media', 'description' => 'Upload videos'],
-            ['name' => 'upload-files', 'category' => 'media', 'description' => 'Upload files'],
-            ['name' => 'delete-media', 'category' => 'media', 'description' => 'Delete media'],
-
-            // Sharing (3 permissions)
-            ['name' => 'generate-share-urls', 'category' => 'sharing', 'description' => 'Generate share URLs'],
-            ['name' => 'generate-bulk-share-urls', 'category' => 'sharing', 'description' => 'Generate bulk URLs'],
-            ['name' => 'view-share-preview', 'category' => 'sharing', 'description' => 'View share preview'],
-
-            // Admin Panel (5 permissions)
-            ['name' => 'access-admin-panel', 'category' => 'admin', 'description' => 'Access admin panel'],
-            ['name' => 'view-dashboard', 'category' => 'admin', 'description' => 'View dashboard'],
-            ['name' => 'view-audit-logs', 'category' => 'admin', 'description' => 'View audit logs'],
-            ['name' => 'export-audit-logs', 'category' => 'admin', 'description' => 'Export audit logs'],
-            ['name' => 'manage-system-health', 'category' => 'admin', 'description' => 'Manage system health'],
-
-            // Filament Resource Permissions
-            ['name' => 'view role permissions', 'category' => 'filament', 'description' => 'View role permissions resource'],
-            ['name' => 'view::role::permission', 'category' => 'filament', 'description' => 'View role permission details'],
-            ['name' => 'create role permissions', 'category' => 'filament', 'description' => 'Create role permissions'],
-            ['name' => 'update role permissions', 'category' => 'filament', 'description' => 'Update role permissions'],
-            ['name' => 'delete role permissions', 'category' => 'filament', 'description' => 'Delete role permissions'],
-            ['name' => 'view audit logs', 'category' => 'filament', 'description' => 'View audit logs resource'],
-            ['name' => 'view fcm tokens', 'category' => 'filament', 'description' => 'View FCM tokens resource'],
-            ['name' => 'view answers', 'category' => 'filament', 'description' => 'View answers resource'],
-            ['name' => 'create answers', 'category' => 'filament', 'description' => 'Create answers'],
-            ['name' => 'update answers', 'category' => 'filament', 'description' => 'Update answers'],
-            ['name' => 'delete answers', 'category' => 'filament', 'description' => 'Delete answers'],
+            // Post Likes
+            ['name' => 'view-post-likes', 'category' => 'feed', 'description' => 'View post likes', 'endpoint' => 'GET /api/v2/posts/{postId}/likes'],
         ];
 
         $permissionCount = 0;
         foreach ($permissions as $permission) {
-            Permission::firstOrCreate(
-                ['name' => $permission['name']],
-                [
-                    'guard_name' => 'web',
-                    'category' => $permission['category'],
-                    'description' => $permission['description'],
-                ]
-            );
+            Permission::create([
+                'name' => $permission['name'],
+                'guard_name' => 'web',
+                'category' => $permission['category'],
+                'description' => $permission['description'],
+            ]);
             $permissionCount++;
         }
 
-        $this->command->info("✓ Created {$permissionCount} permissions");
+        $this->command->info("✓ Created {$permissionCount} permissions based on Flutter endpoints");
     }
 
     /**
@@ -279,254 +244,113 @@ class RolePermissionSeeder extends Seeder
         $superAdmin->syncPermissions(Permission::where('guard_name', 'web')->get());
         $this->command->info('✓ Super Admin role created with ALL permissions');
 
-        // Admin Role
+        // Admin Role - Most permissions except some admin-only actions
         $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
-        $adminPermissions = [
-            // User management
-            'view-users', 'view-user-profile', 'create-users', 'edit-users',
-            'block-users', 'limit-users', 'view-user-achievements',
-            'view-doctor-patients', 'view-doctor-score-history',
-
-            // Patient management (full)
-            'view-patients', 'view-patient-details', 'create-patients', 'edit-patients',
-            'delete-patients', 'search-patients', 'view-current-patients', 'view-all-patients',
-            'mark-patients', 'view-marked-patients', 'upload-patient-files', 'filter-patients',
-            'export-patients', 'generate-patient-pdf', 'submit-patient-sections', 'view-patient-sections',
-
-            // Medical data (full)
-            'view-questions', 'create-questions', 'edit-questions', 'delete-questions',
-            'view-sections', 'create-sections', 'edit-sections', 'delete-sections',
-            'view-scores', 'create-scores', 'edit-scores', 'view-score-history',
-            'view-recommendations', 'create-recommendations', 'edit-recommendations', 'delete-recommendations',
-
-            // Content moderation
-            'view-posts', 'edit-any-post', 'delete-any-post', 'moderate-posts',
-            'delete-any-comment', 'moderate-comments',
-            'delete-any-group',
-
-            // Reports
-            'view-reports', 'export-patient-data', 'view-analytics', 'view-statistics',
-
-            // Settings
-            'view-settings', 'edit-settings', 'manage-app-settings',
-
-            // Admin panel
-            'access-admin-panel', 'view-dashboard', 'view-audit-logs',
-
-            // Communication
-            'send-push-notifications', 'send-bulk-push-notifications', 'create-notifications',
-        ];
-        $admin->syncPermissions(Permission::whereIn('name', $adminPermissions)->where('guard_name', 'web')->get());
+        $adminPermissions = Permission::where('guard_name', 'web')
+            ->whereNotIn('name', []) // Add any admin-only permissions here if needed
+            ->get();
+        $admin->syncPermissions($adminPermissions);
         $this->command->info('✓ Admin role created');
 
-        // Senior Doctor Role
-        $seniorDoctor = Role::firstOrCreate(['name' => 'senior-doctor', 'guard_name' => 'web']);
-        $seniorDoctorPermissions = [
-            // Patient management (full)
-            'view-patients', 'view-patient-details', 'create-patients', 'edit-patients',
-            'delete-patients', 'search-patients', 'view-current-patients', 'view-all-patients',
-            'mark-patients', 'view-marked-patients', 'upload-patient-files', 'filter-patients',
-            'export-patients', 'generate-patient-pdf', 'submit-patient-sections', 'view-patient-sections',
-
-            // Medical data
-            'view-questions', 'create-questions', 'edit-questions',
-            'view-sections', 'view-scores', 'view-score-history',
-            'view-recommendations', 'create-recommendations', 'edit-recommendations', 'delete-recommendations',
-
-            // Consultations (full)
-            'view-consultations', 'create-consultations', 'view-consultation-details',
-            'edit-consultations', 'add-consultation-doctors', 'remove-consultation-doctors',
-            'toggle-consultation-status', 'view-consultation-members', 'reply-consultations',
-            'search-consultation-doctors',
-
-            // AI
-            'use-ai-consultation', 'view-ai-history',
-
-            // Content
-            'view-posts', 'create-posts', 'edit-posts', 'delete-posts', 'like-posts', 'save-posts',
-            'view-trending-posts', 'search-posts', 'search-hashtags',
-            'view-comments', 'create-comments', 'edit-comments', 'delete-comments', 'like-comments',
-
-            // Groups
-            'view-groups', 'view-group-details', 'create-groups', 'edit-groups', 'delete-groups',
-            'join-groups', 'leave-groups', 'view-my-groups', 'invite-group-members',
-            'remove-group-members', 'handle-group-invitations', 'view-group-members',
-
-            // Communication
-            'view-notifications', 'view-new-notifications', 'mark-notification-read',
-            'mark-all-notifications-read', 'manage-fcm-tokens',
-
-            // Profile
-            'upload-profile-image', 'change-user-password', 'manage-user-locale',
-
-            // Media
-            'upload-images', 'upload-videos', 'upload-files',
-
-            // Achievements
-            'view-achievements', 'assign-achievements',
-
-            // Doses
-            'view-doses', 'create-doses', 'edit-doses', 'search-doses',
-        ];
-        $seniorDoctor->syncPermissions(Permission::whereIn('name', $seniorDoctorPermissions)->where('guard_name', 'web')->get());
-        $this->command->info('✓ Senior Doctor role created');
-
-        // Doctor (Standard) Role
+        // Doctor Role - Standard medical professional permissions
         $doctor = Role::firstOrCreate(['name' => 'doctor', 'guard_name' => 'web']);
         $doctorPermissions = [
-            // Patient management (own + view all)
-            'view-patients', 'view-patient-details', 'create-patients', 'edit-patients',
-            'search-patients', 'view-current-patients', 'view-all-patients',
-            'mark-patients', 'view-marked-patients', 'upload-patient-files', 'filter-patients',
-            'generate-patient-pdf', 'submit-patient-sections', 'view-patient-sections',
+            // Home
+            'access-home',
 
-            // Medical data (view + limited edit)
-            'view-questions', 'view-sections', 'view-scores', 'view-score-history',
-            'view-recommendations', 'create-recommendations', 'edit-recommendations',
+            // Patients - Full access
+            'view-all-patients', 'view-current-patients', 'search-patients',
+            'view-patient-sections', 'view-patient-details', 'create-patient',
+            'update-patient-section', 'delete-patient', 'get-patient-questions',
+            'submit-patient-outcome', 'final-submit-patient', 'generate-patient-pdf',
+            'mark-patient', 'unmark-patient', 'apply-patient-filters', 'get-patient-filters',
 
-            // Patient comments
-            'view-patient-comments', 'create-patient-comments', 'edit-patient-comments', 'delete-patient-comments',
+            // Patient Comments
+            'view-patient-comments', 'create-patient-comment', 'delete-patient-comment',
 
-            // Consultations
-            'view-consultations', 'create-consultations', 'view-consultation-details',
-            'reply-consultations', 'search-consultation-doctors',
-
-            // AI
-            'use-ai-consultation', 'view-ai-history',
-
-            // Content
-            'view-posts', 'create-posts', 'edit-posts', 'delete-posts', 'like-posts', 'save-posts',
-            'view-trending-posts', 'search-posts', 'search-hashtags',
-            'view-comments', 'create-comments', 'edit-comments', 'delete-comments', 'like-comments',
-
-            // Groups
-            'view-groups', 'view-group-details', 'create-groups', 'edit-groups', 'delete-groups',
-            'join-groups', 'leave-groups', 'view-my-groups', 'invite-group-members',
-            'handle-group-invitations', 'view-group-members',
-
-            // Polls
-            'view-polls', 'create-polls', 'vote-polls', 'view-poll-voters',
-
-            // Communication
-            'view-notifications', 'view-new-notifications', 'mark-notification-read',
-            'mark-all-notifications-read', 'manage-fcm-tokens',
-            'create-contacts',
-
-            // Profile
-            'view-user-profile', 'upload-profile-image', 'upload-syndicate-card',
-            'change-user-password', 'manage-user-locale',
-
-            // Media
-            'upload-images', 'upload-videos', 'upload-files',
-
-            // Achievements
-            'view-achievements', 'view-user-achievements',
+            // Recommendations
+            'view-recommendations', 'create-recommendation', 'update-recommendation', 'delete-recommendation',
 
             // Doses
-            'view-doses', 'search-doses',
+            'search-doses', 'create-dose',
 
-            // Sharing
-            'generate-share-urls', 'view-share-preview',
+            // Profile
+            'update-profile', 'upload-profile-image', 'upload-syndicate-card',
+            'change-password', 'view-doctor-profile', 'view-doctor-patients',
+            'view-doctor-score-history', 'view-doctor-achievements',
+
+            // Files
+            'upload-patient-files',
+
+            // Consultations
+            'search-consultation-doctors', 'create-consultation', 'view-sent-consultations',
+            'view-received-consultations', 'view-consultation-details', 'reply-consultation',
+            'view-consultation-members', 'toggle-consultation-status', 'remove-consultation-member',
+            'add-consultation-doctors',
+
+            // AI
+            'view-ai-consultation-history', 'send-ai-consultation',
+
+            // Feed
+            'view-feed-posts', 'create-feed-post', 'edit-feed-post', 'delete-feed-post',
+            'like-feed-post', 'save-feed-post', 'view-feed-post', 'view-trending-posts',
+            'search-feed-posts', 'view-doctor-posts', 'view-saved-posts', 'view-post-likes',
+
+            // Feed Comments
+            'view-feed-comments', 'create-feed-comment', 'delete-feed-comment',
+            'like-feed-comment', 'reply-feed-comment',
+
+            // Legacy Posts
+            'view-legacy-posts', 'view-legacy-post-comments', 'create-legacy-post-comment',
+            'delete-legacy-post-comment',
+
+            // Groups
+            'view-groups', 'view-groups-tab', 'view-group-details', 'create-group',
+            'update-group', 'delete-group', 'join-group', 'leave-group', 'view-group-members',
+            'view-my-groups', 'send-group-invitation', 'remove-group-member',
+            'view-group-invitations', 'handle-group-invitation',
+
+            // Polls
+            'vote-poll', 'add-poll-option', 'view-poll-voters',
         ];
         $doctor->syncPermissions(Permission::whereIn('name', $doctorPermissions)->where('guard_name', 'web')->get());
         $this->command->info('✓ Doctor role created');
 
-        // Junior Doctor Role
+        // Junior Doctor Role - Limited permissions
         $juniorDoctor = Role::firstOrCreate(['name' => 'junior-doctor', 'guard_name' => 'web']);
         $juniorDoctorPermissions = [
-            // Patient management (limited)
-            'view-patients', 'view-patient-details', 'create-patients',
-            'search-patients', 'view-current-patients',
-            'mark-patients', 'view-marked-patients', 'upload-patient-files',
-            'generate-patient-pdf', 'view-patient-sections',
-
-            // Medical data (view only)
-            'view-questions', 'view-sections', 'view-scores', 'view-recommendations',
-
-            // Patient comments
-            'view-patient-comments', 'create-patient-comments',
-
-            // Consultations (view only)
-            'view-consultations', 'view-consultation-details',
-
-            // Content
-            'view-posts', 'create-posts', 'edit-posts', 'delete-posts', 'like-posts', 'save-posts',
-            'view-comments', 'create-comments', 'edit-comments', 'delete-comments',
-
-            // Groups
-            'view-groups', 'view-group-details', 'join-groups', 'leave-groups',
-            'view-my-groups', 'handle-group-invitations',
-
-            // Communication
-            'view-notifications', 'mark-notification-read', 'manage-fcm-tokens',
-
-            // Profile
-            'upload-profile-image', 'change-user-password', 'manage-user-locale',
-
-            // Media
-            'upload-images',
-
-            // Doses
-            'view-doses', 'search-doses',
+            'access-home',
+            'view-current-patients', 'search-patients', 'view-patient-sections',
+            'view-patient-details', 'create-patient', 'update-patient-section',
+            'get-patient-questions', 'submit-patient-outcome', 'generate-patient-pdf',
+            'view-patient-comments', 'create-patient-comment',
+            'view-recommendations', 'create-recommendation',
+            'search-doses',
+            'update-profile', 'upload-profile-image', 'change-password',
+            'view-doctor-profile', 'view-doctor-patients',
+            'upload-patient-files',
+            'view-sent-consultations', 'view-received-consultations', 'view-consultation-details',
+            'view-feed-posts', 'create-feed-post', 'edit-feed-post', 'delete-feed-post',
+            'like-feed-post', 'save-feed-post', 'view-feed-comments', 'create-feed-comment',
+            'view-groups', 'view-group-details', 'join-group', 'leave-group', 'view-my-groups',
+            'handle-group-invitation', 'vote-poll',
         ];
         $juniorDoctor->syncPermissions(Permission::whereIn('name', $juniorDoctorPermissions)->where('guard_name', 'web')->get());
         $this->command->info('✓ Junior Doctor role created');
 
-        // Moderator Role
-        $moderator = Role::firstOrCreate(['name' => 'moderator', 'guard_name' => 'web']);
-        $moderatorPermissions = [
-            // Content moderation
-            'view-posts', 'edit-any-post', 'delete-any-post', 'moderate-posts',
-            'view-comments', 'delete-any-comment', 'moderate-comments',
-            'view-groups', 'view-group-details', 'delete-any-group',
-
-            // User management
-            'view-users', 'view-user-profile', 'block-users',
-
-            // Communication
-            'send-push-notifications', 'create-notifications',
-            'view-contacts', 'edit-contacts', 'delete-contacts',
-
-            // Reports
-            'view-reports',
-        ];
-        $moderator->syncPermissions(Permission::whereIn('name', $moderatorPermissions)->where('guard_name', 'web')->get());
-        $this->command->info('✓ Moderator role created');
-
-        // Content Manager Role
-        $contentManager = Role::firstOrCreate(['name' => 'content-manager', 'guard_name' => 'web']);
-        $contentManagerPermissions = [
-            // Content
-            'view-posts', 'create-posts', 'edit-posts', 'delete-posts',
-            'view-comments', 'create-comments', 'edit-comments', 'delete-comments',
-            'view-trending-posts', 'search-posts',
-
-            // Groups
-            'view-groups', 'create-groups', 'edit-groups', 'delete-groups',
-            'invite-group-members', 'view-group-members',
-
-            // Communication
-            'send-push-notifications', 'create-notifications',
-
-            // Media
-            'upload-images', 'upload-videos',
-        ];
-        $contentManager->syncPermissions(Permission::whereIn('name', $contentManagerPermissions)->where('guard_name', 'web')->get());
-        $this->command->info('✓ Content Manager role created');
-
-        // Viewer Role
+        // Viewer Role - Read-only access
         $viewer = Role::firstOrCreate(['name' => 'viewer', 'guard_name' => 'web']);
         $viewerPermissions = [
-            // View only
-            'view-posts', 'view-trending-posts', 'search-posts',
-            'view-comments',
-            'view-groups', 'view-group-details',
-            'view-notifications', 'mark-notification-read',
-            'view-doses', 'search-doses',
+            'access-home',
+            'view-all-patients', 'view-current-patients', 'view-patient-sections',
+            'view-patient-details', 'view-patient-comments', 'view-recommendations',
+            'view-doctor-profile',
+            'view-feed-posts', 'view-feed-post', 'view-trending-posts',
+            'view-feed-comments', 'view-groups', 'view-group-details',
         ];
         $viewer->syncPermissions(Permission::whereIn('name', $viewerPermissions)->where('guard_name', 'web')->get());
         $this->command->info('✓ Viewer role created');
 
-        $this->command->info('✓ All 8 roles created and configured');
+        $this->command->info('✓ All roles created and configured');
     }
 }

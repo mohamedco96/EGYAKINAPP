@@ -5,6 +5,8 @@ namespace App\Console\Commands;
 use App\Models\FeedPost;
 use App\Models\Group;
 use App\Models\User;
+use App\Modules\Achievements\Models\Achievement;
+use App\Modules\Posts\Models\Posts;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Config;
@@ -68,6 +70,18 @@ class CleanupOrphanedFilesCommand extends Command
         'group_images' => [
             'model' => Group::class,
             'column' => 'group_image',
+            'type' => 'string',
+        ],
+        // Posts images
+        'post_images' => [
+            'model' => Posts::class,
+            'column' => 'image',
+            'type' => 'string',
+        ],
+        // Achievement images
+        'achievement_images' => [
+            'model' => Achievement::class,
+            'column' => 'image',
             'type' => 'string',
         ],
         // Medical reports and other files
@@ -377,9 +391,10 @@ class CleanupOrphanedFilesCommand extends Command
 
                 if (is_array($files)) {
                     foreach ($files as $file) {
-                        if ($file && strpos($file, 'images/') === 0) {
+                        if ($file) {
                             $filePath = $this->extractFilePathFromUrl($file);
-                            if ($filePath) {
+                            // Accept any file that contains 'images' in its path
+                            if ($filePath && (strpos($filePath, 'images') !== false)) {
                                 $referencedFiles[] = $filePath;
                             }
                         }
@@ -395,11 +410,10 @@ class CleanupOrphanedFilesCommand extends Command
                 ->toArray();
 
             foreach ($userImages as $file) {
-                if (strpos($file, 'images/') === 0) {
-                    $filePath = $this->extractFilePathFromUrl($file);
-                    if ($filePath) {
-                        $referencedFiles[] = $filePath;
-                    }
+                $filePath = $this->extractFilePathFromUrl($file);
+                // Accept any file that contains 'images' in its path
+                if ($filePath && (strpos($filePath, 'images') !== false)) {
+                    $referencedFiles[] = $filePath;
                 }
             }
 
@@ -411,11 +425,10 @@ class CleanupOrphanedFilesCommand extends Command
                 ->toArray();
 
             foreach ($userSyndicateCards as $file) {
-                if (strpos($file, 'images/') === 0) {
-                    $filePath = $this->extractFilePathFromUrl($file);
-                    if ($filePath) {
-                        $referencedFiles[] = $filePath;
-                    }
+                $filePath = $this->extractFilePathFromUrl($file);
+                // Accept any file that contains 'images' in its path
+                if ($filePath && (strpos($filePath, 'images') !== false)) {
+                    $referencedFiles[] = $filePath;
                 }
             }
 
@@ -427,11 +440,10 @@ class CleanupOrphanedFilesCommand extends Command
                 ->toArray();
 
             foreach ($groupHeaderPictures as $file) {
-                if (strpos($file, 'images/') === 0) {
-                    $filePath = $this->extractFilePathFromUrl($file);
-                    if ($filePath) {
-                        $referencedFiles[] = $filePath;
-                    }
+                $filePath = $this->extractFilePathFromUrl($file);
+                // Accept any file that contains 'images' in its path
+                if ($filePath && (strpos($filePath, 'images') !== false)) {
+                    $referencedFiles[] = $filePath;
                 }
             }
 
@@ -443,11 +455,40 @@ class CleanupOrphanedFilesCommand extends Command
                 ->toArray();
 
             foreach ($groupImages as $file) {
-                if (strpos($file, 'images/') === 0) {
-                    $filePath = $this->extractFilePathFromUrl($file);
-                    if ($filePath) {
-                        $referencedFiles[] = $filePath;
-                    }
+                $filePath = $this->extractFilePathFromUrl($file);
+                // Accept any file that contains 'images' in its path
+                if ($filePath && (strpos($filePath, 'images') !== false)) {
+                    $referencedFiles[] = $filePath;
+                }
+            }
+
+            // Check Posts image
+            $postImages = Posts::whereNotNull('image')
+                ->where('image', '!=', '')
+                ->pluck('image')
+                ->filter()
+                ->toArray();
+
+            foreach ($postImages as $file) {
+                $filePath = $this->extractFilePathFromUrl($file);
+                // Accept any file that contains 'images' in its path
+                if ($filePath && (strpos($filePath, 'images') !== false)) {
+                    $referencedFiles[] = $filePath;
+                }
+            }
+
+            // Check Achievement image
+            $achievementImages = Achievement::whereNotNull('image')
+                ->where('image', '!=', '')
+                ->pluck('image')
+                ->filter()
+                ->toArray();
+
+            foreach ($achievementImages as $file) {
+                $filePath = $this->extractFilePathFromUrl($file);
+                // Accept any file that contains 'images' in its path
+                if ($filePath && (strpos($filePath, 'images') !== false)) {
+                    $referencedFiles[] = $filePath;
                 }
             }
 
@@ -505,12 +546,25 @@ class CleanupOrphanedFilesCommand extends Command
      */
     protected function extractFilePathFromUrl(string $url): ?string
     {
-        // Remove domain and storage prefix
+        // If already a relative path (not a full URL), use it directly
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            // Remove leading slash, then strip a leading "storage/" segment so
+            // the result matches the keys returned by Storage::allFiles(...).
+            $relative = ltrim($url, '/');
+            if (str_starts_with($relative, 'storage/')) {
+                $relative = substr($relative, strlen('storage/'));
+            }
+            return $relative;
+        }
+
+        // Handle full URLs - extract path component
         $path = parse_url($url, PHP_URL_PATH);
 
         if ($path) {
             // Remove /storage/ prefix if present
             $path = preg_replace('/^\/storage\//', '', $path);
+            // Remove any leading slashes
+            $path = ltrim($path, '/');
 
             return $path;
         }

@@ -322,8 +322,8 @@ class AuditHelper
             return false;
         }
 
-        // Check if user has permission to view audit logs
-        return $user->can('view_audit_logs') || $user->hasRole(['admin', 'super_admin']);
+        // Only admin and super-admin can view audit logs
+        return $user->hasRole(['admin', 'super-admin']);
     }
 
     /**
@@ -337,7 +337,7 @@ class AuditHelper
             return false;
         }
 
-        // Check if user has permission to manage audit logs
-        return $user->can('manage_audit_logs') || $user->hasRole(['admin', 'super_admin']);
+        // Only admin and super-admin can manage audit logs
+        return $user->hasRole(['admin', 'super-admin']);
     }
 }

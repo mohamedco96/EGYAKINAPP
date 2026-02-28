@@ -9,6 +9,7 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasPermissions;
@@ -53,6 +54,8 @@ class User extends Authenticatable implements FilamentUser
         'avatar',
         'social_verified_at',
         'profile_completed',
+        'permissions_changed',
+        'user_type',
     ];
 
     /**
@@ -77,8 +80,20 @@ class User extends Authenticatable implements FilamentUser
         'blocked' => 'boolean',
         'limited' => 'boolean',
         'profile_completed' => 'boolean',
+        'permissions_changed' => 'boolean',
         'locale' => 'string',
     ];
+
+    /**
+     * Get available user types
+     */
+    public static function getUserTypes(): array
+    {
+        return [
+            'normal' => 'Normal User',
+            'medical_statistics' => 'Medical Statistics',
+        ];
+    }
 
     /**
      * Get the user's image URL with prefix.
@@ -322,7 +337,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function getFullNameAttribute(): string
     {
-        return trim($this->name . ' ' . ($this->lname ?? ''));
+        return trim($this->name.' '.($this->lname ?? ''));
     }
 
     /**
@@ -330,7 +345,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function getFullNameWithEmailAttribute(): string
     {
-        return $this->full_name . ' (' . $this->email . ')';
+        return $this->full_name.' ('.$this->email.')';
     }
 
     /**
@@ -338,6 +353,42 @@ class User extends Authenticatable implements FilamentUser
      */
     public function getFullNameWithSpecialtyAttribute(): string
     {
-        return $this->full_name . ' (' . ($this->specialty ?? 'No Specialty') . ')';
+        return $this->full_name.' ('.($this->specialty ?? 'No Specialty').')';
+    }
+
+    /**
+     * Assign a single role to user (removes existing roles)
+     * Enforces single role per user
+     */
+    public function assignSingleRole(string $roleName): void
+    {
+        DB::transaction(function () use ($roleName) {
+            // Remove all existing roles
+            $this->roles()->detach();
+
+            // Assign new role
+            $this->assignRole($roleName);
+
+            // Mark permissions as changed
+            $this->update(['permissions_changed' => true]);
+        });
+    }
+
+    /**
+     * Get user's single role name
+     */
+    public function getRoleName(): ?string
+    {
+        return $this->roles()->first()?->name;
+    }
+
+    /**
+     * Get permissions from user's role only
+     */
+    public function getRolePermissions()
+    {
+        $role = $this->roles()->first();
+
+        return $role ? $role->permissions()->pluck('name')->values() : collect();
     }
 }

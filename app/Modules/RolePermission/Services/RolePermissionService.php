@@ -307,6 +307,9 @@ class RolePermissionService
 
         $role->givePermissionTo($permission);
 
+        // Mark all users with this role as having permissions changed
+        User::role($roleName)->update(['permissions_changed' => true]);
+
         Log::info('Permission assigned to role successfully', [
             'role_name' => $roleName,
             'permission_name' => $permissionName,
@@ -339,23 +342,79 @@ class RolePermissionService
     }
 
     /**
-     * Revoke permission from role (placeholder for future implementation)
+     * Revoke permission from role
      */
     private function revokePermissionFromRole(array $data): array
     {
-        // Placeholder for future implementation
+        // Validate the request data
+        $validator = Validator::make($data, [
+            'role' => 'required|string',
+            'permission' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return [
+                'success' => false,
+                'data' => [
+                    'value' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ],
+                'status_code' => 400,
+            ];
+        }
+
+        $roleName = $data['role'];
+        $permissionName = $data['permission'];
+
+        $role = Role::findByName($roleName);
+        $permission = Permission::findByName($permissionName);
+
+        if (! $role || ! $permission) {
+            return [
+                'success' => false,
+                'data' => [
+                    'value' => false,
+                    'message' => 'Role or Permission not found!',
+                ],
+                'status_code' => 404,
+            ];
+        }
+
+        if (! $role->hasPermissionTo($permission)) {
+            return [
+                'success' => false,
+                'data' => [
+                    'value' => false,
+                    'message' => 'Permission not assigned to role!',
+                ],
+                'status_code' => 409,
+            ];
+        }
+
+        $role->revokePermissionTo($permission);
+
+        // Mark all users with this role as having permissions changed
+        User::role($roleName)->update(['permissions_changed' => true]);
+
+        Log::info('Permission revoked from role successfully', [
+            'role_name' => $roleName,
+            'permission_name' => $permissionName,
+        ]);
+
         return [
-            'success' => false,
+            'success' => true,
             'data' => [
-                'value' => false,
-                'message' => 'Revoke permission functionality not implemented yet',
+                'value' => true,
+                'message' => 'Permission revoked from role successfully!',
             ],
-            'status_code' => 501,
+            'status_code' => 200,
         ];
     }
 
     /**
      * Assign role to user internal method
+     * Enforces single role per user - removes existing roles before assigning new one
      */
     private function assignRoleToUserInternal(User $user, array $data): array
     {
@@ -377,6 +436,7 @@ class RolePermissionService
 
         $roleOrPermission = $data['roleOrPermission'];
 
+        // Check if user already has this role
         if ($user->hasRole($roleOrPermission)) {
             return [
                 'success' => false,
@@ -388,7 +448,8 @@ class RolePermissionService
             ];
         }
 
-        $user->assignRole($roleOrPermission);
+        // Remove all existing roles, assign new role, and flag permissions atomically
+        $user->assignSingleRole($roleOrPermission);
 
         Log::info('Role assigned to user successfully', [
             'user_id' => $user->id,

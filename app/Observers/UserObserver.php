@@ -25,6 +25,10 @@ class UserObserver
                 'type' => 'string',
                 'disk' => 'public',
             ],
+            'syndicate_card' => [
+                'type' => 'string',
+                'disk' => 'public',
+            ],
         ];
 
         // Delete associated files
@@ -33,7 +37,7 @@ class UserObserver
 
     /**
      * Handle the User "updating" event.
-     * Clean up old profile image when it's being changed.
+     * Clean up old profile image and syndicate card when they're being changed.
      */
     public function updating(User $user): void
     {
@@ -43,6 +47,18 @@ class UserObserver
 
             if ($oldImage && $oldImage !== $user->image) {
                 $cleanPath = $this->fileCleanupService->extractFilePathFromUrl($oldImage);
+                if ($cleanPath) {
+                    $this->fileCleanupService->deleteFile($cleanPath, 'public');
+                }
+            }
+        }
+
+        // Check if syndicate_card is being changed
+        if ($user->isDirty('syndicate_card')) {
+            $oldCard = $user->getOriginal('syndicate_card');
+
+            if ($oldCard && $oldCard !== $user->syndicate_card) {
+                $cleanPath = $this->fileCleanupService->extractFilePathFromUrl($oldCard);
                 if ($cleanPath) {
                     $this->fileCleanupService->deleteFile($cleanPath, 'public');
                 }

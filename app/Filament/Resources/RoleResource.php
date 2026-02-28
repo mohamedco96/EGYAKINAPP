@@ -22,7 +22,8 @@ use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Spatie\Permission\Models\Permission;
+use Illuminate\Support\Facades\DB;
+use App\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 class RoleResource extends Resource
@@ -99,24 +100,29 @@ class RoleResource extends Resource
                     ])->columns(2),
 
                 Section::make('Permissions Assignment')
-                    ->description('Select which permissions this role should have')
+                    ->description('Select which permissions this role should have. Permissions are organized by category.')
                     ->icon('heroicon-o-key')
                     ->schema([
                         CheckboxList::make('permissions')
                             ->relationship('permissions', 'name')
-                            ->columns(4)
+                            ->columns(3)
                             ->gridDirection('row')
                             ->bulkToggleable()
                             ->searchable()
-                            ->getOptionLabelUsing(fn ($value): string => ucwords(str_replace(['-', '_'], ' ', Permission::find($value)?->name ?? '')))
                             ->descriptions(
-                                fn (): array => Permission::all()->pluck('name', 'id')->map(
-                                    fn ($name) => 'Grant access to '.str_replace(['-', '_'], ' ', $name).' functionality'
-                                )->toArray()
+                                fn (): array => Permission::all()->mapWithKeys(function ($permission) {
+                                    $category = $permission->category ? Permission::getCategories()[$permission->category] ?? ucwords(str_replace(['-', '_'], ' ', $permission->category)) : 'Other';
+                                    $description = $permission->description ?: 'No description';
+                                    return [
+                                        $permission->id => "{$category} | {$description}"
+                                    ];
+                                })->toArray()
                             )
-                            ->hint('Select all permissions that users with this role should have')
-                            ->hintColor('primary'),
-                    ])->collapsible(),
+                            ->hint('💡 Tip: Use the search box to quickly find permissions by name or description. Permissions are grouped by category.')
+                            ->hintColor('primary')
+                            ->helperText('Select all permissions that users with this role should have access to.'),
+                    ])->collapsible()
+                    ->collapsed(false),
             ]);
     }
 
@@ -199,7 +205,7 @@ class RoleResource extends Resource
                     EditAction::make()
                         ->color('warning'),
                     Action::make('assign_users')
-                        ->label('Assign Users')
+                        ->label('Assign Users to Role')
                         ->icon('heroicon-o-users')
                         ->color('success')
                         ->form([
@@ -207,12 +213,57 @@ class RoleResource extends Resource
                                 ->label('Select Users')
                                 ->options(User::all()->pluck('name', 'id'))
                                 ->columns(2)
-                                ->searchable(),
+                                ->searchable()
+                                ->helperText('⚠️ This will replace the user\'s current role with this role (single role per user)'),
                         ])
                         ->action(function (Role $record, array $data) {
-                            $record->users()->sync($data['users'] ?? []);
+                            $userIds = $data['users'] ?? [];
+                            $assignedCount = 0;
+
+                            DB::transaction(function () use ($record, $userIds, &$assignedCount) {
+                                foreach ($userIds as $userId) {
+                                    $user = User::find($userId);
+                                    if ($user) {
+                                        $user->assignSingleRole($record->name);
+                                        $assignedCount++;
+                                    }
+                                }
+                            });
+                            
                             \Filament\Notifications\Notification::make()
                                 ->title('Users assigned successfully')
+                                ->body("{$assignedCount} user(s) assigned to '{$record->name}' role. Their permissions have been updated.")
+                                ->success()
+                                ->send();
+                        }),
+                    Action::make('assign_permissions_by_category')
+                        ->label('Quick Assign by Category')
+                        ->icon('heroicon-o-funnel')
+                        ->color('info')
+                        ->form([
+                            \Filament\Forms\Components\CheckboxList::make('categories')
+                                ->label('Select Categories')
+                                ->options(Permission::getCategories())
+                                ->columns(2)
+                                ->searchable()
+                                ->helperText('Select categories to assign all permissions from those categories to this role'),
+                        ])
+                        ->action(function (Role $record, array $data) {
+                            $categories = $data['categories'] ?? [];
+                            $permissions = Permission::whereIn('category', $categories)->where('guard_name', $record->guard_name)->pluck('id');
+                            
+                            // Get current permissions and merge
+                            $currentPermissions = $record->permissions()->pluck('id');
+                            $allPermissions = $currentPermissions->merge($permissions)->unique();
+                            
+                            $record->syncPermissions($allPermissions);
+                            
+                            // Mark all users with this role as having permissions changed
+                            \App\Models\User::role($record->name)->update(['permissions_changed' => true]);
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title('Permissions assigned successfully')
+                                ->body(count($permissions) . ' permission(s) from selected categories assigned to ' . $record->name)
                                 ->success()
                                 ->send();
                         }),

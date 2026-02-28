@@ -334,8 +334,11 @@ Route::middleware(['auth:sanctum', 'check.blocked.home'])->get('/user/role-permi
     // Get permissions from role only (not direct permissions)
     $permissions = $role ? $role->permissions()->pluck('name')->values() : collect();
 
-    // Reset permissions_changed flag after fetching
-    $user->update(['permissions_changed' => false]);
+    // Reset permissions_changed flag atomically — only clears if still true,
+    // so a concurrent role/permission update that re-set it is not lost.
+    \App\Models\User::where('id', $user->id)
+        ->where('permissions_changed', true)
+        ->update(['permissions_changed' => false]);
 
     return [
         'value' => true,

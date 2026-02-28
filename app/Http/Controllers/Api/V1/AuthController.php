@@ -91,18 +91,8 @@ class AuthController extends Controller
         return $this->authController->uploadSyndicateCard($request);
     }
 
-    public function sendPushNotificationTest(Request $request)
-    {
-        return $this->authController->sendPushNotificationTest($request);
-    }
-
     public function roletest(Request $request)
     {
         return $this->authController->roletest($request);
-    }
-
-    public function decryptedPassword()
-    {
-        return $this->authController->decryptedPassword();
     }
 }

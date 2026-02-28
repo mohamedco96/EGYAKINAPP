@@ -63,7 +63,7 @@ class PatientsController extends Controller
     public function uploadFile(Request $request)
     {
         $request->validate([
-            //'file' => 'required|mimes:jpg,jpeg,png,pdf|max:2048', // Example validation
+            'file' => 'required|mimes:jpg,jpeg,png,pdf|max:10240',
         ]);
 
         $result = $this->fileUploadService->uploadFile($request->file('file'));

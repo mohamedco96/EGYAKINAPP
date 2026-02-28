@@ -43,7 +43,6 @@ class SocialAuthController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Google authentication was cancelled or failed',
-                    'error' => $request->get('error'),
                 ], 400);
             }
 
@@ -56,7 +55,6 @@ class SocialAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Google authentication failed',
-                'error' => $e->getMessage(),
             ], 400);
         }
     }
@@ -91,7 +89,6 @@ class SocialAuthController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Apple authentication was cancelled or failed',
-                    'error' => $request->get('error'),
                 ], 400);
             }
 
@@ -104,7 +101,6 @@ class SocialAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Apple authentication failed',
-                'error' => $e->getMessage(),
             ], 400);
         }
     }
@@ -243,7 +239,6 @@ class SocialAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Authentication failed',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -277,7 +272,6 @@ class SocialAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Google authentication failed',
-                'error' => $e->getMessage(),
             ], 400);
         }
     }
@@ -322,7 +316,6 @@ class SocialAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Apple authentication failed',
-                'error' => $e->getMessage(),
             ], 400);
         }
     }

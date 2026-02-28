@@ -23,13 +23,6 @@ class AuthController extends Controller
         $this->authService = $authService;
     }
 
-    public function decryptedPassword()
-    {
-        $decryptedPassword = $this->authService->decryptPassword('eyJpdiI6IkNFbWE3UnA2MEFmTnRUalUzY2hJREE9PSIsInZhbHVlIjoibVpRUDhidkMxTWtpM2pNb0lTYlFRMUc4WVJyRnUvemZQRURWTzZ0Ukhaaz0iLCJtYWMiOiJhN2JlNTY2NzZjMjlkNWNmOTg1MThlMjA4NWNjNjcyNWQxMWUyNWFkZjg4NDAzMGJhYTZiMTYzODExNjFjODM4IiwidGFnIjoiIn0=');
-
-        dd($decryptedPassword);
-    }
-
     public function register(RegisterRequest $request)
     {
         try {
@@ -206,15 +199,22 @@ class AuthController extends Controller
 
             return response()->json([
                 'value' => false,
-                'message' => 'User update failed: '.$e->getMessage(),
+                'message' => 'User update failed',
             ], 500);
         }
     }
 
     public function updateUserById(Request $request, $id)
     {
+        if (! auth()->user()?->hasRole(['admin', 'super-admin'])) {
+            return response()->json([
+                'value' => false,
+                'message' => 'Unauthorized',
+            ], 403);
+        }
+
         try {
-            $result = $this->authService->updateUserById($id, $request->all());
+            $result = $this->authService->updateUserById($id, $request->validated());
             $statusCode = $result['status_code'] ?? 200;
             unset($result['status_code']);
 

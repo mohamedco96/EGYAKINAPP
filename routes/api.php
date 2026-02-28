@@ -49,8 +49,13 @@ Route::prefix('v2')->group(function () {
 // to ensure existing production applications continue to work
 
 // Public routes
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::middleware('throttle:auth')->group(function () {
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/forgotpassword', [ForgetPasswordController::class, 'forgotPassword']);
+    Route::post('/resetpasswordverification', [ResetPasswordController::class, 'resetpasswordverification']);
+    Route::post('/resetpassword', [ResetPasswordController::class, 'resetpassword']);
+});
 
 // Social Authentication Routes
 Route::prefix('auth/social')->group(function () {
@@ -67,23 +72,14 @@ Route::prefix('auth/social')->group(function () {
     Route::post('/apple', [SocialAuthController::class, 'appleAuth']);
 });
 
-Route::post('/forgotpassword', [ForgetPasswordController::class, 'forgotPassword']);
-Route::post('/resetpasswordverification', [ResetPasswordController::class, 'resetpasswordverification']);
-Route::post('/resetpassword', [ResetPasswordController::class, 'resetpassword']);
-Route::get('/generatePDF/{patient_id}', [PatientsController::class, 'generatePatientPDF']);
-Route::post('/send-notification', [AuthController::class, 'sendPushNotificationTest']);
-Route::post('/sendAllPushNotification', [\App\Modules\Notifications\Controllers\NotificationController::class, 'sendAllPushNotification']);
 
 // routes/api.php
 Route::post('/email/verification-notification', [EmailVerificationController::class, 'sendVerificationEmail']);
 Route::post('/email/verify', [EmailVerificationController::class, 'verifyEmail']);
 
-// Settings
+// Settings read routes (public)
 Route::get('/settings', [SettingsController::class, 'index']);
-Route::post('/settings', [SettingsController::class, 'store']);
 Route::get('/settings/{settings}', [SettingsController::class, 'show']);
-Route::put('/settings/{settings}', [SettingsController::class, 'update']);
-Route::delete('/settings/{settings}', [SettingsController::class, 'destroy']);
 
 // Protected routes
 Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function () {
@@ -105,7 +101,6 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
     Route::post('/upload-profile-image', [AuthController::class, 'uploadProfileImage']);
     Route::post('/uploadSyndicateCard', [AuthController::class, 'uploadSyndicateCard']);
     Route::post('/storeFCM', [\App\Modules\Notifications\Controllers\NotificationController::class, 'storeFCM']);
-    Route::post('/decryptedPassword', [AuthController::class, 'decryptedPassword']);
 
     Route::post('/emailverification', [OtpController::class, 'verifyOtp']);
     Route::post('/sendverificationmail', [OtpController::class, 'sendOtp']);
@@ -263,6 +258,18 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
     Route::put('/recommendations/{patient_id}', [RecommendationController::class, 'update']);
     Route::delete('/recommendations/{patient_id}', [RecommendationController::class, 'destroy']);
 
+    // Patient PDF (requires auth — patient data is sensitive)
+    Route::get('/generatePDF/{patient_id}', [PatientsController::class, 'generatePatientPDF']);
+
+    // Settings write routes (requires auth)
+    Route::post('/settings', [SettingsController::class, 'store']);
+    Route::put('/settings/{settings}', [SettingsController::class, 'update']);
+    Route::delete('/settings/{settings}', [SettingsController::class, 'destroy']);
+
+    // Admin-only routes
+    Route::middleware('role:admin|super-admin')->group(function () {
+        Route::post('/sendAllPushNotification', [\App\Modules\Notifications\Controllers\NotificationController::class, 'sendAllPushNotification']);
+    });
 });
 
 Route::fallback(function () {

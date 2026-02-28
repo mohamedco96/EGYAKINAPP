@@ -15,6 +15,8 @@ class TrustHosts extends Middleware
     {
         return [
             $this->allSubdomainsOfApplicationUrl(),
+            'api.egyakin.com',
+            'test.egyakin.com',
         ];
     }
 }

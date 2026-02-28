@@ -24,7 +24,7 @@ class LoginRequest extends FormRequest
     {
         return [
             'email' => 'required|email|max:255',
-            'password' => 'required|string|min:6',
+            'password' => 'required|string|min:8',
             'fcmToken' => 'nullable|string|max:255|regex:/^[a-zA-Z0-9:_-]+$/',
             'deviceId' => 'nullable|string',
             'deviceType' => 'nullable|string|in:ios,android,web',

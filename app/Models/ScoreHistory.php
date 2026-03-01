@@ -17,6 +17,7 @@ class ScoreHistory extends Model
      */
     protected $fillable = [
         'doctor_id',
+        'patient_id',
         'score',
         'threshold',
         'action',

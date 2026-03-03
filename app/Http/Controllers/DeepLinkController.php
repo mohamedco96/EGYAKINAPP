@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\FeedPost;
 use App\Models\Group;
 use App\Modules\Patients\Models\Patients;
+use App\Traits\FormatsUserName;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class DeepLinkController extends Controller
 {
+    use FormatsUserName;
     /**
      * Handle post deeplink with preview
      */
@@ -32,7 +34,7 @@ class DeepLinkController extends Controller
 
             // Return preview page for web/social media crawlers
             $metaData = [
-                'title' => $this->formatDoctorName($post->doctor).' - EGYAKIN Post',
+                'title' => $this->formatUserName($post->doctor).' - EGYAKIN Post',
                 'description' => $this->truncateText($post->content ?? 'Medical post on EGYAKIN', 160),
                 'image' => $post->image ?? config('app.url').'/storage/profile_images/profile_image.jpg',
                 'url' => url("/post/$id"),
@@ -90,7 +92,7 @@ class DeepLinkController extends Controller
 
             $metaData = [
                 'title' => "$patientName - EGYAKIN Patient",
-                'description' => 'Medical case by '.$this->formatDoctorName($patient->doctor).
+                'description' => 'Medical case by '.$this->formatUserName($patient->doctor).
                                ($hospital ? " at $hospital" : '').' on EGYAKIN medical platform',
                 'image' => config('app.url').'/storage/profile_images/profile_image.jpg',
                 'url' => url("/patient/$id"),
@@ -138,7 +140,7 @@ class DeepLinkController extends Controller
             $metaData = [
                 'title' => $group->name.' - EGYAKIN Group',
                 'description' => ($group->description ?? 'Medical group on EGYAKIN').
-                               ' | Created by '.$this->formatDoctorName($group->owner),
+                               ' | Created by '.$this->formatUserName($group->owner),
                 'image' => $group->image ?? asset('images/egyakin-logo.png'),
                 'url' => url("/group/$id"),
                 'type' => 'website',
@@ -190,7 +192,7 @@ class DeepLinkController extends Controller
 
             $metaData = [
                 'title' => "Medical Consultation - $patientName - EGYAKIN",
-                'description' => 'Medical consultation by '.$this->formatDoctorName($consultation->doctor).
+                'description' => 'Medical consultation by '.$this->formatUserName($consultation->doctor).
                                " for $patientName on EGYAKIN medical platform",
                 'image' => config('app.url').'/storage/profile_images/profile_image.jpg',
                 'url' => url("/consultation/$id"),
@@ -224,24 +226,6 @@ class DeepLinkController extends Controller
         $userAgent = $request->header('User-Agent');
 
         return preg_match('/(android|iphone|ipad|mobile)/i', $userAgent);
-    }
-
-    /**
-     * Format doctor name with Dr. prefix if verified
-     */
-    private function formatDoctorName($doctor): string
-    {
-        if (! $doctor) {
-            return 'Doctor';
-        }
-
-        $fullName = trim($doctor->name.' '.($doctor->lname ?? ''));
-
-        if ($doctor->isSyndicateCardRequired === 'Verified') {
-            return 'Dr. '.$fullName;
-        }
-
-        return $fullName;
     }
 
     /**

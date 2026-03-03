@@ -7,6 +7,7 @@ use App\Modules\Notifications\Models\AppNotification;
 use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Notifications\Services\NotificationService;
 use App\Notifications\WelcomeMailNotification;
+use App\Traits\FormatsUserName;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\Storage;
 
 class AuthService
 {
+    use FormatsUserName;
     protected $notificationService;
 
     public function __construct(NotificationService $notificationService)
@@ -892,12 +894,14 @@ class AuthService
             ->with('fcmTokens:id,doctor_id,token')
             ->get();
 
+        $formattedName = $this->formatUserName($user);
+
         // Create notifications for all doctors at once
-        $notifications = $doctors->map(function ($doctor) use ($user) {
+        $notifications = $doctors->map(function ($doctor) use ($user, $formattedName) {
             return [
                 'doctor_id' => $doctor->id,
                 'type' => 'Syndicate Card',
-                'content' => 'Dr. '.$user->name.' has uploaded a new Syndicate Card for approval.',
+                'content' => $formattedName.' has uploaded a new Syndicate Card for approval.',
                 'type_doctor_id' => $user->id,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -907,7 +911,7 @@ class AuthService
         AppNotification::insert($notifications);
 
         $title = __('api.syndicate_card_pending_approval');
-        $body = __('api.clean_doctor_uploaded_syndicate_card', ['name' => $user->name]);
+        $body = __('api.clean_doctor_uploaded_syndicate_card', ['name' => $formattedName]);
 
         // Get tokens from eager loaded relationship
         $tokens = $doctors->pluck('fcmTokens.*.token')

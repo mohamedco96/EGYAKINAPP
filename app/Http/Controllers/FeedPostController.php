@@ -1085,14 +1085,14 @@ class FeedPostController extends Controller
                 ->pluck('users.id');
 
             $title = 'New Group Post 👥';
-            $body = 'Dr. '.ucfirst($user->name).' posted in your group';
+            $body = $this->formatUserName($user).' posted in your group';
         } else {
             // For public posts, notify all verified doctors (excluding post creator)
             $doctors = User::where('id', '!=', Auth::id())
                 ->pluck('id');
 
             $title = 'New Post was created 📣';
-            $body = 'Dr. '.ucfirst($user->name).' added a new post';
+            $body = $this->formatUserName($user).' added a new post';
         }
 
         if ($doctors->isEmpty()) {

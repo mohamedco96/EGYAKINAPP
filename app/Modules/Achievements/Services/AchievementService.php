@@ -6,10 +6,12 @@ use App\Models\User;
 use App\Modules\Achievements\Models\Achievement;
 use App\Modules\Notifications\Models\AppNotification;
 use App\Services\NotificationService;
+use App\Traits\FormatsUserName;
 use Illuminate\Support\Facades\Log;
 
 class AchievementService
 {
+    use FormatsUserName;
     protected $notificationService;
 
     public function __construct(NotificationService $notificationService)
@@ -408,7 +410,7 @@ class AchievementService
         $tokens = $this->notificationService->getDoctorTokens($doctorIds->toArray());
 
         $this->notificationService->sendPushNotification($title, $body, $tokens);
-        $this->createAchievementNotification($doctorIds->toArray(), $user->name, $achievement->id, $user->id);
+        $this->createAchievementNotification($doctorIds->toArray(), $user, $achievement->id, $user->id);
     }
 
     /**
@@ -416,7 +418,7 @@ class AchievementService
      */
     private function generateNotificationBody(User $user, Achievement $achievement): string
     {
-        $body = 'Dr. '.$user->name.' achieved a new milestone: '.$achievement->name;
+        $body = $this->formatUserName($user).' achieved a new milestone: '.$achievement->name;
         Log::info('Generated notification body', ['body' => $body]);
 
         return $body;
@@ -425,13 +427,14 @@ class AchievementService
     /**
      * Create a new achievement notification for all relevant doctors
      */
-    private function createAchievementNotification(array $doctorIds, string $doctorName, int $achievementId, int $doctorID): void
+    private function createAchievementNotification(array $doctorIds, User $user, int $achievementId, int $doctorID): void
     {
+        $formattedName = $this->formatUserName($user);
         $notifications = array_map(fn ($doctorId) => [
             'doctor_id' => $doctorId,
             'type' => 'Achievement',
             'type_id' => $achievementId,
-            'content' => 'Dr. '.$doctorName.' earned a new achievement.',
+            'content' => $formattedName.' earned a new achievement.',
             'type_doctor_id' => $doctorID,
             'created_at' => now(),
             'updated_at' => now(),

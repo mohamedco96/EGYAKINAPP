@@ -119,7 +119,7 @@ class AuthService
             ];
         }
 
-        $user = Auth::user();
+        $user = Auth::user()->load(['roles.permissions', 'permissions']);
 
         // Check if user is blocked
         if ($user->blocked) {
@@ -166,7 +166,7 @@ class AuthService
         $roleName = $role ? $role->name : null;
 
         // Get permissions from role AND direct permissions
-        $permissions = $user->getAllPermissions()->pluck('name')->unique()->values();
+        $permissions = $user->getAllSystemPermissions();
 
         Log::info('User logged in successfully', [
             'user_id' => $user->id,

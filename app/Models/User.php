@@ -406,4 +406,15 @@ class User extends Authenticatable implements FilamentUser
 
         return $role ? $role->permissions()->pluck('name')->values() : collect();
     }
+
+    /**
+     * Get all permissions (direct + inherited from roles)
+     */
+    public function getAllSystemPermissions()
+    {
+        $direct = $this->permissions()->pluck('name');
+        $inherited = $this->getPermissionsViaRoles()->pluck('name');
+
+        return $direct->merge($inherited)->unique()->values();
+    }
 }

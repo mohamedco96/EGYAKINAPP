@@ -309,14 +309,14 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
 
 // Authenticated user route with roles and permissions
 Route::middleware(['auth:sanctum', 'check.blocked.home'])->get('/user', function (Request $request) {
-    $user = $request->user();
+    $user = $request->user()->load(['roles.permissions', 'permissions']);
 
     // Get user's single role (enforcing one role per user)
     $role = $user->roles()->first();
     $roleName = $role ? $role->name : null;
 
     // Get permissions from role AND direct permissions
-    $permissions = $user->getAllPermissions()->pluck('name')->unique()->values();
+    $permissions = $user->getAllSystemPermissions();
 
     return [
         'id' => $user->id,
@@ -334,14 +334,14 @@ Route::middleware(['auth:sanctum', 'check.blocked.home'])->get('/user', function
 
 // Get user role and permissions endpoint (used when permissions_changed is true)
 Route::middleware(['auth:sanctum', 'check.blocked.home'])->get('/user/role-permissions', function (Request $request) {
-    $user = $request->user();
+    $user = $request->user()->load(['roles.permissions', 'permissions']);
 
     // Get user's single role (enforcing one role per user)
     $role = $user->roles()->first();
     $roleName = $role ? $role->name : null;
 
     // Get permissions from role AND direct permissions
-    $permissions = $user->getAllPermissions()->pluck('name')->unique()->values();
+    $permissions = $user->getAllSystemPermissions();
 
     // Reset permissions_changed flag after fetching
     $user->update(['permissions_changed' => false]);

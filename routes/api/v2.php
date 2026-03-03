@@ -315,8 +315,8 @@ Route::middleware(['auth:sanctum', 'check.blocked.home'])->get('/user', function
     $role = $user->roles()->first();
     $roleName = $role ? $role->name : null;
 
-    // Get permissions from role only (not direct permissions)
-    $permissions = $role ? $role->permissions()->pluck('name')->values() : collect();
+    // Get permissions from role AND direct permissions
+    $permissions = $user->getAllPermissions()->pluck('name')->unique()->values();
 
     return [
         'id' => $user->id,
@@ -340,8 +340,8 @@ Route::middleware(['auth:sanctum', 'check.blocked.home'])->get('/user/role-permi
     $role = $user->roles()->first();
     $roleName = $role ? $role->name : null;
 
-    // Get permissions from role only (not direct permissions)
-    $permissions = $role ? $role->permissions()->pluck('name')->values() : collect();
+    // Get permissions from role AND direct permissions
+    $permissions = $user->getAllPermissions()->pluck('name')->unique()->values();
 
     // Reset permissions_changed flag after fetching
     $user->update(['permissions_changed' => false]);

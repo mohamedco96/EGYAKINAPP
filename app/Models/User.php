@@ -108,7 +108,7 @@ class User extends Authenticatable implements FilamentUser
         }
 
         // Fall back to social provider avatar (already a full URL)
-        if (!empty($this->attributes['avatar'])) {
+        if (! empty($this->attributes['avatar'])) {
             return $this->attributes['avatar'];
         }
 
@@ -412,9 +412,16 @@ class User extends Authenticatable implements FilamentUser
      */
     public function getAllSystemPermissions()
     {
+        // 1. Get permissions assigned DIRECTLY to the user (model_has_permissions table)
         $direct = $this->permissions()->pluck('name');
-        $inherited = $this->getPermissionsViaRoles()->pluck('name');
 
+        // 2. Get permissions inherited from the user's ROLES (role_has_permissions table)
+        $inherited = collect();
+        foreach ($this->roles as $role) {
+            $inherited = $inherited->merge($role->permissions->pluck('name'));
+        }
+
+        // 3. Merge, unique, and return as a flat list
         return $direct->merge($inherited)->unique()->values();
     }
 }

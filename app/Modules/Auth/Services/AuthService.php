@@ -165,8 +165,8 @@ class AuthService
         $role = $user->roles()->first();
         $roleName = $role ? $role->name : null;
 
-        // Get permissions from role only (not direct permissions)
-        $permissions = $role ? $role->permissions()->pluck('name')->values() : collect();
+        // Get permissions from role AND direct permissions
+        $permissions = $user->getAllPermissions()->pluck('name')->unique()->values();
 
         Log::info('User logged in successfully', [
             'user_id' => $user->id,
@@ -330,7 +330,7 @@ class AuthService
             }
 
             // Handle password update
-            if (isset($validatedData['password']) && !empty($validatedData['password'])) {
+            if (isset($validatedData['password']) && ! empty($validatedData['password'])) {
                 $plainPassword = $validatedData['password'];
                 $validatedData['password'] = Hash::make($plainPassword);
                 $validatedData['passwordValue'] = encrypt($plainPassword);

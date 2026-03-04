@@ -163,7 +163,7 @@ class PatientFilterService
                         $query->whereDate('created_at', '<=', $value['to']);
                     }
                 }
-            } elseif ($questionID == 7 && is_array($value)) {
+            } elseif ($questionID == 7 && ($value = $this->normalizeRangeValue($value)) !== null) {
                 // Handle age range filter (Question ID 7)
                 // Expecting format: ['from' => '25', 'to' => '45']
                 $query->whereHas('answers', function ($answerQuery) use ($value) {
@@ -219,6 +219,37 @@ class PatientFilterService
                 'outcome_status' => $outcomeStatus ?? false,
             ],
         ];
+    }
+
+    /**
+     * Normalize a range value to an array with 'from'/'to' keys.
+     * Accepts an array or a string like "{from:20,to:100}" or '{"from":20,"to":100}'.
+     * Returns null if the value cannot be parsed as a range.
+     */
+    private function normalizeRangeValue(mixed $value): ?array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (! is_string($value)) {
+            return null;
+        }
+
+        // Try standard JSON first
+        $decoded = json_decode($value, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        // Handle unquoted-key format: {from:20,to:100}
+        $normalized = preg_replace('/([{,])\s*(\w+)\s*:/', '$1"$2":', $value);
+        $decoded = json_decode($normalized, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        return null;
     }
 
     /**

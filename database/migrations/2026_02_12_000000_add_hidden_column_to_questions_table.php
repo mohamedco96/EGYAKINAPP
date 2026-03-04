@@ -8,9 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('questions', function (Blueprint $table) {
-            $table->boolean('hidden')->default(false)->after('sort');
-        });
+        if (!Schema::hasColumn('questions', 'hidden')) {
+            Schema::table('questions', function (Blueprint $table) {
+                $table->boolean('hidden')->default(false)->after('sort');
+            });
+        }
     }
 
     public function down(): void

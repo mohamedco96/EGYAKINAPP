@@ -97,7 +97,7 @@ class DoseStatsWidget extends BaseWidget
 
             Stat::make('Latest Addition', $stats['latestDose'] ? 'Today' : 'None')
                 ->description($stats['latestDose']
-                    ? 'Last: '.str($stats['latestDose']->title)->limit(20)
+                    ? 'Last: '.(string) str($stats['latestDose']->title)->limit(20)
                     : 'No doses added yet')
                 ->descriptionIcon('heroicon-m-clock')
                 ->color($stats['latestDose'] ? 'warning' : 'gray')

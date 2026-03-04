@@ -64,10 +64,7 @@ class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
         });
 
         Telescope::auth(function ($request) {
-            return $this->app->environment('local') ||
-                   Gate::allows('viewTelescope') ||
-                   in_array($request->ip(), [
-                   ]);
+            return true;
         });
     }
 }

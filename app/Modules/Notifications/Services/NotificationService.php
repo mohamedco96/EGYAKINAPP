@@ -638,16 +638,18 @@ class NotificationService
             $params = $notification->localization_params;
 
             // Format user names with Dr. prefix if they exist in params
-            if (isset($params['name']) && $typeDoctor) {
+            // Only re-format when typeDoctor is a real loaded user (has an id)
+            $hasTypeDoctor = $typeDoctor && ! empty($typeDoctor->id);
+            if (isset($params['name']) && $hasTypeDoctor) {
                 $params['name'] = $this->formatUserName($typeDoctor);
             }
 
             // Handle other name parameters that might exist
-            if (isset($params['owner_name']) && $typeDoctor) {
+            if (isset($params['owner_name']) && $hasTypeDoctor) {
                 $params['owner_name'] = $this->formatUserName($typeDoctor);
             }
 
-            if (isset($params['remover_name']) && $typeDoctor) {
+            if (isset($params['remover_name']) && $hasTypeDoctor) {
                 $params['remover_name'] = $this->formatUserName($typeDoctor);
             }
 

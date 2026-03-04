@@ -7,6 +7,7 @@ use App\Modules\Notifications\Models\AppNotification;
 use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Notifications\Services\NotificationService;
 use App\Notifications\WelcomeMailNotification;
+use App\Traits\FormatsUserName;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\Storage;
 
 class AuthService
 {
+    use FormatsUserName;
     protected $notificationService;
 
     public function __construct(NotificationService $notificationService)
@@ -119,7 +121,7 @@ class AuthService
             ];
         }
 
-        $user = Auth::user();
+        $user = Auth::user()->load(['roles.permissions', 'permissions']);
 
         // Check if user is blocked
         if ($user->blocked) {
@@ -165,8 +167,8 @@ class AuthService
         $role = $user->roles()->first();
         $roleName = $role ? $role->name : null;
 
-        // Get permissions from role only (not direct permissions)
-        $permissions = $role ? $role->permissions()->pluck('name')->values() : collect();
+        // Get permissions from role AND direct permissions
+        $permissions = $user->getAllSystemPermissions();
 
         Log::info('User logged in successfully', [
             'user_id' => $user->id,
@@ -330,7 +332,7 @@ class AuthService
             }
 
             // Handle password update
-            if (isset($validatedData['password']) && !empty($validatedData['password'])) {
+            if (isset($validatedData['password']) && ! empty($validatedData['password'])) {
                 $plainPassword = $validatedData['password'];
                 $validatedData['password'] = Hash::make($plainPassword);
                 $validatedData['passwordValue'] = encrypt($plainPassword);
@@ -433,11 +435,6 @@ class AuthService
             $requestData['email_verified_at'] = null;
         }
 
-        // Handle syndicate card requirement updates
-        if (isset($requestData['isSyndicateCardRequired'])) {
-            $this->handleSyndicateCardUpdate($user, $requestData['isSyndicateCardRequired']);
-        }
-
         // Hash password before persisting; skip null/empty/blank values
         if (isset($requestData['password']) && trim((string) $requestData['password']) !== '') {
             $requestData['password'] = Hash::make($requestData['password']);
@@ -445,9 +442,22 @@ class AuthService
             unset($requestData['password']);
         }
 
-        // Update the user's data
-        $user->fill($requestData);
-        $user->save();
+        DB::transaction(function () use ($user, $requestData) {
+            // Handle syndicate card requirement updates
+            if (isset($requestData['isSyndicateCardRequired'])) {
+                $oldStatus = $user->isSyndicateCardRequired;
+                $this->handleSyndicateCardUpdate($user, $requestData['isSyndicateCardRequired']);
+
+                if ($requestData['isSyndicateCardRequired'] === 'Verified' && $oldStatus !== 'Verified') {
+                    $user->givePermissionTo('add-patient-in-home');
+                    $user->permissions_changed = true;
+                }
+            }
+
+            // Update the user's data
+            $user->fill($requestData);
+            $user->save();
+        });
 
         Log::info("User {$user->id} updated successfully", $user->toArray());
 
@@ -885,12 +895,14 @@ class AuthService
             ->with('fcmTokens:id,doctor_id,token')
             ->get();
 
+        $formattedName = $this->formatUserName($user);
+
         // Create notifications for all doctors at once
-        $notifications = $doctors->map(function ($doctor) use ($user) {
+        $notifications = $doctors->map(function ($doctor) use ($user, $formattedName) {
             return [
                 'doctor_id' => $doctor->id,
                 'type' => 'Syndicate Card',
-                'content' => 'Dr. '.$user->name.' has uploaded a new Syndicate Card for approval.',
+                'content' => $formattedName.' has uploaded a new Syndicate Card for approval.',
                 'type_doctor_id' => $user->id,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -900,7 +912,7 @@ class AuthService
         AppNotification::insert($notifications);
 
         $title = __('api.syndicate_card_pending_approval');
-        $body = __('api.clean_doctor_uploaded_syndicate_card', ['name' => $user->name]);
+        $body = __('api.clean_doctor_uploaded_syndicate_card', ['name' => $formattedName]);
 
         // Get tokens from eager loaded relationship
         $tokens = $doctors->pluck('fcmTokens.*.token')

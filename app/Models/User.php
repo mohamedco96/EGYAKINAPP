@@ -108,7 +108,7 @@ class User extends Authenticatable implements FilamentUser
         }
 
         // Fall back to social provider avatar (already a full URL)
-        if (!empty($this->attributes['avatar'])) {
+        if (! empty($this->attributes['avatar'])) {
             return $this->attributes['avatar'];
         }
 
@@ -399,11 +399,54 @@ class User extends Authenticatable implements FilamentUser
 
     /**
      * Get permissions from user's role only
+     * Uses direct DB query to bypass potential Spatie guard/cache issues.
      */
     public function getRolePermissions()
     {
-        $role = $this->roles()->first();
+        $modelType = $this->getMorphClass();
 
-        return $role ? $role->permissions()->pluck('name')->values() : collect();
+        $roleIds = DB::table('model_has_roles')
+            ->where('model_id', $this->id)
+            ->where('model_type', $modelType)
+            ->pluck('role_id');
+
+        return DB::table('role_has_permissions')
+            ->join('permissions', 'role_has_permissions.permission_id', '=', 'permissions.id')
+            ->whereIn('role_id', $roleIds)
+            ->pluck('name')
+            ->unique()
+            ->values();
+    }
+
+    /**
+     * Get all permissions (direct + inherited from roles)
+     * This method uses direct DB queries to bypass all guard and caching issues
+     * related to the Spatie Permission package in an API/Sanctum context.
+     * It is the most reliable way to ensure all assigned permissions are returned.
+     */
+    public function getAllSystemPermissions()
+    {
+        $modelType = $this->getMorphClass();
+
+        // 1. Get permissions assigned DIRECTLY to the user (model_has_permissions table)
+        $direct = DB::table('model_has_permissions')
+            ->join('permissions', 'model_has_permissions.permission_id', '=', 'permissions.id')
+            ->where('model_has_permissions.model_id', $this->id)
+            ->where('model_has_permissions.model_type', $modelType)
+            ->pluck('permissions.name');
+
+        // 2. Get permissions inherited from the user's ROLES (role_has_permissions table)
+        $roleIds = DB::table('model_has_roles')
+            ->where('model_id', $this->id)
+            ->where('model_type', $modelType)
+            ->pluck('role_id');
+
+        $inherited = DB::table('role_has_permissions')
+            ->join('permissions', 'role_has_permissions.permission_id', '=', 'permissions.id')
+            ->whereIn('role_has_permissions.role_id', $roleIds)
+            ->pluck('permissions.name');
+
+        // 3. Merge, unique, and return as a flat list
+        return $direct->concat($inherited)->unique()->values();
     }
 }

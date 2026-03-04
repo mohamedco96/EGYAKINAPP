@@ -435,18 +435,6 @@ class AuthService
             $requestData['email_verified_at'] = null;
         }
 
-        // Handle syndicate card requirement updates
-        if (isset($requestData['isSyndicateCardRequired'])) {
-            $oldStatus = $user->isSyndicateCardRequired;
-            $this->handleSyndicateCardUpdate($user, $requestData['isSyndicateCardRequired']);
-
-            if ($requestData['isSyndicateCardRequired'] === 'Verified' && $oldStatus !== 'Verified') {
-                $user->givePermissionTo('add-patient-in-home');
-                $user->permissions_changed = true;
-                $user->save();
-            }
-        }
-
         // Hash password before persisting; skip null/empty/blank values
         if (isset($requestData['password']) && trim((string) $requestData['password']) !== '') {
             $requestData['password'] = Hash::make($requestData['password']);
@@ -454,9 +442,22 @@ class AuthService
             unset($requestData['password']);
         }
 
-        // Update the user's data
-        $user->fill($requestData);
-        $user->save();
+        DB::transaction(function () use ($user, $requestData) {
+            // Handle syndicate card requirement updates
+            if (isset($requestData['isSyndicateCardRequired'])) {
+                $oldStatus = $user->isSyndicateCardRequired;
+                $this->handleSyndicateCardUpdate($user, $requestData['isSyndicateCardRequired']);
+
+                if ($requestData['isSyndicateCardRequired'] === 'Verified' && $oldStatus !== 'Verified') {
+                    $user->givePermissionTo('add-patient-in-home');
+                    $user->permissions_changed = true;
+                }
+            }
+
+            // Update the user's data
+            $user->fill($requestData);
+            $user->save();
+        });
 
         Log::info("User {$user->id} updated successfully", $user->toArray());
 

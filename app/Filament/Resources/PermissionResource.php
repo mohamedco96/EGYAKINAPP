@@ -114,9 +114,9 @@ class PermissionResource extends Resource
                             ->bulkToggleable()
                             ->searchable()
                             ->descriptions(
-                                fn (): array => Role::all()->pluck('name', 'id')->map(
-                                    fn ($name) => 'Assign this permission to '.ucwords(str_replace(['-', '_'], ' ', $name)).' role'
-                                )->toArray()
+                                Role::all()->mapWithKeys(
+                                    fn ($role) => [$role->id => 'Assign this permission to '.ucwords(str_replace(['-', '_'], ' ', $role->name)).' role']
+                                )->all()
                             ),
                     ]),
             ]);

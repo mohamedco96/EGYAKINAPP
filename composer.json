@@ -27,7 +27,8 @@
         "pxlrbt/filament-excel": "^2.3",
         "socialiteproviders/apple": "^5.7",
         "spatie/laravel-permission": "^6.4",
-        "symfony/http-client": "*"
+        "symfony/http-client": "*",
+        "sentry/sentry-laravel": "^4.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

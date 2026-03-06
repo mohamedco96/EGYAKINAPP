@@ -508,6 +508,9 @@ class RolePermissionService
 
         $user->givePermissionTo($roleOrPermission);
 
+        // Mark permissions as changed
+        $user->update(['permissions_changed' => true]);
+
         Log::info('Permission assigned to user successfully', [
             'user_id' => $user->id,
             'permission' => $roleOrPermission,

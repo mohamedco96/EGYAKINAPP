@@ -34,4 +34,27 @@ class EditUser extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    /**
+     * After saving, mark the user as having permissions changed if their
+     * roles or direct permissions were modified via the Filament form.
+     */
+    protected function afterSave(): void
+    {
+        $user = $this->record->fresh(['roles', 'permissions']);
+
+        // Spatie syncs roles/permissions via pivot — compare current vs original
+        $originalRoleIds = $this->record->getOriginal('roles') ?? null;
+
+        // Always set permissions_changed when roles or permissions are part of the saved form data
+        // The CheckboxList relationship components sync roles/permissions on save
+        $formData = $this->data;
+
+        $hasRolesField = array_key_exists('roles', $formData);
+        $hasPermissionsField = array_key_exists('permissions', $formData);
+
+        if ($hasRolesField || $hasPermissionsField) {
+            $user->update(['permissions_changed' => true]);
+        }
+    }
 }

@@ -446,13 +446,7 @@ class AuthService
         DB::transaction(function () use ($user, $requestData) {
             // Handle syndicate card requirement updates
             if (isset($requestData['isSyndicateCardRequired'])) {
-                $oldStatus = $user->isSyndicateCardRequired;
                 $this->handleSyndicateCardUpdate($user, $requestData['isSyndicateCardRequired']);
-
-                if ($requestData['isSyndicateCardRequired'] === 'Verified' && $oldStatus !== 'Verified') {
-                    $user->givePermissionTo('add-patient-in-home');
-                    $user->permissions_changed = true;
-                }
             }
 
             // Update the user's data

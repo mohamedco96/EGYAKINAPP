@@ -233,6 +233,12 @@ class AuthController extends Controller
                 'isSyndicateCardRequired' => 'nullable|string|in:Required,Not Required,Verified',
                 'email_verified_at'       => 'sometimes|nullable|date',
                 'blocked'                 => 'sometimes|nullable|boolean',
+                'limited'                 => 'sometimes|nullable|boolean',
+                'profile_completed'       => 'sometimes|nullable|boolean',
+                'permissions_changed'     => 'sometimes|nullable|boolean',
+                'social_verified_at'      => 'sometimes|nullable|date',
+                'role'                    => 'sometimes|nullable|string|max:255',
+                'version'                 => 'sometimes|nullable|string|max:255',
             ]);
 
             $result = $this->authService->updateUserById($id, $validated);

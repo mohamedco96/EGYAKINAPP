@@ -231,6 +231,7 @@ class AuthController extends Controller
                 'registration_number'   => 'nullable|string|max:255|unique:users,registration_number,'.$id,
                 'locale'                => 'nullable|string|in:en,ar',
                 'isSyndicateCardRequired' => 'nullable|string|in:Required,Not Required,Verified',
+                'email_verified_at'       => 'sometimes|nullable|date',
             ]);
 
             $result = $this->authService->updateUserById($id, $validated);

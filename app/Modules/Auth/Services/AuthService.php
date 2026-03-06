@@ -180,6 +180,7 @@ class AuthService
         // Convert user to array and add role to data
         $userData = $user->toArray();
         $userData['role'] = $roleName;
+        unset($userData['roles'], $userData['permissions']);
 
         return [
             'value' => true,

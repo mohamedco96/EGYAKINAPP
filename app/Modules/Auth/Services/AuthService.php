@@ -936,6 +936,15 @@ class AuthService
             case 'Verified':
                 $titleMessage = __('api.syndicate_card_approved');
                 $bodyMessage = __('api.syndicate_card_approved_message');
+
+                // Promote user to doctor role and set user_type to medical_statistics
+                if ($user->hasRole('user')) {
+                    $user->removeRole('user');
+                    $user->assignRole('doctor');
+                }
+                $user->user_type = 'medical_statistics';
+                $user->permissions_changed = true;
+                $user->save();
                 break;
 
             default:

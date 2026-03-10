@@ -54,8 +54,12 @@ class CommentNotificationService
     private function createCommentNotification(Comment $comment, int $patientDoctorId, int $commentingDoctorId): void
     {
         try {
+            $commentingUser = Auth::user();
             AppNotification::createLocalized([
-                'localization_key' => 'api.notification_new_comment',
+                'localization_key' => 'api.clean_doctor_commented_on_patient',
+                'localization_params' => [
+                    'name' => $this->formatUserName($commentingUser),
+                ],
                 'read' => false,
                 'type' => 'Comment',
                 'patient_id' => $comment->patient_id,
@@ -70,7 +74,6 @@ class CommentNotificationService
                 ->toArray();
 
             if (! empty($tokens)) {
-                $commentingUser = Auth::user();
                 $this->notificationService->sendPushNotification(
                     __('api.new_patient_comment'),
                     __('api.clean_doctor_commented_on_patient', ['name' => ucfirst($this->formatUserName($commentingUser))]),

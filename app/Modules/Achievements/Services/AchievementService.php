@@ -430,17 +430,17 @@ class AchievementService
     private function createAchievementNotification(array $doctorIds, User $user, int $achievementId, int $doctorID): void
     {
         $formattedName = $this->formatUserName($user);
-        $notifications = array_map(fn ($doctorId) => [
-            'doctor_id' => $doctorId,
-            'type' => 'Achievement',
-            'type_id' => $achievementId,
-            'content' => $formattedName.' earned a new achievement.',
-            'type_doctor_id' => $doctorID,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ], $doctorIds);
+        foreach ($doctorIds as $doctorId) {
+            AppNotification::createLocalized([
+                'doctor_id' => $doctorId,
+                'type' => 'Achievement',
+                'type_id' => $achievementId,
+                'localization_key' => 'api.clean_notification_achievement_earned',
+                'localization_params' => ['name' => $formattedName],
+                'type_doctor_id' => $doctorID,
+            ]);
+        }
 
-        Log::info('Inserting notifications', ['notifications' => $notifications]);
-        AppNotification::insert($notifications);
+        Log::info('Inserting notifications', ['doctor_ids' => $doctorIds, 'achievement_id' => $achievementId]);
     }
 }

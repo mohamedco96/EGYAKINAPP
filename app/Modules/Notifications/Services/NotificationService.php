@@ -177,7 +177,14 @@ class NotificationService
     {
         try {
             $unreadCount = AppNotification::where('read', false)->count();
-            $notifications = AppNotification::latest()->get();
+            $notifications = AppNotification::with('typeDoctor')->latest()->get();
+
+            $localizedNotifications = $notifications->map(function ($notification) {
+                $notificationData = $notification->toArray();
+                $notificationData['content'] = $this->getLocalizedNotificationContent($notification, $notification->typeDoctor);
+
+                return $notificationData;
+            });
 
             Log::info('Successfully fetched all notifications', [
                 'total_count' => $notifications->count(),
@@ -187,7 +194,7 @@ class NotificationService
             return [
                 'value' => true,
                 'unreadCount' => $unreadCount,
-                'data' => $notifications,
+                'data' => $localizedNotifications,
             ];
         } catch (\Exception $e) {
             Log::error('Failed to fetch all notifications', [

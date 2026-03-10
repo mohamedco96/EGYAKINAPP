@@ -60,7 +60,7 @@ class ConsultationNotificationService
             'type' => 'Consultation',
             'type_id' => $consultationId,
             'localization_key' => 'api.clean_notification_consultation_reply',
-            'localization_params' => ['name' => $user->name],
+            'localization_params' => ['name' => $this->formatUserName($user)],
             'type_doctor_id' => $user->id,
             'patient_id' => $patientId,
         ]);

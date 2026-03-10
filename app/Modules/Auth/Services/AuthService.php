@@ -180,6 +180,7 @@ class AuthService
         // Convert user to array and add role to data
         $userData = $user->toArray();
         $userData['role'] = $roleName;
+        unset($userData['roles'], $userData['permissions']);
 
         return [
             'value' => true,
@@ -445,13 +446,7 @@ class AuthService
         DB::transaction(function () use ($user, $requestData) {
             // Handle syndicate card requirement updates
             if (isset($requestData['isSyndicateCardRequired'])) {
-                $oldStatus = $user->isSyndicateCardRequired;
                 $this->handleSyndicateCardUpdate($user, $requestData['isSyndicateCardRequired']);
-
-                if ($requestData['isSyndicateCardRequired'] === 'Verified' && $oldStatus !== 'Verified') {
-                    $user->givePermissionTo('add-patient-in-home');
-                    $user->permissions_changed = true;
-                }
             }
 
             // Update the user's data
@@ -941,6 +936,15 @@ class AuthService
             case 'Verified':
                 $titleMessage = __('api.syndicate_card_approved');
                 $bodyMessage = __('api.syndicate_card_approved_message');
+
+                // Promote user to doctor role and set user_type to medical_statistics
+                if ($user->hasRole('user')) {
+                    $user->removeRole('user');
+                    $user->assignRole('doctor');
+                }
+                $user->user_type = 'medical_statistics';
+                $user->permissions_changed = true;
+                $user->save();
                 break;
 
             default:

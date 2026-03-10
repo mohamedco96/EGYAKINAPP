@@ -506,6 +506,7 @@ class UserResource extends Resource
                         ->action(function (Collection $records, array $data) {
                             $records->each(function ($record) use ($data) {
                                 $record->assignRole($data['role']);
+                                $record->update(['permissions_changed' => true]);
                             });
                         })
                         ->deselectRecordsAfterCompletion()

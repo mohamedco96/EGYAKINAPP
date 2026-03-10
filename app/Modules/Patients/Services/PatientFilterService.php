@@ -181,9 +181,19 @@ class PatientFilterService
             } else {
                 // Handle answer filters
                 $query->whereHas('answers', function ($answerQuery) use ($questionID, $value) {
-                    $quotedValue = '"'.$value.'"';
-                    $answerQuery->where('question_id', $questionID)
-                        ->where('answer', $quotedValue);
+                    $answerQuery->where('question_id', $questionID);
+
+                    if (is_array($value) && count($value) > 0) {
+                        // Multiple selected values: match patients whose answer JSON contains ANY of them
+                        $answerQuery->where(function ($q) use ($value) {
+                            foreach ($value as $selectedOption) {
+                                $q->orWhereRaw('JSON_CONTAINS(answer, ?)', [json_encode($selectedOption)]);
+                            }
+                        });
+                    } else {
+                        $quotedValue = '"'.$value.'"';
+                        $answerQuery->where('answer', $quotedValue);
+                    }
                 });
             }
         });

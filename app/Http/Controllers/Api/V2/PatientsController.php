@@ -81,9 +81,9 @@ class PatientsController extends Controller
         return $this->patientsController->filteredPatients($request);
     }
 
-    public function exportFilteredPatients()
+    public function exportFilteredPatients(Request $request)
     {
-        return $this->patientsController->exportFilteredPatients();
+        return $this->patientsController->exportFilteredPatients($request);
     }
 
     public function generatePatientPDF($patient_id)

@@ -534,14 +534,12 @@ class PatientsController extends Controller
             // Extract filter parameters (excluding pagination and scope parameters)
             $filterParams = $request->except(['page', 'per_page', 'sort', 'direction', 'offset', 'limit', 'only_my_patients']);
 
-            // Cache the latest filter parameters for this user (for export functionality)
+            // Cache the latest filter parameters for this user per scope (for export functionality)
+            // Separate keys per scope so switching between "my patients" and "all patients" doesn't overwrite each other
             // Duration: 2 hours - balances convenience with data freshness
-            $userFilterCacheKey = 'latest_filter_params_user_'.auth()->id();
+            $scopeSuffix = $onlyMyPatients ? 'mine' : 'all';
+            $userFilterCacheKey = 'latest_filter_params_user_'.auth()->id().'_'.$scopeSuffix;
             Cache::put($userFilterCacheKey, $filterParams, now()->addHours(2));
-
-            // Cache the scope parameter as well for export
-            $userScopeCacheKey = 'latest_filter_scope_user_'.auth()->id();
-            Cache::put($userScopeCacheKey, $onlyMyPatients, now()->addHours(2));
 
             $result = $this->patientFilterService->filterPatients(
                 $request->all(),
@@ -571,24 +569,20 @@ class PatientsController extends Controller
         }
     }
 
-    public function exportFilteredPatients()
+    public function exportFilteredPatients(Request $request)
     {
         try {
-            // Get the latest filter parameters used by this user from cache
-            $userFilterCacheKey = 'latest_filter_params_user_'.auth()->id();
-            $filterParams = Cache::get($userFilterCacheKey, []);
-
-            // Get the scope parameter from cache (default true = own patients only)
-            $userScopeCacheKey = 'latest_filter_scope_user_'.auth()->id();
-            $onlyMyPatients = Cache::get($userScopeCacheKey, true);
-
             $user = auth()->user();
             $canExportAll = $user->hasPermissionTo('view-export-patients-report-in-all-patients-button-for-admin');
 
-            // Users without the special permission can only export their own patients
-            if (! $canExportAll) {
-                $onlyMyPatients = true;
-            }
+            // Determine scope from request; users without the permission are always forced to their own patients
+            $onlyMyPatients = $canExportAll ? $request->boolean('only_my_patients', true) : true;
+
+            // Read filters from the scope-specific cache key written by filteredPatients()
+            // Falls back to [] (no filters = export all patients in that scope) when cache is empty or expired
+            $scopeSuffix = $onlyMyPatients ? 'mine' : 'all';
+            $userFilterCacheKey = 'latest_filter_params_user_'.auth()->id().'_'.$scopeSuffix;
+            $filterParams = Cache::get($userFilterCacheKey, []);
 
             // Generate cache key from filter parameters and scope
             $cacheKey = 'filtered_patients_export_'.md5(json_encode($filterParams).'_'.$onlyMyPatients).'_'.auth()->id();
@@ -872,7 +866,8 @@ class PatientsController extends Controller
         } catch (\Exception $e) {
             Log::error('Error exporting filtered patients to CSV: '.$e->getMessage(), [
                 'user_id' => auth()->id(),
-                'cached_filter_params' => Cache::get('latest_filter_params_user_'.auth()->id(), []),
+                'cached_filter_params_mine' => Cache::get('latest_filter_params_user_'.auth()->id().'_mine', []),
+                'cached_filter_params_all' => Cache::get('latest_filter_params_user_'.auth()->id().'_all', []),
                 'exception' => $e,
                 'trace' => $e->getTraceAsString(),
             ]);

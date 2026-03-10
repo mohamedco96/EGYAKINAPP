@@ -453,6 +453,8 @@ return [
     'clean_notification_group_join_request' => ':name requested to join group',
     'clean_notification_new_patient' => ':name created a new patient: :patient',
 
+    'clean_notification_achievement_earned' => ':name earned a new achievement',
+
     // Consultations
     'clean_notification_consultation_request' => ':name is seeking your advice for his patient',
     'clean_notification_consultation_reply' => ':name has replied to your consultation request. 📩',

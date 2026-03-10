@@ -453,6 +453,8 @@ return [
     'clean_notification_group_join_request' => ':name طلب الانضمام إلى المجموعة',
     'clean_notification_new_patient' => ':name أنشأ مريضاً جديداً: :patient',
 
+    'clean_notification_achievement_earned' => ':name حصل على إنجاز جديد',
+
     // الاستشارات
     'clean_notification_consultation_request' => ':name يطلب مشورتك لمريضه',
     'clean_notification_consultation_reply' => ':name رد على طلب استشارتك. 📩',

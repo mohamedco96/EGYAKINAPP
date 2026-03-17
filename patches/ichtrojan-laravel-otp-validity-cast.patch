@@ -1,0 +1,12 @@
+--- a/vendor/ichtrojan/laravel-otp/src/Models/Otp.php
++++ b/vendor/ichtrojan/laravel-otp/src/Models/Otp.php
+@@ -21,4 +21,10 @@ class Otp extends Model
+     protected $fillable = [
+         'identifier', 'token', 'valid', 'validity'
+     ];
++
++    protected $casts = [
++        'validity' => 'integer',
++        'valid' => 'boolean',
++    ];
+ }

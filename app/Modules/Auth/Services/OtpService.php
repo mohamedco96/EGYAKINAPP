@@ -5,6 +5,8 @@ namespace App\Modules\Auth\Services;
 use App\Models\User;
 use App\Notifications\EmailVerificationNotification;
 use App\Services\BrevoApiService;
+use Carbon\Carbon;
+use Ichtrojan\Otp\Models\Otp as OtpModel;
 use Otp;
 
 class OtpService
@@ -77,8 +79,18 @@ class OtpService
      */
     public function verifyOtp(User $user, string $otp): bool
     {
-        $validation = $this->otp->validate($user->email, $otp);
+        $record = OtpModel::where('identifier', $user->email)
+            ->where('token', $otp)
+            ->first();
 
-        return $validation->status;
+        if (! $record || ! $record->valid) {
+            return false;
+        }
+
+        $record->update(['valid' => false]);
+
+        $expiresAt = $record->created_at->addMinutes((int) $record->validity);
+
+        return Carbon::now()->lessThanOrEqualTo($expiresAt);
     }
 }

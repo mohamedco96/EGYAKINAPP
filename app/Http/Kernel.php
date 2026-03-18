@@ -36,7 +36,6 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            \App\Http\Middleware\AuditMiddleware::class,
         ],
 
         'api' => [
@@ -44,7 +43,6 @@ class Kernel extends HttpKernel
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\SetLocale::class,
-            \App\Http\Middleware\AuditMiddleware::class,
         ],
     ];
 
@@ -68,8 +66,7 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'locale' => \App\Http\Middleware\SetLocale::class,
-        'audit' => \App\Http\Middleware\AuditMiddleware::class,
-        'check.blocked' => \App\Http\Middleware\CheckBlockedUser::class,
+'check.blocked' => \App\Http\Middleware\CheckBlockedUser::class,
         'check.blocked.home' => \App\Http\Middleware\CheckBlockedUserWithHomeAccess::class,
         'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
         'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,

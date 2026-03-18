@@ -187,7 +187,6 @@ return [
         App\Providers\FileCleanupServiceProvider::class,
         App\Providers\FilamentNavigationServiceProvider::class,
         App\Providers\BrevoMailServiceProvider::class,
-        App\Providers\AuditServiceProvider::class,
     ])->toArray(),
 
     /*

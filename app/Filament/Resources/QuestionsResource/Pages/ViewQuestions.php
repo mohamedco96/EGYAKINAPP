@@ -111,7 +111,7 @@ class ViewQuestions extends ViewRecord
                                     ->label('Keyboard Type')
                                     ->badge()
                                     ->color('secondary')
-                                    ->icon('heroicon-o-keyboard')
+                                    ->icon('heroicon-o-computer-desktop')
                                     ->placeholder('Default'),
                             ]),
                     ])

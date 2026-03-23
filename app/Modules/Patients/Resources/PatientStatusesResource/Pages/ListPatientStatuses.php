@@ -30,21 +30,6 @@ class ListPatientStatuses extends ListRecords
                         ->send();
                 }),
 
-            Actions\Action::make('refreshStats')
-                ->label('Refresh Statistics')
-                ->icon('heroicon-o-chart-bar-square')
-                ->color('info')
-                ->action(function () {
-                    Cache::forget('section_status_stats');
-
-                    \Filament\Notifications\Notification::make()
-                        ->success()
-                        ->title('Statistics Refreshed')
-                        ->body('Section statistics have been refreshed.')
-                        ->send();
-
-                    return redirect()->to(request()->url());
-                }),
         ];
     }
 

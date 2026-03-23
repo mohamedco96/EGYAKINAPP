@@ -63,7 +63,8 @@ class QuestionsResource extends Resource
                     ->required(),
 
                 Forms\Components\TextInput::make('sort')
-                    ->label('Sort Order'),
+                    ->label('Sort Order')
+                    ->numeric(),
 
                 Forms\Components\Select::make('type')
                     ->label('Type')
@@ -89,16 +90,19 @@ class QuestionsResource extends Resource
                         'text' => 'Text',
                         'number' => 'Number',
                         'email' => 'Email',
-                    ]),
+                    ])
+                    ->default('text'),
 
                 Forms\Components\Radio::make('mandatory')
                     ->label('Mandatory')
                     ->required()
-                    ->boolean(),
+                    ->boolean()
+                    ->default(true),
 
                 Forms\Components\Radio::make('hidden')
                     ->label('Hidden')
-                    ->boolean(),
+                    ->boolean()
+                    ->default(false),
             ]);
     }
 

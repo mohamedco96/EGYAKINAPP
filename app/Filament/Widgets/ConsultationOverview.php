@@ -14,7 +14,7 @@ class ConsultationOverview extends ChartWidget
 
     protected static string $color = 'success';
 
-    protected static ?string $pollingInterval = '30s';
+    protected static ?string $pollingInterval = null;
 
     protected static ?int $sort = 10;
 

@@ -343,22 +343,6 @@ class PatientsResource extends Resource
                             ->send();
                     }),
 
-                Tables\Actions\Action::make('refreshStats')
-                    ->label('Refresh Statistics')
-                    ->icon('heroicon-o-chart-bar-square')
-                    ->color('info')
-                    ->tooltip('Refresh all statistics widgets')
-                    ->action(function () {
-                        Cache::forget('patients_stats');
-
-                        Notification::make()
-                            ->title('Statistics Refreshed')
-                            ->body('Patient statistics have been refreshed.')
-                            ->success()
-                            ->send();
-
-                        return redirect()->to(request()->url());
-                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

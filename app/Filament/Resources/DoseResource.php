@@ -35,6 +35,8 @@ class DoseResource extends Resource
 
     protected static ?int $navigationSort = 30;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $recordTitleAttribute = 'title';
 
     public static function getNavigationBadge(): ?string

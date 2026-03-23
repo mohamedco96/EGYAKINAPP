@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Modules\Questions\Models\Questions;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -30,6 +31,6 @@ class SectionsInfo extends Model
 
     public function questions()
     {
-        return $this->hasMany(Questions::class);
+        return $this->hasMany(Questions::class, 'section_id');
     }
 }

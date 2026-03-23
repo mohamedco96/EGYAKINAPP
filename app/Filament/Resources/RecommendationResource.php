@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\RecommendationResource\Pages;
+use App\Modules\Patients\Models\Patients;
 use App\Modules\Recommendations\Models\Recommendation;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
@@ -45,7 +46,7 @@ class RecommendationResource extends Resource
                         Forms\Components\Select::make('patient_id')
                             ->relationship('patient', 'id')
                             ->getSearchResultsUsing(function (string $search) {
-                                return \App\Models\Patient::query()
+                                return Patients::query()
                                     ->where('id', 'like', "%{$search}%")
                                     ->orWhereHas('doctor', function ($query) use ($search) {
                                         $query->where('name', 'like', "%{$search}%")
@@ -59,7 +60,7 @@ class RecommendationResource extends Resource
                                     });
                             })
                             ->getOptionLabelUsing(function ($value) {
-                                $patient = \App\Models\Patient::find($value);
+                                $patient = Patients::find($value);
                                 if (!$patient) return "Patient #{$value}";
                                 $doctorName = $patient->doctor ? $patient->doctor->name . ' ' . ($patient->doctor->lname ?? '') : 'Unknown';
                                 return "Patient #{$patient->id} (Doctor: {$doctorName})";
@@ -264,7 +265,7 @@ class RecommendationResource extends Resource
                     ->label('Patient')
                     ->relationship('patient', 'id')
                     ->getOptionLabelUsing(function ($value) {
-                        $patient = \App\Models\Patient::find($value);
+                        $patient = Patients::find($value);
                         if (!$patient) return "Patient #{$value}";
                         $doctorName = $patient->doctor ? $patient->doctor->name . ' ' . ($patient->doctor->lname ?? '') : 'Unknown';
                         return "Patient #{$patient->id} (Doctor: {$doctorName})";

@@ -79,6 +79,8 @@ class RecommendationResource extends Resource
                                 'follow-up' => 'Follow-up',
                                 'dietary' => 'Dietary',
                                 'other' => 'Other',
+                                'note' => 'Note (Legacy)',
+                                'rec' => 'Recommendation (Legacy)',
                             ])
                             ->required()
                             ->native(false)
@@ -166,6 +168,8 @@ class RecommendationResource extends Resource
                         'follow-up' => 'primary',
                         'dietary' => 'secondary',
                         'other' => 'gray',
+                        'note' => 'gray',
+                        'rec' => 'gray',
                         default => 'gray',
                     })
                     ->icon(fn (string $state): string => match ($state) {
@@ -175,6 +179,8 @@ class RecommendationResource extends Resource
                         'follow-up' => 'heroicon-o-calendar',
                         'dietary' => 'heroicon-o-shopping-bag',
                         'other' => 'heroicon-o-document',
+                        'note' => 'heroicon-o-pencil-square',
+                        'rec' => 'heroicon-o-clipboard-document-list',
                         default => 'heroicon-o-question-mark-circle',
                     })
                     ->sortable()
@@ -257,6 +263,8 @@ class RecommendationResource extends Resource
                         'follow-up' => 'Follow-up',
                         'dietary' => 'Dietary',
                         'other' => 'Other',
+                        'note' => 'Note (Legacy)',
+                        'rec' => 'Recommendation (Legacy)',
                     ])
                     ->multiple()
                     ->searchable(),

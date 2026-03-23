@@ -39,7 +39,7 @@ class ConsultationOverview extends ChartWidget
             DB::raw('COUNT(*) as count')
         )
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->where('status', 'complete')
+            ->where('status', 'replied')
             ->groupBy('date')
             ->orderBy('date')
             ->get();

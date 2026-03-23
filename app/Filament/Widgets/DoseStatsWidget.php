@@ -95,7 +95,7 @@ class DoseStatsWidget extends BaseWidget
                     'class' => 'bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20',
                 ]),
 
-            Stat::make('Latest Addition', $stats['latestDose'] ? 'Today' : 'None')
+            Stat::make('Latest Addition', $stats['latestDose'] ? $stats['latestDose']->created_at->diffForHumans() : 'None')
                 ->description($stats['latestDose']
                     ? 'Last: '.(string) str($stats['latestDose']->title)->limit(20)
                     : 'No doses added yet')

@@ -42,7 +42,7 @@ class DoctorPerformanceOverview extends BaseWidget
                 ->descriptionIcon($completionRate >= 80 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
                 ->color($completionRate >= 80 ? 'success' : 'warning'),
 
-            Stat::make('Top Doctor', $topDoctors->first() ? User::find($topDoctors->first()->doctor_id)?->name : 'N/A')
+            Stat::make('Top Doctor', $topDoctors->first() ? User::find($topDoctors->first()->consult_doctor_id)?->name : 'N/A')
                 ->description($topDoctors->first()?->consultation_count.' consultations')
                 ->descriptionIcon('heroicon-m-star')
                 ->color('info'),

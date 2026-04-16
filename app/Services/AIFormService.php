@@ -37,9 +37,9 @@ class AIFormService
 
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $this->apiKey,
-        ])->attach(
+        ])->timeout(120)->attach(
             'file',
-            file_get_contents($audioFile->getRealPath()),
+            fopen($audioFile->getRealPath(), 'r'),
             $audioFile->getClientOriginalName()
         )->post('https://api.openai.com/v1/audio/transcriptions', [
             'model'           => 'whisper-1',
@@ -52,7 +52,7 @@ class AIFormService
                 'status' => $response->status(),
                 'body'   => $response->body(),
             ]);
-            throw new \Exception('Failed to transcribe audio: ' . $response->body());
+            throw new \Exception('Failed to transcribe audio.');
         }
 
         return trim($response->body());
@@ -258,7 +258,7 @@ PROMPT;
                 'status' => $response->status(),
                 'body'   => $response->body(),
             ]);
-            throw new \Exception('Failed to extract medical data from transcript: ' . $response->body());
+            throw new \Exception('Failed to extract medical data from transcript.');
         }
 
         $content = $response->json('choices.0.message.content');

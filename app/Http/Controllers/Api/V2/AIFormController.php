@@ -81,7 +81,7 @@ class AIFormController extends Controller
 
             return response()->json([
                 'value'   => false,
-                'message' => 'Error processing input: ' . $e->getMessage(),
+                'message' => 'An error occurred while processing your request. Please try again later.',
             ], 500);
         }
     }

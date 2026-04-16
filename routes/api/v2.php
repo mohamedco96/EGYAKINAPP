@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V2\AIFormController;
 use App\Http\Controllers\Api\V2\AchievementController;
 use App\Http\Controllers\Api\V2\AuthController;
 use App\Http\Controllers\Api\V2\ChatController;
@@ -277,6 +278,9 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
     Route::get('/latest-groups-with-random-posts', [GroupController::class, 'fetchLatestGroupsWithRandomPosts']);
     Route::get('/groups/invitations/{doctorId}', [GroupController::class, 'getDoctorInvitations']);
     Route::get('/groups/{groupId}/invitations', [GroupController::class, 'getGroupInvitations']);
+
+    // AI Form extraction routes — accepts audio (voice) or image, same pipeline
+    Route::post('/ai-form/process-section', [AIFormController::class, 'processSection']);
 
     // Chat/AI Consultation routes
     Route::post('/AIconsultation/{patientId}', [ChatController::class, 'sendConsultation']);

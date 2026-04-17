@@ -182,7 +182,7 @@ class AIFormService
         $questionsJson = json_encode($questionsDescription, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
         $catchAllRule = $catchAllId
-            ? "12. CATCH-ALL RULE: One question is marked with \"is_catch_all\": true (ID {$catchAllId}). After filling all other questions, collect any medically relevant details from the transcript that were NOT captured by any other question, and write them as a concise summary string in this field. Examples of catch-all content: reason for admission, chief complaint, serum creatinine value, diagnosis, ICU admission reason, or any other clinical detail mentioned but not covered by a specific question. If everything was already captured, return null."
+            ? "13. CATCH-ALL RULE: One question is marked with \"is_catch_all\": true (ID {$catchAllId}). After filling all other questions, collect any medically relevant details from the transcript that were NOT captured by any other question, and write them as a concise summary string in this field. Examples of catch-all content: reason for admission, chief complaint, serum creatinine value, diagnosis, ICU admission reason, or any other clinical detail mentioned but not covered by a specific question. If everything was already captured, return null."
             : '';
 
         return <<<PROMPT
@@ -198,23 +198,25 @@ CRITICAL RULES — you MUST follow these exactly:
 3. For "multiple" type:
    a. First, apply the same abbreviation/synonym/phonetic resolution as rule 2a.
    b. For each resolved value, if it EXACTLY matches an item in "allowed_values" → include it in the answers array.
-   c. If a resolved value does NOT match any "allowed_values" BUT "Others" exists in the list → include "Others" in the answers array AND return the format: {"answers": ["matched1", "Others"], "others_text": "<unmatched text from transcript>"}.
-   d. If nothing is found → return an empty array [].
+   c. IMPORTANT: Before treating a value as unmatched, check ALL allowed_values carefully for synonyms. Example: transcript says "shisha" → check if "Shisha smoker" exists in allowed_values → it does → use "Shisha smoker", do NOT put it in others_text.
+   d. Only if a resolved value truly does NOT match any "allowed_values" BUT "Others" exists in the list → include "Others" in the answers array AND return the format: {"answers": ["matched1", "Others"], "others_text": "<unmatched text from transcript>"}.
+   e. If nothing is found → return an empty array [].
 4. For "string" or "text" type: return the extracted text as a string, or the JSON literal null if not found.
 5. For "date" type: return the date as a string in YYYY-MM-DD format (e.g., "2024-03-15"), or the JSON literal null if not found.
 6. IMPORTANT: If no information is found for a question, you MUST return the JSON literal null — NOT the string "null", NOT an empty string "".
-7. IMPORTANT: For "select" type, if information IS present in the transcript but does not match any allowed_values, you MUST use the is_other format (rule 2c). Never discard information by returning null when the information exists. Example: if transcript says "Mansoura University Hospital" and allowed_values has hospital codes like "MUH-14", since it does not match exactly but "Others" exists, return {"value": "Mansoura University Hospital", "is_other": true}.
+7. IMPORTANT: For "select" type, if information IS present in the transcript but does not match any allowed_values, you MUST use the is_other format (rule 2c). Never discard information by returning null when the information exists. The value in {"value": "...", "is_other": true} must be the actual extracted text (e.g., "Egypt", "Mansoura University Hospital") — NEVER put "Others" as the value. Example: transcript says "Mansoura University Hospital", allowed_values has codes like "MUH-14" plus "Others" → return {"value": "Mansoura University Hospital", "is_other": true}.
 8. Medical synonym & phonetic correction examples (apply broadly, not limited to these):
    - "ICU" or "intensive care" → "Intensive Care Unit"
    - "HTN" or "hypertension" → "Hypertension"
    - "DM" or "diabetes" or "debits" or "diabetics" → "Diabetes Mellitus"
    - "CAD" or "coronary artery" → "Coronary Artery Disease"
    - "CKD" or "chronic kidney" → "Chronic Kidney Disease"
-   - "Takahliya", "Dakahlia", "Daqahliya", "Dakahliya" → try matching to the closest allowed_value for that governorate
+   - "Takahliya", "Dakhliya", "Dakahlia", "Daqahliya", "Dakahliya" → "Dakahlia"
    - Any phonetic transcription error → infer the most likely intended medical term
 9. Match allowed_values EXACTLY (case-sensitive) after synonym resolution.
 10. Do not invent or guess data that is not present in the transcript.
 11. For numeric string fields (National ID, phone number, age, duration in years, or any sequence of digits): return digits only with NO dashes, spaces, dots, or any other formatting characters. Examples: "290-1011-234567" → "29901011234567", "010-123-45678" → "01012345678".
+12. For email fields: convert spoken "at" to "@" and "dot" to ".". Example: "ahmed at example dot com" → "ahmed@example.com".
 {$catchAllRule}
 
 QUESTIONS:

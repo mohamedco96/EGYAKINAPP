@@ -17,7 +17,6 @@ class ProcessAISectionRequest extends FormRequest
             'audio'      => 'required_without:image|prohibits:image|file|mimes:mp3,wav,m4a,ogg,webm|max:25600',
             'image'      => 'required_without:audio|prohibits:audio|file|mimes:jpg,jpeg,png,webp,pdf|max:20480',
             'section_id' => 'required|integer|exists:sections_infos,id',
-            'language'   => 'sometimes|string|size:2',
         ];
     }
 
@@ -35,7 +34,6 @@ class ProcessAISectionRequest extends FormRequest
             'section_id.required'    => 'Section ID is required.',
             'section_id.integer'     => 'Section ID must be an integer.',
             'section_id.exists'      => 'Section not found.',
-            'language.size'          => 'Language must be a 2-letter ISO code (e.g. en, ar).',
         ];
     }
 }

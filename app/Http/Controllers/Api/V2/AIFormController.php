@@ -38,13 +38,11 @@ class AIFormController extends Controller
     {
         try {
             $sectionId = (int) $request->input('section_id');
-            $language  = $request->input('language', 'en');
 
             // Resolve input type and convert to plain text
             if ($request->hasFile('audio')) {
                 $extractedText = $this->aiFormService->transcribeAudio(
-                    $request->file('audio'),
-                    $language
+                    $request->file('audio')
                 );
                 $inputType = 'audio';
             } else {
@@ -65,13 +63,18 @@ class AIFormController extends Controller
                 'questions_processed' => count($result['data']),
             ]);
 
-            return response()->json([
+            $response = [
                 'value'          => true,
                 'input_type'     => $inputType,
                 'extracted_text' => $extractedText,
-                'debug_prompt'   => $result['prompt'],
                 'data'           => $result['data'],
-            ], 200);
+            ];
+
+            if (config('app.debug')) {
+                $response['debug_prompt'] = $result['prompt'];
+            }
+
+            return response()->json($response, 200);
 
         } catch (\Exception $e) {
             Log::error('AI form extraction error', [

@@ -200,40 +200,35 @@ PROMPT;
         if (config('services.ai_form.mock')) {
             Log::info('AIFormService: mock extraction active (AI_FORM_MOCK=true)');
 
-            // Realistic mock based on the hardcoded transcript:
-            // "Male patient, aged 64, from Daqahliya, admitted to MUH, ICU, sepsis."
-            //
-            // Rules followed exactly as real GPT would:
-            //   - select  → single string from allowed_values, or null
-            //   - multiple → array of strings from allowed_values, or []
-            //   - string  → raw string value, or null (non-mandatory left null)
-            //
-            // Section 1 IDs derived from DB questions for section_id=1.
-            // Non-mandatory questions with no info in transcript → null.
+            // Full mock for section 1 — every question has a filled value.
+            // This simulates the flat map GPT returns: {question_id => extracted_value}.
+            // select   → single string from allowed_values
+            // multiple → array of strings from allowed_values
+            // string   → raw string value
             return [
-                '1'   => 'Test Patient',            // string  | Name (mandatory)
-                '2'   => 'MUH-14',                  // select  | Hospital — "Mansoura University Hospital" → MUH-14
-                '3'   => 'Patient himself',          // select  | Collected data from
-                '4'   => null,                       // string  | National ID (mandatory but not in transcript)
-                '5'   => null,                       // string  | Phone (mandatory but not in transcript)
-                '6'   => null,                       // string  | Email (not mandatory)
-                '7'   => '64',                       // string  | Age (mandatory) — "aged 64"
-                '8'   => 'Male',                     // select  | Gender — "Male patient"
-                '9'   => null,                       // select  | Occupation (mandatory but not in transcript)
-                '10'  => 'Rural',                    // select  | Residency — "Agha" is a rural area
-                '11'  => 'Dakahlia',                 // select  | Governorate — "Daqahliya" → "Dakahlia"
-                '12'  => null,                       // select  | Marital status (mandatory but not in transcript)
-                '142' => null,                       // string  | Children (not mandatory)
-                '13'  => null,                       // select  | Educational level (mandatory but not in transcript)
-                '14'  => ['NO'],                     // multiple| Special habits — none mentioned → ['NO']
-                '16'  => null,                       // select  | DM (mandatory but not in transcript)
-                '17'  => null,                       // string  | DM duration (not mandatory)
-                '18'  => null,                       // select  | HTN (mandatory but not in transcript)
-                '19'  => null,                       // string  | HTN duration (not mandatory)
-                '20'  => 'Sepsis for ICU admission', // string  | Other — free text from transcript
-                '149' => null,                       // select  | Black race (mandatory but not in transcript)
-                '168' => 'Critical Unit',            // select  | Department — "ICU" → "Critical Unit"
-                '169' => null,                       // string  | If other department (not mandatory)
+                '1'   => 'Ahmed Mohamed',               // string  | Name
+                '2'   => 'MUH-14',                      // select  | Hospital
+                '3'   => 'Patient himself',             // select  | Collected data from
+                '4'   => '29901011234567',              // string  | National ID
+                '5'   => '01012345678',                 // string  | Phone
+                '6'   => 'ahmed@example.com',           // string  | Email
+                '7'   => '64',                          // string  | Age
+                '8'   => 'Male',                        // select  | Gender
+                '9'   => 'Retired',                     // select  | Occupation
+                '10'  => 'Rural',                       // select  | Residency
+                '11'  => 'Dakahlia',                    // select  | Governorate
+                '12'  => 'Married',                     // select  | Marital status
+                '142' => '3',                           // string  | Children
+                '13'  => 'Primary school',              // select  | Educational level
+                '14'  => ['Cigarette smoker', 'Others'],// multiple| Special habits
+                '16'  => 'Yes',                         // select  | DM
+                '17'  => '10',                          // string  | DM duration in years
+                '18'  => 'Yes',                         // select  | HTN
+                '19'  => '5',                           // string  | HTN duration in years
+                '20'  => 'Sepsis for ICU admission',    // string  | Other
+                '149' => 'No',                          // select  | Black race
+                '168' => 'Others',                      // select  | Department — "Others" to test other_field
+                '169' => 'Renal Transplant Unit',       // string  | Other department detail
             ];
         }
 
@@ -306,18 +301,31 @@ PROMPT;
                 'updated_at'   => $question->updated_at,
             ];
 
+            // In mock mode, inject a non-null other_field for select/multiple
+            // questions that have "Others" in their allowed_values, so the full
+            // answer shape (including other_field) is tested end-to-end.
+            // In production, other_field is always null from the AI — the doctor
+            // fills it manually after the form is pre-populated.
+            $mockOtherField = null;
+            if (config('services.ai_form.mock') && in_array($question->type, ['select', 'multiple'])) {
+                $hasOthersOption = ! empty($question->values) && in_array('Others', $question->values, true);
+                if ($hasOthersOption && in_array('Others', (array) $rawAnswer, true)) {
+                    $mockOtherField = 'Mock other field value';
+                }
+            }
+
             switch ($question->type) {
                 case 'select':
                     $questionData['answer'] = [
                         'answers'     => $rawAnswer,
-                        'other_field' => null,
+                        'other_field' => $mockOtherField,
                     ];
                     break;
 
                 case 'multiple':
                     $questionData['answer'] = [
                         'answers'     => is_array($rawAnswer) ? $rawAnswer : [],
-                        'other_field' => null,
+                        'other_field' => $mockOtherField,
                     ];
                     break;
 

@@ -78,6 +78,7 @@ class AIFormController extends Controller
                 'section_id' => $request->input('section_id'),
                 'doctor_id'  => Auth::id(),
                 'error'      => $e->getMessage(),
+                'trace'      => $e->getTraceAsString(),
             ]);
 
             return response()->json([

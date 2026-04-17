@@ -48,10 +48,14 @@ class AIFormService
         ]);
 
         if (! $response->successful()) {
-            Log::error('Whisper API Error', [
-                'status' => $response->status(),
-                'body'   => $response->body(),
-            ]);
+            $body = $response->body();
+            Log::error('Whisper API Error', array_filter([
+                'status'         => $response->status(),
+                'response_bytes' => strlen($body),
+                'response_hash'  => substr(hash('sha256', $body), 0, 12),
+                'request_id'     => $response->header('x-request-id'),
+                'body'           => config('app.debug') ? $body : null,
+            ]));
             throw new \Exception('Failed to transcribe audio.');
         }
 
@@ -91,7 +95,7 @@ class AIFormService
         $questions = $this->getFilteredQuestions($sectionId);
 
         if ($questions->isEmpty()) {
-            return ['data' => []];
+            return ['data' => [], 'prompt' => ''];
         }
 
         $prompt        = $this->buildExtractionPrompt($questions, $text);
@@ -290,10 +294,14 @@ PROMPT;
         ]);
 
         if (! $response->successful()) {
-            Log::error('GPT-4o-mini API Error', [
-                'status' => $response->status(),
-                'body'   => $response->body(),
-            ]);
+            $body = $response->body();
+            Log::error('GPT-4o-mini API Error', array_filter([
+                'status'         => $response->status(),
+                'response_bytes' => strlen($body),
+                'response_hash'  => substr(hash('sha256', $body), 0, 12),
+                'request_id'     => $response->header('x-request-id'),
+                'body'           => config('app.debug') ? $body : null,
+            ]));
             throw new \Exception('Failed to extract medical data from transcript.');
         }
 
@@ -301,7 +309,12 @@ PROMPT;
         $decoded = json_decode($content, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            Log::error('GPT response JSON parse error', ['content' => $content]);
+            Log::error('GPT response JSON parse error', array_filter([
+                'json_error'     => json_last_error_msg(),
+                'content_bytes'  => strlen((string) $content),
+                'content_hash'   => substr(hash('sha256', (string) $content), 0, 12),
+                'content'        => config('app.debug') ? $content : null,
+            ]));
             throw new \Exception('Failed to parse AI response.');
         }
 

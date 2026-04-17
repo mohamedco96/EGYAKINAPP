@@ -39,6 +39,8 @@ return [
 
     'openai' => ['api_key' => env('OPENAI_API_KEY')],
 
+    'ai_form' => ['mock' => env('AI_FORM_MOCK', false)],
+
     'brevo' => [
         'api_key' => env('BREVO_API_KEY'),
     ],

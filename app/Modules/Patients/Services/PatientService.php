@@ -185,7 +185,7 @@ class PatientService
                 $questionId = (int) $key;
                 $sectionId = $questionSectionIds[$questionId] ?? null;
 
-                if (isset($value['answers'])) {
+                if (is_array($value) && array_key_exists('answers', $value)) {
                     $this->prepareAnswersToSave($answersToSave, $doctorId, $questionId, $value['answers'], $patientId, false, $sectionId);
                     $this->prepareAnswersToSave($answersToSave, $doctorId, $questionId, $value['other_field'] ?? null, $patientId, true, $sectionId);
                 } elseif (isset($questionSectionIds[$questionId])) {
@@ -465,7 +465,7 @@ class PatientService
 
             $this->updateAnswer($questionId, json_encode($fileUrls), $patientId, false, $sectionId, $questionTypes);
         } else {
-            if (isset($value['answers'])) {
+            if (is_array($value) && array_key_exists('answers', $value)) {
                 $this->updateAnswer($questionId, json_encode($value['answers']), $patientId, false, $sectionId, $questionTypes);
                 $this->updateAnswer($questionId, json_encode($value['other_field'] ?? null), $patientId, true, $sectionId, $questionTypes);
             } else {
@@ -495,9 +495,9 @@ class PatientService
 
             $this->saveAnswer($doctorId, $questionId, json_encode($fileUrls), $patientId, false, $sectionId, $questionTypes);
         } else {
-            if (isset($value['answers'])) {
+            if (is_array($value) && array_key_exists('answers', $value)) {
                 $this->saveAnswer($doctorId, $questionId, $value['answers'], $patientId, false, $sectionId, $questionTypes);
-                if (isset($value['other_field']) && $value['other_field'] !== null) {
+                if (array_key_exists('other_field', $value) && $value['other_field'] !== null) {
                     $this->saveAnswer($doctorId, $questionId, $value['other_field'], $patientId, true, $sectionId, $questionTypes);
                 }
             } else {

@@ -182,7 +182,7 @@ class AIFormService
         $questionsJson = json_encode($questionsDescription, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
         $catchAllRule = $catchAllId
-            ? "11. CATCH-ALL RULE: One question is marked with \"is_catch_all\": true (ID {$catchAllId}). After filling all other questions, collect any medically relevant details from the transcript that were NOT captured by any other question, and write them as a concise summary string in this field. Examples of catch-all content: reason for admission, chief complaint, serum creatinine value, diagnosis, ICU admission reason, or any other clinical detail mentioned but not covered by a specific question. If everything was already captured, return null."
+            ? "12. CATCH-ALL RULE: One question is marked with \"is_catch_all\": true (ID {$catchAllId}). After filling all other questions, collect any medically relevant details from the transcript that were NOT captured by any other question, and write them as a concise summary string in this field. Examples of catch-all content: reason for admission, chief complaint, serum creatinine value, diagnosis, ICU admission reason, or any other clinical detail mentioned but not covered by a specific question. If everything was already captured, return null."
             : '';
 
         return <<<PROMPT
@@ -214,6 +214,7 @@ CRITICAL RULES — you MUST follow these exactly:
    - Any phonetic transcription error → infer the most likely intended medical term
 9. Match allowed_values EXACTLY (case-sensitive) after synonym resolution.
 10. Do not invent or guess data that is not present in the transcript.
+11. For numeric string fields (National ID, phone number, age, duration in years, or any sequence of digits): return digits only with NO dashes, spaces, dots, or any other formatting characters. Examples: "290-1011-234567" → "29901011234567", "010-123-45678" → "01012345678".
 {$catchAllRule}
 
 QUESTIONS:

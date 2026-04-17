@@ -214,7 +214,7 @@ PROMPT;
                 '6'   => 'ahmed@example.com',           // string  | Email
                 '7'   => '64',                          // string  | Age
                 '8'   => 'Male',                        // select  | Gender
-                '9'   => 'Retired',                     // select  | Occupation
+                '9'   => null,                          // select  | Occupation — not mentioned in transcript
                 '10'  => 'Rural',                       // select  | Residency
                 '11'  => 'Dakahlia',                    // select  | Governorate
                 '12'  => 'Married',                     // select  | Marital status

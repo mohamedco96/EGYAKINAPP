@@ -69,6 +69,7 @@ class AIFormController extends Controller
                 'value'          => true,
                 'input_type'     => $inputType,
                 'extracted_text' => $extractedText,
+                'debug_prompt'   => $result['prompt'],
                 'data'           => $result['data'],
             ], 200);
 

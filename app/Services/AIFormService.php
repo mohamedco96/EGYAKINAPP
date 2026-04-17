@@ -98,7 +98,10 @@ class AIFormService
         $extractedData = $this->extractData($prompt);
         $data          = $this->formatResponse($questions, $extractedData);
 
-        return ['data' => $data];
+        return [
+            'data'   => $data,
+            'prompt' => $prompt,
+        ];
     }
 
     // -------------------------------------------------------------------------
@@ -151,8 +154,8 @@ class AIFormService
                 $desc['allowed_values'] = $question->values;
             }
 
-            if ($question->type === 'number') {
-                $desc['note'] = 'Extract as numeric value only (digits, no units).';
+            if ($question->type === 'date') {
+                $desc['note'] = 'Extract as a date string in YYYY-MM-DD format, or null if not found.';
             }
 
             $questionsDescription[] = $desc;
@@ -165,10 +168,10 @@ You are a medical data extraction assistant. A doctor has dictated patient infor
 
 CRITICAL RULES — you MUST follow these exactly:
 1. Return a JSON object where each key is a question ID (as a string) and the value is the extracted answer.
-2. For "select" type: return EXACTLY one string from the "allowed_values" list, or the JSON literal null (not the string "null") if not found.
+2. For "select" type: return EXACTLY one string from the "allowed_values" list, or the JSON literal null if not found.
 3. For "multiple" type: return an ARRAY of strings, each EXACTLY matching an item from "allowed_values". Return an empty array [] if nothing found.
 4. For "string" or "text" type: return the extracted text as a string, or the JSON literal null if not found.
-5. For "number" type: return only the numeric value as a string (e.g., "64"), or the JSON literal null if not found.
+5. For "date" type: return the date as a string in YYYY-MM-DD format (e.g., "2024-03-15"), or the JSON literal null if not found.
 6. IMPORTANT: If no information is found for a question, you MUST return the JSON literal null — NOT the string "null", NOT an empty string "".
 7. Use your medical knowledge to map abbreviations, acronyms, and synonyms in the transcript to the EXACT strings in the allowed_values list. Examples: "ICU" → "Intensive Care Unit", "HTN" → "Hypertension", "DM" → "Diabetes Mellitus", "CAD" → "Coronary Artery Disease", "CKD" → "Chronic Kidney Disease". Apply this reasoning for any medical abbreviation encountered.
 8. Match allowed_values EXACTLY (case-sensitive). Do not rephrase or paraphrase values.
@@ -318,7 +321,7 @@ PROMPT;
                     ];
                     break;
 
-                default: // string, number, text
+                default: // string, text, date → raw value or null
                     $questionData['answer'] = $rawAnswer;
                     break;
             }

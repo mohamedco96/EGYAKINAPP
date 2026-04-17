@@ -280,6 +280,8 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
     Route::get('/groups/{groupId}/invitations', [GroupController::class, 'getGroupInvitations']);
 
     // AI Form extraction routes — accepts audio (voice) or image, same pipeline
+    // TODO: Add rate limiting before production (e.g. ->middleware('throttle:10,1'))
+    //       to protect against abuse of paid OpenAI API calls (10 req/min per user).
     Route::post('/ai-form/process-section', [AIFormController::class, 'processSection']);
 
     // Chat/AI Consultation routes

@@ -168,8 +168,14 @@ You are a medical data extraction assistant. A doctor has dictated patient infor
 
 CRITICAL RULES — you MUST follow these exactly:
 1. Return a JSON object where each key is a question ID (as a string) and the value is the extracted answer.
-2. For "select" type: return EXACTLY one string from the "allowed_values" list, or the JSON literal null if not found.
-3. For "multiple" type: return an ARRAY of strings, each EXACTLY matching an item from "allowed_values". Return an empty array [] if nothing found.
+2. For "select" type:
+   a. If the extracted value EXACTLY matches one of the "allowed_values" → return that string.
+   b. If the extracted value does NOT match any "allowed_values" BUT "Others" exists in the list → return {"value": "<extracted text>", "is_other": true}.
+   c. If nothing is found → return the JSON literal null.
+3. For "multiple" type:
+   a. For each extracted value, if it EXACTLY matches an item in "allowed_values" → include it in the answers array.
+   b. If an extracted value does NOT match any "allowed_values" BUT "Others" exists in the list → include "Others" in the answers array AND return the format: {"answers": ["matched1", "Others"], "others_text": "<unmatched text>"}.
+   c. If nothing is found → return an empty array [].
 4. For "string" or "text" type: return the extracted text as a string, or the JSON literal null if not found.
 5. For "date" type: return the date as a string in YYYY-MM-DD format (e.g., "2024-03-15"), or the JSON literal null if not found.
 6. IMPORTANT: If no information is found for a question, you MUST return the JSON literal null — NOT the string "null", NOT an empty string "".
@@ -201,34 +207,37 @@ PROMPT;
             Log::info('AIFormService: mock extraction active (AI_FORM_MOCK=true)');
 
             // Full mock for section 1 — every question has a filled value.
-            // This simulates the flat map GPT returns: {question_id => extracted_value}.
-            // select   → single string from allowed_values
-            // multiple → array of strings from allowed_values
-            // string   → raw string value
+            // Simulates the exact map GPT would return, including all answer shapes:
+            //   string                                        → plain value
+            //   select matched                                → plain string from allowed_values
+            //   select unmatched (has Others)                 → {"value": "...", "is_other": true}
+            //   select null                                   → null
+            //   multiple all matched                          → plain array
+            //   multiple with unmatched (has Others)          → {"answers": [...], "others_text": "..."}
             return [
-                '1'   => 'Ahmed Mohamed',               // string  | Name
-                '2'   => 'MUH-14',                      // select  | Hospital
-                '3'   => 'Patient himself',             // select  | Collected data from
-                '4'   => '29901011234567',              // string  | National ID
-                '5'   => '01012345678',                 // string  | Phone
-                '6'   => 'ahmed@example.com',           // string  | Email
-                '7'   => '64',                          // string  | Age
-                '8'   => 'Male',                        // select  | Gender
-                '9'   => null,                          // select  | Occupation — not mentioned in transcript
-                '10'  => 'Rural',                       // select  | Residency
-                '11'  => 'Dakahlia',                    // select  | Governorate
-                '12'  => 'Married',                     // select  | Marital status
-                '142' => '3',                           // string  | Children
-                '13'  => 'Primary school',              // select  | Educational level
-                '14'  => ['Cigarette smoker', 'Others'],// multiple| Special habits
-                '16'  => 'Yes',                         // select  | DM
-                '17'  => '10',                          // string  | DM duration in years
-                '18'  => 'Yes',                         // select  | HTN
-                '19'  => '5',                           // string  | HTN duration in years
-                '20'  => 'Sepsis for ICU admission',    // string  | Other
-                '149' => 'No',                          // select  | Black race
-                '168' => 'Others',                      // select  | Department — "Others" to test other_field
-                '169' => 'Renal Transplant Unit',       // string  | Other department detail
+                '1'   => 'Ahmed Mohamed',                                           // string  | Name
+                '2'   => 'MUH-14',                                                  // select  | Hospital — matched
+                '3'   => 'Patient himself',                                         // select  | Collected data from — matched
+                '4'   => '29901011234567',                                          // string  | National ID
+                '5'   => '01012345678',                                             // string  | Phone
+                '6'   => 'ahmed@example.com',                                       // string  | Email
+                '7'   => '64',                                                      // string  | Age
+                '8'   => 'Male',                                                    // select  | Gender — matched
+                '9'   => null,                                                      // select  | Occupation — not mentioned
+                '10'  => 'Rural',                                                   // select  | Residency — matched
+                '11'  => 'Dakahlia',                                                // select  | Governorate — matched
+                '12'  => ['value' => 'Partnered', 'is_other' => true],             // select  | Marital status — unmatched → other_field
+                '142' => '3',                                                       // string  | Children
+                '13'  => 'Primary school',                                          // select  | Educational level — matched
+                '14'  => ['answers' => ['Cigarette smoker', 'Others'], 'others_text' => 'Shisha occasionally'], // multiple | unmatched → others_text
+                '16'  => 'Yes',                                                     // select  | DM — matched
+                '17'  => '10',                                                      // string  | DM duration
+                '18'  => 'Yes',                                                     // select  | HTN — matched
+                '19'  => '5',                                                       // string  | HTN duration
+                '20'  => 'Sepsis for ICU admission',                                // string  | Other
+                '149' => 'No',                                                      // select  | Black race — matched
+                '168' => ['value' => 'Renal Transplant Unit', 'is_other' => true], // select  | Department — unmatched → other_field
+                '169' => 'Renal Transplant Unit',                                   // string  | Other department detail
             ];
         }
 
@@ -285,48 +294,24 @@ PROMPT;
         foreach ($questions as $question) {
             $rawAnswer = $extractedData[(string) $question->id] ?? null;
 
-            // Post-validate select/multiple: reject values not in allowed_values
-            if (in_array($question->type, ['select', 'multiple']) && ! empty($question->values)) {
-                $rawAnswer = $this->validateAgainstAllowedValues($question->type, $rawAnswer, $question->values);
-            }
-
             $questionData = [
-                'id'           => $question->id,
-                'question'     => $question->question,
-                'values'       => $question->values,
-                'type'         => $question->type,
+                'id'            => $question->id,
+                'question'      => $question->question,
+                'values'        => $question->values,
+                'type'          => $question->type,
                 'keyboard_type' => $question->keyboard_type,
-                'mandatory'    => $question->mandatory,
-                'hidden'       => $question->hidden,
-                'updated_at'   => $question->updated_at,
+                'mandatory'     => $question->mandatory,
+                'hidden'        => $question->hidden,
+                'updated_at'    => $question->updated_at,
             ];
-
-            // In mock mode, inject a non-null other_field for select/multiple
-            // questions that have "Others" in their allowed_values, so the full
-            // answer shape (including other_field) is tested end-to-end.
-            // In production, other_field is always null from the AI — the doctor
-            // fills it manually after the form is pre-populated.
-            $mockOtherField = null;
-            if (config('services.ai_form.mock') && in_array($question->type, ['select', 'multiple'])) {
-                $hasOthersOption = ! empty($question->values) && in_array('Others', $question->values, true);
-                if ($hasOthersOption && in_array('Others', (array) $rawAnswer, true)) {
-                    $mockOtherField = 'Mock other field value';
-                }
-            }
 
             switch ($question->type) {
                 case 'select':
-                    $questionData['answer'] = [
-                        'answers'     => $rawAnswer,
-                        'other_field' => $mockOtherField,
-                    ];
+                    $questionData['answer'] = $this->formatSelectAnswer($rawAnswer, $question->values ?? []);
                     break;
 
                 case 'multiple':
-                    $questionData['answer'] = [
-                        'answers'     => is_array($rawAnswer) ? $rawAnswer : [],
-                        'other_field' => $mockOtherField,
-                    ];
+                    $questionData['answer'] = $this->formatMultipleAnswer($rawAnswer, $question->values ?? []);
                     break;
 
                 default: // string, text, date → raw value or null
@@ -341,28 +326,86 @@ PROMPT;
     }
 
     /**
-     * Validate that GPT-returned values exist in the question's allowed_values.
-     * If a value is not found, return null (select) or filter it out (multiple).
-     * Prevents garbage data from reaching the frontend.
+     * Format a select answer.
+     *
+     * GPT returns one of:
+     *   "Exact Value"                          → matched allowed value
+     *   {"value": "raw text", "is_other": true} → unmatched, question has "Others"
+     *   null                                    → not found
+     *
+     * Output always matches production format:
+     *   {"answers": "Value",  "other_field": null}
+     *   {"answers": "Others", "other_field": "raw text"}
+     *   {"answers": null,     "other_field": null}
      */
-    private function validateAgainstAllowedValues(string $type, mixed $rawAnswer, array $allowedValues): mixed
+    private function formatSelectAnswer(mixed $rawAnswer, array $allowedValues): array
     {
-        if ($type === 'select') {
-            if ($rawAnswer === null || ! in_array($rawAnswer, $allowedValues, true)) {
-                return null;
-            }
+        $hasOthers = in_array('Others', $allowedValues, true);
 
-            return $rawAnswer;
+        // GPT signalled an unmatched value → put in other_field
+        if (is_array($rawAnswer) && isset($rawAnswer['is_other']) && $rawAnswer['is_other'] === true) {
+            if ($hasOthers) {
+                return [
+                    'answers'     => 'Others',
+                    'other_field' => $rawAnswer['value'] ?? null,
+                ];
+            }
+            // Question has no "Others" option — discard
+            return ['answers' => null, 'other_field' => null];
         }
 
-        if ($type === 'multiple') {
-            if (! is_array($rawAnswer)) {
-                return [];
-            }
-
-            return array_values(array_filter($rawAnswer, fn ($v) => in_array($v, $allowedValues, true)));
+        // Plain string — validate it exists in allowed_values
+        if (is_string($rawAnswer) && in_array($rawAnswer, $allowedValues, true)) {
+            return ['answers' => $rawAnswer, 'other_field' => null];
         }
 
-        return $rawAnswer;
+        // Null or unrecognised shape
+        return ['answers' => null, 'other_field' => null];
+    }
+
+    /**
+     * Format a multiple answer.
+     *
+     * GPT returns one of:
+     *   ["Val1", "Val2"]                                        → all matched
+     *   {"answers": ["Val1", "Others"], "others_text": "raw"}  → some unmatched
+     *   []                                                      → nothing found
+     *
+     * Output always matches production format:
+     *   {"answers": ["Val1", "Val2"], "other_field": null}
+     *   {"answers": ["Val1", "Others"], "other_field": "raw text"}
+     *   {"answers": [],               "other_field": null}
+     */
+    private function formatMultipleAnswer(mixed $rawAnswer, array $allowedValues): array
+    {
+        $hasOthers = in_array('Others', $allowedValues, true);
+
+        // GPT returned the {answers, others_text} structure
+        if (is_array($rawAnswer) && array_key_exists('answers', $rawAnswer)) {
+            $answers    = is_array($rawAnswer['answers']) ? $rawAnswer['answers'] : [];
+            $othersText = $rawAnswer['others_text'] ?? null;
+
+            // Filter answers array to only valid allowed_values
+            $validAnswers = array_values(array_filter($answers, fn ($v) => in_array($v, $allowedValues, true)));
+
+            // Ensure "Others" is in the list if there's an others_text
+            if ($othersText !== null && $hasOthers && ! in_array('Others', $validAnswers, true)) {
+                $validAnswers[] = 'Others';
+            }
+
+            return [
+                'answers'     => $validAnswers,
+                'other_field' => ($hasOthers && $othersText !== null) ? $othersText : null,
+            ];
+        }
+
+        // Plain array — filter to valid allowed_values only
+        if (is_array($rawAnswer)) {
+            $validAnswers = array_values(array_filter($rawAnswer, fn ($v) => in_array($v, $allowedValues, true)));
+            return ['answers' => $validAnswers, 'other_field' => null];
+        }
+
+        // Null or unrecognised shape
+        return ['answers' => [], 'other_field' => null];
     }
 }

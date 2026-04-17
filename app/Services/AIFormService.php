@@ -142,6 +142,7 @@ class AIFormService
     private function buildExtractionPrompt(Collection $questions, string $text): string
     {
         $questionsDescription = [];
+        $catchAllId           = null;
 
         foreach ($questions as $question) {
             $desc = [
@@ -158,10 +159,27 @@ class AIFormService
                 $desc['note'] = 'Extract as a date string in YYYY-MM-DD format, or null if not found.';
             }
 
+            // Detect a generic catch-all "Other" free-text field:
+            // type=string AND question name is exactly "Other" (or "Other Causes", etc.)
+            // with no values list — used to capture leftover info from the transcript.
+            if (
+                $question->type === 'string' &&
+                empty($question->values) &&
+                preg_match('/^other(s)?(\s+causes)?$/i', trim($question->question))
+            ) {
+                $catchAllId            = (string) $question->id;
+                $desc['is_catch_all']  = true;
+                $desc['note']          = 'Catch-all field. Put here any medically relevant information from the transcript that does not clearly belong to any other question above.';
+            }
+
             $questionsDescription[] = $desc;
         }
 
         $questionsJson = json_encode($questionsDescription, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+        $catchAllRule = $catchAllId
+            ? "11. CATCH-ALL RULE: One question is marked with \"is_catch_all\": true (ID {$catchAllId}). After filling all other questions, collect any medically relevant details from the transcript that were NOT captured by any other question, and write them as a concise summary string in this field. Examples of catch-all content: reason for admission, chief complaint, serum creatinine value, diagnosis, ICU admission reason, or any other clinical detail mentioned but not covered by a specific question. If everything was already captured, return null."
+            : '';
 
         return <<<PROMPT
 You are a medical data extraction assistant. A doctor has dictated patient information, and your job is to extract structured data from the transcript and map it to the questions below.
@@ -169,19 +187,30 @@ You are a medical data extraction assistant. A doctor has dictated patient infor
 CRITICAL RULES — you MUST follow these exactly:
 1. Return a JSON object where each key is a question ID (as a string) and the value is the extracted answer.
 2. For "select" type:
-   a. If the extracted value EXACTLY matches one of the "allowed_values" → return that string.
-   b. If the extracted value does NOT match any "allowed_values" BUT "Others" exists in the list → return {"value": "<extracted text>", "is_other": true}.
-   c. If nothing is found → return the JSON literal null.
+   a. First, use your medical knowledge to resolve any abbreviations, synonyms, or phonetic transcription errors in the transcript (e.g., "debits" → "Diabetes Mellitus", "DM" → "Diabetes Mellitus", "hypertension" → "Hypertension", "HTN" → "Hypertension", "Takahliya/Dakahlia/Dakahliya" → "Dakahlia", similar phonetic variants → correct spelling).
+   b. If the resolved value EXACTLY matches one of the "allowed_values" → return that string.
+   c. If relevant information IS present in the transcript but does NOT match any "allowed_values" (even after synonym resolution) AND "Others" exists in the list → return {"value": "<the original text from transcript>", "is_other": true}. This is mandatory — do NOT return null when the information exists but doesn't match.
+   d. If no relevant information is found at all → return the JSON literal null.
 3. For "multiple" type:
-   a. For each extracted value, if it EXACTLY matches an item in "allowed_values" → include it in the answers array.
-   b. If an extracted value does NOT match any "allowed_values" BUT "Others" exists in the list → include "Others" in the answers array AND return the format: {"answers": ["matched1", "Others"], "others_text": "<unmatched text>"}.
-   c. If nothing is found → return an empty array [].
+   a. First, apply the same abbreviation/synonym/phonetic resolution as rule 2a.
+   b. For each resolved value, if it EXACTLY matches an item in "allowed_values" → include it in the answers array.
+   c. If a resolved value does NOT match any "allowed_values" BUT "Others" exists in the list → include "Others" in the answers array AND return the format: {"answers": ["matched1", "Others"], "others_text": "<unmatched text from transcript>"}.
+   d. If nothing is found → return an empty array [].
 4. For "string" or "text" type: return the extracted text as a string, or the JSON literal null if not found.
 5. For "date" type: return the date as a string in YYYY-MM-DD format (e.g., "2024-03-15"), or the JSON literal null if not found.
 6. IMPORTANT: If no information is found for a question, you MUST return the JSON literal null — NOT the string "null", NOT an empty string "".
-7. Use your medical knowledge to map abbreviations, acronyms, and synonyms in the transcript to the EXACT strings in the allowed_values list. Examples: "ICU" → "Intensive Care Unit", "HTN" → "Hypertension", "DM" → "Diabetes Mellitus", "CAD" → "Coronary Artery Disease", "CKD" → "Chronic Kidney Disease". Apply this reasoning for any medical abbreviation encountered.
-8. Match allowed_values EXACTLY (case-sensitive). Do not rephrase or paraphrase values.
-9. Do not invent or guess data that is not present in the transcript.
+7. IMPORTANT: For "select" type, if information IS present in the transcript but does not match any allowed_values, you MUST use the is_other format (rule 2c). Never discard information by returning null when the information exists. Example: if transcript says "Mansoura University Hospital" and allowed_values has hospital codes like "MUH-14", since it does not match exactly but "Others" exists, return {"value": "Mansoura University Hospital", "is_other": true}.
+8. Medical synonym & phonetic correction examples (apply broadly, not limited to these):
+   - "ICU" or "intensive care" → "Intensive Care Unit"
+   - "HTN" or "hypertension" → "Hypertension"
+   - "DM" or "diabetes" or "debits" or "diabetics" → "Diabetes Mellitus"
+   - "CAD" or "coronary artery" → "Coronary Artery Disease"
+   - "CKD" or "chronic kidney" → "Chronic Kidney Disease"
+   - "Takahliya", "Dakahlia", "Daqahliya", "Dakahliya" → try matching to the closest allowed_value for that governorate
+   - Any phonetic transcription error → infer the most likely intended medical term
+9. Match allowed_values EXACTLY (case-sensitive) after synonym resolution.
+10. Do not invent or guess data that is not present in the transcript.
+{$catchAllRule}
 
 QUESTIONS:
 {$questionsJson}
@@ -234,7 +263,7 @@ PROMPT;
                 '17'  => '10',                                                      // string  | DM duration
                 '18'  => 'Yes',                                                     // select  | HTN — matched
                 '19'  => '5',                                                       // string  | HTN duration
-                '20'  => 'Sepsis for ICU admission',                                // string  | Other
+                '20'  => 'Serum creatinine 2.5, admitted for sepsis (ICU admission)',  // string  | Other — catch-all
                 '149' => 'No',                                                      // select  | Black race — matched
                 '168' => ['value' => 'Renal Transplant Unit', 'is_other' => true], // select  | Department — unmatched → other_field
                 '169' => 'Renal Transplant Unit',                                   // string  | Other department detail

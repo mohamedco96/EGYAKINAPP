@@ -19,6 +19,7 @@ class SectionsInfo extends Model
         'section_name',
         'section_description',
         'ai_mode',
+        'ai_hint',
     ];
 
     /**

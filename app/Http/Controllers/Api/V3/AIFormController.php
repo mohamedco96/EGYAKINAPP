@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\V2;
+namespace App\Http\Controllers\Api\V3;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProcessAISectionRequest;
@@ -21,12 +21,11 @@ class AIFormController extends Controller
      * Generic AI-to-form endpoint for a single section.
      * Accepts either an `audio` file (voice) or an `image` file (lab/radiology).
      *
-     * POST /api/v2/ai-form/process-section
+     * POST /api/v3/ai-form/process-section
      *   form-data:
      *     audio      → mp3/wav/m4a/ogg/webm  (required if no image)
      *     image      → jpg/jpeg/png/webp/pdf  (required if no audio)
      *     section_id → integer
-     *     language   → 2-letter ISO code, optional, default 'en'
      *
      * The controller resolves the input type and converts it to text,
      * then delegates to the same input-agnostic processSection() pipeline.

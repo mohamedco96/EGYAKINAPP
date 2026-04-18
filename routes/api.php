@@ -37,9 +37,14 @@ Route::prefix('v1')->group(function () {
     require __DIR__.'/api/v1.php';
 });
 
-// Version 2 Routes (api/v2/...) - All new changes should use V2
+// Version 2 Routes (api/v2/...)
 Route::prefix('v2')->group(function () {
     require __DIR__.'/api/v2.php';
+});
+
+// Version 3 Routes (api/v3/...) - All new changes should use V3
+Route::prefix('v3')->group(function () {
+    require __DIR__.'/api/v3.php';
 });
 
 // ==============================================================================

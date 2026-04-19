@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V3\AIFormController;
 use App\Http\Controllers\Api\V2\AchievementController;
 use App\Http\Controllers\Api\V2\AuthController;
 use App\Http\Controllers\Api\V2\ChatController;
@@ -20,32 +21,29 @@ use App\Http\Controllers\Api\V2\PatientsController;
 use App\Http\Controllers\Api\V2\PollController;
 use App\Http\Controllers\Api\V2\PostCommentsController;
 use App\Http\Controllers\Api\V2\PostsController;
-use App\Http\Controllers\Api\V2\QuestionsController;
 use App\Http\Controllers\Api\V2\RecommendationController;
 use App\Http\Controllers\Api\V2\ResetPasswordController;
 use App\Http\Controllers\Api\V2\RolePermissionController;
-use App\Http\Controllers\Api\V2\SectionsController;
 use App\Http\Controllers\Api\V2\SettingsController;
 use App\Http\Controllers\Api\V2\ShareController;
 use App\Http\Controllers\Api\V2\UserLocaleController;
+use App\Http\Controllers\Api\V3\QuestionsController;
+use App\Http\Controllers\Api\V3\SectionsController;
 use App\Http\Controllers\SocialAuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| API V2 Routes
+| API V3 Routes
 |--------------------------------------------------------------------------
 |
-| This file contains all the API routes for version 2 of the application.
-| These routes are loaded by the RouteServiceProvider within a group
-| which is assigned the "api" middleware group and "v2" prefix.
-|
-| All new changes and features should be added to this version.
+| V3 introduces ai_mode in section/questions responses.
+| All other routes delegate directly to V2 controllers.
 |
 */
 
-// Public routes for V2
+// Public routes for V3
 Route::middleware('throttle:auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
@@ -72,7 +70,6 @@ Route::get('/settings/{settings}', [SettingsController::class, 'show']);
 
 // Social Authentication Routes
 Route::prefix('auth/social')->group(function () {
-    // Web-based OAuth flows (for web applications) - requires session for OAuth state
     Route::middleware(['web'])->group(function () {
         Route::get('/google', [SocialAuthController::class, 'redirectToGoogle']);
         Route::get('/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
@@ -80,12 +77,11 @@ Route::prefix('auth/social')->group(function () {
         Route::match(['get', 'post'], '/apple/callback', [SocialAuthController::class, 'handleAppleCallback']);
     });
 
-    // API-based authentication (for mobile applications)
     Route::post('/google', [SocialAuthController::class, 'googleAuth']);
     Route::post('/apple', [SocialAuthController::class, 'appleAuth']);
 });
 
-// Protected routes (require auth:sanctum middleware)
+// Protected routes
 Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function () {
 
     // General upload routes
@@ -131,11 +127,11 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
 
     // Patient routes
     Route::post('/patient', [PatientsController::class, 'storePatient']);
-    Route::get('/patient/{section_id}/{patient_id}', [SectionsController::class, 'showQuestionsAnswers']);
+    Route::get('/patient/{section_id}/{patient_id}', [SectionsController::class, 'showQuestionsAnswers']); // V3
     Route::put('/patientsection/{patient_id}', [PatientsController::class, 'updateFinalSubmit']);
     Route::put('/patientsection/{section_id}/{patient_id}', [PatientsController::class, 'updatePatient']);
-    Route::put('/submitStatus/{patient_id}', [SectionsController::class, 'updateFinalSubmit']);
-    Route::get('/showSections/{patient_id}', [SectionsController::class, 'showSections']);
+    Route::put('/submitStatus/{patient_id}', [SectionsController::class, 'updateFinalSubmit']);           // V3
+    Route::get('/showSections/{patient_id}', [SectionsController::class, 'showSections']);                // V3
     Route::delete('/patient/{id}', [PatientsController::class, 'destroyPatient']);
     Route::post('/searchNew', [PatientsController::class, 'searchNew']);
     Route::get('/homeNew', [PatientsController::class, 'homeGetAllData']);
@@ -153,10 +149,10 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
     Route::delete('/markedPatients/{patient_id}', [PatientsController::class, 'unmarkPatient']);
     Route::get('/markedPatients', [PatientsController::class, 'getMarkedPatients']);
 
-    // Questions routes
+    // Questions routes — V3 controllers (include ai_mode in show responses)
     Route::get('/questions', [QuestionsController::class, 'index']);
     Route::post('/questions', [QuestionsController::class, 'store']);
-    Route::get('/questions/{section_id}', [QuestionsController::class, 'show']);
+    Route::get('/questions/{section_id}', [QuestionsController::class, 'show']);                          // V3
     Route::get('/questions/{section_id}/{patient_id}', [QuestionsController::class, 'ShowQuestitionsAnswars']);
     Route::put('/questions/{id}', [QuestionsController::class, 'update']);
     Route::delete('/questions/{id}', [QuestionsController::class, 'destroy']);
@@ -219,8 +215,6 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
     Route::get('/consultations/{id}', [ConsultationController::class, 'consultationDetails']);
     Route::put('/consultations/{id}', [ConsultationController::class, 'update']);
     Route::post('/consultationDoctorSearch/{data}', [ConsultationController::class, 'consultationSearch']);
-
-    // New consultation features (v2)
     Route::post('/consultations/{id}/add-doctors', [ConsultationController::class, 'addDoctors']);
     Route::put('/consultations/{id}/toggle-status', [ConsultationController::class, 'toggleStatus']);
     Route::get('/consultations/{id}/members', [ConsultationController::class, 'getMembers']);
@@ -278,6 +272,9 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
     Route::get('/groups/invitations/{doctorId}', [GroupController::class, 'getDoctorInvitations']);
     Route::get('/groups/{groupId}/invitations', [GroupController::class, 'getGroupInvitations']);
 
+    // AI Form extraction routes
+    Route::post('/ai-form/process-section', [AIFormController::class, 'processSection']);
+
     // Chat/AI Consultation routes
     Route::post('/AIconsultation/{patientId}', [ChatController::class, 'sendConsultation']);
     Route::get('/AIconsultation-history/{patientId}', [ChatController::class, 'getConsultationHistory']);
@@ -293,10 +290,10 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
     Route::post('/share/bulk', [ShareController::class, 'generateBulkUrls']);
     Route::get('/share/preview', [ShareController::class, 'getPreview']);
 
-    // Patient PDF (requires auth — patient data is sensitive)
+    // Patient PDF
     Route::get('/generatePDF/{patient_id}', [PatientsController::class, 'generatePatientPDF']);
 
-    // Settings write routes (requires auth)
+    // Settings write routes
     Route::post('/settings', [SettingsController::class, 'store']);
     Route::put('/settings/{settings}', [SettingsController::class, 'update']);
     Route::delete('/settings/{settings}', [SettingsController::class, 'destroy']);
@@ -307,49 +304,41 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
     });
 });
 
-// Authenticated user route with roles and permissions
+// Authenticated user route
 Route::middleware(['auth:sanctum', 'check.blocked.home'])->get('/user', function (Request $request) {
     $user = $request->user()->load(['roles.permissions', 'permissions']);
 
-    // Get user's single role (enforcing one role per user)
-    $role = $user->roles()->first();
-    $roleName = $role ? $role->name : null;
-
-    // Get permissions from role AND direct permissions
+    $role        = $user->roles()->first();
+    $roleName    = $role ? $role->name : null;
     $permissions = $user->getAllSystemPermissions();
 
     return [
-        'id' => $user->id,
-        'name' => $user->name,
-        'email' => $user->email,
-        'profile_completed' => $user->profile_completed,
-        'avatar' => $user->avatar,
-        'locale' => $user->locale,
-        'role' => $roleName,
-        'permissions' => $permissions,
-        'created_at' => $user->created_at,
-        'updated_at' => $user->updated_at,
+        'id'                  => $user->id,
+        'name'                => $user->name,
+        'email'               => $user->email,
+        'profile_completed'   => $user->profile_completed,
+        'avatar'              => $user->avatar,
+        'locale'              => $user->locale,
+        'role'                => $roleName,
+        'permissions'         => $permissions,
+        'created_at'          => $user->created_at,
+        'updated_at'          => $user->updated_at,
     ];
 });
 
-// Get user role and permissions endpoint (used when permissions_changed is true)
 Route::middleware(['auth:sanctum', 'check.blocked.home'])->get('/user/role-permissions', function (Request $request) {
     $user = $request->user()->load(['roles.permissions', 'permissions']);
 
-    // Get user's single role (enforcing one role per user)
-    $role = $user->roles()->first();
-    $roleName = $role ? $role->name : null;
-
-    // Get permissions from role AND direct permissions
+    $role        = $user->roles()->first();
+    $roleName    = $role ? $role->name : null;
     $permissions = $user->getAllSystemPermissions();
 
-    // Reset permissions_changed flag after fetching
     $user->update(['permissions_changed' => false]);
 
     return [
-        'value' => true,
-        'message' => 'Role and permissions retrieved successfully',
-        'role' => $roleName,
+        'value'       => true,
+        'message'     => 'Role and permissions retrieved successfully',
+        'role'        => $roleName,
         'permissions' => $permissions,
     ];
 });

@@ -48,10 +48,14 @@ class AIFormService
         ]);
 
         if (! $response->successful()) {
-            Log::error('Whisper API Error', [
-                'status' => $response->status(),
-                'body'   => $response->body(),
-            ]);
+            $body = $response->body();
+            Log::error('Whisper API Error', array_filter([
+                'status'         => $response->status(),
+                'response_bytes' => strlen($body),
+                'response_hash'  => substr(hash('sha256', $body), 0, 12),
+                'request_id'     => $response->header('x-request-id'),
+                'body'           => config('app.debug') ? $body : null,
+            ]));
             throw new \Exception('Failed to transcribe audio.');
         }
 
@@ -59,18 +63,164 @@ class AIFormService
     }
 
     /**
-     * Analyze an image file using GPT-4 Vision and return extracted text.
-     * (Future: lab reports, radiology results, etc.)
+     * Analyze one or more lab report / radiology images using GPT-4o Vision.
+     * Accepts an array of UploadedFile (jpg/jpeg/png/webp/pdf, up to 5 files).
+     * All images are sent in a single GPT-4o call so the model reads them together.
      *
-     * Implementation steps when ready:
-     *   1. Base64-encode the image
-     *   2. POST to GPT-4o with vision content (image_url type = base64)
-     *   3. Return the model's text description
-     *   Then pass that text to processSection() — same pipeline as voice.
+     * Returns a plain-text description of all values found across all images,
+     * which is then passed into processSection() like any other text input.
+     *
+     * Set AI_FORM_MOCK=true in .env to bypass the API call during local testing.
+     *
+     * @param  UploadedFile[]  $imageFiles
      */
-    public function analyzeImage(UploadedFile $imageFile): string
+    public function analyzeImage(array $imageFiles): string
     {
-        throw new \Exception('Image analysis is not yet implemented.');
+        if (config('services.ai_form.mock')) {
+            Log::info('AIFormService: mock image analysis active (AI_FORM_MOCK=true)', [
+                'image_count' => count($imageFiles),
+            ]);
+
+            return 'Lab report: Creatinine on admission 3.2, basal creatinine 1.1, day 2 creatinine 2.8, day 3 creatinine 2.1. pH 7.30, HCO3 18, pCO2 35. Serum Na 138, K 5.2. SGOT 45, SGPT 38, Albumin 3.0, Total Bilirubin 1.2, Direct Bilirubin 0.4. PT 14, PTT 32, INR 1.2. HCV Ab Negative, HBs Ag Negative, HIV Ab Negative. Hemoglobin 9.5, WBCs 11000, Platelets 180000, Neutrophils 7500, Lymphocytes 2500, Monocytes 800, Eosinophil 200, Basophil 50. Urea 80, BUN 37, CRP 48. Urine: specific gravity 1.018, turbid, epithelial cells few, granular casts, WBCs 8, RBCs 4, proteinuria 2+. Renal US: nephromegaly bilateral.';
+        }
+
+        // Build the content array: one block per file + instruction at the end.
+        // PDFs are uploaded to OpenAI Files API first, then referenced by file ID.
+        // Images are sent inline as base64.
+        $content     = [];
+        $uploadedIds = []; // track OpenAI file IDs for cleanup
+
+        foreach ($imageFiles as $imageFile) {
+            $mime = $imageFile->getMimeType();
+
+            if (str_contains($mime, 'pdf')) {
+                // Upload PDF to OpenAI Files API, then reference by ID
+                $fileId        = $this->uploadFileToOpenAI($imageFile);
+                $uploadedIds[] = $fileId;
+
+                $content[] = [
+                    'type' => 'file',
+                    'file' => [
+                        'file_id' => $fileId,
+                    ],
+                ];
+            } else {
+                $mediaType = match (true) {
+                    str_contains($mime, 'png')  => 'image/png',
+                    str_contains($mime, 'webp') => 'image/webp',
+                    default                     => 'image/jpeg',
+                };
+
+                $content[] = [
+                    'type'      => 'image_url',
+                    'image_url' => [
+                        'url'    => "data:{$mediaType};base64," . base64_encode(file_get_contents($imageFile->getRealPath())),
+                        'detail' => 'high',
+                    ],
+                ];
+            }
+        }
+
+        // Instruction block appended after all files
+        $content[] = [
+            'type' => 'text',
+            'text' => "These are medical lab reports or radiology results (" . count($imageFiles) . " file(s)). Extract ALL values you can read across all files and return them as plain text in this format: \"Test name: value, Test name: value, ...\". Include every number, unit, and result visible. If the same test appears on multiple files, use the most recent or highest value. Do not skip anything. Do not add explanations.",
+        ];
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type'  => 'application/json',
+            ])->timeout(90)->post('https://api.openai.com/v1/chat/completions', [
+                'model'      => 'gpt-4o',
+                'messages'   => [
+                    [
+                        'role'    => 'user',
+                        'content' => $content,
+                    ],
+                ],
+                'max_tokens' => 2000,
+            ]);
+
+            if (! $response->successful()) {
+                $body = $response->body();
+                Log::error('GPT-4o Vision API Error', array_filter([
+                    'status'         => $response->status(),
+                    'file_count'     => count($imageFiles),
+                    'response_bytes' => strlen($body),
+                    'response_hash'  => substr(hash('sha256', $body), 0, 12),
+                    'request_id'     => $response->header('x-request-id'),
+                    'body'           => config('app.debug') ? $body : null,
+                ]));
+                throw new \Exception('Failed to analyze image.');
+            }
+
+            $text = trim($response->json('choices.0.message.content') ?? '');
+
+            if (empty($text)) {
+                throw new \Exception('GPT-4o returned an empty response for the image.');
+            }
+
+            return $text;
+        } finally {
+            // Clean up uploaded files from OpenAI
+            foreach ($uploadedIds as $fileId) {
+                $this->deleteFileFromOpenAI($fileId);
+            }
+        }
+    }
+
+    /**
+     * Upload a file to OpenAI Files API for use with chat completions.
+     * Returns the file ID.
+     */
+    private function uploadFileToOpenAI(UploadedFile $file): string
+    {
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $this->apiKey,
+        ])->timeout(60)->attach(
+            'file',
+            fopen($file->getRealPath(), 'r'),
+            $file->getClientOriginalName()
+        )->post('https://api.openai.com/v1/files', [
+            'purpose' => 'user_data',
+        ]);
+
+        if (! $response->successful()) {
+            Log::error('OpenAI file upload failed', [
+                'status' => $response->status(),
+                'body'   => config('app.debug') ? $response->body() : null,
+            ]);
+            throw new \Exception('Failed to upload PDF for processing.');
+        }
+
+        $fileId = $response->json('id');
+
+        Log::info('PDF uploaded to OpenAI', [
+            'file_id'  => $fileId,
+            'filename' => $file->getClientOriginalName(),
+            'size'     => $file->getSize(),
+        ]);
+
+        return $fileId;
+    }
+
+    /**
+     * Delete a file from OpenAI Files API after processing.
+     */
+    private function deleteFileFromOpenAI(string $fileId): void
+    {
+        try {
+            Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+            ])->timeout(10)->delete("https://api.openai.com/v1/files/{$fileId}");
+        } catch (\Exception $e) {
+            // Non-critical — OpenAI auto-deletes files after a period
+            Log::warning('Failed to delete OpenAI file', [
+                'file_id' => $fileId,
+                'error'   => $e->getMessage(),
+            ]);
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -91,11 +241,11 @@ class AIFormService
         $questions = $this->getFilteredQuestions($sectionId);
 
         if ($questions->isEmpty()) {
-            return ['data' => []];
+            return ['data' => [], 'prompt' => ''];
         }
 
         $prompt        = $this->buildExtractionPrompt($questions, $text);
-        $extractedData = $this->extractData($prompt);
+        $extractedData = $this->extractData($prompt, $sectionId);
         $data          = $this->formatResponse($questions, $extractedData);
 
         return [
@@ -142,6 +292,7 @@ class AIFormService
     private function buildExtractionPrompt(Collection $questions, string $text): string
     {
         $questionsDescription = [];
+        $catchAllId           = null;
 
         foreach ($questions as $question) {
             $desc = [
@@ -158,10 +309,27 @@ class AIFormService
                 $desc['note'] = 'Extract as a date string in YYYY-MM-DD format, or null if not found.';
             }
 
+            // Detect a generic catch-all "Other" free-text field:
+            // type=string AND question name is exactly "Other" (or "Other Causes", etc.)
+            // with no values list — used to capture leftover info from the transcript.
+            if (
+                $question->type === 'string' &&
+                empty($question->values) &&
+                preg_match('/^other(s)?(\s+causes)?$/i', trim($question->question))
+            ) {
+                $catchAllId            = (string) $question->id;
+                $desc['is_catch_all']  = true;
+                $desc['note']          = 'Catch-all field. Put here any medically relevant information from the transcript that does not clearly belong to any other question above.';
+            }
+
             $questionsDescription[] = $desc;
         }
 
         $questionsJson = json_encode($questionsDescription, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+        $catchAllRule = $catchAllId
+            ? "14. CATCH-ALL RULE: One question is marked with \"is_catch_all\": true (ID {$catchAllId}). After filling all other questions, collect any medically relevant details from the transcript that were NOT captured by any other question, and write them as a concise summary string in this field. Examples of catch-all content: reason for admission, chief complaint, serum creatinine value, diagnosis, ICU admission reason, or any other clinical detail mentioned but not covered by a specific question. If everything was already captured, return null."
+            : '';
 
         return <<<PROMPT
 You are a medical data extraction assistant. A doctor has dictated patient information, and your job is to extract structured data from the transcript and map it to the questions below.
@@ -169,19 +337,34 @@ You are a medical data extraction assistant. A doctor has dictated patient infor
 CRITICAL RULES — you MUST follow these exactly:
 1. Return a JSON object where each key is a question ID (as a string) and the value is the extracted answer.
 2. For "select" type:
-   a. If the extracted value EXACTLY matches one of the "allowed_values" → return that string.
-   b. If the extracted value does NOT match any "allowed_values" BUT "Others" exists in the list → return {"value": "<extracted text>", "is_other": true}.
-   c. If nothing is found → return the JSON literal null.
+   a. First, use your medical knowledge to resolve any abbreviations, synonyms, or phonetic transcription errors in the transcript (e.g., "debits" → "Diabetes Mellitus", "DM" → "Diabetes Mellitus", "hypertension" → "Hypertension", "HTN" → "Hypertension", "Takahliya/Dakahlia/Dakahliya" → "Dakahlia", similar phonetic variants → correct spelling).
+   b. If the resolved value EXACTLY matches one of the "allowed_values" → return that string.
+   c. If relevant information IS present in the transcript but does NOT match any "allowed_values" (even after synonym resolution) AND the list contains "Others", "Other", or "others" (any casing) → return {"value": "<the original text from transcript>", "is_other": true}. This is mandatory — do NOT return null when the information exists but doesn't match.
+   d. If no relevant information is found at all → return the JSON literal null.
 3. For "multiple" type:
-   a. For each extracted value, if it EXACTLY matches an item in "allowed_values" → include it in the answers array.
-   b. If an extracted value does NOT match any "allowed_values" BUT "Others" exists in the list → include "Others" in the answers array AND return the format: {"answers": ["matched1", "Others"], "others_text": "<unmatched text>"}.
-   c. If nothing is found → return an empty array [].
+   a. First, apply the same abbreviation/synonym/phonetic resolution as rule 2a.
+   b. For each resolved value, if it EXACTLY matches an item in "allowed_values" → include it in the answers array.
+   c. IMPORTANT: Before treating a value as unmatched, check ALL allowed_values carefully for synonyms. Example: transcript says "shisha" → check if "Shisha smoker" exists in allowed_values → it does → use "Shisha smoker", do NOT put it in others_text.
+   d. Only if a resolved value truly does NOT match any "allowed_values" BUT the list contains "Others", "Other", or "others" (any casing) → include that exact entry in the answers array AND return the format: {"answers": ["matched1", "<the_others_entry>"], "others_text": "<unmatched text from transcript>"}.
+   e. If nothing is found → return an empty array [].
 4. For "string" or "text" type: return the extracted text as a string, or the JSON literal null if not found.
 5. For "date" type: return the date as a string in YYYY-MM-DD format (e.g., "2024-03-15"), or the JSON literal null if not found.
 6. IMPORTANT: If no information is found for a question, you MUST return the JSON literal null — NOT the string "null", NOT an empty string "".
-7. Use your medical knowledge to map abbreviations, acronyms, and synonyms in the transcript to the EXACT strings in the allowed_values list. Examples: "ICU" → "Intensive Care Unit", "HTN" → "Hypertension", "DM" → "Diabetes Mellitus", "CAD" → "Coronary Artery Disease", "CKD" → "Chronic Kidney Disease". Apply this reasoning for any medical abbreviation encountered.
-8. Match allowed_values EXACTLY (case-sensitive). Do not rephrase or paraphrase values.
-9. Do not invent or guess data that is not present in the transcript.
+7. IMPORTANT: For "select" type, if information IS present in the transcript but does not match any allowed_values, you MUST use the is_other format (rule 2c). Never discard information by returning null when the information exists. The value in {"value": "...", "is_other": true} must be the actual extracted text (e.g., "Egypt", "Mansoura University Hospital") — NEVER put "Others"/"Other" as the value. Example: transcript says "Mansoura University Hospital", allowed_values has codes like "MUH-14" plus "Others" → return {"value": "Mansoura University Hospital", "is_other": true}.
+8. For "string" questions whose text starts with "If the answer is other" or "If the response to the previous question is others" or similar companion phrasing: fill this field with the clarifying detail from the transcript that corresponds to the "other" answer in the preceding question. Return null if the preceding answer was not "other/others".
+9. Medical synonym & phonetic correction examples (apply broadly, not limited to these):
+   - "ICU" or "intensive care" → "Intensive Care Unit"
+   - "HTN" or "hypertension" → "Hypertension"
+   - "DM" or "diabetes" or "debits" or "diabetics" → "Diabetes Mellitus"
+   - "CAD" or "coronary artery" → "Coronary Artery Disease"
+   - "CKD" or "chronic kidney" → "Chronic Kidney Disease"
+   - "Takahliya", "Dakhliya", "Dakahlia", "Daqahliya", "Dakahliya" → "Dakahlia"
+   - Any phonetic transcription error → infer the most likely intended medical term
+10. Match allowed_values EXACTLY (case-sensitive) after synonym resolution.
+11. Do not invent or guess data that is not present in the transcript.
+12. For numeric string fields (National ID, phone number, age, duration in years, or any sequence of digits): return digits only with NO dashes, spaces, dots, or any other formatting characters. Examples: "290-1011-234567" → "29901011234567", "010-123-45678" → "01012345678".
+13. For email fields: convert spoken "at" to "@" and "dot" to ".". Example: "ahmed at example dot com" → "ahmed@example.com".
+{$catchAllRule}
 
 QUESTIONS:
 {$questionsJson}
@@ -201,44 +384,331 @@ PROMPT;
      * The mock returns null for every question so the full formatting pipeline
      * still runs against your real DB questions — validating the structure is correct.
      */
-    private function extractData(string $prompt): array
+    private function extractData(string $prompt, int $sectionId = 0): array
     {
         if (config('services.ai_form.mock')) {
-            Log::info('AIFormService: mock extraction active (AI_FORM_MOCK=true)');
+            Log::info('AIFormService: mock extraction active (AI_FORM_MOCK=true)', ['section_id' => $sectionId]);
 
-            // Full mock for section 1 — every question has a filled value.
-            // Simulates the exact map GPT would return, including all answer shapes:
+            // Section 1 gets a rich mock covering all answer shapes for testing:
             //   string                                        → plain value
             //   select matched                                → plain string from allowed_values
             //   select unmatched (has Others)                 → {"value": "...", "is_other": true}
             //   select null                                   → null
             //   multiple all matched                          → plain array
             //   multiple with unmatched (has Others)          → {"answers": [...], "others_text": "..."}
-            return [
-                '1'   => 'Ahmed Mohamed',                                           // string  | Name
-                '2'   => 'MUH-14',                                                  // select  | Hospital — matched
-                '3'   => 'Patient himself',                                         // select  | Collected data from — matched
-                '4'   => '29901011234567',                                          // string  | National ID
-                '5'   => '01012345678',                                             // string  | Phone
-                '6'   => 'ahmed@example.com',                                       // string  | Email
-                '7'   => '64',                                                      // string  | Age
-                '8'   => 'Male',                                                    // select  | Gender — matched
-                '9'   => null,                                                      // select  | Occupation — not mentioned
-                '10'  => 'Rural',                                                   // select  | Residency — matched
-                '11'  => 'Dakahlia',                                                // select  | Governorate — matched
-                '12'  => ['value' => 'Partnered', 'is_other' => true],             // select  | Marital status — unmatched → other_field
-                '142' => '3',                                                       // string  | Children
-                '13'  => 'Primary school',                                          // select  | Educational level — matched
-                '14'  => ['answers' => ['Cigarette smoker', 'Others'], 'others_text' => 'Shisha occasionally'], // multiple | unmatched → others_text
-                '16'  => 'Yes',                                                     // select  | DM — matched
-                '17'  => '10',                                                      // string  | DM duration
-                '18'  => 'Yes',                                                     // select  | HTN — matched
-                '19'  => '5',                                                       // string  | HTN duration
-                '20'  => 'Sepsis for ICU admission',                                // string  | Other
-                '149' => 'No',                                                      // select  | Black race — matched
-                '168' => ['value' => 'Renal Transplant Unit', 'is_other' => true], // select  | Department — unmatched → other_field
-                '169' => 'Renal Transplant Unit',                                   // string  | Other department detail
-            ];
+            if ($sectionId === 1) {
+                return [
+                    '1'   => 'Ahmed Mohamed',                                           // string  | Name
+                    '2'   => 'MUH-14',                                                  // select  | Hospital — matched
+                    '3'   => 'Patient himself',                                         // select  | Collected data from — matched
+                    '4'   => '29901011234567',                                          // string  | National ID
+                    '5'   => '01012345678',                                             // string  | Phone
+                    '6'   => 'ahmed@example.com',                                       // string  | Email
+                    '7'   => '64',                                                      // string  | Age
+                    '8'   => 'Male',                                                    // select  | Gender — matched
+                    '9'   => null,                                                      // select  | Occupation — not mentioned
+                    '10'  => 'Rural',                                                   // select  | Residency — matched
+                    '11'  => 'Dakahlia',                                                // select  | Governorate — matched
+                    '12'  => ['value' => 'Partnered', 'is_other' => true],             // select  | Marital status — unmatched → other_field
+                    '142' => '3',                                                       // string  | Children
+                    '13'  => 'Primary school',                                          // select  | Educational level — matched
+                    '14'  => ['answers' => ['Cigarette smoker', 'Others'], 'others_text' => 'Shisha occasionally'], // multiple | unmatched → others_text
+                    '16'  => 'Yes',                                                     // select  | DM — matched
+                    '17'  => '10',                                                      // string  | DM duration
+                    '18'  => 'Yes',                                                     // select  | HTN — matched
+                    '19'  => '5',                                                       // string  | HTN duration
+                    '20'  => 'Serum creatinine 2.5, admitted for sepsis (ICU admission)',  // string  | Other — catch-all
+                    '149' => 'No',                                                      // select  | Black race — matched
+                    '168' => ['value' => 'Renal Transplant Unit', 'is_other' => true], // select  | Department — unmatched → other_field
+                    '169' => 'Renal Transplant Unit',                                   // string  | Other department detail
+                ];
+            }
+
+            // Section 2: Complaint — date, multiple (with Others), select
+            if ($sectionId === 2) {
+                return [
+                    '21'  => 'ER',                                                                 // select  | Where seen first — matched
+                    '23'  => '2024-03-15',                                                         // date    | Date of admission
+                    '24'  => ['answers' => ['OliguriaAnuria', 'Fatiguetiredness', 'Others'], 'others_text' => 'severe lower limb swelling'], // multiple | main complaint — with others_text
+                    '162' => 'Anuria/oliguria',                                                     // select  | Urine output — matched
+                    '166' => ['AKI', 'AKI on top of CKD'],                                         // multiple | Provisional diagnosis — all matched
+                ];
+            }
+
+            // Section 3: Cause of AKI — select, multiple, catch-all "Other Causes"
+            if ($sectionId === 3) {
+                return [
+                    '26'  => 'Intrinsic renal',                                                    // select  | Cause of AKI — matched
+                    '27'  => [],                                                                    // multiple | Pre-renal causes — none
+                    '29'  => ['Tubular injury due to ischemic ATN', 'Tubular injury due to toxic ATN'], // multiple | Intrinsic causes — matched
+                    '31'  => [],                                                                    // multiple | Post-renal causes — none
+                    '33'  => 'Patient had recent NSAIDs use and contrast exposure prior to admission', // string  | Other Causes — catch-all
+                ];
+            }
+
+            // Section 4: Risk factors — mostly Yes/No selects, multiple for drugs
+            if ($sectionId === 4) {
+                return [
+                    '34'  => 'No',                                                                  // select  | History of CKD
+                    '35'  => 'No',                                                                  // select  | Past history of AKI
+                    '36'  => 'No',                                                                  // select  | History of cardiac failure
+                    '37'  => 'No',                                                                  // select  | History of LCF
+                    '38'  => 'No',                                                                  // select  | History of neurological impairment
+                    '39'  => 'Yes',                                                                 // select  | History of sepsis
+                    '40'  => 'No',                                                                  // select  | Recent iodinated contrast
+                    '41'  => 'Yes',                                                                 // select  | Nephrotoxic drugs
+                    '42'  => ['answers' => ['NSAIDs', 'Aminoglycosides', 'Others'], 'others_text' => 'herbal remedy'], // multiple | Drugs — with others_text
+                    '43'  => 'Yes',                                                                 // select  | History of hypovolemia
+                    '44'  => 'No',                                                                  // select  | History of malignancy
+                    '45'  => 'No',                                                                  // select  | History of trauma
+                    '46'  => 'No',                                                                  // select  | History of autoimmune disease
+                    '47'  => null,                                                                  // string  | Other risk factors
+                ];
+            }
+
+            // Section 5: Assessment — string vitals, multiple examinations
+            if ($sectionId === 5) {
+                return [
+                    '48'  => '98',                                                                  // string  | Heart rate/minute
+                    '49'  => '22',                                                                  // string  | Respiratory rate/minute
+                    '50'  => '110',                                                                 // string  | SBP
+                    '51'  => '70',                                                                  // string  | DBP
+                    '53'  => '96',                                                                  // string  | Oxygen saturation
+                    '54'  => '37.8',                                                                // string  | Temperature
+                    '52'  => '14',                                                                  // string  | GCS
+                    '56'  => 'Alert',                                                               // select  | AVPU — matched
+                    '140' => '172',                                                                 // string  | Height
+                    '141' => '80',                                                                  // string  | Weight
+                    '55'  => '15',                                                                  // string  | UOP ml/hour
+                    '159' => '90',                                                                  // string  | UOP first 6h
+                    '160' => '350',                                                                 // string  | UOP first 24h
+                    '57'  => ['Normal'],                                                            // multiple | Skin exam
+                    '59'  => ['Pallor'],                                                            // multiple | Eye exam
+                    '61'  => ['Normal'],                                                            // multiple | Ear exam
+                    '63'  => ['Normal'],                                                            // multiple | Cardiac exam
+                    '65'  => 'Non-congested',                                                       // select  | IJV
+                    '66'  => ['Fine crepitations'],                                                 // multiple | Chest exam
+                    '68'  => ['Loin Pain'],                                                         // multiple | Abdominal exam
+                    '70'  => null,                                                                  // string  | Other important findings
+                ];
+            }
+
+            // Section 7: Medical decision — multiple with Others, dialysis details
+            if ($sectionId === 7) {
+                return [
+                    '77'  => ['Admission'],                                                         // multiple | Medical decision — matched
+                    '86'  => 'Yes',                                                                 // select  | Received dialysis
+                    '87'  => ['HD'],                                                                // multiple | Modality of dialysis
+                    '88'  => ['Life-threatening hyperkalemia', 'Pulmonary edema'],                  // multiple | Indication of dialysis
+                    '89'  => '3',                                                                   // string   | Number of sessions
+                    '90'  => ['A temporary renal dialysis catheter'],                               // multiple | Vascular access
+                    '232' => ['Jugular'],                                                           // multiple | Site of access
+                    '91'  => ['answers' => ['Antibiotics', 'Fluid resuscitation', 'Others'], 'others_text' => 'vasopressors'], // multiple | Other management — with others_text
+                    '156' => 'No',                                                                  // select  | Immunosuppressive drugs
+                    '233' => [],                                                                    // multiple | Immunosuppressant types — none
+                    '270' => [],                                                                    // multiple | HRS classification — none
+                ];
+            }
+
+            // Section 8: Outcome — select with Others, multiple with Others, catch-all "Other", lab values
+            if ($sectionId === 8) {
+                return [
+                    '79'  => 'Survivor',                                                            // select  | Outcome — matched
+                    '80'  => '1.2',                                                                 // string  | Creatinine on discharge
+                    '131' => '45',                                                                  // string  | Urea mg/dl
+                    '132' => '21',                                                                  // string  | BUN mg/dl
+                    '81'  => '7',                                                                   // string  | Duration of admission/days
+                    '82'  => ['Partial improvement'],                                               // multiple | Final status — matched
+                    '83'  => 'Patient required nutritional support and physiotherapy', // string | Other — catch-all
+                    '116' => '7.35',                                                                // string  | pH
+                    '117' => '22',                                                                  // string  | HCO3
+                    '118' => '38',                                                                  // string  | pCO2
+                    '119' => '4.8',                                                                 // string  | K mg/dl
+                    '120' => '35',                                                                  // string  | SGOT
+                    '121' => '28',                                                                  // string  | SGPT
+                    '282' => '0.9',                                                                 // string  | Bilirubin
+                    '122' => '3.2',                                                                 // string  | Albumin
+                    '126' => '10.5',                                                                // string  | Hemoglobin
+                    '127' => '12000',                                                               // string  | WBCs count
+                    '280' => null,                                                                  // string  | Monocytes
+                    '128' => '180000',                                                              // string  | Platelets
+                    '129' => '8500',                                                                // string  | Neutrophil
+                    '281' => null,                                                                  // string  | Basophil
+                    '130' => '2500',                                                                // string  | Lymphocytes
+                    '283' => null,                                                                  // string  | Eosinophil
+                    '133' => '1.015',                                                               // string  | Specific gravity urine
+                    '134' => 'Turbid',                                                              // string  | Clarity urine
+                    '135' => 'Few',                                                                 // string  | Epithelial cells urine
+                    '136' => null,                                                                  // string  | Crystal types
+                    '137' => 'Granular casts',                                                      // string  | Casts
+                    '138' => '10',                                                                  // string  | WBCs urine
+                    '139' => '5',                                                                   // string  | RBCs urine
+                    '144' => '48',                                                                  // string  | CRP
+                    '158' => '+',                                                                   // select  | Proteinuria — matched
+                    '161' => '40',                                                                  // string  | UOP last 6h
+                    '205' => '55',                                                                  // string  | EF on discharge
+                    '206' => null,                                                                  // string  | ECHO summary
+                    '207' => '138',                                                                 // string  | Serum Na
+                ];
+            }
+
+            // Section 10: CTS_Patients — select with "Other" (singular), "others" (lowercase), many numeric strings
+            if ($sectionId === 10) {
+                return [
+                    '171' => ['value' => 'Double valve replacement with tricuspid repair', 'is_other' => true], // select | Type of surgery — unmatched → is_other
+                    '173' => 'Double valve replacement with tricuspid repair',                      // string  | Other surgery detail
+                    '174' => 'IHD',                                                                // select  | Type of cardiac disease — matched
+                    '175' => null,                                                                  // string  | Other cardiac disease detail
+                    '176' => '135',                                                                 // string  | Preop SBP
+                    '177' => '85',                                                                  // string  | Preop DBP
+                    '178' => '9500',                                                                // string  | Preop WBCs
+                    '179' => '12.5',                                                                // string  | Preop HB
+                    '180' => '210000',                                                              // string  | Preop platelets
+                    '181' => '1.1',                                                                 // string  | Preop creatinine
+                    '182' => '2',                                                                   // string  | Preop urine pus cells
+                    '183' => '0',                                                                   // string  | Preop RBCs urine
+                    '216' => 'Nil',                                                                 // select  | Preop proteinuria — matched
+                    '184' => 'None',                                                                // select  | Preop urine cast — matched
+                    '185' => null,                                                                  // string  | Other cast detail
+                    '186' => '1.1',                                                                 // string  | Preop INR
+                    '187' => '4.0',                                                                 // string  | Preop albumin
+                    '188' => '0.7',                                                                 // string  | Preop bilirubin
+                    '189' => '25',                                                                  // string  | Preop ALT
+                    '190' => '22',                                                                  // string  | Preop AST
+                    '191' => '0.02',                                                                // string  | Preop troponin
+                    '192' => '45',                                                                  // string  | Preop EF
+                    '193' => 'Mildly dilated LV with global hypokinesia',                          // string  | Preop Echo summary
+                    '194' => '90',                                                                  // string  | CPB duration
+                    '195' => '60',                                                                  // string  | Cross clamping time
+                    '196' => '28',                                                                  // string  | Core temp lowest
+                    '224' => '37',                                                                  // string  | Core temp highest
+                    '271' => '4.5',                                                                 // string  | Min flow
+                    '272' => '5.5',                                                                 // string  | Max flow
+                    '273' => '85',                                                                  // string  | Min PO2
+                    '274' => '200',                                                                 // string  | Max PO2
+                    '275' => '55',                                                                  // string  | Min pressure
+                    '276' => '75',                                                                  // string  | Max pressure
+                    '197' => '2.1',                                                                 // string  | Serum lactate during surgery
+                    '198' => '1.4',                                                                 // string  | Serum lactate after surgery
+                    '199' => 'No',                                                                  // select  | Abnormal events during surgery
+                    '200' => null,                                                                  // string  | Abnormal events detail
+                    '201' => 'Blood',                                                               // string  | Cardioplegia 1
+                    '202' => null,                                                                  // string  | Cardioplegia 2
+                    '203' => null,                                                                  // string  | Cardioplegia 3
+                    '204' => null,                                                                  // string  | Cardioplegia 4
+                    '208' => '7.38',                                                                // string  | Preop pH
+                    '209' => '24',                                                                  // string  | Preop HCO3
+                    '210' => '40',                                                                  // string  | Preop pCO2
+                    '211' => '20',                                                                  // string  | Postop HCO3
+                    '212' => '7.32',                                                                // string  | Postop pH
+                    '213' => '44',                                                                  // string  | Postop pCO2
+                    '214' => '120',                                                                 // string  | Immediate postop SBP
+                    '215' => '75',                                                                  // string  | Immediate postop DBP
+                    '225' => ['Yes'],                                                               // multiple | Blood transfusion — matched
+                    '226' => ['answers' => ['RBCs', 'Plasma', 'Others'], 'others_text' => 'albumin infusion'], // multiple | Blood components — with others_text
+                    '227' => '2',                                                                   // string  | Units of RBCs
+                    '228' => '1',                                                                   // string  | Units of plasma
+                    '229' => null,                                                                  // string  | Units of platelets
+                    '230' => null,                                                                  // string  | Units of whole blood
+                ];
+            }
+
+            // Section 11: GO-Patients — date, multiple (no Others), select Yes/No
+            if ($sectionId === 11) {
+                return [
+                    '234' => '2024-06-10',                                                          // date    | Date on presentation
+                    '235' => '3',                                                                   // string  | Gravidity
+                    '236' => '2',                                                                   // string  | Parity
+                    '237' => ['Post_Partum'],                                                       // multiple | State at presentation — matched
+                    '238' => ['Hospital (Inpatient Ward)'],                                         // multiple | Where received medical care — matched
+                    '239' => ['Yes'],                                                               // multiple | Antenatal care — matched
+                    '240' => ['Yes (Postpartum)'],                                                  // multiple | Preeclampsia/eclampsia — matched
+                    '241' => ['No'],                                                                // multiple | Past history preeclampsia — matched
+                    '242' => ['Yes (postpartum)'],                                                  // multiple | Obstetric hemorrhages — matched
+                    '243' => 'Yes',                                                                 // select  | Other organ failure — matched
+                    '244' => 'Acute liver injury',                                                  // string  | Other organ failure detail
+                    '245' => ['No'],                                                                // multiple | Past history similar attacks — matched
+                    '246' => 'Yes',                                                                 // select  | Cesarean section — matched
+                    '247' => 'Yes',                                                                 // select  | Oliguric at presentation — matched
+                    '249' => '850',                                                                 // string  | 24h urinary protein
+                    '250' => ['++'],                                                                // multiple | Protein dipstick — matched
+                    '253' => ['Alive'],                                                             // multiple | Maternal outcome — matched
+                    '254' => ['Live preterm'],                                                      // multiple | Fetal outcome — matched
+                    '255' => ['Yes'],                                                               // multiple | Neonatal ICU available — matched
+                ];
+            }
+
+            // Section 6: Laboratory and radiology results — mostly numeric strings, some selects/multiples
+            if ($sectionId === 6) {
+                return [
+                    '71'  => '3.2',                                    // string  | Current creatinine/on admission
+                    '72'  => '1.1',                                    // string  | Basal creatinine
+                    '218' => '2.8',                                    // string  | Creatinine on day 2
+                    '219' => '2.1',                                    // string  | Creatinine on day 3
+                    '220' => null,                                     // string  | Creatinine on day 4
+                    '221' => null,                                     // string  | Creatinine on day 5
+                    '222' => null,                                     // string  | Creatinine on day 7
+                    '223' => null,                                     // string  | Creatinine on day 10
+                    '92'  => '7.30',                                   // string  | pH
+                    '93'  => '18',                                     // string  | HCO3
+                    '94'  => '35',                                     // string  | pCO2
+                    '231' => '138',                                    // string  | Serum Na
+                    '95'  => '5.2',                                    // string  | K
+                    '96'  => '45',                                     // string  | SGOT
+                    '97'  => '38',                                     // string  | SGPT
+                    '98'  => '3.0',                                    // string  | Albumin
+                    '150' => '1.2',                                    // string  | Total Bilirubin
+                    '259' => '0.4',                                    // string  | Direct Bilirubin
+                    '151' => '14',                                     // string  | PT
+                    '152' => '32',                                     // string  | PTT
+                    '153' => '1.2',                                    // string  | INR
+                    '99'  => 'Negative',                               // select  | HCV Ab — matched
+                    '100' => 'Negative',                               // select  | HBs Ag — matched
+                    '101' => 'Negative',                               // select  | HIV Ab — matched
+                    '102' => '9.5',                                    // string  | Hemoglobin
+                    '103' => '11000',                                  // string  | WBCs count
+                    '104' => '180000',                                 // string  | Platelets count
+                    '105' => '7500',                                   // string  | Neutrophil count
+                    '106' => '2500',                                   // string  | Lymphocytes count
+                    '279' => '50',                                     // string  | Basophil count
+                    '107' => '80',                                     // string  | Urea
+                    '108' => '37',                                     // string  | BUN
+                    '217' => null,                                     // string  | HBA1c
+                    '143' => '48',                                     // string  | CRP
+                    '109' => '1.018',                                  // string  | Specific gravity (Urine)
+                    '110' => 'Turbid',                                 // string  | Clarity (Urine)
+                    '111' => 'Few',                                    // string  | Epithelial cells (Urine)
+                    '112' => null,                                     // string  | Crystals types (Urine)
+                    '113' => 'Granular casts',                         // string  | Casts (Urine)
+                    '114' => '8',                                      // string  | WBCs (Urine)
+                    '115' => '4',                                      // string  | RBCs (Urine)
+                    '157' => '++',                                     // select  | Proteinuria — matched
+                    '164' => null,                                     // string  | ACR
+                    '165' => null,                                     // string  | 24 hours protein in urine
+                    '251' => null,                                     // string  | Serum uric acid
+                    '256' => '8.5',                                    // string  | Calcium
+                    '257' => '4.8',                                    // string  | Phosphorus
+                    '258' => null,                                     // string  | Parathormone hormone
+                    '263' => null,                                     // string  | LDL
+                    '264' => null,                                     // string  | Total cholesterol
+                    '265' => null,                                     // string  | Triglycerides
+                    '266' => null,                                     // string  | HDL
+                    '267' => null,                                     // string  | LDH
+                    '268' => null,                                     // string  | Alkaline phosphatase
+                    '269' => null,                                     // string  | Random blood glucose
+                    '75'  => null,                                     // string  | Other laboratory findings
+                    '73'  => ['Nephromegaly'],                         // multiple | Renal US — matched
+                    '76'  => null,                                     // string  | Other radiology findings
+                    '260' => null,                                     // string  | CT abdomen summary
+                    '261' => null,                                     // string  | CT chest summary
+                    '252' => ['Not done'],                             // multiple | Diagnosis of renal biopsy — matched
+                    '262' => null,                                     // string  | ECHO report summary
+                ];
+            }
+
+            // All other sections: return empty map so formatResponse produces all-null answers.
+            // This validates the formatting pipeline runs correctly for any section_id.
+            return [];
         }
 
         $response = Http::withHeaders([
@@ -261,10 +731,14 @@ PROMPT;
         ]);
 
         if (! $response->successful()) {
-            Log::error('GPT-4o-mini API Error', [
-                'status' => $response->status(),
-                'body'   => $response->body(),
-            ]);
+            $body = $response->body();
+            Log::error('GPT-4o-mini API Error', array_filter([
+                'status'         => $response->status(),
+                'response_bytes' => strlen($body),
+                'response_hash'  => substr(hash('sha256', $body), 0, 12),
+                'request_id'     => $response->header('x-request-id'),
+                'body'           => config('app.debug') ? $body : null,
+            ]));
             throw new \Exception('Failed to extract medical data from transcript.');
         }
 
@@ -272,7 +746,12 @@ PROMPT;
         $decoded = json_decode($content, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            Log::error('GPT response JSON parse error', ['content' => $content]);
+            Log::error('GPT response JSON parse error', array_filter([
+                'json_error'     => json_last_error_msg(),
+                'content_bytes'  => strlen((string) $content),
+                'content_hash'   => substr(hash('sha256', (string) $content), 0, 12),
+                'content'        => config('app.debug') ? $content : null,
+            ]));
             throw new \Exception('Failed to parse AI response.');
         }
 
@@ -315,7 +794,10 @@ PROMPT;
                     break;
 
                 default: // string, text, date → raw value or null
-                    $questionData['answer'] = $rawAnswer;
+                    // Cast to string if GPT returned a number (e.g. age as integer 64 → "64")
+                    $questionData['answer'] = is_int($rawAnswer) || is_float($rawAnswer)
+                        ? (string) $rawAnswer
+                        : $rawAnswer;
                     break;
             }
 
@@ -340,13 +822,21 @@ PROMPT;
      */
     private function formatSelectAnswer(mixed $rawAnswer, array $allowedValues): array
     {
-        $hasOthers = in_array('Others', $allowedValues, true);
+        // Normalize: find the actual "other" entry regardless of casing ("Others", "Other", "others")
+        $othersValue = null;
+        foreach ($allowedValues as $v) {
+            if (strcasecmp($v, 'others') === 0 || strcasecmp($v, 'other') === 0) {
+                $othersValue = $v;
+                break;
+            }
+        }
+        $hasOthers = $othersValue !== null;
 
         // GPT signalled an unmatched value → put in other_field
         if (is_array($rawAnswer) && isset($rawAnswer['is_other']) && $rawAnswer['is_other'] === true) {
             if ($hasOthers) {
                 return [
-                    'answers'     => 'Others',
+                    'answers'     => $othersValue,
                     'other_field' => $rawAnswer['value'] ?? null,
                 ];
             }
@@ -378,7 +868,15 @@ PROMPT;
      */
     private function formatMultipleAnswer(mixed $rawAnswer, array $allowedValues): array
     {
-        $hasOthers = in_array('Others', $allowedValues, true);
+        // Normalize: find the actual "other" entry regardless of casing ("Others", "Other", "others")
+        $othersValue = null;
+        foreach ($allowedValues as $v) {
+            if (strcasecmp($v, 'others') === 0 || strcasecmp($v, 'other') === 0) {
+                $othersValue = $v;
+                break;
+            }
+        }
+        $hasOthers = $othersValue !== null;
 
         // GPT returned the {answers, others_text} structure
         if (is_array($rawAnswer) && array_key_exists('answers', $rawAnswer)) {
@@ -388,9 +886,9 @@ PROMPT;
             // Filter answers array to only valid allowed_values
             $validAnswers = array_values(array_filter($answers, fn ($v) => in_array($v, $allowedValues, true)));
 
-            // Ensure "Others" is in the list if there's an others_text
-            if ($othersText !== null && $hasOthers && ! in_array('Others', $validAnswers, true)) {
-                $validAnswers[] = 'Others';
+            // Ensure the actual others value is in the list if there's an others_text
+            if ($othersText !== null && $hasOthers && ! in_array($othersValue, $validAnswers, true)) {
+                $validAnswers[] = $othersValue;
             }
 
             return [

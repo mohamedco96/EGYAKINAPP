@@ -18,6 +18,8 @@ class SectionsInfo extends Model
     protected $fillable = [
         'section_name',
         'section_description',
+        'ai_mode',
+        'ai_hint',
     ];
 
     /**

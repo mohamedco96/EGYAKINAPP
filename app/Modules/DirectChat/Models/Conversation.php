@@ -3,6 +3,7 @@
 namespace App\Modules\DirectChat\Models;
 
 use App\Models\User;
+use Database\Factories\DirectChat\ConversationFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,6 +15,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Conversation extends Model
 {
     use HasFactory;
+
+    protected static function newFactory(): ConversationFactory
+    {
+        return ConversationFactory::new();
+    }
 
     protected $fillable = [
         'type',

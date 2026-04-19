@@ -3,11 +3,20 @@
 namespace App\Modules\DirectChat\Models;
 
 use App\Models\User;
+use Database\Factories\DirectChat\ConversationParticipantFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ConversationParticipant extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): ConversationParticipantFactory
+    {
+        return ConversationParticipantFactory::new();
+    }
+
     protected $fillable = [
         'conversation_id',
         'user_id',

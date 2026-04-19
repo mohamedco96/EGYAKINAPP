@@ -4,6 +4,7 @@ namespace App\Modules\DirectChat\Models;
 
 use App\Models\User;
 use App\Modules\DirectChat\Observers\MessageObserver;
+use Database\Factories\DirectChat\MessageFactory;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Message extends Model
 {
     use HasFactory, SoftDeletes;
+
+    protected static function newFactory(): MessageFactory
+    {
+        return MessageFactory::new();
+    }
 
     protected $fillable = [
         'conversation_id',

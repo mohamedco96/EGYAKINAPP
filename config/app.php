@@ -1,5 +1,18 @@
 <?php
 
+use App\Providers\AppServiceProvider;
+use App\Providers\AuthServiceProvider;
+use App\Providers\BrevoMailServiceProvider;
+use App\Providers\BroadcastServiceProvider;
+use App\Providers\EventServiceProvider;
+use App\Providers\Filament\AdminPanelProvider;
+use App\Providers\FilamentNavigationServiceProvider;
+use App\Providers\FileCleanupServiceProvider;
+use App\Providers\FirebaseServiceProvider;
+use App\Providers\RouteServiceProvider;
+use App\Providers\TelescopeServiceProvider;
+use Ichtrojan\Otp\Otp;
+use Ichtrojan\Otp\OtpServiceProvider;
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\ServiceProvider;
 
@@ -175,18 +188,18 @@ return [
         /*
          * Application Service Providers...
          */
-        App\Providers\AppServiceProvider::class,
-        App\Providers\AuthServiceProvider::class,
-        // App\Providers\BroadcastServiceProvider::class,
-        App\Providers\EventServiceProvider::class,
-        App\Providers\Filament\AdminPanelProvider::class,
-        App\Providers\RouteServiceProvider::class,
-        App\Providers\TelescopeServiceProvider::class,
-        Ichtrojan\Otp\OtpServiceProvider::class,
-        App\Providers\FirebaseServiceProvider::class,
-        App\Providers\FileCleanupServiceProvider::class,
-        App\Providers\FilamentNavigationServiceProvider::class,
-        App\Providers\BrevoMailServiceProvider::class,
+        AppServiceProvider::class,
+        AuthServiceProvider::class,
+        BroadcastServiceProvider::class,
+        EventServiceProvider::class,
+        AdminPanelProvider::class,
+        RouteServiceProvider::class,
+        TelescopeServiceProvider::class,
+        OtpServiceProvider::class,
+        FirebaseServiceProvider::class,
+        FileCleanupServiceProvider::class,
+        FilamentNavigationServiceProvider::class,
+        BrevoMailServiceProvider::class,
     ])->toArray(),
 
     /*
@@ -202,7 +215,7 @@ return [
 
     'aliases' => Facade::defaultAliases()->merge([
         // 'Example' => App\Facades\Example::class,
-        'Otp' => Ichtrojan\Otp\Otp::class,
+        'Otp' => Otp::class,
     ])->toArray(),
 
 ];

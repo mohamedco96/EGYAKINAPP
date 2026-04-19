@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\V3\AIFormController;
 use App\Http\Controllers\Api\V2\AchievementController;
 use App\Http\Controllers\Api\V2\AuthController;
 use App\Http\Controllers\Api\V2\ChatController;
@@ -27,9 +26,12 @@ use App\Http\Controllers\Api\V2\RolePermissionController;
 use App\Http\Controllers\Api\V2\SettingsController;
 use App\Http\Controllers\Api\V2\ShareController;
 use App\Http\Controllers\Api\V2\UserLocaleController;
+use App\Http\Controllers\Api\V3\AIFormController;
 use App\Http\Controllers\Api\V3\QuestionsController;
 use App\Http\Controllers\Api\V3\SectionsController;
 use App\Http\Controllers\SocialAuthController;
+use App\Modules\DirectChat\Controllers\ChatFileController;
+use App\Modules\DirectChat\Controllers\DirectChatController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -279,6 +281,46 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
     Route::post('/AIconsultation/{patientId}', [ChatController::class, 'sendConsultation']);
     Route::get('/AIconsultation-history/{patientId}', [ChatController::class, 'getConsultationHistory']);
 
+    // Direct Chat routes
+    Route::prefix('chat')->group(function () {
+        // Conversations
+        Route::get('/conversations', [DirectChatController::class, 'index']);
+        Route::post('/conversations', [DirectChatController::class, 'store']);
+        Route::get('/conversations/{id}', [DirectChatController::class, 'show']);
+        Route::put('/conversations/{id}', [DirectChatController::class, 'update']);
+
+        // Messages (cursor-paginated with ?before=msgId)
+        // Read receipts are handled automatically when messages are fetched
+        Route::get('/conversations/{id}/messages', [DirectChatController::class, 'messages']);
+        // TODO: Add throttle middleware (e.g. throttle:60,1) to the send routes below before going to production
+        Route::post('/conversations/{id}/messages', [DirectChatController::class, 'sendMessage']);
+
+        // Delete a message (sender only, soft-delete — observer cleans up file)
+        Route::delete('/conversations/{id}/messages/{messageId}', [DirectChatController::class, 'deleteMessage']);
+
+        // Reactions
+        Route::post('/conversations/{id}/reactions', [DirectChatController::class, 'react']);
+
+        // Private chat — send directly to a user, conversation auto-created on first message
+        // TODO: Add throttle middleware (e.g. throttle:60,1) to this route before going to production
+        Route::post('/direct/{userId}', [DirectChatController::class, 'sendDirect']);
+
+        // Participation
+        Route::post('/conversations/{id}/join', [DirectChatController::class, 'join']);
+        Route::post('/conversations/{id}/leave', [DirectChatController::class, 'leave']);
+        Route::post('/conversations/{id}/participants', [DirectChatController::class, 'addParticipants']);
+        Route::delete('/conversations/{id}/participants/{userId}', [DirectChatController::class, 'removeParticipant']);
+
+        // Mute / unmute notifications for a conversation
+        Route::post('/conversations/{id}/mute', [DirectChatController::class, 'mute']);
+
+        // Typing indicator
+        Route::post('/conversations/{id}/typing', [DirectChatController::class, 'typing']);
+
+        // User search for starting new conversations
+        Route::get('/users/search', [DirectChatController::class, 'searchUsers']);
+    });
+
     // Recommendation routes
     Route::get('/recommendations/{patient_id}', [RecommendationController::class, 'index']);
     Route::post('/recommendations/{patient_id}', [RecommendationController::class, 'store']);
@@ -304,41 +346,46 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
     });
 });
 
+// Chat file download — signed URL + authenticated user required
+Route::get('/chat/files/{messageId}', [ChatFileController::class, 'download'])
+    ->name('chat.file.download')
+    ->middleware(['signed', 'auth:sanctum']);
+
 // Authenticated user route
 Route::middleware(['auth:sanctum', 'check.blocked.home'])->get('/user', function (Request $request) {
     $user = $request->user()->load(['roles.permissions', 'permissions']);
 
-    $role        = $user->roles()->first();
-    $roleName    = $role ? $role->name : null;
+    $role = $user->roles()->first();
+    $roleName = $role ? $role->name : null;
     $permissions = $user->getAllSystemPermissions();
 
     return [
-        'id'                  => $user->id,
-        'name'                => $user->name,
-        'email'               => $user->email,
-        'profile_completed'   => $user->profile_completed,
-        'avatar'              => $user->avatar,
-        'locale'              => $user->locale,
-        'role'                => $roleName,
-        'permissions'         => $permissions,
-        'created_at'          => $user->created_at,
-        'updated_at'          => $user->updated_at,
+        'id' => $user->id,
+        'name' => $user->name,
+        'email' => $user->email,
+        'profile_completed' => $user->profile_completed,
+        'avatar' => $user->avatar,
+        'locale' => $user->locale,
+        'role' => $roleName,
+        'permissions' => $permissions,
+        'created_at' => $user->created_at,
+        'updated_at' => $user->updated_at,
     ];
 });
 
 Route::middleware(['auth:sanctum', 'check.blocked.home'])->get('/user/role-permissions', function (Request $request) {
     $user = $request->user()->load(['roles.permissions', 'permissions']);
 
-    $role        = $user->roles()->first();
-    $roleName    = $role ? $role->name : null;
+    $role = $user->roles()->first();
+    $roleName = $role ? $role->name : null;
     $permissions = $user->getAllSystemPermissions();
 
     $user->update(['permissions_changed' => false]);
 
     return [
-        'value'       => true,
-        'message'     => 'Role and permissions retrieved successfully',
-        'role'        => $roleName,
+        'value' => true,
+        'message' => 'Role and permissions retrieved successfully',
+        'role' => $roleName,
         'permissions' => $permissions,
     ];
 });

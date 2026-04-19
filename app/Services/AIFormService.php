@@ -63,18 +63,164 @@ class AIFormService
     }
 
     /**
-     * Analyze an image file using GPT-4 Vision and return extracted text.
-     * (Future: lab reports, radiology results, etc.)
+     * Analyze one or more lab report / radiology images using GPT-4o Vision.
+     * Accepts an array of UploadedFile (jpg/jpeg/png/webp/pdf, up to 5 files).
+     * All images are sent in a single GPT-4o call so the model reads them together.
      *
-     * Implementation steps when ready:
-     *   1. Base64-encode the image
-     *   2. POST to GPT-4o with vision content (image_url type = base64)
-     *   3. Return the model's text description
-     *   Then pass that text to processSection() — same pipeline as voice.
+     * Returns a plain-text description of all values found across all images,
+     * which is then passed into processSection() like any other text input.
+     *
+     * Set AI_FORM_MOCK=true in .env to bypass the API call during local testing.
+     *
+     * @param  UploadedFile[]  $imageFiles
      */
-    public function analyzeImage(UploadedFile $imageFile): string
+    public function analyzeImage(array $imageFiles): string
     {
-        throw new \Exception('Image analysis is not yet implemented.');
+        if (config('services.ai_form.mock')) {
+            Log::info('AIFormService: mock image analysis active (AI_FORM_MOCK=true)', [
+                'image_count' => count($imageFiles),
+            ]);
+
+            return 'Lab report: Creatinine on admission 3.2, basal creatinine 1.1, day 2 creatinine 2.8, day 3 creatinine 2.1. pH 7.30, HCO3 18, pCO2 35. Serum Na 138, K 5.2. SGOT 45, SGPT 38, Albumin 3.0, Total Bilirubin 1.2, Direct Bilirubin 0.4. PT 14, PTT 32, INR 1.2. HCV Ab Negative, HBs Ag Negative, HIV Ab Negative. Hemoglobin 9.5, WBCs 11000, Platelets 180000, Neutrophils 7500, Lymphocytes 2500, Monocytes 800, Eosinophil 200, Basophil 50. Urea 80, BUN 37, CRP 48. Urine: specific gravity 1.018, turbid, epithelial cells few, granular casts, WBCs 8, RBCs 4, proteinuria 2+. Renal US: nephromegaly bilateral.';
+        }
+
+        // Build the content array: one block per file + instruction at the end.
+        // PDFs are uploaded to OpenAI Files API first, then referenced by file ID.
+        // Images are sent inline as base64.
+        $content     = [];
+        $uploadedIds = []; // track OpenAI file IDs for cleanup
+
+        foreach ($imageFiles as $imageFile) {
+            $mime = $imageFile->getMimeType();
+
+            if (str_contains($mime, 'pdf')) {
+                // Upload PDF to OpenAI Files API, then reference by ID
+                $fileId        = $this->uploadFileToOpenAI($imageFile);
+                $uploadedIds[] = $fileId;
+
+                $content[] = [
+                    'type' => 'file',
+                    'file' => [
+                        'file_id' => $fileId,
+                    ],
+                ];
+            } else {
+                $mediaType = match (true) {
+                    str_contains($mime, 'png')  => 'image/png',
+                    str_contains($mime, 'webp') => 'image/webp',
+                    default                     => 'image/jpeg',
+                };
+
+                $content[] = [
+                    'type'      => 'image_url',
+                    'image_url' => [
+                        'url'    => "data:{$mediaType};base64," . base64_encode(file_get_contents($imageFile->getRealPath())),
+                        'detail' => 'high',
+                    ],
+                ];
+            }
+        }
+
+        // Instruction block appended after all files
+        $content[] = [
+            'type' => 'text',
+            'text' => "These are medical lab reports or radiology results (" . count($imageFiles) . " file(s)). Extract ALL values you can read across all files and return them as plain text in this format: \"Test name: value, Test name: value, ...\". Include every number, unit, and result visible. If the same test appears on multiple files, use the most recent or highest value. Do not skip anything. Do not add explanations.",
+        ];
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type'  => 'application/json',
+            ])->timeout(90)->post('https://api.openai.com/v1/chat/completions', [
+                'model'      => 'gpt-4o',
+                'messages'   => [
+                    [
+                        'role'    => 'user',
+                        'content' => $content,
+                    ],
+                ],
+                'max_tokens' => 2000,
+            ]);
+
+            if (! $response->successful()) {
+                $body = $response->body();
+                Log::error('GPT-4o Vision API Error', array_filter([
+                    'status'         => $response->status(),
+                    'file_count'     => count($imageFiles),
+                    'response_bytes' => strlen($body),
+                    'response_hash'  => substr(hash('sha256', $body), 0, 12),
+                    'request_id'     => $response->header('x-request-id'),
+                    'body'           => config('app.debug') ? $body : null,
+                ]));
+                throw new \Exception('Failed to analyze image.');
+            }
+
+            $text = trim($response->json('choices.0.message.content') ?? '');
+
+            if (empty($text)) {
+                throw new \Exception('GPT-4o returned an empty response for the image.');
+            }
+
+            return $text;
+        } finally {
+            // Clean up uploaded files from OpenAI
+            foreach ($uploadedIds as $fileId) {
+                $this->deleteFileFromOpenAI($fileId);
+            }
+        }
+    }
+
+    /**
+     * Upload a file to OpenAI Files API for use with chat completions.
+     * Returns the file ID.
+     */
+    private function uploadFileToOpenAI(UploadedFile $file): string
+    {
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $this->apiKey,
+        ])->timeout(60)->attach(
+            'file',
+            fopen($file->getRealPath(), 'r'),
+            $file->getClientOriginalName()
+        )->post('https://api.openai.com/v1/files', [
+            'purpose' => 'user_data',
+        ]);
+
+        if (! $response->successful()) {
+            Log::error('OpenAI file upload failed', [
+                'status' => $response->status(),
+                'body'   => config('app.debug') ? $response->body() : null,
+            ]);
+            throw new \Exception('Failed to upload PDF for processing.');
+        }
+
+        $fileId = $response->json('id');
+
+        Log::info('PDF uploaded to OpenAI', [
+            'file_id'  => $fileId,
+            'filename' => $file->getClientOriginalName(),
+            'size'     => $file->getSize(),
+        ]);
+
+        return $fileId;
+    }
+
+    /**
+     * Delete a file from OpenAI Files API after processing.
+     */
+    private function deleteFileFromOpenAI(string $fileId): void
+    {
+        try {
+            Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+            ])->timeout(10)->delete("https://api.openai.com/v1/files/{$fileId}");
+        } catch (\Exception $e) {
+            // Non-critical — OpenAI auto-deletes files after a period
+            Log::warning('Failed to delete OpenAI file', [
+                'file_id' => $fileId,
+                'error'   => $e->getMessage(),
+            ]);
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -489,6 +635,74 @@ PROMPT;
                     '253' => ['Alive'],                                                             // multiple | Maternal outcome — matched
                     '254' => ['Live preterm'],                                                      // multiple | Fetal outcome — matched
                     '255' => ['Yes'],                                                               // multiple | Neonatal ICU available — matched
+                ];
+            }
+
+            // Section 6: Laboratory and radiology results — mostly numeric strings, some selects/multiples
+            if ($sectionId === 6) {
+                return [
+                    '71'  => '3.2',                                    // string  | Current creatinine/on admission
+                    '72'  => '1.1',                                    // string  | Basal creatinine
+                    '218' => '2.8',                                    // string  | Creatinine on day 2
+                    '219' => '2.1',                                    // string  | Creatinine on day 3
+                    '220' => null,                                     // string  | Creatinine on day 4
+                    '221' => null,                                     // string  | Creatinine on day 5
+                    '222' => null,                                     // string  | Creatinine on day 7
+                    '223' => null,                                     // string  | Creatinine on day 10
+                    '92'  => '7.30',                                   // string  | pH
+                    '93'  => '18',                                     // string  | HCO3
+                    '94'  => '35',                                     // string  | pCO2
+                    '231' => '138',                                    // string  | Serum Na
+                    '95'  => '5.2',                                    // string  | K
+                    '96'  => '45',                                     // string  | SGOT
+                    '97'  => '38',                                     // string  | SGPT
+                    '98'  => '3.0',                                    // string  | Albumin
+                    '150' => '1.2',                                    // string  | Total Bilirubin
+                    '259' => '0.4',                                    // string  | Direct Bilirubin
+                    '151' => '14',                                     // string  | PT
+                    '152' => '32',                                     // string  | PTT
+                    '153' => '1.2',                                    // string  | INR
+                    '99'  => 'Negative',                               // select  | HCV Ab — matched
+                    '100' => 'Negative',                               // select  | HBs Ag — matched
+                    '101' => 'Negative',                               // select  | HIV Ab — matched
+                    '102' => '9.5',                                    // string  | Hemoglobin
+                    '103' => '11000',                                  // string  | WBCs count
+                    '104' => '180000',                                 // string  | Platelets count
+                    '105' => '7500',                                   // string  | Neutrophil count
+                    '106' => '2500',                                   // string  | Lymphocytes count
+                    '279' => '50',                                     // string  | Basophil count
+                    '107' => '80',                                     // string  | Urea
+                    '108' => '37',                                     // string  | BUN
+                    '217' => null,                                     // string  | HBA1c
+                    '143' => '48',                                     // string  | CRP
+                    '109' => '1.018',                                  // string  | Specific gravity (Urine)
+                    '110' => 'Turbid',                                 // string  | Clarity (Urine)
+                    '111' => 'Few',                                    // string  | Epithelial cells (Urine)
+                    '112' => null,                                     // string  | Crystals types (Urine)
+                    '113' => 'Granular casts',                         // string  | Casts (Urine)
+                    '114' => '8',                                      // string  | WBCs (Urine)
+                    '115' => '4',                                      // string  | RBCs (Urine)
+                    '157' => '++',                                     // select  | Proteinuria — matched
+                    '164' => null,                                     // string  | ACR
+                    '165' => null,                                     // string  | 24 hours protein in urine
+                    '251' => null,                                     // string  | Serum uric acid
+                    '256' => '8.5',                                    // string  | Calcium
+                    '257' => '4.8',                                    // string  | Phosphorus
+                    '258' => null,                                     // string  | Parathormone hormone
+                    '263' => null,                                     // string  | LDL
+                    '264' => null,                                     // string  | Total cholesterol
+                    '265' => null,                                     // string  | Triglycerides
+                    '266' => null,                                     // string  | HDL
+                    '267' => null,                                     // string  | LDH
+                    '268' => null,                                     // string  | Alkaline phosphatase
+                    '269' => null,                                     // string  | Random blood glucose
+                    '75'  => null,                                     // string  | Other laboratory findings
+                    '73'  => ['Nephromegaly'],                         // multiple | Renal US — matched
+                    '76'  => null,                                     // string  | Other radiology findings
+                    '260' => null,                                     // string  | CT abdomen summary
+                    '261' => null,                                     // string  | CT chest summary
+                    '252' => ['Not done'],                             // multiple | Diagnosis of renal biopsy — matched
+                    '262' => null,                                     // string  | ECHO report summary
                 ];
             }
 

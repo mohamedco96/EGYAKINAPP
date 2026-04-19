@@ -770,13 +770,48 @@ class AIFormServiceTest extends TestCase
     // ─────────────────────────────────────────────────────────────────────────
 
     /** @test */
-    public function analyze_image_throws_not_implemented_exception(): void
+    public function analyze_image_mock_single_file_returns_lab_string(): void
     {
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('not yet implemented');
+        Config::set('services.ai_form.mock', true);
 
-        $file = UploadedFile::fake()->image('test.jpg');
-        $this->service->analyzeImage($file);
+        $result = $this->service->analyzeImage([UploadedFile::fake()->image('lab.jpg')]);
+
+        $this->assertIsString($result);
+        $this->assertNotEmpty($result);
+        $this->assertStringContainsStringIgnoringCase('creatinine', $result);
+    }
+
+    /** @test */
+    public function analyze_image_mock_multiple_files_returns_lab_string(): void
+    {
+        Config::set('services.ai_form.mock', true);
+
+        $files = [
+            UploadedFile::fake()->image('lab1.jpg'),
+            UploadedFile::fake()->image('lab2.png'),
+            UploadedFile::fake()->image('lab3.jpg'),
+        ];
+
+        $result = $this->service->analyzeImage($files);
+
+        $this->assertIsString($result);
+        $this->assertNotEmpty($result);
+        $this->assertStringContainsStringIgnoringCase('creatinine', $result);
+    }
+
+    /** @test */
+    public function analyze_image_throws_on_api_error(): void
+    {
+        Config::set('services.ai_form.mock', false);
+
+        Http::fake([
+            'api.openai.com/v1/chat/completions' => Http::response('{"error":"unauthorized"}', 401),
+        ]);
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Failed to analyze image.');
+
+        $this->service->analyzeImage([UploadedFile::fake()->image('test.jpg')]);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

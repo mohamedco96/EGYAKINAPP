@@ -61,3 +61,4 @@ storage/logs/laravel.log
 *.log
 storage/egyakin-firebase-service-account.json
 storage/logs/laravel.log
+storage/logs/laravel.log

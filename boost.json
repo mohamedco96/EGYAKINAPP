@@ -1,0 +1,18 @@
+{
+    "agents": [
+        "junie",
+        "claude_code",
+        "copilot",
+        "cursor",
+        "opencode"
+    ],
+    "guidelines": true,
+    "mcp": true,
+    "nightwatch_mcp": false,
+    "sail": false,
+    "skills": [
+        "laravel-best-practices",
+        "socialite-development",
+        "livewire-development"
+    ]
+}

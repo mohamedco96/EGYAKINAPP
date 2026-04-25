@@ -144,39 +144,39 @@ class AIFormService
                     $uploadedIds[] = $fileId;
 
                     $content[] = [
-                        'type'       => 'input_file',
-                        'input_file' => ['file_id' => $fileId],
+                        'type' => 'input_file',
+                        'file_id' => $fileId,
                     ];
                 } else {
                     $mediaType = match ($mime) {
-                        'image/png'  => 'image/png',
+                        'image/png' => 'image/png',
                         'image/webp' => 'image/webp',
-                        default      => 'image/jpeg',
+                        default => 'image/jpeg',
                     };
 
                     $content[] = [
-                        'type'        => 'input_image',
-                        'input_image' => [
-                            'image_url' => "data:{$mediaType};base64,".base64_encode(file_get_contents($imageFile->getRealPath())),
-                            'detail'    => 'high',
+                        'type' => 'image_url',
+                        'image_url' => [
+                            'url' => "data:{$mediaType};base64,".base64_encode(file_get_contents($imageFile->getRealPath())),
+                            'detail' => 'high',
                         ],
                     ];
                 }
             }
 
             $content[] = [
-                'type' => 'input_text',
+                'type' => 'text',
                 'text' => 'These are medical lab reports or radiology results ('.count($imageFiles).' file(s)). Extract ALL values you can read across all files and return them as plain text in this format: "Test name: value, Test name: value, ...". Include every number, unit, and result visible. If the same test appears on multiple files, use the most recent or highest value. Do not skip anything. Do not add explanations.',
             ];
 
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer '.$this->apiKey,
-                'Content-Type'  => 'application/json',
+                'Content-Type' => 'application/json',
             ])->timeout(90)->post('https://api.openai.com/v1/responses', [
                 'model' => 'gpt-4o',
                 'input' => [
                     [
-                        'role'    => 'user',
+                        'role' => 'user',
                         'content' => $content,
                     ],
                 ],
@@ -186,12 +186,12 @@ class AIFormService
             if (! $response->successful()) {
                 $body = $response->body();
                 Log::error('GPT-4o Vision API Error', array_filter([
-                    'status'         => $response->status(),
-                    'file_count'     => count($imageFiles),
+                    'status' => $response->status(),
+                    'file_count' => count($imageFiles),
                     'response_bytes' => strlen($body),
-                    'response_hash'  => substr(hash('sha256', $body), 0, 12),
-                    'request_id'     => $response->header('x-request-id'),
-                    'body'           => config('app.debug') ? $body : null,
+                    'response_hash' => substr(hash('sha256', $body), 0, 12),
+                    'request_id' => $response->header('x-request-id'),
+                    'body' => config('app.debug') ? $body : null,
                 ]));
                 throw new \Exception('Failed to analyze image.');
             }

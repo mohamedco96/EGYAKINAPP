@@ -19,13 +19,16 @@ class AIFormController extends Controller
 
     /**
      * Generic AI-to-form endpoint for a single section.
-     * Accepts either an `audio` file (voice) or one or more `images[]` (lab/radiology).
+     * Accepts either an `audio` file (voice) or image/PDF files (lab/radiology).
      *
      * POST /api/v3/ai-form/process-section
      *   form-data:
-     *     audio        → mp3/wav/m4a/ogg/webm        (required if no images)
-     *     images[]     → jpg/jpeg/png/webp/pdf ×1–5  (required if no audio)
-     *     section_id   → integer
+     *     audio      → mp3/wav/m4a/ogg/webm            (required if no images/files)
+     *     images[]   → jpg/jpeg/png/webp ×1–10         (required if no audio)
+     *     files[]    → pdf ×1–10                       (optional, combined with images)
+     *     section_id → integer
+     *
+     * images[] and files[] can be sent together (combined max 10 files).
      *
      * The controller resolves the input type and converts it to text,
      * then delegates to the same input-agnostic processSection() pipeline.
@@ -46,7 +49,10 @@ class AIFormController extends Controller
                 $inputType  = 'audio';
                 $imageCount = null;
             } else {
-                $imageFiles    = $request->file('images');
+                $imageFiles = array_merge(
+                    (array) $request->file('images'),
+                    (array) $request->file('files')
+                );
                 $extractedText = $this->aiFormService->analyzeImage($imageFiles);
                 $inputType     = 'image';
                 $imageCount    = count($imageFiles);

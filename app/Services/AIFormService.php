@@ -361,14 +361,13 @@ class AIFormService
                 $desc['note'] = 'Extract as a date string in YYYY-MM-DD format, or null if not found.';
             }
 
-            // Detect a generic catch-all "Other" free-text field:
-            // type=string AND question name starts with "Other" (or is exactly "Other", "Other Causes",
-            // "Other laboratory findings", "Other radiology findings", etc.)
-            // with no values list — used to capture leftover info from the transcript.
+            // Detect a generic catch-all "Other" free-text field.
+            // Only matches bare "Other", "Others", "Other Causes", or "Other risk factors?"
+            // Specific fields like "Other laboratory findings" are companion fields, not catch-alls.
             if (
                 $question->type === 'string' &&
                 empty($question->values) &&
-                preg_match('/^others?(\s+.+)?$/i', trim($question->question))
+                preg_match('/^others?(\s+(causes|risk\s+factors\??))?$/i', trim($question->question))
             ) {
                 $catchAllId = (string) $question->id;
                 $desc['is_catch_all'] = true;

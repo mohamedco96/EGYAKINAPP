@@ -125,16 +125,13 @@ class AIFormService
             return 'Lab report: Creatinine on admission 3.2, basal creatinine 1.1, day 2 creatinine 2.8, day 3 creatinine 2.1. pH 7.30, HCO3 18, pCO2 35. Serum Na 138, K 5.2. SGOT 45, SGPT 38, Albumin 3.0, Total Bilirubin 1.2, Direct Bilirubin 0.4. PT 14, PTT 32, INR 1.2. HCV Ab Negative, HBs Ag Negative, HIV Ab Negative. Hemoglobin 9.5, WBCs 11000, Platelets 180000, Neutrophils 7500, Lymphocytes 2500, Monocytes 800, Eosinophil 200, Basophil 50. Urea 80, BUN 37, CRP 48. Urine: specific gravity 1.018, turbid, epithelial cells few, granular casts, WBCs 8, RBCs 4, proteinuria 2+. Renal US: nephromegaly bilateral.';
         }
 
-        // Build the content array: one block per file + instruction at the end.
-        // PDFs are uploaded to OpenAI Files API first, then referenced by file ID.
-        // Images are sent inline as base64.
-        // The try/finally wraps both the build loop and the API call so that any
-        // already-uploaded PDF IDs are cleaned up even if a later file fails.
+        // Build the content array for the Chat Completions API.
+        // PDFs are uploaded to the Files API first and referenced via file_id in image_url.
+        // Images are sent inline as base64 data URLs.
+        // try/finally ensures uploaded PDF IDs are cleaned up on both success and failure.
         $content = [];
         $uploadedIds = [];
 
-        // Use the Responses API which natively supports both inline images and
-        // uploaded file IDs (including PDFs) in a single call.
         try {
             foreach ($imageFiles as $imageFile) {
                 $mime = $imageFile->getMimeType();
@@ -144,8 +141,8 @@ class AIFormService
                     $uploadedIds[] = $fileId;
 
                     $content[] = [
-                        'type' => 'input_file',
-                        'file_id' => $fileId,
+                        'type' => 'image_url',
+                        'image_url' => ['url' => "file-service://{$fileId}", 'detail' => 'high'],
                     ];
                 } else {
                     $mediaType = match ($mime) {
@@ -155,30 +152,32 @@ class AIFormService
                     };
 
                     $content[] = [
-                        'type' => 'input_image',
-                        'image_url' => "data:{$mediaType};base64,".base64_encode(file_get_contents($imageFile->getRealPath())),
-                        'detail' => 'high',
+                        'type' => 'image_url',
+                        'image_url' => [
+                            'url' => "data:{$mediaType};base64,".base64_encode(file_get_contents($imageFile->getRealPath())),
+                            'detail' => 'high',
+                        ],
                     ];
                 }
             }
 
             $content[] = [
-                'type' => 'input_text',
+                'type' => 'text',
                 'text' => 'These are medical lab reports or radiology results ('.count($imageFiles).' file(s)). Extract ALL values you can read across all files and return them as plain text in this format: "Test name: value, Test name: value, ...". Include every number, unit, and result visible. If the same test appears on multiple files, use the most recent or highest value. Do not skip anything. Do not add explanations.',
             ];
 
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer '.$this->apiKey,
                 'Content-Type' => 'application/json',
-            ])->timeout(90)->post('https://api.openai.com/v1/responses', [
+            ])->timeout(90)->post('https://api.openai.com/v1/chat/completions', [
                 'model' => 'gpt-4o',
-                'input' => [
+                'messages' => [
                     [
                         'role' => 'user',
                         'content' => $content,
                     ],
                 ],
-                'max_output_tokens' => 2000,
+                'max_tokens' => 2000,
             ]);
 
             if (! $response->successful()) {
@@ -194,8 +193,8 @@ class AIFormService
                 throw new \Exception('Failed to analyze image.');
             }
 
-            // Responses API: output[0].content[0].text
-            $text = trim($response->json('output.0.content.0.text') ?? '');
+            // Chat Completions API: choices[0].message.content
+            $text = trim($response->json('choices.0.message.content') ?? '');
 
             if (empty($text)) {
                 throw new \Exception('GPT-4o returned an empty response for the image.');

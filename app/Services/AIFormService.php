@@ -64,7 +64,7 @@ class AIFormService
 
     /**
      * Analyze one or more lab report / radiology images using GPT-4o Vision.
-     * Accepts an array of UploadedFile (jpg/jpeg/png/webp/pdf, up to 5 files).
+     * Accepts an array of UploadedFile (jpg/jpeg/png/webp/pdf, up to 10 files).
      * All images are sent in a single GPT-4o call so the model reads them together.
      *
      * Returns a plain-text description of all values found across all images,
@@ -92,8 +92,8 @@ class AIFormService
             throw new \InvalidArgumentException('analyzeImage requires at least one file.');
         }
 
-        if (count($imageFiles) > 5) {
-            throw new \InvalidArgumentException('analyzeImage accepts at most 5 files at a time.');
+        if (count($imageFiles) > 10) {
+            throw new \InvalidArgumentException('analyzeImage accepts at most 10 files at a time.');
         }
 
         foreach ($imageFiles as $index => $imageFile) {

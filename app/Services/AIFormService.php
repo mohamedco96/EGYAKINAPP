@@ -155,17 +155,15 @@ class AIFormService
                     };
 
                     $content[] = [
-                        'type' => 'image_url',
-                        'image_url' => [
-                            'url' => "data:{$mediaType};base64,".base64_encode(file_get_contents($imageFile->getRealPath())),
-                            'detail' => 'high',
-                        ],
+                        'type' => 'input_image',
+                        'image_url' => "data:{$mediaType};base64,".base64_encode(file_get_contents($imageFile->getRealPath())),
+                        'detail' => 'high',
                     ];
                 }
             }
 
             $content[] = [
-                'type' => 'text',
+                'type' => 'input_text',
                 'text' => 'These are medical lab reports or radiology results ('.count($imageFiles).' file(s)). Extract ALL values you can read across all files and return them as plain text in this format: "Test name: value, Test name: value, ...". Include every number, unit, and result visible. If the same test appears on multiple files, use the most recent or highest value. Do not skip anything. Do not add explanations.',
             ];
 

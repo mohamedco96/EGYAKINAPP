@@ -224,7 +224,8 @@ class AIFormService
         ])->timeout(60)->attach(
             'file',
             fopen($file->getRealPath(), 'r'),
-            $file->getClientOriginalName()
+            $file->getClientOriginalName(),
+            ['Content-Type' => 'application/pdf']
         )->post('https://api.openai.com/v1/files', [
             'purpose' => 'user_data',
         ]);

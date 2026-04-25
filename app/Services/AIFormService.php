@@ -362,12 +362,13 @@ class AIFormService
             }
 
             // Detect a generic catch-all "Other" free-text field:
-            // type=string AND question name is exactly "Other" (or "Other Causes", etc.)
+            // type=string AND question name starts with "Other" (or is exactly "Other", "Other Causes",
+            // "Other laboratory findings", "Other radiology findings", etc.)
             // with no values list — used to capture leftover info from the transcript.
             if (
                 $question->type === 'string' &&
                 empty($question->values) &&
-                preg_match('/^other(s)?(\s+causes)?$/i', trim($question->question))
+                preg_match('/^others?(\s+.+)?$/i', trim($question->question))
             ) {
                 $catchAllId = (string) $question->id;
                 $desc['is_catch_all'] = true;
@@ -380,7 +381,7 @@ class AIFormService
         $questionsJson = json_encode($questionsDescription, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
         $catchAllRule = $catchAllId
-            ? "14. CATCH-ALL RULE: One question is marked with \"is_catch_all\": true (ID {$catchAllId}). After filling all other questions, collect any medically relevant details from the transcript that were NOT captured by any other question, and write them as a concise summary string in this field. Examples of catch-all content: reason for admission, chief complaint, serum creatinine value, diagnosis, ICU admission reason, or any other clinical detail mentioned but not covered by a specific question. If everything was already captured, return null."
+            ? "14. CATCH-ALL RULE: One question is marked with \"is_catch_all\": true (ID {$catchAllId}). After filling all other questions, collect any medically relevant details from the transcript that were NOT captured by any other question, and write them as a concise summary string in this field. Examples of catch-all content: reason for admission, chief complaint, diagnosis, ICU admission reason, lab results that have no matching question (e.g. Amylase, Lipase, Iron, TIBC, TSH, Free T3, Free T4, Transferrin Saturation), or any other clinical detail mentioned but not covered by a specific question. If everything was already captured, return null."
             : '';
 
         return <<<PROMPT
@@ -397,7 +398,7 @@ CRITICAL RULES — you MUST follow these exactly:
    a. First, apply the same abbreviation/synonym/phonetic resolution as rule 2a.
    b. For each resolved value, if it EXACTLY matches an item in "allowed_values" → include it in the answers array.
    c. IMPORTANT: Before treating a value as unmatched, check ALL allowed_values carefully for synonyms. Example: transcript says "shisha" → check if "Shisha smoker" exists in allowed_values → it does → use "Shisha smoker", do NOT put it in others_text.
-   d. Only if a resolved value truly does NOT match any "allowed_values" BUT the list contains "Others", "Other", or "others" (any casing) → include that exact entry in the answers array AND return the format: {"answers": ["matched1", "<the_others_entry>"], "others_text": "<unmatched text from transcript>"}.
+   d. Only if a resolved value truly does NOT match any "allowed_values" BUT the list contains "Others", "Other", or "others" (any casing) → include that exact entry in the answers array AND return the format: {"answers": ["matched1", "<the_others_entry>"], "others_text": "<unmatched text from transcript>"}. CRITICAL: "others_text" MUST contain the actual unmatched text — never an empty string. If you cannot identify the specific unmatched text, do not include Others in the answers array at all.
    e. If nothing is found → return an empty array [].
 4. For "string" or "text" type: return the extracted text as a string, or the JSON literal null if not found.
 5. For "date" type: return the date as a string in YYYY-MM-DD format (e.g., "2024-03-15"), or the JSON literal null if not found.
@@ -412,6 +413,17 @@ CRITICAL RULES — you MUST follow these exactly:
    - "CKD" or "chronic kidney" → "Chronic Kidney Disease"
    - "Takahliya", "Dakhliya", "Dakahlia", "Daqahliya", "Dakahliya" → "Dakahlia"
    - Any phonetic transcription error → infer the most likely intended medical term
+   - "AKI", "EKI", "A.K.I", "acute kidney injury", "acute renal failure", "ARF" → "AKI" (resolve phonetic Whisper errors like "EKI" to "AKI")
+   - "AKI on top of CKD", "AKI on CKD", "acute on chronic" → "AKI on top of CKD"
+   - Urine output: "urgent" (Whisper error), "oliguric", "oliguria", "low urine output", "decreased urine" → "Anuria/oliguria"; "no urine", "anuric", "anuria" → "Anuria/oliguria"; "high urine", "polyuric" → "Polyuria"
+   - "emergency room", "ER", "A&E", "casualty" → "ER"; "outpatient", "OPD", "clinic" → "OPC"
+   - CBC differentials: "Segmented", "Segs", "PMN", "Polymorphonuclear" → Neutrophil count (use the absolute x10³ value, not the percentage)
+   - "T.L.C", "TLC", "Total Leukocyte Count", "Total WBC" → WBCs count (use the absolute x10³ value)
+   - "Lymphocytes" in CBC differential context → Lymphocytes count (use the absolute x10³ value, not the percentage)
+   - "Monocytes" in CBC differential context → Monocytes Count (use the absolute x10³ value, not the percentage)
+   - "Eosinophils" or "Eosinophil" in CBC → Eosinophil count (use the absolute x10³ value, not the percentage)
+   - "Basophils" or "Basophil" in CBC → Basophil count (use the absolute x10³ value, not the percentage)
+   - When a CBC differential shows both a percentage (e.g. "80 %") and an absolute count (e.g. "9.5 x10³/uL"), always use the absolute count value for the numeric answer.
 10. Match allowed_values EXACTLY (case-sensitive) after synonym resolution.
 11. Do not invent or guess data that is not present in the transcript.
 12. For numeric string fields (National ID, phone number, age, duration in years, or any sequence of digits): return digits only with NO dashes, spaces, dots, or any other formatting characters. Examples: "290-1011-234567" → "29901011234567", "010-123-45678" → "01012345678".
@@ -936,12 +948,22 @@ PROMPT;
             $answers = is_array($rawAnswer['answers']) ? $rawAnswer['answers'] : [];
             $othersText = $rawAnswer['others_text'] ?? null;
 
+            // Treat empty string the same as null — GPT sometimes returns "" instead of null
+            if ($othersText === '') {
+                $othersText = null;
+            }
+
             // Filter answers array to only valid allowed_values
             $validAnswers = array_values(array_filter($answers, fn ($v) => in_array($v, $allowedValues, true)));
 
-            // Ensure the actual others value is in the list if there's an others_text
+            // Ensure the actual others value is in the list if there's a non-empty others_text
             if ($othersText !== null && $hasOthers && ! in_array($othersValue, $validAnswers, true)) {
                 $validAnswers[] = $othersValue;
+            }
+
+            // If Others is in validAnswers but others_text is empty, remove Others from the list
+            if ($othersText === null && $hasOthers && in_array($othersValue, $validAnswers, true)) {
+                $validAnswers = array_values(array_filter($validAnswers, fn ($v) => $v !== $othersValue));
             }
 
             return [

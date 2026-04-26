@@ -161,7 +161,7 @@ class AIFormService
 
             $content[] = [
                 'type' => 'input_text',
-                'text' => 'These are medical lab reports or radiology results ('.count($imageFiles).' file(s)). Extract ALL values you can read across all files and return them as plain text in this format: "Test name: value unit, Test name: value unit, ...". Include every number, unit, and result visible. IMPORTANT: When the same test (e.g. Hemoglobin, WBCs, Platelets, Creatinine) appears more than once across files, prefix each occurrence with the file/report number so the reader can distinguish them — e.g. "Report1_Hemoglobin: 10.8 g/dL, Report2_Hemoglobin: 9.40 g/dL". For tests that appear only once, no prefix is needed. Do not skip anything. Do not add explanations.',
+                'text' => 'These are medical lab reports or radiology results ('.count($imageFiles).' file(s)). Extract ALL values you can read across all files and return them as a flat list, one entry per line, in this format: "Test name: value unit". Include every number, unit, and result visible. IMPORTANT: When the same test (e.g. Hemoglobin, WBCs, Platelets, Creatinine) appears more than once across different files, prefix the FULL test name of each occurrence with the file/report number — e.g. "Report1_Hemoglobin: 10.8 g/dL" on one line, "Report2_Hemoglobin: 9.40 g/dL" on the next line. The prefix must cover the entire test name up to the colon — never split a test name mid-way. For tests that appear only once across all files, no prefix is needed. Do not skip anything. Do not add explanations. Do not merge multiple values onto one line.',
             ];
 
             $response = Http::withHeaders([
@@ -364,7 +364,7 @@ class AIFormService
             if (
                 $question->type === 'string' &&
                 empty($question->values) &&
-                preg_match('/^others?(\s+(causes|risk\s+factors\??))?$/i', trim($question->question))
+                preg_match('/^others?(\s+.+)?$/i', trim($question->question))
             ) {
                 $catchAllId = (string) $question->id;
                 $desc['is_catch_all'] = true;
@@ -420,6 +420,8 @@ CRITICAL RULES — you MUST follow these exactly:
    - "Eosinophils" or "Eosinophil" in CBC → Eosinophil count (use the absolute x10³ value, not the percentage)
    - "Basophils" or "Basophil" in CBC → Basophil count (use the absolute x10³ value, not the percentage)
    - When a CBC differential shows both a percentage (e.g. "80 %") and an absolute count (e.g. "9.5 x10³/uL"), always use the absolute count value. If ONLY a percentage is available (no absolute count column), use the percentage value as the answer.
+   - "Calcium (Total)", "Ca", "Ca++", "Total Calcium", "Serum Calcium" → Calcium mg/dl (Q256). Note: if both ionized Ca++ and total Calcium appear, map the TOTAL calcium value to Q256, not the ionized value. Ionized calcium has no dedicated question field.
+   - "Hgb", "Haemoglobin", "Hemoglobin" → Hemoglobin gm/dl. "Hct", "Hematocrit" → no dedicated field, put in Other laboratory findings if catch-all exists.
 10. Match allowed_values EXACTLY (case-sensitive) after synonym resolution.
 11. Do not invent or guess data that is not present in the transcript.
 12. For numeric string fields (National ID, phone number, age, duration in years, or any sequence of digits): return digits only with NO dashes, spaces, dots, or any other formatting characters. Examples: "290-1011-234567" → "29901011234567", "010-123-45678" → "01012345678".

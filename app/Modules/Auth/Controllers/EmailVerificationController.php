@@ -3,22 +3,16 @@
 namespace App\Modules\Auth\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Modules\Auth\Requests\EmailVerificationRequest;
-use Otp;
 use App\Models\User;
+use App\Modules\Auth\Requests\EmailVerificationRequest;
+use App\Modules\Auth\Services\OtpService;
 use App\Notifications\EmailVerificationNotification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class EmailVerificationController extends Controller
 {
-    private $otp;
-
-    public function __construct()
-    {
-        $this->otp = new Otp;
-    }
+    public function __construct(private readonly OtpService $otpService) {}
 
     /**
      * Send email verification notification
@@ -29,38 +23,38 @@ class EmailVerificationController extends Controller
 
             $user = Auth::user();
 
-            if (!$user) {
+            if (! $user) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'User not authenticated'
+                    'message' => 'User not authenticated',
                 ], 401);
             }
-    
+
             $user = User::where('email', $user->email)->first();
-            
+
             // Send verification notification
-            $user->notify(new EmailVerificationNotification());
+            $user->notify(new EmailVerificationNotification);
 
             Log::info('Email verification sent', [
                 'user_id' => $user->id,
-                'email' => $user->email
+                'email' => $user->email,
             ]);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Verification email sent successfully'
+                'message' => 'Verification email sent successfully',
             ]);
 
         } catch (\Exception $e) {
             Log::error('Failed to send verification email', [
                 'error' => $e->getMessage(),
-                'email' => $user->email ?? null
+                'email' => $user->email ?? null,
             ]);
 
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to send verification email',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -72,22 +66,22 @@ class EmailVerificationController extends Controller
     {
         try {
             $user = Auth::user() ?? User::where('email', $request->email)->first();
-            
-            if (!$user) {
+
+            if (! $user) {
                 throw new \Exception('User not found');
             }
 
-            $otpValidation = $this->otp->validate($user->email, $request->otp);
+            $otpValidation = $this->otpService->validateByIdentifier($user->email, $request->otp);
 
-            if (!$otpValidation->status) {
+            if (! $otpValidation->status) {
                 Log::warning('Invalid OTP attempt', [
                     'user_id' => $user->id,
-                    'email' => $user->email
+                    'email' => $user->email,
                 ]);
 
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Invalid OTP'
+                    'message' => 'Invalid OTP',
                 ], 401);
             }
 
@@ -96,24 +90,24 @@ class EmailVerificationController extends Controller
 
             Log::info('Email verified successfully', [
                 'user_id' => $user->id,
-                'email' => $user->email
+                'email' => $user->email,
             ]);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Email verified successfully'
+                'message' => 'Email verified successfully',
             ]);
 
         } catch (\Exception $e) {
             Log::error('Email verification failed', [
                 'error' => $e->getMessage(),
-                'email' => $request->email ?? null
+                'email' => $request->email ?? null,
             ]);
 
             return response()->json([
                 'status' => 'error',
                 'message' => 'Email verification failed',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

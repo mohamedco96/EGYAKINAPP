@@ -20,6 +20,7 @@ class SectionsInfo extends Model
         'section_description',
         'ai_mode',
         'ai_hint',
+        'ai_voice_time',
     ];
 
     /**
@@ -28,7 +29,8 @@ class SectionsInfo extends Model
      * @var array
      */
     protected $casts = [
-        'id' => 'integer'
+        'id' => 'integer',
+        'ai_voice_time' => 'integer',
     ];
 
     public function questions()

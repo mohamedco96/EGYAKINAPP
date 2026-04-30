@@ -382,6 +382,13 @@ class DirectChatService
                 }
             }
 
+            if (! empty($data['reply_to_id'])) {
+                $replyTarget = Message::find($data['reply_to_id']);
+                if (! $replyTarget || $replyTarget->conversation_id !== (int) $conversationId) {
+                    return ['value' => false, 'message' => 'Invalid reply target.', 'data' => null, 'status_code' => 422];
+                }
+            }
+
             $fileMetadata = null;
             if ($data['type'] !== 'text' && isset($data['file']) && $data['file'] instanceof UploadedFile) {
                 $fileMetadata = $this->fileService->uploadFile($data['file'], $data['type']);
@@ -447,12 +454,16 @@ class DirectChatService
         }
     }
 
-    public function deleteMessage(int $messageId, int $userId): array
+    public function deleteMessage(int $messageId, int $userId, ?int $conversationId = null): array
     {
         try {
             $message = Message::find($messageId);
 
             if (! $message) {
+                return ['value' => false, 'message' => 'Message not found.', 'data' => null, 'status_code' => 404];
+            }
+
+            if ($conversationId !== null && $message->conversation_id !== $conversationId) {
                 return ['value' => false, 'message' => 'Message not found.', 'data' => null, 'status_code' => 404];
             }
 
@@ -608,14 +619,22 @@ class DirectChatService
                 $action = 'added';
             }
 
-            broadcast(new MessageReacted(
-                messageId: $messageId,
-                conversationId: $message->conversation_id,
-                userId: $userId,
-                userName: auth()->user()?->name ?? '',
-                reaction: $reaction,
-                action: $action
-            ))->toOthers();
+            try {
+                broadcast(new MessageReacted(
+                    messageId: $messageId,
+                    conversationId: $message->conversation_id,
+                    userId: $userId,
+                    userName: auth()->user()?->name ?? '',
+                    reaction: $reaction,
+                    action: $action
+                ))->toOthers();
+            } catch (\Throwable $broadcastException) {
+                Log::warning('DirectChat: Broadcast failed for reaction (non-fatal)', [
+                    'message_id' => $messageId,
+                    'conversation_id' => $conversationId,
+                    'error' => $broadcastException->getMessage(),
+                ]);
+            }
 
             $updatedReactions = MessageReaction::with('user')
                 ->where('message_id', $messageId)
@@ -790,6 +809,10 @@ class DirectChatService
 
             if (! $conversation) {
                 return ['value' => false, 'message' => 'Conversation not found.', 'data' => null, 'status_code' => 404];
+            }
+
+            if ($conversation->type === 'private') {
+                return ['value' => false, 'message' => 'Cannot remove participants from private conversations.', 'data' => null, 'status_code' => 422];
             }
 
             if (! $this->isAdmin($conversationId, $adminId)) {

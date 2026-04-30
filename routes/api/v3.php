@@ -292,8 +292,8 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
         // Messages (cursor-paginated with ?before=msgId)
         // Read receipts are handled automatically when messages are fetched
         Route::get('/conversations/{id}/messages', [DirectChatController::class, 'messages']);
-        // TODO: Add throttle middleware (e.g. throttle:60,1) to the send routes below before going to production
-        Route::post('/conversations/{id}/messages', [DirectChatController::class, 'sendMessage']);
+        Route::post('/conversations/{id}/messages', [DirectChatController::class, 'sendMessage'])
+            ->middleware('throttle:60,1');
 
         // Delete a message (sender only, soft-delete — observer cleans up file)
         Route::delete('/conversations/{id}/messages/{messageId}', [DirectChatController::class, 'deleteMessage']);
@@ -302,8 +302,8 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
         Route::post('/conversations/{id}/reactions', [DirectChatController::class, 'react']);
 
         // Private chat — send directly to a user, conversation auto-created on first message
-        // TODO: Add throttle middleware (e.g. throttle:60,1) to this route before going to production
-        Route::post('/direct/{userId}', [DirectChatController::class, 'sendDirect']);
+        Route::post('/direct/{userId}', [DirectChatController::class, 'sendDirect'])
+            ->middleware('throttle:60,1');
 
         // Participation
         Route::post('/conversations/{id}/join', [DirectChatController::class, 'join']);
@@ -349,7 +349,7 @@ Route::group(['middleware' => ['auth:sanctum', 'check.blocked.home']], function 
 // Chat file download — signed URL + authenticated user required
 Route::get('/chat/files/{messageId}', [ChatFileController::class, 'download'])
     ->name('chat.file.download')
-    ->middleware(['signed', 'auth:sanctum']);
+    ->middleware(['signed', 'auth:sanctum', 'check.blocked.home']);
 
 // Authenticated user route
 Route::middleware(['auth:sanctum', 'check.blocked.home'])->get('/user', function (Request $request) {

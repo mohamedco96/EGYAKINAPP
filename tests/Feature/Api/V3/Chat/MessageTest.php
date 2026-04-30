@@ -190,6 +190,30 @@ class MessageTest extends TestCase
     }
 
     /** @test */
+    public function test_reply_to_message_from_different_conversation_is_rejected(): void
+    {
+        $user = $this->chatNormalUser();
+        $other = $this->chatNormalUser();
+
+        $conversation = $this->makePrivateConversation($user, $other);
+        $otherConversation = $this->makePrivateConversation($user, $other);
+        $messageInOther = $this->makeMessage($otherConversation, $other, 'Private message');
+
+        $this->actingAs($user);
+
+        $this->postJson("/api/v3/chat/conversations/{$conversation->id}/messages", [
+            'type' => 'text',
+            'content' => 'Trying to reference another conv',
+            'reply_to_id' => $messageInOther->id,
+        ])->assertStatus(422);
+
+        $this->assertDatabaseMissing('messages', [
+            'conversation_id' => $conversation->id,
+            'reply_to_id' => $messageInOther->id,
+        ]);
+    }
+
+    /** @test */
     public function test_send_message_validates_required_fields(): void
     {
         $user = $this->chatNormalUser();

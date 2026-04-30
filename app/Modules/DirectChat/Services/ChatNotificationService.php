@@ -83,12 +83,9 @@ class ChatNotificationService
             if ($failureCount > 0) {
                 $invalidTokens = [];
 
-                foreach ($result->failures() as $index => $failure) {
-                    $error = $failure->error();
-                    $errorCode = method_exists($error, 'getCode') ? $error->getCode() : '';
-
-                    if (in_array($errorCode, ['INVALID_ARGUMENT', 'UNREGISTERED', 'NOT_FOUND'])) {
-                        $invalidTokens[] = $tokens[$index] ?? null;
+                foreach ($result->failures() as $failure) {
+                    if ($failure->messageTargetWasInvalid() || $failure->messageWasSentToUnknownToken()) {
+                        $invalidTokens[] = $failure->target()->value();
                     }
                 }
 

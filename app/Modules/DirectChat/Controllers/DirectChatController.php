@@ -103,7 +103,7 @@ class DirectChatController extends Controller
 
     public function deleteMessage(int $id, int $messageId): JsonResponse
     {
-        $result = $this->chatService->deleteMessage($messageId, Auth::id());
+        $result = $this->chatService->deleteMessage($messageId, Auth::id(), $id);
 
         return response()->json(['value' => $result['value'], 'message' => $result['message']], $result['status_code']);
     }
@@ -162,7 +162,7 @@ class DirectChatController extends Controller
 
     public function mute(Request $request, int $id): JsonResponse
     {
-        $mute = (bool) $request->input('mute', true);
+        $mute = $request->boolean('mute', true);
 
         $result = $this->chatService->toggleMute($id, Auth::id(), $mute);
 
@@ -181,7 +181,7 @@ class DirectChatController extends Controller
             conversationId: $id,
             userId: Auth::id(),
             userName: Auth::user()->name ?? '',
-            isTyping: (bool) $request->input('is_typing', true)
+            isTyping: $request->boolean('is_typing', true)
         ))->toOthers();
 
         return response()->json(['value' => true, 'message' => 'Typing status broadcast.'], 200);

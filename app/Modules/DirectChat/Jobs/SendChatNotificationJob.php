@@ -14,6 +14,8 @@ class SendChatNotificationJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public bool $deleteWhenMissingModels = true;
+
     public int $tries = 3;
 
     public int $backoff = 30;

@@ -208,7 +208,7 @@ Files are served via **signed temporary URLs** valid for **30 minutes**. The URL
 GET /api/v3/chat/files/{messageId}?signature=...&expires=...&user_id=...
 ```
 
-The `file_url` field in every message response contains the pre-generated signed URL. Clients should use it directly — no authentication header needed.
+The `file_url` field in every message response contains the pre-generated signed URL. The download endpoint requires both a valid signature **and** an authenticated user (`Authorization: Bearer {token}`), so clients must include the Sanctum token when using the URL.
 
 ### File deletion
 When a message is soft-deleted (`DELETE /chat/conversations/{id}/messages/{messageId}`), the `MessageObserver` automatically deletes the associated file from disk. No orphaned files accumulate.
@@ -251,12 +251,12 @@ When Firebase returns `UNREGISTERED`, `NOT_FOUND`, or `INVALID_ARGUMENT` for a t
 
 ## Authentication
 
-All chat endpoints (except file download) require a Sanctum Bearer token:
+All chat endpoints require a Sanctum Bearer token:
 ```
 Authorization: Bearer {token}
 ```
 
-The file download endpoint uses a self-authenticating **signed URL** — no Authorization header needed.
+The file download endpoint requires both a valid signed URL **and** a Bearer token — unauthenticated requests return `401`.
 
 ---
 
@@ -695,7 +695,7 @@ GET /api/v3/chat/files/{messageId}?signature=...&expires=...&user_id=...
 Streams a private chat file. The full URL is provided in the `file_url` field of every message — clients do not construct this URL manually.
 
 **Notes:**
-- No `Authorization` header needed — the URL is self-authenticating via signature
+- `Authorization: Bearer {token}` required — the signed URL validates identity but does not replace authentication
 - URL expires after **30 minutes**
 - Returns `403` for invalid/expired signatures
 - Returns `403` if `user_id` in URL is not a participant of the conversation

@@ -50,7 +50,9 @@ class ChatFileService
         $filename = Str::uuid().'_'.time().($ext ? ".{$ext}" : '');
         $diskPath = "{$subdir}/{$filename}";
 
-        Storage::disk(self::DISK)->putFileAs($subdir, $file, $filename);
+        if (Storage::disk(self::DISK)->putFileAs($subdir, $file, $filename) === false) {
+            throw new \RuntimeException("Failed to store uploaded file '{$filename}'.");
+        }
 
         return [
             'original_name' => $file->getClientOriginalName(),

@@ -3,14 +3,22 @@
 namespace App\Models;
 
 use App\Modules\Achievements\Models\Achievement;
+use App\Modules\DirectChat\Models\Conversation;
+use App\Modules\DirectChat\Models\Message as ChatMessage;
 use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Patients\Models\Patients;
+use App\Modules\Posts\Models\PostComments;
+use App\Modules\Posts\Models\Posts;
+use App\Notifications\ContactRequestNotification;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasPermissions;
 use Spatie\Permission\Traits\HasRoles;
@@ -146,12 +154,12 @@ class User extends Authenticatable implements FilamentUser
     /**
      * Route notifications for the mail channel.
      *
-     * @param  \Illuminate\Notifications\Notification  $notification
+     * @param  Notification  $notification
      * @return string|array
      */
     public function routeNotificationForMail($notification)
     {
-        if ($notification instanceof \App\Notifications\ContactRequestNotification) {
+        if ($notification instanceof ContactRequestNotification) {
             // Return the specific email addresses for this notification
             return ['mostafa_abdelsalam@egyakin.com', 'Darsh1980@mans.edu.eg'];
         }
@@ -223,12 +231,12 @@ class User extends Authenticatable implements FilamentUser
 
     public function posts()
     {
-        return $this->hasMany(\App\Modules\Posts\Models\Posts::class, 'doctor_id');
+        return $this->hasMany(Posts::class, 'doctor_id');
     }
 
     public function postcomments()
     {
-        return $this->hasMany(\App\Modules\Posts\Models\PostComments::class, 'doctor_id');
+        return $this->hasMany(PostComments::class, 'doctor_id');
     }
 
     public function notification()
@@ -236,7 +244,7 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(AppNotification::class, 'doctor_id');
     }
 
-    public function PatientStatus(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function PatientStatus(): HasMany
     {
         return $this->hasMany(PatientStatus::class);
     }
@@ -327,7 +335,7 @@ class User extends Authenticatable implements FilamentUser
             'avatar' => $socialUser->getAvatar(),
             'social_verified_at' => now(),
             'email_verified_at' => $hasRealEmail ? now() : null,
-            'password' => bcrypt(\Illuminate\Support\Str::random(32)), // Random password for social users
+            'password' => bcrypt(Str::random(32)), // Random password for social users
             'profile_completed' => $profileCompleted,
             'user_type' => 'normal',
         ];
@@ -349,6 +357,19 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->belongsToMany(Patients::class, 'marked_patients', 'user_id', 'patient_id')
             ->withTimestamps();
+    }
+
+    public function conversations()
+    {
+        return $this->belongsToMany(
+            Conversation::class,
+            'conversation_participants'
+        )->withPivot(['role', 'joined_at', 'last_read_at', 'mute_notifications'])->withTimestamps();
+    }
+
+    public function chatMessages()
+    {
+        return $this->hasMany(ChatMessage::class, 'sender_id');
     }
 
     /**

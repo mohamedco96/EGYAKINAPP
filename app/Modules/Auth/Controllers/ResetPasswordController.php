@@ -3,39 +3,41 @@
 namespace App\Modules\Auth\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Modules\Auth\Requests\ResetPasswordRequest;
 use App\Models\User;
-use App\Notifications\ResetPasswordVerificationNotification;
-use Otp;
+use App\Modules\Auth\Requests\ResetPasswordRequest;
+use App\Modules\Auth\Services\OtpService;
 use Hash;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ResetPasswordController extends Controller
 {
-    private $otp;
-    private $email;
+    private OtpService $otpService;
 
-    public function __construct(Request $request)
+    private string $email;
+
+    public function __construct(Request $request, OtpService $otpService)
     {
-        $this->otp = new Otp;
-        $this->email = $request->email;
+        $this->otpService = $otpService;
+        $this->email = $request->email ?? '';
     }
 
     /**
      * Verify reset password OTP.
      *
      * @param  \App\Http\Requests\ResetPasswordRequest  $request
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function resetpasswordverification(ResetPasswordRequest $request)
     {
         try {
-            $otp2 = $this->otp->validate($this->email, $request->otp);
+            $otp2 = $this->otpService->validateByIdentifier($this->email, $request->otp);
 
-            if (!$otp2->status) {
+            if (! $otp2->status) {
                 Log::warning('Reset password OTP verification failed', ['email' => $this->email]);
+
                 return response()->json([
                     'value' => false,
                     'message' => 'OTP does not exist',
@@ -50,6 +52,7 @@ class ResetPasswordController extends Controller
             ], 200);
         } catch (\Exception $e) {
             Log::error('Error verifying reset password OTP', ['error' => $e->getMessage()]);
+
             return response()->json([
                 'value' => false,
                 'message' => 'Internal server error',
@@ -61,7 +64,7 @@ class ResetPasswordController extends Controller
      * Reset user password.
      *
      * @param  \App\Http\Requests\ResetPasswordRequest  $request
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function resetpassword(ResetPasswordRequest $request)
     {
@@ -73,6 +76,7 @@ class ResetPasswordController extends Controller
 
             if ($verify) {
                 Log::warning('Email not verified for password reset', ['email' => $this->email]);
+
                 return response()->json([
                     'value' => false,
                     'message' => 'This email is not verified to change the password.',
@@ -90,6 +94,7 @@ class ResetPasswordController extends Controller
             ], 200);
         } catch (\Exception $e) {
             Log::error('Error resetting password', ['error' => $e->getMessage()]);
+
             return response()->json([
                 'value' => false,
                 'message' => 'Internal server error',

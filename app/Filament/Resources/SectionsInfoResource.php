@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\SectionsInfoResource\Pages;
 use App\Models\SectionsInfo;
+use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Form;
@@ -12,7 +13,6 @@ use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
@@ -41,6 +41,33 @@ class SectionsInfoResource extends Resource
             ->schema([
                 Forms\Components\TextInput::make('section_name')->label('Section Name')->required(),
                 Forms\Components\TextInput::make('section_description')->label('Section Description'),
+
+                Forms\Components\Section::make('AI Settings')
+                    ->schema([
+                        Forms\Components\Select::make('ai_mode')
+                            ->label('AI Mode')
+                            ->options([
+                                'voice' => 'Voice',
+                                'image' => 'Image',
+                            ])
+                            ->nullable()
+                            ->placeholder('None'),
+
+                        Forms\Components\TextInput::make('ai_voice_time')
+                            ->label('AI Voice Time (seconds)')
+                            ->numeric()
+                            ->minValue(1)
+                            ->nullable()
+                            ->suffix('sec')
+                            ->helperText('Recording duration shown to the user in the frontend.'),
+
+                        Forms\Components\RichEditor::make('ai_hint')
+                            ->label('AI Hint Content')
+                            ->nullable()
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2)
+                    ->collapsible(),
             ]);
     }
 
@@ -75,9 +102,28 @@ class SectionsInfoResource extends Resource
                         if (strlen($state) > 100) {
                             return $state;
                         }
+
                         return null;
                     })
                     ->placeholder('No description'),
+
+                Tables\Columns\TextColumn::make('ai_mode')
+                    ->label('AI Mode')
+                    ->badge()
+                    ->color(fn (?string $state) => match ($state) {
+                        'voice' => 'success',
+                        'image' => 'info',
+                        default => 'gray',
+                    })
+                    ->placeholder('None')
+                    ->toggleable(isToggledHiddenByDefault: false),
+
+                Tables\Columns\TextColumn::make('ai_voice_time')
+                    ->label('Hint Duration')
+                    ->suffix(' sec')
+                    ->placeholder('—')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 Tables\Columns\TextColumn::make('questions_count')
                     ->label('Questions')
@@ -130,11 +176,12 @@ class SectionsInfoResource extends Resource
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
                         if ($data['created_from'] ?? null) {
-                            $indicators[] = 'From ' . \Carbon\Carbon::parse($data['created_from'])->toFormattedDateString();
+                            $indicators[] = 'From '.Carbon::parse($data['created_from'])->toFormattedDateString();
                         }
                         if ($data['created_until'] ?? null) {
-                            $indicators[] = 'Until ' . \Carbon\Carbon::parse($data['created_until'])->toFormattedDateString();
+                            $indicators[] = 'Until '.Carbon::parse($data['created_until'])->toFormattedDateString();
                         }
+
                         return $indicators;
                     }),
             ], layout: Tables\Enums\FiltersLayout::AboveContent)

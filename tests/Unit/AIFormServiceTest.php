@@ -805,7 +805,7 @@ class AIFormServiceTest extends TestCase
         Config::set('services.ai_form.mock', false);
 
         Http::fake([
-            'api.openai.com/v1/chat/completions' => Http::response('{"error":"unauthorized"}', 401),
+            'api.openai.com/v1/responses' => Http::response('{"error":"unauthorized"}', 401),
         ]);
 
         $this->expectException(\Exception::class);

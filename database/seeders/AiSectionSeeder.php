@@ -256,8 +256,25 @@ class AiSectionSeeder extends Seeder
             ],
         ];
 
+        $missing = [];
+
         foreach ($sections as $id => $data) {
-            SectionsInfo::where('id', $id)->update($data);
+            $section = SectionsInfo::find($id);
+
+            if ($section === null) {
+                $missing[] = $id;
+                $this->command->warn("SectionsInfo row with id={$id} not found; skipping.");
+
+                continue;
+            }
+
+            $section->update($data);
+        }
+
+        if (! empty($missing)) {
+            $this->command->error('AiSectionSeeder: missing section ids: '.implode(', ', $missing));
+
+            return;
         }
 
         $this->command->info('ai_mode and ai_hint updated for all sections.');

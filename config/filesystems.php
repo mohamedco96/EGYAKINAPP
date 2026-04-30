@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\FeedPost;
+use App\Models\User;
+
 return [
 
     /*
@@ -42,6 +45,13 @@ return [
             'url' => env('APP_URL').'/storage',
             'visibility' => 'public',
             'throw' => false,
+        ],
+
+        'chat_private' => [
+            'driver' => 'local',
+            'root' => storage_path('app/chat_files'),
+            'visibility' => 'private',
+            'throw' => true,
         ],
 
         's3' => [
@@ -150,13 +160,13 @@ return [
 
         'patterns' => [
             'media_images' => [
-                'model' => \App\Models\FeedPost::class,
+                'model' => FeedPost::class,
                 'column' => 'media_path',
                 'type' => 'json_array',
                 'enabled' => true,
             ],
             'profile_images' => [
-                'model' => \App\Models\User::class,
+                'model' => User::class,
                 'column' => 'image',
                 'type' => 'string',
                 'enabled' => true,

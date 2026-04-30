@@ -16,6 +16,7 @@
         "ichtrojan/laravel-otp": "^2.0",
         "kreait/firebase-php": "^7.12",
         "laravel/framework": "^11.0",
+        "laravel/reverb": "^1.10",
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.12",
         "laravel/telescope": "^5.0",
@@ -25,13 +26,14 @@
         "nyholm/psr7": "*",
         "pusher/pusher-php-server": "^7.2",
         "pxlrbt/filament-excel": "^2.3",
+        "sentry/sentry-laravel": "^4.0",
         "socialiteproviders/apple": "^5.7",
         "spatie/laravel-permission": "^6.4",
-        "symfony/http-client": "*",
-        "sentry/sentry-laravel": "^4.0"
+        "symfony/http-client": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
+        "laravel/boost": "^2.4",
         "laravel/pint": "^1.13",
         "laravel/sail": "^1.26",
         "mockery/mockery": "^1.6",

@@ -64,7 +64,7 @@ class AIFormService
 
     /**
      * Analyze one or more lab report / radiology images using GPT-4o Vision.
-     * Accepts an array of UploadedFile (jpg/jpeg/png/webp/pdf, up to 5 files).
+     * Accepts an array of UploadedFile (jpg/jpeg/png/webp/pdf, up to 10 files).
      * All images are sent in a single GPT-4o call so the model reads them together.
      *
      * Returns a plain-text description of all values found across all images,
@@ -92,8 +92,8 @@ class AIFormService
             throw new \InvalidArgumentException('analyzeImage requires at least one file.');
         }
 
-        if (count($imageFiles) > 5) {
-            throw new \InvalidArgumentException('analyzeImage accepts at most 5 files at a time.');
+        if (count($imageFiles) > 10) {
+            throw new \InvalidArgumentException('analyzeImage accepts at most 10 files at a time.');
         }
 
         foreach ($imageFiles as $index => $imageFile) {
@@ -125,11 +125,10 @@ class AIFormService
             return 'Lab report: Creatinine on admission 3.2, basal creatinine 1.1, day 2 creatinine 2.8, day 3 creatinine 2.1. pH 7.30, HCO3 18, pCO2 35. Serum Na 138, K 5.2. SGOT 45, SGPT 38, Albumin 3.0, Total Bilirubin 1.2, Direct Bilirubin 0.4. PT 14, PTT 32, INR 1.2. HCV Ab Negative, HBs Ag Negative, HIV Ab Negative. Hemoglobin 9.5, WBCs 11000, Platelets 180000, Neutrophils 7500, Lymphocytes 2500, Monocytes 800, Eosinophil 200, Basophil 50. Urea 80, BUN 37, CRP 48. Urine: specific gravity 1.018, turbid, epithelial cells few, granular casts, WBCs 8, RBCs 4, proteinuria 2+. Renal US: nephromegaly bilateral.';
         }
 
-        // Build the content array: one block per file + instruction at the end.
-        // PDFs are uploaded to OpenAI Files API first, then referenced by file ID.
-        // Images are sent inline as base64.
-        // The try/finally wraps both the build loop and the API call so that any
-        // already-uploaded PDF IDs are cleaned up even if a later file fails.
+        // Build the content array for the Responses API.
+        // PDFs are uploaded to the Files API (purpose: user_data) and referenced by file_id.
+        // Images are sent inline as base64 data URLs via input_image.
+        // try/finally ensures uploaded PDF IDs are cleaned up on both success and failure.
         $content = [];
         $uploadedIds = [];
 
@@ -138,15 +137,12 @@ class AIFormService
                 $mime = $imageFile->getMimeType();
 
                 if ($mime === 'application/pdf') {
-                    // Upload PDF to OpenAI Files API, then reference by ID
                     $fileId = $this->uploadFileToOpenAI($imageFile);
                     $uploadedIds[] = $fileId;
 
                     $content[] = [
-                        'type' => 'file',
-                        'file' => [
-                            'file_id' => $fileId,
-                        ],
+                        'type' => 'input_file',
+                        'file_id' => $fileId,
                     ];
                 } else {
                     $mediaType = match ($mime) {
@@ -156,33 +152,30 @@ class AIFormService
                     };
 
                     $content[] = [
-                        'type' => 'image_url',
-                        'image_url' => [
-                            'url' => "data:{$mediaType};base64,".base64_encode(file_get_contents($imageFile->getRealPath())),
-                            'detail' => 'high',
-                        ],
+                        'type' => 'input_image',
+                        'image_url' => "data:{$mediaType};base64,".base64_encode(file_get_contents($imageFile->getRealPath())),
+                        'detail' => 'high',
                     ];
                 }
             }
 
-            // Instruction block appended after all files
             $content[] = [
-                'type' => 'text',
-                'text' => 'These are medical lab reports or radiology results ('.count($imageFiles).' file(s)). Extract ALL values you can read across all files and return them as plain text in this format: "Test name: value, Test name: value, ...". Include every number, unit, and result visible. If the same test appears on multiple files, use the most recent or highest value. Do not skip anything. Do not add explanations.',
+                'type' => 'input_text',
+                'text' => 'These are medical lab reports or radiology results ('.count($imageFiles).' file(s)). Extract ALL values you can read across all files and return them as a flat list, one entry per line, in this format: "Test name: value unit". Include every number, unit, and result visible. IMPORTANT: When the same test (e.g. Hemoglobin, WBCs, Platelets, Creatinine) appears more than once across different files, prefix the FULL test name of each occurrence with the file/report number — e.g. "Report1_Hemoglobin: 10.8 g/dL" on one line, "Report2_Hemoglobin: 9.40 g/dL" on the next line. The prefix must cover the entire test name up to the colon — never split a test name mid-way. For tests that appear only once across all files, no prefix is needed. Do not skip anything. Do not add explanations. Do not merge multiple values onto one line.',
             ];
 
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer '.$this->apiKey,
                 'Content-Type' => 'application/json',
-            ])->timeout(90)->post('https://api.openai.com/v1/chat/completions', [
+            ])->timeout(90)->post('https://api.openai.com/v1/responses', [
                 'model' => 'gpt-4o',
-                'messages' => [
+                'input' => [
                     [
                         'role' => 'user',
                         'content' => $content,
                     ],
                 ],
-                'max_tokens' => 2000,
+                'max_output_tokens' => 2000,
             ]);
 
             if (! $response->successful()) {
@@ -198,7 +191,8 @@ class AIFormService
                 throw new \Exception('Failed to analyze image.');
             }
 
-            $text = trim($response->json('choices.0.message.content') ?? '');
+            // Responses API: output[0].content[0].text
+            $text = trim($response->json('output.0.content.0.text') ?? '');
 
             if (empty($text)) {
                 throw new \Exception('GPT-4o returned an empty response for the image.');
@@ -219,12 +213,15 @@ class AIFormService
      */
     private function uploadFileToOpenAI(UploadedFile $file): string
     {
+        $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME).'.pdf';
+
         $response = Http::withHeaders([
             'Authorization' => 'Bearer '.$this->apiKey,
         ])->timeout(60)->attach(
             'file',
             fopen($file->getRealPath(), 'r'),
-            $file->getClientOriginalName()
+            $filename,
+            ['Content-Type' => 'application/pdf']
         )->post('https://api.openai.com/v1/files', [
             'purpose' => 'user_data',
         ]);
@@ -361,13 +358,13 @@ class AIFormService
                 $desc['note'] = 'Extract as a date string in YYYY-MM-DD format, or null if not found.';
             }
 
-            // Detect a generic catch-all "Other" free-text field:
-            // type=string AND question name is exactly "Other" (or "Other Causes", etc.)
-            // with no values list — used to capture leftover info from the transcript.
+            // Detect a generic catch-all "Other" free-text field.
+            // Only matches bare "Other", "Others", "Other Causes", or "Other risk factors?"
+            // Specific fields like "Other laboratory findings" are companion fields, not catch-alls.
             if (
                 $question->type === 'string' &&
                 empty($question->values) &&
-                preg_match('/^other(s)?(\s+causes)?$/i', trim($question->question))
+                preg_match('/^others?(\s+.+)?$/i', trim($question->question))
             ) {
                 $catchAllId = (string) $question->id;
                 $desc['is_catch_all'] = true;
@@ -380,7 +377,7 @@ class AIFormService
         $questionsJson = json_encode($questionsDescription, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
         $catchAllRule = $catchAllId
-            ? "14. CATCH-ALL RULE: One question is marked with \"is_catch_all\": true (ID {$catchAllId}). After filling all other questions, collect any medically relevant details from the transcript that were NOT captured by any other question, and write them as a concise summary string in this field. Examples of catch-all content: reason for admission, chief complaint, serum creatinine value, diagnosis, ICU admission reason, or any other clinical detail mentioned but not covered by a specific question. If everything was already captured, return null."
+            ? "14. CATCH-ALL RULE: One question is marked with \"is_catch_all\": true (ID {$catchAllId}). After filling all other questions, collect any medically relevant details from the transcript that were NOT captured by any other question, and write them as a concise summary string in this field. Examples of catch-all content: reason for admission, chief complaint, diagnosis, ICU admission reason, lab results that have no matching question (e.g. Amylase, Lipase, Iron, TIBC, TSH, Free T3, Free T4, Transferrin Saturation), or any other clinical detail mentioned but not covered by a specific question. If everything was already captured, return null."
             : '';
 
         return <<<PROMPT
@@ -397,7 +394,7 @@ CRITICAL RULES — you MUST follow these exactly:
    a. First, apply the same abbreviation/synonym/phonetic resolution as rule 2a.
    b. For each resolved value, if it EXACTLY matches an item in "allowed_values" → include it in the answers array.
    c. IMPORTANT: Before treating a value as unmatched, check ALL allowed_values carefully for synonyms. Example: transcript says "shisha" → check if "Shisha smoker" exists in allowed_values → it does → use "Shisha smoker", do NOT put it in others_text.
-   d. Only if a resolved value truly does NOT match any "allowed_values" BUT the list contains "Others", "Other", or "others" (any casing) → include that exact entry in the answers array AND return the format: {"answers": ["matched1", "<the_others_entry>"], "others_text": "<unmatched text from transcript>"}.
+   d. Only if a resolved value truly does NOT match any "allowed_values" BUT the list contains "Others", "Other", or "others" (any casing) → include that exact entry in the answers array AND return the format: {"answers": ["matched1", "<the_others_entry>"], "others_text": "<unmatched text from transcript>"}. CRITICAL: "others_text" MUST contain the actual unmatched text — never an empty string. If you cannot identify the specific unmatched text, do not include Others in the answers array at all.
    e. If nothing is found → return an empty array [].
 4. For "string" or "text" type: return the extracted text as a string, or the JSON literal null if not found.
 5. For "date" type: return the date as a string in YYYY-MM-DD format (e.g., "2024-03-15"), or the JSON literal null if not found.
@@ -412,10 +409,26 @@ CRITICAL RULES — you MUST follow these exactly:
    - "CKD" or "chronic kidney" → "Chronic Kidney Disease"
    - "Takahliya", "Dakhliya", "Dakahlia", "Daqahliya", "Dakahliya" → "Dakahlia"
    - Any phonetic transcription error → infer the most likely intended medical term
+   - "AKI", "EKI", "A.K.I", "acute kidney injury", "acute renal failure", "ARF" → "AKI" (resolve phonetic Whisper errors like "EKI" to "AKI")
+   - "AKI on top of CKD", "AKI on CKD", "acute on chronic" → "AKI on top of CKD"
+   - Urine output: "urgent" (Whisper error), "oliguric", "oliguria", "low urine output", "decreased urine" → "Anuria/oliguria"; "no urine", "anuric", "anuria" → "Anuria/oliguria"; "high urine", "polyuric" → "Polyuria"
+   - "emergency room", "ER", "A&E", "casualty" → "ER"; "outpatient", "OPD", "clinic" → "OPC"
+   - CBC differentials: "Segmented", "Segs", "PMN", "Polymorphonuclear" → Neutrophil count (use the absolute x10³ value, not the percentage)
+   - "T.L.C", "TLC", "Total Leukocyte Count", "Total WBC" → WBCs count (use the absolute x10³ value)
+   - "Lymphocytes" in CBC differential context → Lymphocytes count (use the absolute x10³ value, not the percentage)
+   - "Monocytes" in CBC differential context → Monocytes Count (use the absolute x10³ value, not the percentage)
+   - "Eosinophils" or "Eosinophil" in CBC → Eosinophil count (use the absolute x10³ value, not the percentage)
+   - "Basophils" or "Basophil" in CBC → Basophil count (use the absolute x10³ value, not the percentage)
+   - When a CBC differential shows both a percentage (e.g. "80 %") and an absolute count (e.g. "9.5 x10³/uL"), always use the absolute count value. If ONLY a percentage is available (no absolute count column), use the percentage value as the answer.
+   - "Calcium (Total)", "Ca", "Ca++", "Total Calcium", "Serum Calcium" → Calcium mg/dl (Q256). Note: if both ionized Ca++ and total Calcium appear, map the TOTAL calcium value to Q256, not the ionized value. Ionized calcium has no dedicated question field.
+   - "Hgb", "Haemoglobin", "Hemoglobin" → Hemoglobin gm/dl. "Hct", "Hematocrit" → no dedicated field, put in Other laboratory findings if catch-all exists.
 10. Match allowed_values EXACTLY (case-sensitive) after synonym resolution.
 11. Do not invent or guess data that is not present in the transcript.
 12. For numeric string fields (National ID, phone number, age, duration in years, or any sequence of digits): return digits only with NO dashes, spaces, dots, or any other formatting characters. Examples: "290-1011-234567" → "29901011234567", "010-123-45678" → "01012345678".
 13. For email fields: convert spoken "at" to "@" and "dot" to ".". Example: "ahmed at example dot com" → "ahmed@example.com".
+15. CRITICAL — Lab value mapping accuracy: A numeric value from the transcript must ONLY be mapped to a question if the test name in the transcript clearly corresponds to that question. Do NOT reuse a value that already belongs to another test. Example: if the transcript has "Platelet Count: 339" and "SGOT" is not mentioned anywhere, SGOT must be null — never map 339 to SGOT because it appears nearby. Each value belongs to exactly one test name.
+16. CBC differential percentages vs absolute counts: When the transcript provides only percentages (e.g. "Segmented: 60 %") with no absolute x10³/uL counts, use the percentage value as the answer for that count field. If both are present, always prefer the absolute x10³ value.
+17. DUPLICATE TESTS ACROSS REPORTS: If the transcript contains "Report1_TestName" and "Report2_TestName" prefixes (indicating the same test appeared on multiple lab files), you MUST pick values consistently from ONE report for all CBC fields (Hemoglobin, WBCs, Platelets, Neutrophil, Lymphocytes, Monocytes, Eosinophils, Basophils). Prefer the report whose CBC panel is most complete (has the most differential values). Do not mix values from different reports for related fields.
 {$catchAllRule}
 
 QUESTIONS:
@@ -936,12 +949,22 @@ PROMPT;
             $answers = is_array($rawAnswer['answers']) ? $rawAnswer['answers'] : [];
             $othersText = $rawAnswer['others_text'] ?? null;
 
+            // Treat empty string the same as null — GPT sometimes returns "" instead of null
+            if ($othersText === '') {
+                $othersText = null;
+            }
+
             // Filter answers array to only valid allowed_values
             $validAnswers = array_values(array_filter($answers, fn ($v) => in_array($v, $allowedValues, true)));
 
-            // Ensure the actual others value is in the list if there's an others_text
+            // Ensure the actual others value is in the list if there's a non-empty others_text
             if ($othersText !== null && $hasOthers && ! in_array($othersValue, $validAnswers, true)) {
                 $validAnswers[] = $othersValue;
+            }
+
+            // If Others is in validAnswers but others_text is empty, remove Others from the list
+            if ($othersText === null && $hasOthers && in_array($othersValue, $validAnswers, true)) {
+                $validAnswers = array_values(array_filter($validAnswers, fn ($v) => $v !== $othersValue));
             }
 
             return [

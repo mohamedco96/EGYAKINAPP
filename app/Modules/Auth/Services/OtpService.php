@@ -20,7 +20,7 @@ class OtpService
     public function __construct()
     {
         // Initialize Brevo API service
-        $this->brevoService = new BrevoApiService();
+        $this->brevoService = new BrevoApiService;
 
         // Get from configuration
         $this->from = [
@@ -53,7 +53,7 @@ class OtpService
             $otp = $this->generateOtp($user);
 
             // Send enhanced verification notification
-            $user->notify(new EmailVerificationNotification());
+            $user->notify(new EmailVerificationNotification);
 
             // Log the result
             logger()->info('Enhanced OTP email sent successfully', [
@@ -79,18 +79,43 @@ class OtpService
      */
     public function verifyOtp(User $user, string $otp): bool
     {
-        $record = OtpModel::where('identifier', $user->email)
-            ->where('token', $otp)
+        $result = $this->validateByIdentifier($user->email, $otp);
+
+        return $result->status;
+    }
+
+    /**
+     * Validate an OTP by identifier (email) and token.
+     *
+     * Returns an object with `status` (bool) and `message` (string), compatible
+     * with the ichtrojan/laravel-otp package's validate() return shape.
+     * Uses an explicit (int) cast on validity to avoid a Carbon TypeError when
+     * the package's Otp model returns the value as a string from the database.
+     */
+    public function validateByIdentifier(string $identifier, string $token): object
+    {
+        $record = OtpModel::where('identifier', $identifier)
+            ->where('token', $token)
             ->first();
 
-        if (! $record || ! $record->valid) {
-            return false;
+        if (! $record) {
+            return (object) ['status' => false, 'message' => 'OTP does not exist'];
+        }
+
+        if (! $record->valid) {
+            $record->update(['valid' => false]);
+
+            return (object) ['status' => false, 'message' => 'OTP is not valid'];
         }
 
         $record->update(['valid' => false]);
 
         $expiresAt = $record->created_at->addMinutes((int) $record->validity);
 
-        return Carbon::now()->lessThanOrEqualTo($expiresAt);
+        if (Carbon::now()->greaterThan($expiresAt)) {
+            return (object) ['status' => false, 'message' => 'OTP Expired'];
+        }
+
+        return (object) ['status' => true, 'message' => 'OTP is valid'];
     }
 }

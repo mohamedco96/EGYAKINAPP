@@ -34,13 +34,15 @@ class QuestionsController extends Controller
         $payload = $response->getData(true);
 
         $section = SectionsInfo::find((int) $section_id);
-        $aiMode  = $section?->ai_mode ?? null;
-        $aiHint  = $section?->ai_hint ?? null;
+        $aiMode = $section?->ai_mode ?? null;
+        $aiHint = $section?->ai_hint ?? null;
+        $aiHintSeconds = $section?->ai_voice_time ?? null;
 
         $payload = array_merge(
-            ['value'   => $payload['value']],
+            ['value' => $payload['value']],
             ['ai_mode' => $aiMode],
             ['ai_hint' => $aiHint],
+            ['ai_voice_time' => $aiHintSeconds],
             array_diff_key($payload, ['value' => null])
         );
 

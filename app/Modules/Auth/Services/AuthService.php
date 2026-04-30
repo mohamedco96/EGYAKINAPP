@@ -3,6 +3,9 @@
 namespace App\Modules\Auth\Services;
 
 use App\Models\User;
+use App\Modules\DirectChat\Models\Conversation;
+use App\Modules\DirectChat\Models\Message;
+use App\Modules\DirectChat\Services\ChatFileService;
 use App\Modules\Notifications\Models\AppNotification;
 use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Notifications\Services\NotificationService;
@@ -20,6 +23,7 @@ use Illuminate\Support\Facades\Storage;
 class AuthService
 {
     use FormatsUserName;
+
     protected $notificationService;
 
     public function __construct(NotificationService $notificationService)
@@ -553,11 +557,69 @@ class AuthService
             ];
         }
 
+        $authId = Auth::id();
+
         $imageUrl = $user->image;
         $patientCount = $user->patients()->count();
         $postsCount = $user->feedPosts()->whereNull('group_id')->count();
         $savedPostsCount = $user->saves()->count();
         $scoreValue = optional($user->score)->score ?? 0;
+
+        // Find the private conversation between the auth user and this profile user
+        $conversation = Conversation::where('type', 'private')
+            ->whereHas('participantRecords', fn ($q) => $q->where('user_id', $authId))
+            ->whereHas('participantRecords', fn ($q) => $q->where('user_id', $id))
+            ->first();
+
+        $chatId = $conversation?->id;
+        $chatMessages = null;
+        $chatHasMore = false;
+
+        if ($conversation) {
+            $fetched = Message::with(['sender:id,name,lname,image', 'reactions.user:id,name'])
+                ->where('conversation_id', $conversation->id)
+                ->orderByDesc('created_at')
+                ->limit(11)
+                ->get();
+
+            $chatHasMore = $fetched->count() === 11;
+            $fileService = app(ChatFileService::class);
+
+            $chatMessages = $fetched->take(10)->reverse()->values()->map(function ($msg) use ($fileService) {
+                $fileUrl = null;
+                if ($msg->type !== 'text' && $msg->file_metadata) {
+                    $fileUrl = $fileService->getFileUrl($msg->id);
+                }
+
+                $reactions = $msg->reactions
+                    ->groupBy('reaction')
+                    ->map(fn ($group, $emoji) => [
+                        'emoji' => $emoji,
+                        'count' => $group->count(),
+                        'users' => $group->map(fn ($r) => ['id' => $r->user_id, 'name' => $r->user?->name])->values(),
+                    ])->values();
+
+                return [
+                    'id' => $msg->id,
+                    'sender' => $msg->sender ? [
+                        'id' => $msg->sender->id,
+                        'name' => $msg->sender->name,
+                        'lname' => $msg->sender->lname,
+                        'image' => $msg->sender->image,
+                    ] : null,
+                    'type' => $msg->type,
+                    'content' => $msg->content,
+                    'file_metadata' => $msg->type !== 'text' ? [
+                        'original_name' => $msg->file_metadata['original_name'] ?? null,
+                        'mime_type' => $msg->file_metadata['mime_type'] ?? null,
+                        'size_bytes' => $msg->file_metadata['size_bytes'] ?? null,
+                    ] : null,
+                    'file_url' => $fileUrl,
+                    'reactions' => $reactions,
+                    'created_at' => $msg->created_at?->toISOString(),
+                ];
+            });
+        }
 
         return [
             'value' => true,
@@ -567,6 +629,9 @@ class AuthService
             'saved_posts_count' => strval($savedPostsCount) ?? 0,
             'image' => $imageUrl,
             'data' => $user,
+            'chat_id' => $chatId,
+            'chat_messages' => $chatMessages,
+            'chat_has_more' => $chatHasMore,
             'status_code' => 200,
         ];
     }

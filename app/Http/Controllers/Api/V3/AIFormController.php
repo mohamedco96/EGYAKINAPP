@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V3;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProcessAISectionRequest;
+use App\Models\PatientSectionAiLog;
 use App\Services\AIFormService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -46,7 +47,7 @@ class AIFormController extends Controller
                 $extractedText = $this->aiFormService->transcribeAudio(
                     $request->file('audio')
                 );
-                $inputType  = 'audio';
+                $inputType = 'audio';
                 $imageCount = null;
             } else {
                 $imageFiles = array_merge(
@@ -54,28 +55,42 @@ class AIFormController extends Controller
                     (array) $request->file('files')
                 );
                 $extractedText = $this->aiFormService->analyzeImage($imageFiles);
-                $inputType     = 'image';
-                $imageCount    = count($imageFiles);
+                $inputType = 'image';
+                $imageCount = count($imageFiles);
             }
 
             // Run the input-agnostic extraction pipeline
             $result = $this->aiFormService->processSection($extractedText, $sectionId);
 
+            // Persist for AI training — only when a patient_id is provided
+            $patientId = (int) $request->input('patient_id');
+            if ($patientId) {
+                PatientSectionAiLog::create([
+                    'patient_id' => $patientId,
+                    'section_id' => $sectionId,
+                    'doctor_id' => Auth::id(),
+                    'input_type' => $inputType,
+                    'extracted_text' => $extractedText,
+                    'prompt' => $result['prompt'],
+                    'response' => $result['data'],
+                ]);
+            }
+
             Log::info('AI form extraction completed', array_filter([
-                'input_type'          => $inputType,
-                'image_count'         => $imageCount,
-                'section_id'          => $sectionId,
-                'doctor_id'           => Auth::id(),
+                'input_type' => $inputType,
+                'image_count' => $imageCount,
+                'section_id' => $sectionId,
+                'doctor_id' => Auth::id(),
                 'questions_processed' => count($result['data']),
             ]));
 
             $response = array_filter([
-                'value'          => true,
-                'input_type'     => $inputType,
-                'image_count'    => $imageCount,
+                'value' => true,
+                'input_type' => $inputType,
+                'image_count' => $imageCount,
                 'extracted_text' => $extractedText,
-                'data'           => $result['data'],
-            ], fn($v) => $v !== null);
+                'data' => $result['data'],
+            ], fn ($v) => $v !== null);
             $response['data'] = $result['data']; // ensure data key always present even if empty
 
             if (config('app.debug')) {
@@ -87,13 +102,13 @@ class AIFormController extends Controller
         } catch (\Exception $e) {
             Log::error('AI form extraction error', [
                 'section_id' => $request->input('section_id'),
-                'doctor_id'  => Auth::id(),
-                'error'      => $e->getMessage(),
-                'trace'      => $e->getTraceAsString(),
+                'doctor_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
-                'value'   => false,
+                'value' => false,
                 'message' => 'An error occurred while processing your request. Please try again later.',
             ], 500);
         }

@@ -8,6 +8,7 @@ use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Patients\Models\Patients;
 use App\Services\NotificationService;
 use App\Traits\FormatsUserName;
+use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -42,7 +43,7 @@ class CommentNotificationService
                 // Log that no notification was sent
                 Log::debug('No notification sent as the authenticated doctor is the same as the patient\'s doctor.');
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error handling comment notification: '.$e->getMessage());
             // Don't throw exception to prevent breaking comment creation
         }
@@ -87,7 +88,7 @@ class CommentNotificationService
                 'notified_doctor_id' => $patientDoctorId,
                 'commenting_doctor_id' => $commentingDoctorId,
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error creating comment notification: '.$e->getMessage());
         }
     }

@@ -2,41 +2,50 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\RoleResource\Pages;
+use App\Filament\Resources\RoleResource\Pages\CreateRole;
+use App\Filament\Resources\RoleResource\Pages\EditRole;
+use App\Filament\Resources\RoleResource\Pages\ListRoles;
+use App\Filament\Resources\RoleResource\Pages\ViewRole;
+use App\Models\Permission;
 use App\Models\User;
+use Closure;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
+use Filament\Notifications\Notification;
+use Filament\Resources\Pages\EditRecord;
 use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Actions\Action;
-use Filament\Tables\Actions\ActionGroup;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\ViewAction;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use App\Models\Permission;
-use Closure;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\Models\Role;
 
 class RoleResource extends Resource
 {
     protected static ?string $model = Role::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-shield-check';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-shield-check';
 
-    protected static ?string $navigationGroup = '👥 User Management';
+    protected static string|\UnitEnum|null $navigationGroup = '⚙️ Administration';
 
-    protected static ?string $navigationLabel = 'Roles & Permissions';
+    protected static ?string $navigationLabel = 'Roles';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -44,10 +53,12 @@ class RoleResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::count();
+        return Cache::remember('roles_count', 300, function () {
+            return static::getModel()::count();
+        });
     }
 
-    public static function getGlobalSearchResultTitle(\Illuminate\Database\Eloquent\Model $record): string
+    public static function getGlobalSearchResultTitle(Model $record): string
     {
         return ucwords(str_replace(['-', '_'], ' ', $record->name));
     }
@@ -57,10 +68,10 @@ class RoleResource extends Resource
         return ['name', 'guard_name'];
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Role Information')
                     ->description('Define the basic role details')
                     ->icon('heroicon-o-identification')
@@ -96,7 +107,7 @@ class RoleResource extends Resource
                                 'New role - statistics will be available after creation'
                             )
                             ->columnSpanFull()
-                            ->visible(fn ($livewire) => $livewire instanceof \Filament\Resources\Pages\EditRecord),
+                            ->visible(fn ($livewire) => $livewire instanceof EditRecord),
                     ])->columns(2),
 
                 Section::make('Permissions Assignment')
@@ -113,8 +124,9 @@ class RoleResource extends Resource
                                 fn (): array => Permission::all()->mapWithKeys(function ($permission) {
                                     $category = $permission->category ? Permission::getCategories()[$permission->category] ?? ucwords(str_replace(['-', '_'], ' ', $permission->category)) : 'Other';
                                     $description = $permission->description ?: 'No description';
+
                                     return [
-                                        $permission->id => "{$category} | {$description}"
+                                        $permission->id => "{$category} | {$description}",
                                     ];
                                 })->toArray()
                             )
@@ -176,8 +188,14 @@ class RoleResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultSort('name')
+            ->defaultPaginationPageOption(25)
+            ->striped()
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->filters([
-                Tables\Filters\SelectFilter::make('guard_name')
+                SelectFilter::make('guard_name')
                     ->label('Guard')
                     ->options([
                         'web' => 'Web Guard',
@@ -195,7 +213,7 @@ class RoleResource extends Resource
                     ->query(fn (Builder $query): Builder => $query->has('users'))
                     ->toggle(),
 
-                Tables\Filters\SelectFilter::make('permissions')
+                SelectFilter::make('permissions')
                     ->label('With Permission')
                     ->relationship('permissions', 'name')
                     ->multiple()
@@ -203,7 +221,20 @@ class RoleResource extends Resource
                     ->searchable(),
             ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(4)
-            ->actions([
+            ->toggleColumnsTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Toggle columns'),
+            )
+            ->persistFiltersInSession()
+            ->deferFilters(false)
+            ->deselectAllRecordsWhenFiltered(true)
+            ->filtersTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Filter'),
+            )
+            ->recordActions([
                 ActionGroup::make([
                     ViewAction::make()
                         ->color('info'),
@@ -213,7 +244,7 @@ class RoleResource extends Resource
                         ->label('Assign Users to Role')
                         ->icon('heroicon-o-users')
                         ->color('success')
-                        ->form([
+                        ->schema([
                             CheckboxList::make('users')
                                 ->label('Select Users')
                                 ->options(User::all()->pluck('name', 'id'))
@@ -237,8 +268,8 @@ class RoleResource extends Resource
                                     $hasConflict = false;
                                     foreach (static::conflictPairs() as $pair) {
                                         if (
-                                            !empty(array_intersect($combined, $pair['a'])) &&
-                                            !empty(array_intersect($combined, $pair['b']))
+                                            ! empty(array_intersect($combined, $pair['a'])) &&
+                                            ! empty(array_intersect($combined, $pair['b']))
                                         ) {
                                             $hasConflict = true;
                                             break;
@@ -247,6 +278,7 @@ class RoleResource extends Resource
 
                                     if ($hasConflict) {
                                         $skippedUsers[] = $user->name;
+
                                         continue;
                                     }
 
@@ -260,14 +292,14 @@ class RoleResource extends Resource
                                 }
                             }
 
-                            if (!empty($skippedUsers)) {
-                                \Filament\Notifications\Notification::make()
+                            if (! empty($skippedUsers)) {
+                                Notification::make()
                                     ->title('Some users were skipped')
-                                    ->body("{$assignedCount} user(s) assigned. Skipped due to permission conflicts: " . implode(', ', $skippedUsers) . '. Their direct permissions conflict with this role\'s permissions.')
+                                    ->body("{$assignedCount} user(s) assigned. Skipped due to permission conflicts: ".implode(', ', $skippedUsers).'. Their direct permissions conflict with this role\'s permissions.')
                                     ->warning()
                                     ->send();
                             } else {
-                                \Filament\Notifications\Notification::make()
+                                Notification::make()
                                     ->title('Users assigned successfully')
                                     ->body("{$assignedCount} user(s) assigned to '{$record->name}' role. Their permissions have been updated.")
                                     ->success()
@@ -278,8 +310,8 @@ class RoleResource extends Resource
                         ->label('Quick Assign by Category')
                         ->icon('heroicon-o-funnel')
                         ->color('info')
-                        ->form([
-                            \Filament\Forms\Components\CheckboxList::make('categories')
+                        ->schema([
+                            CheckboxList::make('categories')
                                 ->label('Select Categories')
                                 ->options(Permission::getCategories())
                                 ->columns(2)
@@ -301,15 +333,16 @@ class RoleResource extends Resource
                                 $matchB = array_values(array_intersect($allPermissionNames, $pair['b']));
 
                                 if ($matchA && $matchB) {
-                                    \Filament\Notifications\Notification::make()
+                                    Notification::make()
                                         ->title('Permission Conflict Detected')
                                         ->body(
-                                            'Cannot assign: [' . implode(', ', $matchA) . '] cannot coexist with [' . implode(', ', $matchB) . ']. '
-                                            . $pair['message']
+                                            'Cannot assign: ['.implode(', ', $matchA).'] cannot coexist with ['.implode(', ', $matchB).']. '
+                                            .$pair['message']
                                         )
                                         ->danger()
                                         ->persistent()
                                         ->send();
+
                                     return;
                                 }
                             }
@@ -317,11 +350,11 @@ class RoleResource extends Resource
                             $record->syncPermissions($allPermissions);
 
                             // Mark all users with this role as having permissions changed
-                            \App\Models\User::role($record->name)->update(['permissions_changed' => true]);
+                            User::role($record->name)->update(['permissions_changed' => true]);
 
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Permissions assigned successfully')
-                                ->body(count($newPermissions) . ' permission(s) from selected categories assigned to ' . $record->name)
+                                ->body(count($newPermissions).' permission(s) from selected categories assigned to '.$record->name)
                                 ->success()
                                 ->send();
                         }),
@@ -337,9 +370,9 @@ class RoleResource extends Resource
                     ->color('gray')
                     ->button(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
                         ->requiresConfirmation()
                         ->modalHeading('Delete Selected Roles')
                         ->modalDescription('Are you sure you want to delete the selected roles? This action cannot be undone.')
@@ -361,10 +394,10 @@ class RoleResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListRoles::route('/'),
-            'create' => Pages\CreateRole::route('/create'),
-            'view' => Pages\ViewRole::route('/{record}'),
-            'edit' => Pages\EditRole::route('/{record}/edit'),
+            'index' => ListRoles::route('/'),
+            'create' => CreateRole::route('/create'),
+            'view' => ViewRole::route('/{record}'),
+            'edit' => EditRole::route('/{record}/edit'),
         ];
     }
 
@@ -376,13 +409,13 @@ class RoleResource extends Resource
     {
         return [
             [
-                'a'       => ['view-all-patients', 'view-current-patients'],
-                'b'       => ['view-groups-in-home', 'view-trend-hashtags-in-home'],
+                'a' => ['view-all-patients', 'view-current-patients'],
+                'b' => ['view-groups-in-home', 'view-trend-hashtags-in-home'],
                 'message' => 'Patient management permissions and home content permissions are mutually exclusive.',
             ],
             [
-                'a'       => ['add-post-in-home'],
-                'b'       => ['add-patient-in-home'],
+                'a' => ['add-post-in-home'],
+                'b' => ['add-patient-in-home'],
                 'message' => 'add-post-in-home and add-patient-in-home cannot be assigned together.',
             ],
         ];
@@ -398,8 +431,8 @@ class RoleResource extends Resource
 
             if ($matchA && $matchB) {
                 $fail(
-                    'Permission conflict: [' . implode(', ', $matchA) . '] cannot be combined with [' . implode(', ', $matchB) . ']. '
-                    . $pair['message']
+                    'Permission conflict: ['.implode(', ', $matchA).'] cannot be combined with ['.implode(', ', $matchB).']. '
+                    .$pair['message']
                 );
             }
         }

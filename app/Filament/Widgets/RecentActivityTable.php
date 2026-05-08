@@ -3,10 +3,13 @@
 namespace App\Filament\Widgets;
 
 use App\Modules\Patients\Models\Patients;
-use Filament\Tables;
+use Filament\Actions\ViewAction;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 
 class RecentActivityTable extends BaseWidget
 {
@@ -21,23 +24,23 @@ class RecentActivityTable extends BaseWidget
         return $table
             ->query($this->getRecentPatientsQuery())
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('Patient ID')
                     ->badge()
                     ->color('primary')
                     ->prefix('#'),
 
-                Tables\Columns\TextColumn::make('doctor.name')
+                TextColumn::make('doctor.name')
                     ->label('Assigned Doctor')
                     ->searchable()
                     ->limit(30)
-                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                    ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
 
                         return strlen($state) > 30 ? $state : null;
                     }),
 
-                Tables\Columns\IconColumn::make('hidden')
+                IconColumn::make('hidden')
                     ->label('Status')
                     ->boolean()
                     ->trueIcon('heroicon-o-eye-slash')
@@ -46,15 +49,15 @@ class RecentActivityTable extends BaseWidget
                     ->falseColor('success')
                     ->tooltip(fn ($state) => $state ? 'Hidden' : 'Active'),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Registered')
                     ->dateTime('M j, g:i A')
                     ->sortable()
                     ->since()
                     ->tooltip(fn ($state) => $state?->format('F j, Y \a\t g:i A')),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->url(fn (Patients $record): string => "/admin/patients/{$record->id}/edit"),
             ])
             ->defaultSort('created_at', 'desc')
@@ -68,10 +71,14 @@ class RecentActivityTable extends BaseWidget
 
     protected function getRecentPatientsQuery(): Builder
     {
-        return Patients::query()
-            ->with('doctor')
+        $ids = Cache::remember('widget_recent_patient_registrations', 60, fn () => Patients::query()
             ->whereDate('created_at', '>=', now()->subDays(7))
             ->latest()
-            ->limit(10);
+            ->limit(10)
+            ->pluck('id')
+            ->toArray()
+        );
+
+        return Patients::query()->with('doctor')->whereIn('id', $ids)->latest();
     }
 }

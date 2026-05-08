@@ -3,7 +3,7 @@
 namespace App\Modules\Achievements\Filament\Resources\AchievementResource\Pages;
 
 use App\Modules\Achievements\Filament\Resources\AchievementResource;
-use Filament\Actions;
+use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditAchievement extends EditRecord
@@ -13,7 +13,7 @@ class EditAchievement extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 }

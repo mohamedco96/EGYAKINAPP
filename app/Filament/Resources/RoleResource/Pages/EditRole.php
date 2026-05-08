@@ -4,7 +4,8 @@ namespace App\Filament\Resources\RoleResource\Pages;
 
 use App\Filament\Resources\RoleResource;
 use App\Models\User;
-use Filament\Actions;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
@@ -15,8 +16,8 @@ class EditRole extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\ViewAction::make(),
-            Actions\DeleteAction::make(),
+            ViewAction::make(),
+            DeleteAction::make(),
         ];
     }
 
@@ -41,7 +42,7 @@ class EditRole extends EditRecord
     {
         // Refresh the role to get latest permissions
         $this->record->refresh();
-        
+
         // Mark all users with this role as having permissions changed
         User::role($this->record->name)->update(['permissions_changed' => true]);
     }

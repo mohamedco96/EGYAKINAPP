@@ -18,7 +18,7 @@ class Score extends Model
     protected $fillable = [
         'doctor_id',
         'score',
-        'threshold'
+        'threshold',
     ];
 
     /**
@@ -29,13 +29,11 @@ class Score extends Model
     protected $casts = [
         'doctor_id' => 'integer',
         'score' => 'integer',
-        'threshold' => 'integer'
+        'threshold' => 'integer',
     ];
 
     /**
      * Define the relationship with the doctor.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function doctor(): BelongsTo
     {

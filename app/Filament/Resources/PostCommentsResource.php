@@ -2,12 +2,21 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\PostCommentsResource\Pages;
+use App\Filament\Resources\PostCommentsResource\Pages\CreatePostComments;
+use App\Filament\Resources\PostCommentsResource\Pages\EditPostComments;
+use App\Filament\Resources\PostCommentsResource\Pages\ListPostComments;
+use App\Filament\Resources\PostCommentsResource\Pages\ViewPostComments;
 use App\Modules\Posts\Models\PostComments;
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -16,23 +25,27 @@ use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 class PostCommentsResource extends Resource
 {
     protected static ?string $model = PostComments::class;
-    protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-oval-left-ellipsis';
+
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-chat-bubble-oval-left-ellipsis';
+
     protected static ?string $navigationLabel = 'Post Comments';
-    protected static ?string $navigationGroup = '📝 Content Management';
-    protected static ?int $navigationSort = 3;
+
+    protected static string|\UnitEnum|null $navigationGroup = '📱 Community';
+
+    protected static ?int $navigationSort = 7;
 
     public static function getNavigationBadge(): ?string
     {
-        return Cache::remember('post_comments_count', 300, fn() => static::getModel()::count());
+        return Cache::remember('post_comments_count', 300, fn () => static::getModel()::count());
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make('Comment')->schema([
-                Forms\Components\Select::make('post_id')->relationship('post', 'title')->searchable()->preload()->required(),
-                Forms\Components\Select::make('doctor_id')->relationship('doctor', 'name')->searchable()->preload()->required(),
-                Forms\Components\Textarea::make('comment')->required()->rows(4)->columnSpanFull(),
+        return $schema->components([
+            Section::make('Comment')->schema([
+                Select::make('post_id')->relationship('post', 'title')->searchable()->preload()->required(),
+                Select::make('doctor_id')->relationship('doctor', 'name')->searchable()->preload()->required(),
+                Textarea::make('comment')->required()->rows(4)->columnSpanFull(),
             ])->columns(2),
         ]);
     }
@@ -40,25 +53,34 @@ class PostCommentsResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['Posts:id,title', 'doctor']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['post:id,title', 'doctor']))
             ->columns([
-                Tables\Columns\TextColumn::make('id')->badge()->color('gray'),
-                Tables\Columns\TextColumn::make('post.title')->limit(30)->searchable(),
-                Tables\Columns\TextColumn::make('doctor.name')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('comment')->limit(50)->wrap(),
-                Tables\Columns\TextColumn::make('created_at')->dateTime()->since(),
+                TextColumn::make('id')->badge()->color('gray'),
+                TextColumn::make('post.title')->limit(30)->searchable(),
+                TextColumn::make('doctor.name')->searchable()->sortable(),
+                TextColumn::make('comment')->limit(50)->wrap(),
+                TextColumn::make('created_at')->dateTime()->since()->toggleable(),
             ])
-            ->actions([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make()])
-            ->bulkActions([Tables\Actions\DeleteBulkAction::make(), ExportBulkAction::make()]);
+            ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->striped()
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
+            ->recordActions([ViewAction::make(), EditAction::make()])
+            ->toolbarActions([BulkActionGroup::make([DeleteBulkAction::make(), ExportBulkAction::make()])])
+            ->emptyStateHeading('No post comments')
+            ->emptyStateDescription('Comments on posts will appear here.')
+            ->emptyStateIcon('heroicon-o-chat-bubble-oval-left-ellipsis');
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPostComments::route('/'),
-            'create' => Pages\CreatePostComments::route('/create'),
-            'view' => Pages\ViewPostComments::route('/{record}'),
-            'edit' => Pages\EditPostComments::route('/{record}/edit'),
+            'index' => ListPostComments::route('/'),
+            'create' => CreatePostComments::route('/create'),
+            'view' => ViewPostComments::route('/{record}'),
+            'edit' => EditPostComments::route('/{record}/edit'),
         ];
     }
 }

@@ -2,14 +2,26 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\SettingsResource\Pages;
+use App\Filament\Resources\SettingsResource\Pages\CreateSettings;
+use App\Filament\Resources\SettingsResource\Pages\EditSettings;
+use App\Filament\Resources\SettingsResource\Pages\ListSettings;
+use App\Filament\Resources\SettingsResource\Pages\ViewSettings;
 use App\Modules\Settings\Models\Settings;
-use Filament\Forms;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Form;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Actions\Action;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Cache;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
@@ -18,13 +30,13 @@ class SettingsResource extends Resource
 {
     protected static ?string $model = Settings::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-cog-6-tooth';
 
     protected static ?string $navigationLabel = 'App Settings';
 
-    protected static ?string $navigationGroup = '🔒 System Administration';
+    protected static string|\UnitEnum|null $navigationGroup = '⚙️ Administration';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 4;
 
     public static function getNavigationBadge(): ?string
     {
@@ -33,20 +45,20 @@ class SettingsResource extends Resource
         });
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Application Control')
                     ->description('Global application settings and controls')
                     ->schema([
-                        Forms\Components\Toggle::make('app_freeze')
+                        Toggle::make('app_freeze')
                             ->label('App Freeze')
                             ->helperText('When enabled, the mobile app will be frozen for all users')
                             ->inline(false)
                             ->default(false),
 
-                        Forms\Components\Toggle::make('force_update')
+                        Toggle::make('force_update')
                             ->label('Force Update')
                             ->helperText('When enabled, users will be forced to update the mobile app')
                             ->inline(false)
@@ -59,7 +71,7 @@ class SettingsResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID')
                     ->badge()
                     ->color('gray')
@@ -67,7 +79,7 @@ class SettingsResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\IconColumn::make('app_freeze')
+                IconColumn::make('app_freeze')
                     ->label('App Frozen')
                     ->boolean()
                     ->trueIcon('heroicon-o-lock-closed')
@@ -77,16 +89,16 @@ class SettingsResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('app_freeze')
+                TextColumn::make('app_freeze_status')
                     ->label('Freeze Status')
+                    ->getStateUsing(fn ($record) => $record->app_freeze)
                     ->badge()
-                    ->color(fn (bool $state): string => $state ? 'danger' : 'success')
-                    ->formatStateUsing(fn (bool $state): string => $state ? 'FROZEN' : 'Active')
-                    ->icon(fn (bool $state): string => $state ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
-                    ->sortable()
+                    ->color(fn ($state): string => $state ? 'danger' : 'success')
+                    ->formatStateUsing(fn ($state): string => $state ? 'FROZEN' : 'Active')
+                    ->icon(fn ($state): string => $state ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\IconColumn::make('force_update')
+                IconColumn::make('force_update')
                     ->label('Force Update')
                     ->boolean()
                     ->trueIcon('heroicon-o-arrow-path')
@@ -96,16 +108,16 @@ class SettingsResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('force_update')
+                TextColumn::make('force_update_status')
                     ->label('Update Status')
+                    ->getStateUsing(fn ($record) => $record->force_update)
                     ->badge()
-                    ->color(fn (bool $state): string => $state ? 'warning' : 'success')
-                    ->formatStateUsing(fn (bool $state): string => $state ? 'Required' : 'Optional')
-                    ->icon(fn (bool $state): string => $state ? 'heroicon-o-arrow-path' : 'heroicon-o-check-circle')
-                    ->sortable()
+                    ->color(fn ($state): string => $state ? 'warning' : 'success')
+                    ->formatStateUsing(fn ($state): string => $state ? 'Required' : 'Optional')
+                    ->icon(fn ($state): string => $state ? 'heroicon-o-arrow-path' : 'heroicon-o-check-circle')
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime()
                     ->sortable()
@@ -113,7 +125,7 @@ class SettingsResource extends Resource
                     ->tooltip(fn ($record) => $record->created_at?->format('M d, Y H:i:s'))
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->label('Last Updated')
                     ->dateTime()
                     ->sortable()
@@ -122,22 +134,24 @@ class SettingsResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: false),
             ])
             ->defaultSort('updated_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->striped()
             ->persistSearchInSession()
             ->persistColumnSearchesInSession()
             ->persistSortInSession()
             ->filters([
-                Tables\Filters\TernaryFilter::make('app_freeze')
+                TernaryFilter::make('app_freeze')
                     ->label('App Freeze Status')
                     ->placeholder('All settings')
                     ->trueLabel('Frozen only')
                     ->falseLabel('Active only'),
 
-                Tables\Filters\TernaryFilter::make('force_update')
+                TernaryFilter::make('force_update')
                     ->label('Force Update Status')
                     ->placeholder('All settings')
                     ->trueLabel('Update required')
                     ->falseLabel('Update optional'),
-            ], layout: Tables\Enums\FiltersLayout::AboveContent)
+            ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(2)
             ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action
@@ -145,18 +159,19 @@ class SettingsResource extends Resource
                     ->label('Toggle columns'),
             )
             ->persistFiltersInSession()
+            ->deferFilters(false)
             ->deselectAllRecordsWhenFiltered(true)
             ->filtersTriggerAction(
                 fn (Action $action) => $action
                     ->button()
                     ->label('Filter'),
             )
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->modalHeading('Settings Details')
                     ->modalWidth('3xl'),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('toggleFreeze')
+                EditAction::make(),
+                Action::make('toggleFreeze')
                     ->label(fn ($record) => $record->app_freeze ? 'Unfreeze App' : 'Freeze App')
                     ->icon(fn ($record) => $record->app_freeze ? 'heroicon-o-lock-open' : 'heroicon-o-lock-closed')
                     ->color(fn ($record) => $record->app_freeze ? 'success' : 'danger')
@@ -166,26 +181,26 @@ class SettingsResource extends Resource
                         ? 'This will allow users to access the app again.'
                         : 'This will prevent all users from accessing the app.')
                     ->action(function ($record) {
-                        $record->update(['app_freeze' => !$record->app_freeze]);
+                        $record->update(['app_freeze' => ! $record->app_freeze]);
                     })
                     ->successNotificationTitle('App freeze status updated'),
-                Tables\Actions\Action::make('toggleForceUpdate')
+                Action::make('toggleForceUpdate')
                     ->label(fn ($record) => $record->force_update ? 'Disable Force Update' : 'Enable Force Update')
                     ->icon('heroicon-o-arrow-path')
                     ->color(fn ($record) => $record->force_update ? 'success' : 'warning')
                     ->requiresConfirmation()
                     ->action(function ($record) {
-                        $record->update(['force_update' => !$record->force_update]);
+                        $record->update(['force_update' => ! $record->force_update]);
                     })
                     ->successNotificationTitle('Force update status updated'),
-                Tables\Actions\DeleteAction::make()
+                DeleteAction::make()
                     ->after(function () {
                         Cache::forget('settings_count');
                     }),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
                         ->after(function () {
                             Cache::forget('settings_count');
                         }),
@@ -193,7 +208,7 @@ class SettingsResource extends Resource
                 ]),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
             ->emptyStateHeading('No settings configured')
             ->emptyStateDescription('Create your first app setting configuration.')
@@ -210,10 +225,10 @@ class SettingsResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListSettings::route('/'),
-            'create' => Pages\CreateSettings::route('/create'),
-            'view' => Pages\ViewSettings::route('/{record}'),
-            'edit' => Pages\EditSettings::route('/{record}/edit'),
+            'index' => ListSettings::route('/'),
+            'create' => CreateSettings::route('/create'),
+            'view' => ViewSettings::route('/{record}'),
+            'edit' => EditSettings::route('/{record}/edit'),
         ];
     }
 }

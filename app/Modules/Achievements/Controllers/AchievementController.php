@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\Achievements\Requests\StoreAchievementRequest;
 use App\Modules\Achievements\Requests\UpdateAchievementRequest;
 use App\Modules\Achievements\Services\AchievementService;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 
@@ -29,7 +30,7 @@ class AchievementController extends Controller
             $statusCode = $result['value'] ? 200 : 404;
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error in AchievementController@index', ['error' => $e->getMessage()]);
 
             return response()->json([
@@ -56,7 +57,7 @@ class AchievementController extends Controller
             $statusCode = $result['value'] ? 201 : 400;
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error in AchievementController@store', ['error' => $e->getMessage()]);
 
             return response()->json([
@@ -76,7 +77,7 @@ class AchievementController extends Controller
             $statusCode = $result['value'] ? 200 : 404;
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error in AchievementController@show', [
                 'achievement_id' => $id,
                 'error' => $e->getMessage(),
@@ -106,7 +107,7 @@ class AchievementController extends Controller
             $statusCode = $result['value'] ? 200 : 404;
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error in AchievementController@update', [
                 'achievement_id' => $id,
                 'error' => $e->getMessage(),
@@ -129,7 +130,7 @@ class AchievementController extends Controller
             $statusCode = $result['value'] ? 200 : 404;
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error in AchievementController@destroy', [
                 'achievement_id' => $id,
                 'error' => $e->getMessage(),
@@ -168,7 +169,7 @@ class AchievementController extends Controller
             $statusCode = $result['value'] ? 200 : 500;
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error in AchievementController@checkAndAssignAchievementsForAllUsers', [
                 'error' => $e->getMessage(),
             ]);
@@ -195,7 +196,7 @@ class AchievementController extends Controller
             }
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error in AchievementController@getUserAchievements', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),

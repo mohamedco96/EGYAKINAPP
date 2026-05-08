@@ -2,48 +2,63 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\CommentResource\Pages;
+use App\Filament\Resources\CommentResource\Pages\CreateComment;
+use App\Filament\Resources\CommentResource\Pages\EditComment;
+use App\Filament\Resources\CommentResource\Pages\ListComments;
 use App\Modules\Comments\Models\Comment;
-use Filament\Forms;
+use App\Modules\Patients\Models\Patients;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Form;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Actions\Action;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class CommentResource extends Resource
 {
     protected static ?string $model = Comment::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-left-ellipsis';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-chat-bubble-left-ellipsis';
 
     protected static ?string $navigationLabel = 'Patient Comments';
 
-    protected static ?string $navigationGroup = '🏥 Patient Management';
+    protected static string|\UnitEnum|null $navigationGroup = '🏥 Patient Management';
 
-    protected static ?int $navigationSort = 60;
+    protected static ?int $navigationSort = 5;
 
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::count();
+        return Cache::remember('comments_count', 300, function () {
+            return static::getModel()::count();
+        });
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('doctor_id')
+        return $schema
+            ->components([
+                Select::make('doctor_id')
                     ->relationship('doctor', 'name')
                     ->searchable()
                     ->preload()
                     ->label('Doctor Name'),
-                Forms\Components\Select::make('patient_id')
+                Select::make('patient_id')
                     ->relationship('patient', 'id')
                     ->getSearchResultsUsing(function (string $search) {
-                        return \App\Models\Patient::query()
+                        return Patients::query()
+                            ->with('doctor')
                             ->where('id', 'like', "%{$search}%")
                             ->orWhereHas('doctor', function ($query) use ($search) {
                                 $query->where('name', 'like', "%{$search}%")
@@ -52,20 +67,24 @@ class CommentResource extends Resource
                             ->limit(50)
                             ->get()
                             ->mapWithKeys(function ($patient) {
-                                $doctorName = $patient->doctor ? $patient->doctor->name . ' ' . ($patient->doctor->lname ?? '') : 'Unknown';
+                                $doctorName = $patient->doctor ? $patient->doctor->name.' '.($patient->doctor->lname ?? '') : 'Unknown';
+
                                 return [$patient->id => "Patient #{$patient->id} (Doctor: {$doctorName})"];
                             });
                     })
                     ->getOptionLabelUsing(function ($value) {
-                        $patient = \App\Models\Patient::find($value);
-                        if (!$patient) return "Patient #{$value}";
-                        $doctorName = $patient->doctor ? $patient->doctor->name . ' ' . ($patient->doctor->lname ?? '') : 'Unknown';
+                        $patient = Patients::with('doctor')->find($value);
+                        if (! $patient) {
+                            return "Patient #{$value}";
+                        }
+                        $doctorName = $patient->doctor ? $patient->doctor->name.' '.($patient->doctor->lname ?? '') : 'Unknown';
+
                         return "Patient #{$patient->id} (Doctor: {$doctorName})";
                     })
                     ->searchable()
                     ->preload()
                     ->label('Patient'),
-                Forms\Components\TextInput::make('content')->required()->label('Content'),
+                TextInput::make('content')->required()->label('Content'),
             ]);
     }
 
@@ -74,31 +93,37 @@ class CommentResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['doctor']))
             ->columns([
-                Tables\Columns\TextColumn::make('id')->toggleable(isToggledHiddenByDefault: false)->searchable(),
-                Tables\Columns\TextColumn::make('doctor.name')->toggleable(isToggledHiddenByDefault: false)->label('Doctor Name')->searchable(),
-                Tables\Columns\TextColumn::make('patient_id')->toggleable(isToggledHiddenByDefault: false)->label('Patient ID')->searchable(),
-                Tables\Columns\TextColumn::make('content')->toggleable(isToggledHiddenByDefault: false)->label('Content'),
-                Tables\Columns\TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false),
-                Tables\Columns\TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: false),
+                TextColumn::make('id')->toggleable(isToggledHiddenByDefault: false)->searchable(),
+                TextColumn::make('doctor.name')->toggleable(isToggledHiddenByDefault: false)->label('Doctor Name')->searchable(),
+                TextColumn::make('patient_id')->toggleable(isToggledHiddenByDefault: false)->label('Patient ID')->searchable(),
+                TextColumn::make('content')->toggleable(isToggledHiddenByDefault: false)->label('Content'),
+                TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false),
+                TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: false),
             ])
+            ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->striped()
             ->persistSearchInSession()
             ->persistColumnSearchesInSession()
             ->persistSortInSession()
             ->filters([
-                Tables\Filters\SelectFilter::make('Doctor Name')
+                SelectFilter::make('Doctor Name')
                     ->relationship('doctor', 'name'),
-                Tables\Filters\SelectFilter::make('Patient')
+                SelectFilter::make('Patient')
                     ->relationship('patient', 'id')
                     ->getOptionLabelUsing(function ($value) {
-                        $patient = \App\Models\Patient::find($value);
-                        if (!$patient) return "Patient #{$value}";
-                        $doctorName = $patient->doctor ? $patient->doctor->name . ' ' . ($patient->doctor->lname ?? '') : 'Unknown';
+                        $patient = Patients::with('doctor')->find($value);
+                        if (! $patient) {
+                            return "Patient #{$value}";
+                        }
+                        $doctorName = $patient->doctor ? $patient->doctor->name.' '.($patient->doctor->lname ?? '') : 'Unknown';
+
                         return "Patient #{$patient->id} (Doctor: {$doctorName})";
                     })
                     ->searchable()
                     ->preload(),
-                Tables\Filters\Filter::make('created_at')
-                    ->form([
+                Filter::make('created_at')
+                    ->schema([
                         DatePicker::make('created_from'),
                         DatePicker::make('created_until'),
                     ])
@@ -120,24 +145,25 @@ class CommentResource extends Resource
                     ->label('Toggle columns'),
             )
             ->persistFiltersInSession()
+            ->deferFilters(false)
             ->deselectAllRecordsWhenFiltered(true)
             ->filtersTriggerAction(
                 fn (Action $action) => $action
                     ->button()
                     ->label('Filter'),
             )
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                     ExportBulkAction::make(),
                 ]),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ]);
     }
 
@@ -151,9 +177,9 @@ class CommentResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListComments::route('/'),
-            'create' => Pages\CreateComment::route('/create'),
-            'edit' => Pages\EditComment::route('/{record}/edit'),
+            'index' => ListComments::route('/'),
+            'create' => CreateComment::route('/create'),
+            'edit' => EditComment::route('/{record}/edit'),
         ];
     }
 }

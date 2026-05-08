@@ -2,17 +2,29 @@
 
 namespace App\Modules\Achievements\Filament\Resources;
 
-use App\Modules\Achievements\Filament\Resources\AchievementResource\Pages;
+use App\Modules\Achievements\Filament\Resources\AchievementResource\Pages\CreateAchievement;
+use App\Modules\Achievements\Filament\Resources\AchievementResource\Pages\EditAchievement;
+use App\Modules\Achievements\Filament\Resources\AchievementResource\Pages\ListAchievements;
+use App\Modules\Achievements\Filament\Resources\AchievementResource\Pages\ViewAchievement;
 use App\Modules\Achievements\Models\Achievement;
-use Filament\Forms;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Form;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Cache;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
@@ -20,14 +32,14 @@ class AchievementResource extends Resource
 {
     protected static ?string $model = Achievement::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static ?string $navigationLabel = 'Achievements';
 
-    protected static ?string $navigationGroup = 'App Data';
+    protected static string|\UnitEnum|null $navigationGroup = 'App Data';
 
     protected static ?int $navigationSort = 5;
-    
+
     public static function getNavigationBadge(): ?string
     {
         return Cache::remember('achievements_count', 300, function () {
@@ -35,28 +47,29 @@ class AchievementResource extends Resource
         });
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('name')
+        return $schema
+            ->components([
+                TextInput::make('name')
                     ->label('Name')
                     ->required(),
-                Forms\Components\TextInput::make('description')
+                TextInput::make('description')
                     ->label('Description'),
-                Forms\Components\Select::make('type')
+                Select::make('type')
                     ->label('Achievement Type')
                     ->options([
                         'patient' => 'Patient',
                         'score' => 'Score',
                         'outcome' => 'Outcome',
                     ]),
-                Forms\Components\TextInput::make('score')
+                TextInput::make('score')
                     ->label('Achievement Score')
                     ->required(),
                 FileUpload::make('image')
                     ->label('Achievement Image')
                     ->directory('achievement_images')
+                    ->visibility('public')
                     ->image()
                     ->imageEditor()
                     ->previewable(true)
@@ -70,7 +83,7 @@ class AchievementResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID')
                     ->badge()
                     ->color('gray')
@@ -78,14 +91,14 @@ class AchievementResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->label('Achievement Name')
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
 
-                Tables\Columns\TextColumn::make('type')
+                TextColumn::make('type')
                     ->label('Type')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -104,10 +117,10 @@ class AchievementResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('score')
+                TextColumn::make('score')
                     ->label('Score')
                     ->badge()
-                    ->color(fn ($state): string => match(true) {
+                    ->color(fn ($state): string => match (true) {
                         $state >= 100 => 'success',
                         $state >= 50 => 'warning',
                         default => 'info',
@@ -117,27 +130,28 @@ class AchievementResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('description')
+                TextColumn::make('description')
                     ->label('Description')
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->searchable()
                     ->sortable()
                     ->limit(100)
-                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                    ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
                         if (strlen($state) > 100) {
                             return $state;
                         }
+
                         return null;
                     }),
 
-                Tables\Columns\ImageColumn::make('image')
+                ImageColumn::make('image')
                     ->label('Image')
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->circular()
                     ->size(50),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime()
                     ->sortable()
@@ -145,7 +159,7 @@ class AchievementResource extends Resource
                     ->since()
                     ->tooltip(fn ($record) => $record->created_at?->format('M d, Y H:i:s')),
 
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->label('Updated')
                     ->dateTime()
                     ->sortable()
@@ -158,7 +172,7 @@ class AchievementResource extends Resource
             ->persistColumnSearchesInSession()
             ->persistSortInSession()
             ->filters([
-                Tables\Filters\SelectFilter::make('type')
+                SelectFilter::make('type')
                     ->label('Achievement Type')
                     ->options([
                         'patient' => 'Patient',
@@ -168,7 +182,7 @@ class AchievementResource extends Resource
                     ->multiple()
                     ->searchable(),
 
-                Tables\Filters\SelectFilter::make('score_range')
+                SelectFilter::make('score_range')
                     ->label('Score Range')
                     ->options([
                         'high' => 'High (>= 100)',
@@ -176,44 +190,46 @@ class AchievementResource extends Resource
                         'low' => 'Low (< 50)',
                     ])
                     ->query(function (Builder $query, array $data): Builder {
-                        if (!isset($data['value'])) {
+                        if (! isset($data['value'])) {
                             return $query;
                         }
-                        return match($data['value']) {
+
+                        return match ($data['value']) {
                             'high' => $query->where('score', '>=', 100),
                             'medium' => $query->whereBetween('score', [50, 99]),
                             'low' => $query->where('score', '<', 50),
                             default => $query,
                         };
                     }),
-            ], layout: Tables\Enums\FiltersLayout::AboveContent)
+            ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(2)
             ->toggleColumnsTriggerAction(
-                fn (Tables\Actions\Action $action) => $action
+                fn (Action $action) => $action
                     ->button()
                     ->label('Toggle columns'),
             )
             ->persistFiltersInSession()
+            ->deferFilters(false)
             ->deselectAllRecordsWhenFiltered(true)
             ->filtersTriggerAction(
-                fn (Tables\Actions\Action $action) => $action
+                fn (Action $action) => $action
                     ->button()
                     ->label('Filter'),
             )
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->modalHeading('Achievement Details')
                     ->modalWidth('3xl'),
-                Tables\Actions\EditAction::make()->icon('heroicon-o-pencil'),
-                Tables\Actions\DeleteAction::make()
+                EditAction::make()->icon('heroicon-o-pencil'),
+                DeleteAction::make()
                     ->icon('heroicon-o-trash')
                     ->after(function () {
                         Cache::forget('achievements_count');
                     }),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
                         ->after(function () {
                             Cache::forget('achievements_count');
                         }),
@@ -221,7 +237,7 @@ class AchievementResource extends Resource
                 ]),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
             ->emptyStateHeading('No achievements yet')
             ->emptyStateDescription('Achievement badges will appear here when created.')
@@ -238,10 +254,10 @@ class AchievementResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListAchievements::route('/'),
-            'create' => Pages\CreateAchievement::route('/create'),
-            'view' => Pages\ViewAchievement::route('/{record}'),
-            'edit' => Pages\EditAchievement::route('/{record}/edit'),
+            'index' => ListAchievements::route('/'),
+            'create' => CreateAchievement::route('/create'),
+            'view' => ViewAchievement::route('/{record}'),
+            'edit' => EditAchievement::route('/{record}/edit'),
         ];
     }
 }

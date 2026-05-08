@@ -3,8 +3,10 @@
 namespace App\Mail;
 
 use App\Services\BrevoApiService;
+use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -57,7 +59,7 @@ class BrevoMail extends Mailable
     /**
      * Get the attachments for the message.
      *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
+     * @return array<int, Attachment>
      */
     public function attachments(): array
     {
@@ -70,7 +72,7 @@ class BrevoMail extends Mailable
     public function sendViaBrevoApi()
     {
         try {
-            $brevoService = new BrevoApiService();
+            $brevoService = new BrevoApiService;
 
             $result = $brevoService->sendEmail(
                 $this->to,
@@ -94,10 +96,10 @@ class BrevoMail extends Mailable
                     'error' => $result['error'],
                 ]);
 
-                throw new \Exception('Brevo API Error: '.$result['error']);
+                throw new Exception('Brevo API Error: '.$result['error']);
             }
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('BrevoMail exception', [
                 'to' => $this->to,
                 'subject' => $this->subject,

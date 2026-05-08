@@ -9,6 +9,7 @@ use App\Modules\Posts\Models\Posts;
 use App\Services\NotificationService;
 use App\Traits\FormatsUserName;
 use App\Traits\NotificationCleanup;
+use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -166,7 +167,7 @@ class PostCommentService
                 );
             }
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error sending post comment notification: '.$e->getMessage());
         }
     }

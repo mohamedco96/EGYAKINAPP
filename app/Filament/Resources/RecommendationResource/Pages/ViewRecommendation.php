@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\RecommendationResource\Pages;
 
 use App\Filament\Resources\RecommendationResource;
-use Filament\Actions;
+use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewRecommendation extends ViewRecord
@@ -13,7 +13,7 @@ class ViewRecommendation extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make(),
+            EditAction::make(),
         ];
     }
 }

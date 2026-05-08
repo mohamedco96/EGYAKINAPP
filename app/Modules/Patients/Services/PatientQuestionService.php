@@ -2,8 +2,10 @@
 
 namespace App\Modules\Patients\Services;
 
+use App\Models\Answers;
 use App\Modules\Questions\Models\Questions;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class PatientQuestionService
 {
@@ -79,7 +81,7 @@ class PatientQuestionService
     public function getQuestionsWithAnswersForPatient(int $patientId): array
     {
         $questions = Questions::orderBy('section_id')->orderBy('sort')->get();
-        $answers = \App\Models\Answers::where('patient_id', $patientId)
+        $answers = Answers::where('patient_id', $patientId)
             ->whereIn('question_id', $questions->pluck('id'))
             ->get();
 
@@ -202,7 +204,7 @@ class PatientQuestionService
 
                 $fileUrls = [];
                 foreach ($filePaths as $filePath) {
-                    $fileUrls[] = \Illuminate\Support\Facades\Storage::disk('public')->url($filePath);
+                    $fileUrls[] = Storage::disk('public')->url($filePath);
                 }
 
                 Log::info("PDF Debug - Final file URLs for question $questionId: ".print_r($fileUrls, true));

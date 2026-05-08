@@ -3,10 +3,14 @@
 namespace App\Filament\Resources\ContactResource\Pages;
 
 use App\Filament\Resources\ContactResource;
-use Filament\Actions;
-use Filament\Infolists;
-use Filament\Infolists\Infolist;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Cache;
 
 class ViewContact extends ViewRecord
@@ -16,7 +20,7 @@ class ViewContact extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('markAsResolved')
+            Action::make('markAsResolved')
                 ->label('Mark as Resolved')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
@@ -26,7 +30,7 @@ class ViewContact extends ViewRecord
                     Cache::forget('contacts_pending_count');
                 })
                 ->successNotificationTitle('Contact marked as resolved'),
-            Actions\Action::make('markAsInProgress')
+            Action::make('markAsInProgress')
                 ->label('Mark as In Progress')
                 ->icon('heroicon-o-arrow-path')
                 ->color('info')
@@ -36,8 +40,8 @@ class ViewContact extends ViewRecord
                     Cache::forget('contacts_pending_count');
                 })
                 ->successNotificationTitle('Contact marked as in progress'),
-            Actions\EditAction::make(),
-            Actions\DeleteAction::make()
+            EditAction::make(),
+            DeleteAction::make()
                 ->after(function () {
                     Cache::forget('contacts_count');
                     Cache::forget('contacts_pending_count');
@@ -45,21 +49,21 @@ class ViewContact extends ViewRecord
         ];
     }
 
-    public function infolist(Infolist $infolist): Infolist
+    public function infolist(Schema $schema): Schema
     {
         return $infolist
             ->record($this->getRecord())
             ->schema([
-                Infolists\Components\Section::make('Contact Request Information')
+                Section::make('Contact Request Information')
                     ->schema([
-                        Infolists\Components\Grid::make(3)
+                        Grid::make(3)
                             ->schema([
-                                Infolists\Components\TextEntry::make('id')
+                                TextEntry::make('id')
                                     ->label('Contact ID')
                                     ->badge()
                                     ->color('gray'),
 
-                                Infolists\Components\TextEntry::make('status')
+                                TextEntry::make('status')
                                     ->label('Status')
                                     ->badge()
                                     ->color(fn (string $state): string => match ($state) {
@@ -75,7 +79,7 @@ class ViewContact extends ViewRecord
                                         default => 'heroicon-o-question-mark-circle',
                                     }),
 
-                                Infolists\Components\TextEntry::make('priority')
+                                TextEntry::make('priority')
                                     ->label('Priority')
                                     ->badge()
                                     ->color(fn (string $state): string => match ($state) {
@@ -94,11 +98,11 @@ class ViewContact extends ViewRecord
                     ])
                     ->columns(3),
 
-                Infolists\Components\Section::make('Doctor Information')
+                Section::make('Doctor Information')
                     ->schema([
-                        Infolists\Components\Grid::make(2)
+                        Grid::make(2)
                             ->schema([
-                                Infolists\Components\TextEntry::make('doctor.name')
+                                TextEntry::make('doctor.name')
                                     ->label('Doctor Name')
                                     ->formatStateUsing(fn ($state, $record) => $record->doctor
                                             ? $record->doctor->name.' '.$record->doctor->lname
@@ -111,20 +115,20 @@ class ViewContact extends ViewRecord
                                     )
                                     ->color('primary'),
 
-                                Infolists\Components\TextEntry::make('doctor.email')
+                                TextEntry::make('doctor.email')
                                     ->label('Doctor Email')
                                     ->icon('heroicon-o-envelope')
                                     ->copyable()
                                     ->copyMessage('Email copied!')
                                     ->copyMessageDuration(1500),
 
-                                Infolists\Components\TextEntry::make('doctor.phone')
+                                TextEntry::make('doctor.phone')
                                     ->label('Doctor Phone')
                                     ->icon('heroicon-o-phone')
                                     ->copyable()
                                     ->placeholder('Not provided'),
 
-                                Infolists\Components\TextEntry::make('doctor.specialty')
+                                TextEntry::make('doctor.specialty')
                                     ->label('Specialty')
                                     ->icon('heroicon-o-academic-cap')
                                     ->placeholder('Not specified'),
@@ -133,29 +137,29 @@ class ViewContact extends ViewRecord
                     ->columns(2)
                     ->collapsible(),
 
-                Infolists\Components\Section::make('Message')
+                Section::make('Message')
                     ->schema([
-                        Infolists\Components\TextEntry::make('message')
+                        TextEntry::make('message')
                             ->label('')
                             ->columnSpanFull()
                             ->prose()
                             ->markdown(),
 
-                        Infolists\Components\Grid::make(3)
+                        Grid::make(3)
                             ->schema([
-                                Infolists\Components\TextEntry::make('message')
+                                TextEntry::make('message')
                                     ->label('Character Count')
                                     ->formatStateUsing(fn ($state) => strlen($state).' characters')
                                     ->badge()
                                     ->color(fn ($state) => strlen($state) > 500 ? 'warning' : 'success'),
 
-                                Infolists\Components\TextEntry::make('message')
+                                TextEntry::make('message')
                                     ->label('Word Count')
                                     ->formatStateUsing(fn ($state) => str_word_count($state).' words')
                                     ->badge()
                                     ->color('info'),
 
-                                Infolists\Components\TextEntry::make('created_at')
+                                TextEntry::make('created_at')
                                     ->label('Submitted')
                                     ->since()
                                     ->icon('heroicon-o-clock'),
@@ -163,25 +167,25 @@ class ViewContact extends ViewRecord
                     ])
                     ->columns(1),
 
-                Infolists\Components\Section::make('Timeline')
+                Section::make('Timeline')
                     ->schema([
-                        Infolists\Components\Grid::make(3)
+                        Grid::make(3)
                             ->schema([
-                                Infolists\Components\TextEntry::make('created_at')
+                                TextEntry::make('created_at')
                                     ->label('Created')
                                     ->dateTime()
                                     ->since()
                                     ->icon('heroicon-o-calendar')
                                     ->tooltip(fn ($state, $record) => $record->created_at?->format('M d, Y H:i:s')),
 
-                                Infolists\Components\TextEntry::make('updated_at')
+                                TextEntry::make('updated_at')
                                     ->label('Last Updated')
                                     ->dateTime()
                                     ->since()
                                     ->icon('heroicon-o-pencil')
                                     ->tooltip(fn ($state, $record) => $record->updated_at?->format('M d, Y H:i:s')),
 
-                                Infolists\Components\TextEntry::make('created_at')
+                                TextEntry::make('created_at')
                                     ->label('Response Time')
                                     ->formatStateUsing(function ($state, $record) {
                                         if ($record->status === 'pending') {

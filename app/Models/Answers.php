@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Modules\Patients\Models\Patients;
+use App\Modules\Questions\Models\Questions;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -32,7 +33,7 @@ class Answers extends Model
 
     public function question()
     {
-        return $this->belongsTo(\App\Modules\Questions\Models\Questions::class, 'question_id');
+        return $this->belongsTo(Questions::class, 'question_id');
     }
 
     public function doctor()

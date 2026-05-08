@@ -8,6 +8,7 @@ use App\Modules\Consultations\Requests\StoreConsultationRequest;
 use App\Modules\Consultations\Requests\ToggleConsultationStatusRequest;
 use App\Modules\Consultations\Requests\UpdateConsultationRequest;
 use App\Modules\Consultations\Services\ConsultationService;
+use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -30,7 +31,7 @@ class ConsultationController extends Controller
             $result = $this->consultationService->createConsultation($request->validated());
 
             return response()->json($result, 201);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error creating consultation.', [
                 'request_data' => $request->validated(),
                 'error' => $e->getMessage(),
@@ -52,7 +53,7 @@ class ConsultationController extends Controller
             $result = $this->consultationService->getSentRequests();
 
             return response()->json($result);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error retrieving sent consultation requests.', [
                 'doctor_id' => auth()->id(),
                 'error' => $e->getMessage(),
@@ -74,7 +75,7 @@ class ConsultationController extends Controller
             $result = $this->consultationService->getReceivedRequests();
 
             return response()->json($result);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error retrieving received consultation requests.', [
                 'doctor_id' => auth()->id(),
                 'error' => $e->getMessage(),
@@ -96,7 +97,7 @@ class ConsultationController extends Controller
             $result = $this->consultationService->getConsultationDetails($id);
 
             return response()->json($result);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error retrieving consultation details.', [
                 'consultation_id' => $id,
                 'doctor_id' => auth()->id(),
@@ -123,7 +124,7 @@ class ConsultationController extends Controller
             return response()->json([
                 'message' => 'Consultation doctor not found for the provided consultation ID.',
             ], 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('An error occurred while updating the consultation request.', [
                 'consultation_id' => $id,
                 'doctor_id' => auth()->id(),
@@ -147,7 +148,7 @@ class ConsultationController extends Controller
             $result = $this->consultationService->searchDoctors($data);
 
             return response()->json($result, 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error searching for doctors.', [
                 'search_term' => $data,
                 'doctor_id' => auth()->id(),
@@ -172,7 +173,7 @@ class ConsultationController extends Controller
             $statusCode = $result['value'] ? 200 : 400;
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error adding doctors to consultation.', [
                 'consultation_id' => $id,
                 'doctor_id' => auth()->id(),
@@ -197,7 +198,7 @@ class ConsultationController extends Controller
             $statusCode = $result['value'] ? 200 : 400;
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error toggling consultation status.', [
                 'consultation_id' => $id,
                 'doctor_id' => auth()->id(),
@@ -222,7 +223,7 @@ class ConsultationController extends Controller
             $statusCode = $result['value'] ? 200 : 400;
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error getting consultation members.', [
                 'consultation_id' => $id,
                 'doctor_id' => auth()->id(),
@@ -247,7 +248,7 @@ class ConsultationController extends Controller
             $statusCode = $result['value'] ? 201 : 400;
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error adding consultation reply.', [
                 'consultation_id' => $id,
                 'doctor_id' => auth()->id(),
@@ -272,7 +273,7 @@ class ConsultationController extends Controller
             $statusCode = $result['value'] ? 200 : 400;
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error removing doctor from consultation.', [
                 'consultation_id' => $consultationId,
                 'doctor_id' => $doctorId,

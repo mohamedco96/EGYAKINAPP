@@ -9,6 +9,7 @@ use App\Modules\Patients\Models\Patients;
 use App\Modules\Questions\Models\Questions;
 use App\Services\ChatGPTService;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -131,7 +132,7 @@ class ChatService
                 'status_code' => 200,
             ];
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error sending consultation: '.$e->getMessage(), [
                 'patient_id' => $patientId,
                 'exception' => $e->getTraceAsString(),
@@ -208,7 +209,7 @@ class ChatService
                 'status_code' => 200,
             ];
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error retrieving consultation history: '.$e->getMessage(), [
                 'patient_id' => $patientId,
                 'exception' => $e->getTraceAsString(),
@@ -234,7 +235,7 @@ class ChatService
         $data = [];
 
         // Ensure answers are loaded
-        if (!$patient->relationLoaded('answers')) {
+        if (! $patient->relationLoaded('answers')) {
             $patient->load('answers');
         }
 

@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\AllPatiensResource\Pages;
 
 use App\Filament\Resources\AllPatiensResource;
-use Filament\Actions;
+use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListAllPatiens extends ListRecords
@@ -13,7 +13,7 @@ class ListAllPatiens extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            CreateAction::make(),
         ];
     }
 }

@@ -9,6 +9,7 @@ use App\Modules\Consultations\Models\ConsultationDoctor;
 use App\Modules\Consultations\Models\ConsultationReply;
 use App\Modules\Patients\Models\Patients;
 use App\Traits\NotificationCleanup;
+use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -338,7 +339,7 @@ class ConsultationService
                     'is_invited_doctor' => (bool) $consultationDoctor,
                 ]);
 
-                throw new \Exception(__('api.consultation_unauthorized_reply'));
+                throw new Exception(__('api.consultation_unauthorized_reply'));
             }
 
             // If user is the owner but not in ConsultationDoctor table, create an entry
@@ -452,7 +453,7 @@ class ConsultationService
                 'value' => true,
                 'data' => $users,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error searching for data.', ['exception' => $e]);
 
             throw $e;
@@ -598,7 +599,7 @@ class ConsultationService
                 'value' => false,
                 'message' => 'Consultation not found or you are not authorized to modify it.',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error adding doctors to consultation.', [
                 'consultation_id' => $consultationId,
                 'error' => $e->getMessage(),
@@ -652,7 +653,7 @@ class ConsultationService
                 'value' => false,
                 'message' => 'Consultation not found or you are not authorized to modify it.',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error toggling consultation status.', [
                 'consultation_id' => $consultationId,
                 'error' => $e->getMessage(),
@@ -773,7 +774,7 @@ class ConsultationService
                 'value' => true,
                 'data' => $members,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error retrieving consultation members.', [
                 'consultation_id' => $consultationId,
                 'error' => $e->getMessage(),
@@ -884,7 +885,7 @@ class ConsultationService
                     ],
                 ];
             });
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error adding consultation reply.', [
                 'consultation_id' => $consultationId,
                 'error' => $e->getMessage(),
@@ -967,7 +968,7 @@ class ConsultationService
                     'removed_doctor_id' => $doctorId,
                 ],
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error removing doctor from consultation.', [
                 'consultation_id' => $consultationId,
                 'doctor_id' => $doctorId,

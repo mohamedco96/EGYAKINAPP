@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Mail\DailyReportMail;
 use App\Services\BrevoApiService;
 use App\Services\MailListService;
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -45,7 +46,7 @@ class SendDailyReport extends Command
             $this->info('📧 Preparing to send daily report to '.count($recipients).' recipient(s)');
 
             // Create the mailable to get the content
-            $mailable = new DailyReportMail();
+            $mailable = new DailyReportMail;
 
             $this->info('📊 Generating report data...');
 
@@ -60,7 +61,7 @@ class SendDailyReport extends Command
             $textContent = $this->generateTextContent($mailable);
 
             // Send via Brevo API to all recipients
-            $brevoService = new BrevoApiService();
+            $brevoService = new BrevoApiService;
             $successCount = 0;
             $failureCount = 0;
             $messageIds = [];
@@ -116,7 +117,7 @@ class SendDailyReport extends Command
                 return Command::FAILURE;
             }
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->error('❌ Failed to send daily report: '.$e->getMessage());
 
             Log::error('Daily report failed', [

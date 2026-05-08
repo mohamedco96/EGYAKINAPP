@@ -3,6 +3,7 @@
 namespace App\Modules\RolePermission\Services;
 
 use App\Models\User;
+use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -47,7 +48,7 @@ class RolePermissionService
                         'status_code' => 400,
                     ];
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error in createRoleAndPermission: '.$e->getMessage(), [
                 'data' => $data,
                 'exception' => $e->getTraceAsString(),
@@ -110,7 +111,7 @@ class RolePermissionService
                         'status_code' => 400,
                     ];
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error in assignRoleToUser: '.$e->getMessage(), [
                 'data' => $data,
                 'exception' => $e->getTraceAsString(),
@@ -169,7 +170,7 @@ class RolePermissionService
                 'status_code' => 200,
             ];
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error in checkRoleAndPermission: '.$e->getMessage(), [
                 'exception' => $e->getTraceAsString(),
             ]);

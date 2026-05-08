@@ -10,6 +10,7 @@ use App\Modules\Auth\Requests\UpdateProfileRequest;
 use App\Modules\Auth\Requests\UploadProfileImageRequest;
 use App\Modules\Auth\Requests\UploadSyndicateCardRequest;
 use App\Modules\Auth\Services\AuthService;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -35,7 +36,7 @@ class AuthController extends Controller
                 'message' => array_values($e->errors())[0][0],
                 'errors' => $e->errors(),
             ], 422);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Registration failed', [
                 'error' => $e->getMessage(),
                 'email' => $request->input('email'),
@@ -62,7 +63,7 @@ class AuthController extends Controller
                 'message' => array_values($e->errors())[0][0],
                 'errors' => $e->errors(),
             ], 422);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Login failed', [
                 'error' => $e->getMessage(),
                 'email' => $request->input('email'),
@@ -83,7 +84,7 @@ class AuthController extends Controller
             unset($result['status_code']);
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Logout failed', [
                 'user_id' => auth()->id(),
                 'error' => $e->getMessage(),
@@ -110,7 +111,7 @@ class AuthController extends Controller
                 'message' => array_values($e->errors())[0][0],
                 'errors' => $e->errors(),
             ], 422);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Password change failed', [
                 'user_id' => auth()->id(),
                 'error' => $e->getMessage(),
@@ -127,7 +128,7 @@ class AuthController extends Controller
     {
         try {
             if (! $request->hasFile('image')) {
-                throw new \Exception('No image file provided');
+                throw new Exception('No image file provided');
             }
 
             $result = $this->authService->uploadProfileImage($request->file('image'));
@@ -135,7 +136,7 @@ class AuthController extends Controller
             unset($result['status_code']);
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Profile image upload failed', [
                 'error' => $e->getMessage(),
                 'user_id' => auth()->id(),
@@ -163,7 +164,7 @@ class AuthController extends Controller
             unset($result['status_code']);
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Syndicate card upload failed', [
                 'error' => $e->getMessage(),
                 'user_id' => auth()->id(),
@@ -190,7 +191,7 @@ class AuthController extends Controller
                 'message' => array_values($e->errors())[0][0],
                 'errors' => $e->errors(),
             ], 422);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('User update failed', [
                 'user_id' => auth()->id(),
                 'error' => $e->getMessage(),
@@ -215,30 +216,30 @@ class AuthController extends Controller
 
         try {
             $validated = $request->validate([
-                'name'                  => 'sometimes|string|max:255',
-                'lname'                 => 'nullable|string|max:255',
-                'email'                 => 'sometimes|email|max:255|unique:users,email,'.$id,
-                'password'              => 'nullable|string|min:8',
-                'user_type'             => 'nullable|string|in:normal,medical_statistics',
-                'age'                   => 'nullable|integer|min:0|max:150',
-                'specialty'             => 'nullable|string|max:255',
-                'workingplace'          => 'nullable|string|max:255',
-                'phone'                 => 'nullable|string|max:20',
-                'job'                   => 'nullable|string|max:255',
-                'highestdegree'         => 'nullable|string|max:255',
-                'gender'                => 'nullable|string|in:male,female,other',
-                'birth_date'            => 'nullable|date',
-                'registration_number'   => 'nullable|string|max:255|unique:users,registration_number,'.$id,
-                'locale'                => 'nullable|string|in:en,ar',
+                'name' => 'sometimes|string|max:255',
+                'lname' => 'nullable|string|max:255',
+                'email' => 'sometimes|email|max:255|unique:users,email,'.$id,
+                'password' => 'nullable|string|min:8',
+                'user_type' => 'nullable|string|in:normal,medical_statistics',
+                'age' => 'nullable|integer|min:0|max:150',
+                'specialty' => 'nullable|string|max:255',
+                'workingplace' => 'nullable|string|max:255',
+                'phone' => 'nullable|string|max:20',
+                'job' => 'nullable|string|max:255',
+                'highestdegree' => 'nullable|string|max:255',
+                'gender' => 'nullable|string|in:male,female,other',
+                'birth_date' => 'nullable|date',
+                'registration_number' => 'nullable|string|max:255|unique:users,registration_number,'.$id,
+                'locale' => 'nullable|string|in:en,ar',
                 'isSyndicateCardRequired' => 'nullable|string|in:Required,Not Required,Verified',
-                'email_verified_at'       => 'sometimes|nullable|date',
-                'blocked'                 => 'sometimes|nullable|boolean',
-                'limited'                 => 'sometimes|nullable|boolean',
-                'profile_completed'       => 'sometimes|nullable|boolean',
-                'permissions_changed'     => 'sometimes|nullable|boolean',
-                'social_verified_at'      => 'sometimes|nullable|date',
-                'role'                    => 'sometimes|nullable|string|max:255',
-                'version'                 => 'sometimes|nullable|string|max:255',
+                'email_verified_at' => 'sometimes|nullable|date',
+                'blocked' => 'sometimes|nullable|boolean',
+                'limited' => 'sometimes|nullable|boolean',
+                'profile_completed' => 'sometimes|nullable|boolean',
+                'permissions_changed' => 'sometimes|nullable|boolean',
+                'social_verified_at' => 'sometimes|nullable|date',
+                'role' => 'sometimes|nullable|string|max:255',
+                'version' => 'sometimes|nullable|string|max:255',
             ]);
 
             $result = $this->authService->updateUserById($id, $validated);
@@ -246,7 +247,7 @@ class AuthController extends Controller
             unset($result['status_code']);
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('User update by ID failed', [
                 'user_id' => $id,
                 'error' => $e->getMessage(),
@@ -270,7 +271,7 @@ class AuthController extends Controller
             unset($result['status_code']);
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error retrieving users', [
                 'error' => $e->getMessage(),
             ]);
@@ -293,7 +294,7 @@ class AuthController extends Controller
             unset($result['status_code']);
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error fetching user profile', [
                 'user_id' => $id,
                 'error' => $e->getMessage(),
@@ -314,7 +315,7 @@ class AuthController extends Controller
             unset($result['status_code']);
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error fetching another user profile', [
                 'user_id' => $id,
                 'error' => $e->getMessage(),
@@ -335,7 +336,7 @@ class AuthController extends Controller
             unset($result['status_code']);
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error retrieving doctor patients', [
                 'doctor_id' => $id,
                 'error' => $e->getMessage(),
@@ -356,7 +357,7 @@ class AuthController extends Controller
             unset($result['status_code']);
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error retrieving doctor score history', [
                 'doctor_id' => $id,
                 'error' => $e->getMessage(),
@@ -380,7 +381,7 @@ class AuthController extends Controller
             unset($result['status_code']);
 
             return response()->json($result, $statusCode);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('User deletion failed', [
                 'user_id' => $id,
                 'error' => $e->getMessage(),

@@ -3,13 +3,28 @@
 namespace App\Modules\Patients\Resources;
 
 use App\Modules\Patients\Models\Patients;
-use App\Modules\Patients\Resources\PatientsResource\Pages;
+use App\Modules\Patients\Resources\PatientsResource\Pages\CreatePatients;
+use App\Modules\Patients\Resources\PatientsResource\Pages\EditPatients;
+use App\Modules\Patients\Resources\PatientsResource\Pages\ListPatients;
 use App\Modules\Questions\Models\Questions;
-use Filament\Forms\Form;
+use Exception;
+use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -24,9 +39,9 @@ class OptimizedPatientsResource extends Resource
 {
     protected static ?string $model = Patients::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-users';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-users';
 
-    protected static ?string $navigationGroup = '🏥 Patient Management';
+    protected static string|\UnitEnum|null $navigationGroup = '🏥 Patient Management';
 
     protected static ?string $navigationLabel = 'Patients Info';
 
@@ -44,10 +59,10 @@ class OptimizedPatientsResource extends Resource
         });
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 //
             ]);
     }
@@ -102,7 +117,7 @@ class OptimizedPatientsResource extends Resource
                     ->badge()
                     ->color('info'),
 
-                Tables\Columns\IconColumn::make('hidden')
+                IconColumn::make('hidden')
                     ->label('Status')
                     ->boolean()
                     ->trueIcon('heroicon-o-eye-slash')
@@ -127,26 +142,26 @@ class OptimizedPatientsResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('doctor_id')
+                SelectFilter::make('doctor_id')
                     ->label('Doctor')
                     ->relationship('doctor', 'name')
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\TernaryFilter::make('hidden')
+                TernaryFilter::make('hidden')
                     ->label('Status')
                     ->trueLabel('Hidden')
                     ->falseLabel('Active')
                     ->native(false),
 
-                Tables\Filters\Filter::make('answers_count')
-                    ->form([
-                        \Filament\Forms\Components\Grid::make(2)
+                Filter::make('answers_count')
+                    ->schema([
+                        Grid::make(2)
                             ->schema([
-                                \Filament\Forms\Components\TextInput::make('min_answers')
+                                TextInput::make('min_answers')
                                     ->label('Min Answers')
                                     ->numeric(),
-                                \Filament\Forms\Components\TextInput::make('max_answers')
+                                TextInput::make('max_answers')
                                     ->label('Max Answers')
                                     ->numeric(),
                             ]),
@@ -165,11 +180,11 @@ class OptimizedPatientsResource extends Resource
                             );
                     }),
 
-                Tables\Filters\Filter::make('created_at')
-                    ->form([
-                        \Filament\Forms\Components\DatePicker::make('created_from')
+                Filter::make('created_at')
+                    ->schema([
+                        DatePicker::make('created_from')
                             ->label('Created From'),
-                        \Filament\Forms\Components\DatePicker::make('created_until')
+                        DatePicker::make('created_until')
                             ->label('Created Until'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
@@ -184,16 +199,16 @@ class OptimizedPatientsResource extends Resource
                             );
                     }),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->label('View Details')
                     ->modalHeading(fn ($record) => "Patient #{$record->id} Details")
                     ->modalContent(view('filament.patients.view-modal'))
                     ->modalWidth('7xl'),
 
-                Tables\Actions\EditAction::make(),
+                EditAction::make(),
 
-                Tables\Actions\Action::make('exportPatient')
+                Action::make('exportPatient')
                     ->label('Export')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('success')
@@ -202,7 +217,7 @@ class OptimizedPatientsResource extends Resource
                     }),
             ])
             ->headerActions([
-                Tables\Actions\Action::make('exportAll')
+                Action::make('exportAll')
                     ->label('Export All Patients')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('primary')
@@ -226,7 +241,7 @@ class OptimizedPatientsResource extends Resource
                             ->send();
                     }),
 
-                Tables\Actions\Action::make('clearCache')
+                Action::make('clearCache')
                     ->label('Clear Cache')
                     ->icon('heroicon-o-arrow-path')
                     ->color('warning')
@@ -246,12 +261,12 @@ class OptimizedPatientsResource extends Resource
                             ->send();
                     }),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
+            ->toolbarActions([
+                BulkActionGroup::make([
                     ExportBulkAction::make()
                         ->label('Export Selected'),
 
-                    Tables\Actions\BulkAction::make('toggleStatus')
+                    BulkAction::make('toggleStatus')
                         ->label('Toggle Status')
                         ->icon('heroicon-o-eye')
                         ->action(function ($records) {
@@ -269,13 +284,14 @@ class OptimizedPatientsResource extends Resource
                 ]),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
             ->defaultSort('created_at', 'desc')
             ->persistSearchInSession()
             ->persistColumnSearchesInSession()
             ->persistSortInSession()
             ->persistFiltersInSession()
+            ->deferFilters(false)
             ->striped()
             ->poll('30s');
     }
@@ -297,9 +313,9 @@ class OptimizedPatientsResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPatients::route('/'),
-            'create' => Pages\CreatePatients::route('/create'),
-            'edit' => Pages\EditPatients::route('/{record}/edit'),
+            'index' => ListPatients::route('/'),
+            'create' => CreatePatients::route('/create'),
+            'edit' => EditPatients::route('/{record}/edit'),
         ];
     }
 
@@ -353,7 +369,7 @@ class OptimizedPatientsResource extends Resource
 
             return redirect(config('app.url').'/storage/exports/'.$filename);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error exporting single patient: '.$e->getMessage());
 
             Notification::make()
@@ -421,7 +437,7 @@ class OptimizedPatientsResource extends Resource
                 'message' => 'Export completed successfully',
             ];
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error exporting patients to Excel: '.$e->getMessage());
 
             return [

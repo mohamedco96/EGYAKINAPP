@@ -2,6 +2,8 @@
 
 namespace App\Modules\Settings\Models;
 
+use Database\Factories\SettingsFactory;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -12,11 +14,11 @@ class Settings extends Model
     /**
      * Create a new factory instance for the model.
      *
-     * @return \Illuminate\Database\Eloquent\Factories\Factory
+     * @return Factory
      */
     protected static function newFactory()
     {
-        return \Database\Factories\SettingsFactory::new();
+        return SettingsFactory::new();
     }
 
     /**

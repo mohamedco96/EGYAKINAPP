@@ -2,15 +2,15 @@
 
 namespace App\Modules\Patients\Widgets;
 
-use App\Modules\Patients\Models\Patients;
 use App\Models\User;
+use App\Modules\Patients\Models\Patients;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\DB;
 
 class PatientTypeOverview extends BaseWidget
 {
-    protected static ?string $pollingInterval = '15s';
+    protected ?string $pollingInterval = '15s';
 
     protected function getStats(): array
     {
@@ -21,7 +21,7 @@ class PatientTypeOverview extends BaseWidget
 
         return [
             Stat::make('Total Doctors', $totalDoctors)
-                ->description($recentDoctors . ' new this week')
+                ->description($recentDoctors.' new this week')
                 ->descriptionIcon($recentDoctors > 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
                 ->chart($this->getDoctorTrend())
                 ->color($recentDoctors > 0 ? 'success' : 'danger')
@@ -31,7 +31,7 @@ class PatientTypeOverview extends BaseWidget
                 ]),
 
             Stat::make('Total Patients', $totalPatients)
-                ->description($recentPatients . ' new this week')
+                ->description($recentPatients.' new this week')
                 ->descriptionIcon($recentPatients > 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
                 ->chart($this->getPatientTrend())
                 ->color($recentPatients > 0 ? 'success' : 'danger')

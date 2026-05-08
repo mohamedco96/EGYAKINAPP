@@ -2,15 +2,32 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\NotificationResource\Pages;
+use App\Filament\Resources\NotificationResource\Pages\CreateNotification;
+use App\Filament\Resources\NotificationResource\Pages\EditNotification;
+use App\Filament\Resources\NotificationResource\Pages\ListNotifications;
+use App\Filament\Resources\NotificationResource\Pages\ViewNotification;
 use App\Modules\Notifications\Models\AppNotification;
+use App\Modules\Patients\Models\Patients;
+use Carbon\Carbon;
+use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Form;
+use Filament\Forms\Components\Select;
 use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Actions\Action;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Filament\Support\Colors\Color;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -20,13 +37,13 @@ class NotificationResource extends Resource
 {
     protected static ?string $model = AppNotification::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-bell';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-bell';
 
     protected static ?string $navigationLabel = 'Notifications';
 
-    protected static ?string $navigationGroup = '📢 Communications';
+    protected static string|\UnitEnum|null $navigationGroup = '📱 Community';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 8;
 
     public static function getNavigationBadge(): ?string
     {
@@ -44,10 +61,10 @@ class NotificationResource extends Resource
         return $unreadCount > 0 ? 'warning' : 'success';
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 //
             ]);
     }
@@ -57,7 +74,7 @@ class NotificationResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['doctor']))
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID')
                     ->badge()
                     ->color('gray')
@@ -65,7 +82,7 @@ class NotificationResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('type')
+                TextColumn::make('type')
                     ->label('Type')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -88,15 +105,15 @@ class NotificationResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('doctor.name')
+                TextColumn::make('doctor.name')
                     ->label('Doctor Name')
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->searchable(['users.name', 'users.lname'])
                     ->sortable()
-                    ->formatStateUsing(fn ($record) => $record->doctor ? $record->doctor->name . ' ' . $record->doctor->lname : 'N/A')
+                    ->formatStateUsing(fn ($record) => $record->doctor ? $record->doctor->name.' '.$record->doctor->lname : 'N/A')
                     ->description(fn ($record) => $record->doctor?->email),
 
-                Tables\Columns\TextColumn::make('patient_id')
+                TextColumn::make('patient_id')
                     ->label('Patient ID')
                     ->badge()
                     ->prefix('#')
@@ -105,36 +122,28 @@ class NotificationResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('content')
+                TextColumn::make('content')
                     ->label('Content')
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->searchable()
                     ->sortable()
                     ->limit(80)
-                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                    ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
                         if (strlen($state) > 80) {
                             return $state;
                         }
+
                         return null;
                     })
                     ->wrap(),
 
-                Tables\Columns\IconColumn::make('read')
-                    ->label('Read Status')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('warning')
+                ToggleColumn::make('read')
+                    ->label('Read')
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->sortable(),
 
-                Tables\Columns\ToggleColumn::make('read')
-                    ->label('Mark Read')
-                    ->toggleable(isToggledHiddenByDefault: false),
-
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime()
                     ->sortable()
@@ -142,18 +151,20 @@ class NotificationResource extends Resource
                     ->since()
                     ->tooltip(fn ($record) => $record->created_at?->format('M d, Y H:i:s')),
 
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->label('Updated')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->striped()
             ->persistSearchInSession()
             ->persistColumnSearchesInSession()
             ->persistSortInSession()
             ->filters([
-                Tables\Filters\SelectFilter::make('type')
+                SelectFilter::make('type')
                     ->label('Notification Type')
                     ->options([
                         'Consultation' => 'Consultation',
@@ -165,7 +176,7 @@ class NotificationResource extends Resource
                     ->multiple()
                     ->searchable(),
 
-                Tables\Filters\TernaryFilter::make('read')
+                TernaryFilter::make('read')
                     ->label('Read Status')
                     ->placeholder('All notifications')
                     ->trueLabel('Read only')
@@ -175,24 +186,24 @@ class NotificationResource extends Resource
                         false: fn (Builder $query) => $query->where('read', false),
                     ),
 
-                Tables\Filters\SelectFilter::make('doctor_id')
+                SelectFilter::make('doctor_id')
                     ->label('Doctor')
                     ->relationship('doctor', 'name')
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\SelectFilter::make('patient_id')
+                SelectFilter::make('patient_id')
                     ->label('Patient ID')
                     ->searchable()
                     ->options(function () {
-                        return \App\Modules\Patients\Models\Patients::query()
+                        return Patients::query()
                             ->limit(100)
                             ->pluck('id', 'id')
                             ->toArray();
                     }),
 
-                Tables\Filters\Filter::make('created_at')
-                    ->form([
+                Filter::make('created_at')
+                    ->schema([
                         DatePicker::make('created_from')
                             ->label('From'),
                         DatePicker::make('created_until')
@@ -212,14 +223,15 @@ class NotificationResource extends Resource
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
                         if ($data['created_from'] ?? null) {
-                            $indicators[] = 'From ' . \Carbon\Carbon::parse($data['created_from'])->toFormattedDateString();
+                            $indicators[] = 'From '.Carbon::parse($data['created_from'])->toFormattedDateString();
                         }
                         if ($data['created_until'] ?? null) {
-                            $indicators[] = 'Until ' . \Carbon\Carbon::parse($data['created_until'])->toFormattedDateString();
+                            $indicators[] = 'Until '.Carbon::parse($data['created_until'])->toFormattedDateString();
                         }
+
                         return $indicators;
                     }),
-            ], layout: Tables\Enums\FiltersLayout::AboveContent)
+            ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(5)
             ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action
@@ -227,28 +239,29 @@ class NotificationResource extends Resource
                     ->label('Toggle columns'),
             )
             ->persistFiltersInSession()
+            ->deferFilters(false)
             ->deselectAllRecordsWhenFiltered(true)
             ->filtersTriggerAction(
                 fn (Action $action) => $action
                     ->button()
                     ->label('Filter'),
             )
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->modalHeading('Notification Details')
                     ->modalWidth('2xl'),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('markAsRead')
+                EditAction::make(),
+                Action::make('markAsRead')
                     ->label('Mark Read')
                     ->icon('heroicon-o-check')
                     ->color('success')
-                    ->visible(fn ($record) => !$record->read)
+                    ->visible(fn ($record) => ! $record->read)
                     ->action(function ($record) {
                         $record->update(['read' => true]);
                         Cache::forget('notifications_unread_count');
                     })
                     ->successNotificationTitle('Notification marked as read'),
-                Tables\Actions\Action::make('markAsUnread')
+                Action::make('markAsUnread')
                     ->label('Mark Unread')
                     ->icon('heroicon-o-x-mark')
                     ->color('warning')
@@ -258,11 +271,11 @@ class NotificationResource extends Resource
                         Cache::forget('notifications_unread_count');
                     })
                     ->successNotificationTitle('Notification marked as unread'),
-                Tables\Actions\DeleteAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('markAsRead')
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    BulkAction::make('markAsRead')
                         ->label('Mark as Read')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
@@ -272,7 +285,7 @@ class NotificationResource extends Resource
                         })
                         ->deselectRecordsAfterCompletion()
                         ->successNotificationTitle('Selected notifications marked as read'),
-                    Tables\Actions\BulkAction::make('markAsUnread')
+                    BulkAction::make('markAsUnread')
                         ->label('Mark as Unread')
                         ->icon('heroicon-o-x-circle')
                         ->color('warning')
@@ -282,13 +295,13 @@ class NotificationResource extends Resource
                         })
                         ->deselectRecordsAfterCompletion()
                         ->successNotificationTitle('Selected notifications marked as unread'),
-                    Tables\Actions\BulkAction::make('deleteByType')
+                    BulkAction::make('deleteByType')
                         ->label('Delete by Type')
                         ->icon('heroicon-o-trash')
                         ->color('danger')
                         ->requiresConfirmation()
                         ->form([
-                            \Filament\Forms\Components\Select::make('type')
+                            Select::make('type')
                                 ->label('Select Type to Delete')
                                 ->options([
                                     'Consultation' => 'Consultation',
@@ -306,7 +319,7 @@ class NotificationResource extends Resource
                         })
                         ->deselectRecordsAfterCompletion()
                         ->successNotificationTitle('Notifications deleted'),
-                    Tables\Actions\DeleteBulkAction::make()
+                    DeleteBulkAction::make()
                         ->after(function () {
                             Cache::forget('notifications_count');
                             Cache::forget('notifications_unread_count');
@@ -315,7 +328,7 @@ class NotificationResource extends Resource
                 ]),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
             ->emptyStateHeading('No notifications yet')
             ->emptyStateDescription('Notifications will appear here when doctors and patients interact with the system.')
@@ -332,10 +345,10 @@ class NotificationResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListNotifications::route('/'),
-            'create' => Pages\CreateNotification::route('/create'),
-            'view' => Pages\ViewNotification::route('/{record}'),
-            'edit' => Pages\EditNotification::route('/{record}/edit'),
+            'index' => ListNotifications::route('/'),
+            'create' => CreateNotification::route('/create'),
+            'view' => ViewNotification::route('/{record}'),
+            'edit' => EditNotification::route('/{record}/edit'),
         ];
     }
 }

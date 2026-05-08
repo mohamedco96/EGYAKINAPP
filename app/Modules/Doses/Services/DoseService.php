@@ -3,15 +3,14 @@
 namespace App\Modules\Doses\Services;
 
 use App\Modules\Doses\Models\Dose;
-use Illuminate\Support\Facades\Log;
+use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Log;
 
 class DoseService
 {
     /**
      * Get all doses
-     *
-     * @return array
      */
     public function getAllDoses(): array
     {
@@ -21,9 +20,9 @@ class DoseService
             return [
                 'success' => true,
                 'data' => $doses,
-                'message' => 'Doses retrieved successfully'
+                'message' => 'Doses retrieved successfully',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Exception occurred while retrieving doses.', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTrace(),
@@ -31,16 +30,13 @@ class DoseService
 
             return [
                 'success' => false,
-                'message' => 'Failed to retrieve doses. Please try again later.'
+                'message' => 'Failed to retrieve doses. Please try again later.',
             ];
         }
     }
 
     /**
      * Create a new dose
-     *
-     * @param array $data
-     * @return array
      */
     public function createDose(array $data): array
     {
@@ -51,11 +47,12 @@ class DoseService
                 'dose' => $data['dose'],
             ]);
 
-            if (!$dose) {
+            if (! $dose) {
                 Log::error('Failed to create dose in service.');
+
                 return [
                     'success' => false,
-                    'message' => 'Failed to create dose'
+                    'message' => 'Failed to create dose',
                 ];
             }
 
@@ -64,9 +61,9 @@ class DoseService
             return [
                 'success' => true,
                 'data' => $dose,
-                'message' => 'Dose created successfully'
+                'message' => 'Dose created successfully',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Exception occurred while storing dose.', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTrace(),
@@ -74,16 +71,13 @@ class DoseService
 
             return [
                 'success' => false,
-                'message' => 'Failed to store dose. Please try again later.'
+                'message' => 'Failed to store dose. Please try again later.',
             ];
         }
     }
 
     /**
      * Get a specific dose by ID
-     *
-     * @param int $id
-     * @return array
      */
     public function getDoseById(int $id): array
     {
@@ -93,7 +87,7 @@ class DoseService
             return [
                 'success' => true,
                 'data' => $dose,
-                'message' => 'Dose retrieved successfully'
+                'message' => 'Dose retrieved successfully',
             ];
         } catch (ModelNotFoundException $e) {
             Log::warning('Dose not found.', ['dose_id' => $id]);
@@ -101,9 +95,9 @@ class DoseService
             return [
                 'success' => false,
                 'message' => 'No dose was found',
-                'status_code' => 404
+                'status_code' => 404,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Exception occurred while retrieving dose.', [
                 'dose_id' => $id,
                 'message' => $e->getMessage(),
@@ -112,28 +106,24 @@ class DoseService
 
             return [
                 'success' => false,
-                'message' => 'Failed to retrieve dose. Please try again later.'
+                'message' => 'Failed to retrieve dose. Please try again later.',
             ];
         }
     }
 
     /**
      * Update a dose
-     *
-     * @param int $id
-     * @param array $data
-     * @return array
      */
     public function updateDose(int $id, array $data): array
     {
         try {
             $dose = Dose::find($id);
 
-            if (!$dose) {
+            if (! $dose) {
                 return [
                     'success' => false,
                     'message' => 'No dose was found',
-                    'status_code' => 404
+                    'status_code' => 404,
                 ];
             }
 
@@ -144,9 +134,9 @@ class DoseService
             return [
                 'success' => true,
                 'data' => $dose->fresh(),
-                'message' => 'Dose updated successfully'
+                'message' => 'Dose updated successfully',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Exception occurred while updating dose.', [
                 'dose_id' => $id,
                 'message' => $e->getMessage(),
@@ -155,27 +145,24 @@ class DoseService
 
             return [
                 'success' => false,
-                'message' => 'Failed to update dose. Please try again later.'
+                'message' => 'Failed to update dose. Please try again later.',
             ];
         }
     }
 
     /**
      * Delete a dose
-     *
-     * @param int $id
-     * @return array
      */
     public function deleteDose(int $id): array
     {
         try {
             $dose = Dose::find($id);
 
-            if (!$dose) {
+            if (! $dose) {
                 return [
                     'success' => false,
                     'message' => 'No dose was found',
-                    'status_code' => 404
+                    'status_code' => 404,
                 ];
             }
 
@@ -185,9 +172,9 @@ class DoseService
 
             return [
                 'success' => true,
-                'message' => 'Dose deleted successfully'
+                'message' => 'Dose deleted successfully',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Exception occurred while deleting dose.', [
                 'dose_id' => $id,
                 'message' => $e->getMessage(),
@@ -196,17 +183,13 @@ class DoseService
 
             return [
                 'success' => false,
-                'message' => 'Failed to delete dose. Please try again later.'
+                'message' => 'Failed to delete dose. Please try again later.',
             ];
         }
     }
 
     /**
      * Search doses with pagination
-     *
-     * @param string $query
-     * @param int $perPage
-     * @return array
      */
     public function searchDoses(string $query, int $perPage = 10): array
     {
@@ -216,7 +199,7 @@ class DoseService
                 return [
                     'success' => false,
                     'message' => 'Search query cannot be empty',
-                    'status_code' => 400
+                    'status_code' => 400,
                 ];
             }
 
@@ -237,9 +220,9 @@ class DoseService
             return [
                 'success' => true,
                 'data' => $doses,
-                'message' => 'Doses retrieved successfully'
+                'message' => 'Doses retrieved successfully',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Exception occurred while searching for doses.', [
                 'query' => $query ?? 'N/A',
                 'message' => $e->getMessage(),
@@ -248,7 +231,7 @@ class DoseService
 
             return [
                 'success' => false,
-                'message' => 'Failed to search for doses. Please try again later.'
+                'message' => 'Failed to search for doses. Please try again later.',
             ];
         }
     }

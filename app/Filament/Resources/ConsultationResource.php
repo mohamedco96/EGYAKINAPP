@@ -2,18 +2,30 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\ConsultationResource\Pages;
+use App\Filament\Resources\ConsultationResource\Pages\ListConsultations;
+use App\Filament\Resources\ConsultationResource\Pages\ViewConsultation;
+use App\Models\User;
 use App\Modules\Consultations\Models\Consultation;
-use Filament\Forms;
+use App\Modules\Patients\Models\Patients;
+use Carbon\Carbon;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Form;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Actions\Action;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
@@ -21,11 +33,11 @@ class ConsultationResource extends Resource
 {
     protected static ?string $model = Consultation::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-left-right';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-chat-bubble-left-right';
 
     protected static ?string $navigationLabel = 'Consultations';
 
-    protected static ?string $navigationGroup = '💬 AI & Consultations';
+    protected static string|\UnitEnum|null $navigationGroup = '💬 AI & Consultations';
 
     protected static ?int $navigationSort = 1;
 
@@ -45,35 +57,35 @@ class ConsultationResource extends Resource
         return $openCount > 0 ? 'success' : 'gray';
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Consultation Information')
                     ->description('Details about the consultation request')
                     ->schema([
-                        Forms\Components\Select::make('doctor_id')
+                        Select::make('doctor_id')
                             ->relationship('doctor', 'name')
                             ->searchable()
                             ->preload()
                             ->required()
                             ->label('Requesting Doctor')
-                            ->getSearchResultsUsing(fn (string $search) => \App\Models\User::where(function($query) use ($search) {
+                            ->getSearchResultsUsing(fn (string $search) => User::where(function ($query) use ($search) {
                                 $query->where('name', 'like', "%{$search}%")
                                     ->orWhere('lname', 'like', "%{$search}%")
                                     ->orWhere('specialty', 'like', "%{$search}%");
                             })->limit(50)->get()->pluck('full_name_with_specialty', 'id'))
-                            ->getOptionLabelUsing(fn ($value): ?string => \App\Models\User::find($value)?->full_name_with_specialty)
+                            ->getOptionLabelUsing(fn ($value): ?string => User::find($value)?->full_name_with_specialty)
                             ->helperText('Doctor who is requesting the consultation'),
 
-                        Forms\Components\Select::make('patient_id')
+                        Select::make('patient_id')
                             ->relationship('patient', 'id')
                             ->searchable()
                             ->preload()
                             ->required()
                             ->label('Patient')
-                            ->getSearchResultsUsing(fn (string $search) => \App\Modules\Patients\Models\Patients::where('id', 'like', "%{$search}%")
-                                ->orWhereHas('doctor', function($query) use ($search) {
+                            ->getSearchResultsUsing(fn (string $search) => Patients::where('id', 'like', "%{$search}%")
+                                ->orWhereHas('doctor', function ($query) use ($search) {
                                     $query->where('name', 'like', "%{$search}%")
                                         ->orWhere('email', 'like', "%{$search}%");
                                 })
@@ -81,16 +93,15 @@ class ConsultationResource extends Resource
                                 ->limit(50)
                                 ->get()
                                 ->mapWithKeys(fn ($patient) => [
-                                    $patient->id => 'Patient #' . $patient->id . ' (Doctor: ' . ($patient->doctor?->name ?? 'N/A') . ')'
+                                    $patient->id => 'Patient #'.$patient->id.' (Doctor: '.($patient->doctor?->name ?? 'N/A').')',
                                 ]))
-                            ->getOptionLabelUsing(fn ($value): ?string =>
-                                \App\Modules\Patients\Models\Patients::with('doctor')->find($value)
-                                    ? 'Patient #' . $value . ' (Doctor: ' . (\App\Modules\Patients\Models\Patients::with('doctor')->find($value)?->doctor?->name ?? 'N/A') . ')'
-                                    : 'Patient #' . $value
+                            ->getOptionLabelUsing(fn ($value): ?string => Patients::with('doctor')->find($value)
+                                    ? 'Patient #'.$value.' (Doctor: '.(Patients::with('doctor')->find($value)?->doctor?->name ?? 'N/A').')'
+                                    : 'Patient #'.$value
                             )
                             ->helperText('Patient for whom the consultation is requested'),
 
-                        Forms\Components\Select::make('status')
+                        Select::make('status')
                             ->options([
                                 'pending' => 'Pending',
                                 'in-progress' => 'In Progress',
@@ -102,13 +113,13 @@ class ConsultationResource extends Resource
                             ->native(false)
                             ->label('Status'),
 
-                        Forms\Components\Toggle::make('is_open')
+                        Toggle::make('is_open')
                             ->label('Is Open')
                             ->default(true)
                             ->helperText('Whether this consultation is still accepting replies')
                             ->inline(false),
 
-                        Forms\Components\Textarea::make('consult_message')
+                        Textarea::make('consult_message')
                             ->required()
                             ->label('Consultation Message')
                             ->rows(6)
@@ -124,7 +135,7 @@ class ConsultationResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['doctor', 'patient.doctor']))
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID')
                     ->badge()
                     ->color('gray')
@@ -132,24 +143,24 @@ class ConsultationResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('doctor.name')
+                TextColumn::make('doctor.name')
                     ->label('Requesting Doctor')
                     ->searchable(['users.name', 'users.lname'])
                     ->sortable()
-                    ->formatStateUsing(fn ($record) => $record->doctor ? $record->doctor->name . ' ' . $record->doctor->lname : 'N/A')
+                    ->formatStateUsing(fn ($record) => $record->doctor ? $record->doctor->name.' '.$record->doctor->lname : 'N/A')
                     ->description(fn ($record) => $record->doctor?->specialty)
                     ->weight('bold')
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('patient_id')
+                TextColumn::make('patient_id')
                     ->label('Patient')
-                    ->formatStateUsing(fn ($record) => 'Patient #' . $record->patient_id)
-                    ->description(fn ($record) => $record->patient?->doctor ? 'Doctor: ' . $record->patient->doctor->name : null)
+                    ->formatStateUsing(fn ($record) => 'Patient #'.$record->patient_id)
+                    ->description(fn ($record) => $record->patient?->doctor ? 'Doctor: '.$record->patient->doctor->name : null)
                     ->searchable()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('status')
+                TextColumn::make('status')
                     ->label('Status')
                     ->badge()
                     ->color(fn (?string $state): string => match ($state) {
@@ -170,7 +181,7 @@ class ConsultationResource extends Resource
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\IconColumn::make('is_open')
+                IconColumn::make('is_open')
                     ->label('Open')
                     ->boolean()
                     ->trueIcon('heroicon-o-lock-open')
@@ -180,21 +191,22 @@ class ConsultationResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('consult_message')
+                TextColumn::make('consult_message')
                     ->label('Message')
                     ->searchable()
                     ->limit(50)
                     ->wrap()
-                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                    ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
                         if (strlen($state) > 50) {
                             return $state;
                         }
+
                         return null;
                     })
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('consultationDoctors.count')
+                TextColumn::make('consultationDoctors.count')
                     ->label('Consultants')
                     ->counts('consultationDoctors')
                     ->badge()
@@ -203,7 +215,7 @@ class ConsultationResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime()
                     ->sortable()
@@ -211,7 +223,7 @@ class ConsultationResource extends Resource
                     ->tooltip(fn ($record) => $record->created_at?->format('M d, Y H:i:s'))
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->label('Updated')
                     ->dateTime()
                     ->sortable()
@@ -220,11 +232,13 @@ class ConsultationResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->striped()
             ->persistSearchInSession()
             ->persistColumnSearchesInSession()
             ->persistSortInSession()
             ->filters([
-                Tables\Filters\SelectFilter::make('status')
+                SelectFilter::make('status')
                     ->label('Status')
                     ->options([
                         'pending' => 'Pending',
@@ -235,7 +249,7 @@ class ConsultationResource extends Resource
                     ->multiple()
                     ->searchable(),
 
-                Tables\Filters\TernaryFilter::make('is_open')
+                TernaryFilter::make('is_open')
                     ->label('Open Status')
                     ->placeholder('All consultations')
                     ->trueLabel('Open only')
@@ -245,22 +259,22 @@ class ConsultationResource extends Resource
                         false: fn (Builder $query) => $query->where('is_open', false),
                     ),
 
-                Tables\Filters\SelectFilter::make('doctor_id')
+                SelectFilter::make('doctor_id')
                     ->label('Requesting Doctor')
                     ->relationship('doctor', 'name')
                     ->searchable()
                     ->preload()
-                    ->getOptionLabelUsing(fn ($value): ?string => \App\Models\User::find($value)?->full_name),
+                    ->getOptionLabelUsing(fn ($value): ?string => User::find($value)?->full_name),
 
-                Tables\Filters\SelectFilter::make('patient_id')
+                SelectFilter::make('patient_id')
                     ->label('Patient')
                     ->relationship('patient', 'id')
                     ->searchable()
                     ->preload()
-                    ->getOptionLabelUsing(fn ($value): ?string => 'Patient #' . $value),
+                    ->getOptionLabelUsing(fn ($value): ?string => 'Patient #'.$value),
 
-                Tables\Filters\Filter::make('created_at')
-                    ->form([
+                Filter::make('created_at')
+                    ->schema([
                         DatePicker::make('created_from')
                             ->label('From'),
                         DatePicker::make('created_until')
@@ -280,14 +294,15 @@ class ConsultationResource extends Resource
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
                         if ($data['created_from'] ?? null) {
-                            $indicators[] = 'From ' . \Carbon\Carbon::parse($data['created_from'])->toFormattedDateString();
+                            $indicators[] = 'From '.Carbon::parse($data['created_from'])->toFormattedDateString();
                         }
                         if ($data['created_until'] ?? null) {
-                            $indicators[] = 'Until ' . \Carbon\Carbon::parse($data['created_until'])->toFormattedDateString();
+                            $indicators[] = 'Until '.Carbon::parse($data['created_until'])->toFormattedDateString();
                         }
+
                         return $indicators;
                     }),
-            ], layout: Tables\Enums\FiltersLayout::AboveContent)
+            ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(5)
             ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action
@@ -295,19 +310,20 @@ class ConsultationResource extends Resource
                     ->label('Toggle columns'),
             )
             ->persistFiltersInSession()
+            ->deferFilters(false)
             ->deselectAllRecordsWhenFiltered(true)
             ->filtersTriggerAction(
                 fn (Action $action) => $action
                     ->button()
                     ->label('Filter'),
             )
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->modalHeading('Consultation Details')
                     ->modalWidth('4xl'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
+            ->toolbarActions([
+                BulkActionGroup::make([
                     ExportBulkAction::make(),
                 ]),
             ])
@@ -326,8 +342,8 @@ class ConsultationResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListConsultations::route('/'),
-            'view' => Pages\ViewConsultation::route('/{record}'),
+            'index' => ListConsultations::route('/'),
+            'view' => ViewConsultation::route('/{record}'),
         ];
     }
 

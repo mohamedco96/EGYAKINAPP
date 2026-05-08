@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Modules\Patients\Models\Patients;
 use App\Modules\Patients\Models\PatientStatus;
 use App\Notifications\ReminderNotification;
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -56,7 +57,7 @@ class SendReminderEmails extends Command
                         $remindersSkipped++;
                         $this->warn("⚠️  Reminder skipped: {$result['reason']}");
                     }
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     $remindersSkipped++;
                     $this->error("❌ Failed to process reminder for Patient ID: {$submitStatus->patient_id} - {$e->getMessage()}");
                     Log::error('Failed to send individual reminder', [
@@ -86,7 +87,7 @@ class SendReminderEmails extends Command
                 'timestamp' => now()->toISOString(),
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->error("❌ Error in reminder email job: {$e->getMessage()}");
             Log::error('Error in reminder email job', [
                 'error' => $e->getMessage(),

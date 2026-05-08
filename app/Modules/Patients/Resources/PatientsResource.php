@@ -4,13 +4,27 @@ namespace App\Modules\Patients\Resources;
 
 use App\Jobs\ExportPatientsJob;
 use App\Modules\Patients\Models\Patients;
-use App\Modules\Patients\Resources\PatientsResource\Pages;
+use App\Modules\Patients\Resources\PatientsResource\Pages\CreatePatients;
+use App\Modules\Patients\Resources\PatientsResource\Pages\ListPatients;
+use App\Modules\Patients\Resources\PatientsResource\Pages\ViewPatient;
 use App\Modules\Questions\Models\Questions;
-use Filament\Forms\Form;
+use Exception;
+use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -25,13 +39,13 @@ class PatientsResource extends Resource
 {
     protected static ?string $model = Patients::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-users';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-users';
 
-    protected static ?string $navigationGroup = '🏥 Patient Management';
+    protected static string|\UnitEnum|null $navigationGroup = '🏥 Patient Management';
 
-    protected static ?string $navigationLabel = 'Patients Info';
+    protected static ?string $navigationLabel = 'Patients';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'id';
 
@@ -43,10 +57,10 @@ class PatientsResource extends Resource
         });
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 //
             ]);
     }
@@ -54,6 +68,7 @@ class PatientsResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['doctor:id,name,email'])->withCount('answers'))
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
@@ -111,7 +126,7 @@ class PatientsResource extends Resource
                     ->badge()
                     ->color('info'),
 
-                Tables\Columns\IconColumn::make('hidden')
+                IconColumn::make('hidden')
                     ->label('Status')
                     ->boolean()
                     ->trueIcon('heroicon-m-eye-slash')
@@ -134,7 +149,7 @@ class PatientsResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('doctor_id')
+                SelectFilter::make('doctor_id')
                     ->label('Assigned Doctor')
                     ->relationship('doctor', 'name')
                     ->searchable()
@@ -142,7 +157,7 @@ class PatientsResource extends Resource
                     ->multiple()
                     ->indicator('Doctor'),
 
-                Tables\Filters\TernaryFilter::make('hidden')
+                TernaryFilter::make('hidden')
                     ->label('Patient Status')
                     ->placeholder('All Patients')
                     ->trueLabel('Hidden Patients')
@@ -150,15 +165,15 @@ class PatientsResource extends Resource
                     ->native(false)
                     ->indicator('Status'),
 
-                Tables\Filters\Filter::make('registration_period')
-                    ->form([
-                        \Filament\Forms\Components\Grid::make(2)
+                Filter::make('registration_period')
+                    ->schema([
+                        Grid::make(2)
                             ->schema([
-                                \Filament\Forms\Components\DatePicker::make('registered_from')
+                                DatePicker::make('registered_from')
                                     ->label('Registered From')
                                     ->placeholder('Select start date')
                                     ->native(false),
-                                \Filament\Forms\Components\DatePicker::make('registered_until')
+                                DatePicker::make('registered_until')
                                     ->label('Registered Until')
                                     ->placeholder('Select end date')
                                     ->native(false),
@@ -177,15 +192,15 @@ class PatientsResource extends Resource
                     })
                     ->indicator('Registration Period'),
 
-                Tables\Filters\Filter::make('answers_range')
-                    ->form([
-                        \Filament\Forms\Components\Grid::make(2)
+                Filter::make('answers_range')
+                    ->schema([
+                        Grid::make(2)
                             ->schema([
-                                \Filament\Forms\Components\TextInput::make('min_answers')
+                                TextInput::make('min_answers')
                                     ->label('Minimum Answers')
                                     ->numeric()
                                     ->placeholder('e.g., 10'),
-                                \Filament\Forms\Components\TextInput::make('max_answers')
+                                TextInput::make('max_answers')
                                     ->label('Maximum Answers')
                                     ->numeric()
                                     ->placeholder('e.g., 100'),
@@ -206,9 +221,9 @@ class PatientsResource extends Resource
                     })
                     ->indicator('Answer Count'),
 
-                Tables\Filters\Filter::make('completion_rate')
-                    ->form([
-                        \Filament\Forms\Components\Select::make('completion_level')
+                Filter::make('completion_rate')
+                    ->schema([
+                        Select::make('completion_level')
                             ->label('Completion Level')
                             ->options([
                                 'high' => 'High (≥70%)',
@@ -245,9 +260,9 @@ class PatientsResource extends Resource
                     })
                     ->indicator('Completion'),
 
-                Tables\Filters\Filter::make('recent_activity')
-                    ->form([
-                        \Filament\Forms\Components\Select::make('activity_period')
+                Filter::make('recent_activity')
+                    ->schema([
+                        Select::make('activity_period')
                             ->label('Recent Activity')
                             ->options([
                                 '1' => 'Last 24 hours',
@@ -268,7 +283,7 @@ class PatientsResource extends Resource
                     })
                     ->indicator('Recent Activity'),
 
-                Tables\Filters\SelectFilter::make('has_doctor')
+                SelectFilter::make('has_doctor')
                     ->label('Doctor Assignment')
                     ->options([
                         'assigned' => 'Has Assigned Doctor',
@@ -283,20 +298,36 @@ class PatientsResource extends Resource
                     })
                     ->indicator('Assignment'),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
+            ->toggleColumnsTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Toggle columns'),
+            )
+            ->persistFiltersInSession()
+            ->deferFilters(false)
+            ->deselectAllRecordsWhenFiltered(true)
+            ->filtersTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Filter'),
+            )
+            ->recordActions([
+                ViewAction::make()
                     ->label('Quick View')
                     ->modalHeading(fn ($record) => "Patient #{$record->id} Overview")
                     ->modalContent(view('filament.patients.view-modal'))
                     ->modalWidth('6xl'),
 
-                Tables\Actions\Action::make('viewFull')
+                Action::make('viewFull')
                     ->label('Full Details')
                     ->icon('heroicon-o-eye')
                     ->color('info')
                     ->url(fn ($record) => static::getUrl('view', ['record' => $record])),
 
-                Tables\Actions\Action::make('exportPatient')
+                Action::make('exportPatient')
                     ->label('Export')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('success')
@@ -305,7 +336,7 @@ class PatientsResource extends Resource
                     }),
             ])
             ->headerActions([
-                Tables\Actions\Action::make('exportAll')
+                Action::make('exportAll')
                     ->label('Export All Patients')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('primary')
@@ -317,7 +348,7 @@ class PatientsResource extends Resource
                         return static::startOptimizedExport();
                     }),
 
-                Tables\Actions\Action::make('clearCache')
+                Action::make('clearCache')
                     ->label('Clear Cache')
                     ->icon('heroicon-o-arrow-path')
                     ->color('warning')
@@ -344,12 +375,12 @@ class PatientsResource extends Resource
                     }),
 
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
+            ->toolbarActions([
+                BulkActionGroup::make([
                     ExportBulkAction::make()
                         ->label('Export Selected'),
 
-                    Tables\Actions\BulkAction::make('toggleStatus')
+                    BulkAction::make('toggleStatus')
                         ->label('Toggle Status')
                         ->icon('heroicon-o-eye')
                         ->action(function ($records) {
@@ -375,13 +406,6 @@ class PatientsResource extends Resource
             ->defaultPaginationPageOption(25);
     }
 
-    protected static function getTableQuery(): Builder
-    {
-        return parent::getTableQuery()
-            ->with(['doctor:id,name,email'])
-            ->withCount('answers');
-    }
-
     public static function getRelations(): array
     {
         return [
@@ -392,9 +416,9 @@ class PatientsResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPatients::route('/'),
-            'create' => Pages\CreatePatients::route('/create'),
-            'view' => Pages\ViewPatient::route('/{record}'),
+            'index' => ListPatients::route('/'),
+            'create' => CreatePatients::route('/create'),
+            'view' => ViewPatient::route('/{record}'),
         ];
     }
 
@@ -448,7 +472,7 @@ class PatientsResource extends Resource
 
             return redirect(config('app.url').'/storage/exports/'.$filename);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error exporting single patient: '.$e->getMessage());
 
             Notification::make()
@@ -484,7 +508,7 @@ class PatientsResource extends Resource
                     ->title('Export Started')
                     ->body('Large dataset detected. Export is processing in background. You will be notified when ready.')
                     ->actions([
-                        \Filament\Notifications\Actions\Action::make('checkProgress')
+                        Action::make('checkProgress')
                             ->label('Check Progress')
                             ->url('/export/progress/'.$filename, shouldOpenInNewTab: true),
                     ])
@@ -502,7 +526,7 @@ class PatientsResource extends Resource
                         ->title('Export Completed')
                         ->body('Your export is ready for download.')
                         ->actions([
-                            \Filament\Notifications\Actions\Action::make('download')
+                            Action::make('download')
                                 ->label('Download')
                                 ->url($result['file_url'], shouldOpenInNewTab: true),
                         ])
@@ -516,7 +540,7 @@ class PatientsResource extends Resource
                 }
             }
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error starting optimized export: '.$e->getMessage());
 
             Notification::make()
@@ -617,7 +641,7 @@ class PatientsResource extends Resource
                 'message' => 'Export completed successfully',
             ];
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error exporting patients to Excel (sync): '.$e->getMessage());
 
             return [

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Auth\Services;
 
+use App;
 use App\Models\User;
 use App\Modules\DirectChat\Models\Conversation;
 use App\Modules\DirectChat\Models\Message;
@@ -11,6 +12,7 @@ use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Notifications\Services\NotificationService;
 use App\Notifications\WelcomeMailNotification;
 use App\Traits\FormatsUserName;
+use Exception;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
@@ -64,7 +66,7 @@ class AuthService
                     'user_id' => $user->id,
                     'email' => $user->email,
                 ]);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 Log::error('Failed to send welcome email', [
                     'user_id' => $user->id,
                     'email' => $user->email,
@@ -131,7 +133,7 @@ class AuthService
         if ($user->blocked) {
             // Set the locale based on user preference before returning the message
             if ($user->locale && in_array($user->locale, ['en', 'ar'])) {
-                \App::setLocale($user->locale);
+                App::setLocale($user->locale);
             }
 
             // Log out the user immediately
@@ -528,7 +530,7 @@ class AuthService
                 'status_code' => 200,
             ];
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error fetching user profile', [
                 'user_id' => $id,
                 'error' => $e->getMessage(),
@@ -711,7 +713,7 @@ class AuthService
                 'status_code' => 200,
             ];
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error retrieving patients', [
                 'doctor_id' => $id,
                 'error' => $e->getMessage(),
@@ -774,7 +776,7 @@ class AuthService
                 'status_code' => 200,
             ];
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error retrieving score history for doctor.', [
                 'doctor_id' => $id,
                 'exception' => $e->getMessage(),
@@ -916,7 +918,7 @@ class AuthService
                 'device_type' => $deviceType,
                 'app_version' => $appVersion,
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('FCM token storage failed', [
                 'user_id' => $userId,
                 'device_id' => $deviceId,
@@ -931,16 +933,16 @@ class AuthService
     protected function validateFileUpload(UploadedFile $file, int $maxSize = 2048): void
     {
         if (! $file->isValid()) {
-            throw new \Exception('Invalid file upload');
+            throw new Exception('Invalid file upload');
         }
 
         $allowedMimes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
         if (! in_array($file->getMimeType(), $allowedMimes)) {
-            throw new \Exception('Invalid file type');
+            throw new Exception('Invalid file type');
         }
 
         if ($file->getSize() > $maxSize * 1024) {
-            throw new \Exception('File size exceeds limit');
+            throw new Exception('File size exceeds limit');
         }
     }
 

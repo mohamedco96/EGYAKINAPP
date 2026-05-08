@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\ScoreResource\Pages;
 
 use App\Filament\Resources\ScoreResource;
-use Filament\Actions;
+use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditScore extends EditRecord
@@ -13,7 +13,7 @@ class EditScore extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 }

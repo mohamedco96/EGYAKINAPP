@@ -2,14 +2,33 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\QuestionsResource\Pages;
+use App\Filament\Resources\QuestionsResource\Pages\CreateQuestions;
+use App\Filament\Resources\QuestionsResource\Pages\EditQuestions;
+use App\Filament\Resources\QuestionsResource\Pages\ListQuestions;
+use App\Filament\Resources\QuestionsResource\Pages\ViewQuestions;
+use App\Models\SectionsInfo;
 use App\Modules\Questions\Models\Questions;
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TagsInput;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Actions\Action;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\TextInputColumn;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -20,13 +39,13 @@ class QuestionsResource extends Resource
 {
     protected static ?string $model = Questions::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-question-mark-circle';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-question-mark-circle';
 
     protected static ?string $navigationLabel = 'Questions';
 
-    protected static ?string $navigationGroup = '📊 Medical Data';
+    protected static string|\UnitEnum|null $navigationGroup = '📊 Medical Data';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 2;
 
     public static function getNavigationBadge(): ?string
     {
@@ -35,38 +54,38 @@ class QuestionsResource extends Resource
         });
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Hidden::make('section_id')
+        return $schema
+            ->components([
+                Hidden::make('section_id')
                     ->required(), // Make sure it's required
 
-                Forms\Components\Select::make('section_name')
+                Select::make('section_name')
                     ->label('Section Name')
                     ->options(function () {
-                        return \App\Models\SectionsInfo::pluck('section_name', 'section_name')->toArray();
+                        return SectionsInfo::pluck('section_name', 'section_name')->toArray();
                     })
                     ->reactive()
                     ->required()
                     ->helperText('Select the section by name')
                     ->afterStateUpdated(function ($set, $get, $state) {
                         // Set section_id based on the selected section_name
-                        $sectionId = \App\Models\SectionsInfo::where('section_name', $state)->value('id');
+                        $sectionId = SectionsInfo::where('section_name', $state)->value('id');
                         if ($sectionId) {
                             $set('section_id', $sectionId);
                         }
                     }),
 
-                Forms\Components\TextInput::make('question')
+                TextInput::make('question')
                     ->label('Question')
                     ->required(),
 
-                Forms\Components\TextInput::make('sort')
+                TextInput::make('sort')
                     ->label('Sort Order')
                     ->numeric(),
 
-                Forms\Components\Select::make('type')
+                Select::make('type')
                     ->label('Type')
                     ->options([
                         'string' => 'String',
@@ -77,14 +96,14 @@ class QuestionsResource extends Resource
                     ->reactive()
                     ->required(),
 
-                Forms\Components\TagsInput::make('values')
+                TagsInput::make('values')
                     ->label('Values')
                     ->placeholder('Enter question options')
-                    ->reactive()
                     ->visible(fn ($get) => in_array($get('type'), ['select', 'multiple']))
+                    ->visibleJs("$get('type') === 'select' || $get('type') === 'multiple'")
                     ->required(),
 
-                Forms\Components\Select::make('keyboard_type')
+                Select::make('keyboard_type')
                     ->label('Keyboard Type')
                     ->options([
                         'text' => 'Text',
@@ -93,13 +112,13 @@ class QuestionsResource extends Resource
                     ])
                     ->default('text'),
 
-                Forms\Components\Radio::make('mandatory')
+                Radio::make('mandatory')
                     ->label('Mandatory')
                     ->required()
                     ->boolean()
                     ->default(true),
 
-                Forms\Components\Radio::make('hidden')
+                Radio::make('hidden')
                     ->label('Hidden')
                     ->boolean()
                     ->default(false),
@@ -110,7 +129,7 @@ class QuestionsResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID')
                     ->badge()
                     ->color('gray')
@@ -118,7 +137,7 @@ class QuestionsResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('section_name')
+                TextColumn::make('section_name')
                     ->label('Section')
                     ->badge()
                     ->color('info')
@@ -126,22 +145,23 @@ class QuestionsResource extends Resource
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('question')
+                TextColumn::make('question')
                     ->label('Question')
                     ->sortable()
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->limit(80)
-                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                    ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
                         if (strlen($state) > 80) {
                             return $state;
                         }
+
                         return null;
                     })
                     ->weight('bold'),
 
-                Tables\Columns\TextColumn::make('type')
+                TextColumn::make('type')
                     ->label('Type')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -161,21 +181,31 @@ class QuestionsResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('values')
+                TextColumn::make('values')
                     ->label('Values')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->formatStateUsing(function ($state) {
-                        if (empty($state)) return 'N/A';
+                        if (empty($state)) {
+                            return 'N/A';
+                        }
                         $values = is_array($state) ? $state : json_decode($state, true);
-                        if (!is_array($values)) return $state;
-                        return implode(', ', array_slice($values, 0, 3)) . (count($values) > 3 ? '...' : '');
+                        if (! is_array($values)) {
+                            return $state;
+                        }
+
+                        return implode(', ', array_slice($values, 0, 3)).(count($values) > 3 ? '...' : '');
                     })
-                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                    ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
-                        if (empty($state)) return null;
+                        if (empty($state)) {
+                            return null;
+                        }
                         $values = is_array($state) ? $state : json_decode($state, true);
-                        if (!is_array($values)) return null;
+                        if (! is_array($values)) {
+                            return null;
+                        }
+
                         return implode(', ', $values);
                     }),
 
@@ -184,14 +214,14 @@ class QuestionsResource extends Resource
                     ->rules(['required', 'numeric'])
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('keyboard_type')
+                TextColumn::make('keyboard_type')
                     ->label('Keyboard')
                     ->badge()
                     ->color('secondary')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\IconColumn::make('mandatory')
+                IconColumn::make('mandatory')
                     ->label('Required')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
@@ -201,7 +231,7 @@ class QuestionsResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\IconColumn::make('hidden')
+                IconColumn::make('hidden')
                     ->label('Hidden')
                     ->boolean()
                     ->trueIcon('heroicon-o-eye-slash')
@@ -211,7 +241,7 @@ class QuestionsResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime()
                     ->sortable()
@@ -219,7 +249,7 @@ class QuestionsResource extends Resource
                     ->since()
                     ->tooltip(fn ($record) => $record->created_at?->format('M d, Y H:i:s')),
 
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->label('Updated')
                     ->dateTime()
                     ->sortable()
@@ -228,16 +258,18 @@ class QuestionsResource extends Resource
                     ->tooltip(fn ($record) => $record->updated_at?->format('M d, Y H:i:s')),
             ])
             ->defaultSort('section_id')
+            ->defaultPaginationPageOption(25)
+            ->striped()
             ->persistSearchInSession()
             ->persistColumnSearchesInSession()
             ->persistSortInSession()
             ->filters([
-                Tables\Filters\SelectFilter::make('section_name')
+                SelectFilter::make('section_name')
                     ->label('Section Name')
-                    ->options(\App\Models\SectionsInfo::pluck('section_name', 'section_name')->toArray())
+                    ->options(SectionsInfo::pluck('section_name', 'section_name')->toArray())
                     ->searchable(),
 
-                Tables\Filters\SelectFilter::make('type')
+                SelectFilter::make('type')
                     ->label('Question Type')
                     ->options([
                         'string' => 'String',
@@ -247,7 +279,7 @@ class QuestionsResource extends Resource
                     ])
                     ->multiple(),
 
-                Tables\Filters\TernaryFilter::make('mandatory')
+                TernaryFilter::make('mandatory')
                     ->label('Mandatory')
                     ->placeholder('All questions')
                     ->trueLabel('Mandatory only')
@@ -257,7 +289,7 @@ class QuestionsResource extends Resource
                         false: fn (Builder $query) => $query->where('mandatory', false),
                     ),
 
-                Tables\Filters\TernaryFilter::make('hidden')
+                TernaryFilter::make('hidden')
                     ->label('Visibility')
                     ->placeholder('All questions')
                     ->trueLabel('Hidden only')
@@ -266,7 +298,7 @@ class QuestionsResource extends Resource
                         true: fn (Builder $query) => $query->where('hidden', true),
                         false: fn (Builder $query) => $query->where('hidden', false),
                     ),
-            ], layout: Tables\Enums\FiltersLayout::AboveContent)
+            ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(4)
             ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action
@@ -274,53 +306,54 @@ class QuestionsResource extends Resource
                     ->label('Toggle columns'),
             )
             ->persistFiltersInSession()
+            ->deferFilters(false)
             ->deselectAllRecordsWhenFiltered(true)
             ->filtersTriggerAction(
                 fn (Action $action) => $action
                     ->button()
                     ->label('Filter'),
             )
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->modalHeading('Question Details')
                     ->modalWidth('3xl'),
-                Tables\Actions\EditAction::make()->icon('heroicon-o-pencil'),
-                Tables\Actions\DeleteAction::make()
+                EditAction::make()->icon('heroicon-o-pencil'),
+                DeleteAction::make()
                     ->icon('heroicon-o-trash')
                     ->after(function () {
                         Cache::forget('questions_count');
                     }),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('toggleMandatory')
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    BulkAction::make('toggleMandatory')
                         ->label('Toggle Mandatory')
                         ->icon('heroicon-o-check-circle')
                         ->color('warning')
                         ->action(function (Collection $records) {
                             $records->each(function ($record) {
-                                $record->update(['mandatory' => !$record->mandatory]);
+                                $record->update(['mandatory' => ! $record->mandatory]);
                             });
                         })
                         ->deselectRecordsAfterCompletion()
                         ->successNotificationTitle('Mandatory status toggled'),
-                    Tables\Actions\BulkAction::make('toggleHidden')
+                    BulkAction::make('toggleHidden')
                         ->label('Toggle Hidden')
                         ->icon('heroicon-o-eye-slash')
                         ->color('info')
                         ->action(function (Collection $records) {
                             $records->each(function ($record) {
-                                $record->update(['hidden' => !$record->hidden]);
+                                $record->update(['hidden' => ! $record->hidden]);
                             });
                         })
                         ->deselectRecordsAfterCompletion()
                         ->successNotificationTitle('Visibility status toggled'),
-                    Tables\Actions\BulkAction::make('changeType')
+                    BulkAction::make('changeType')
                         ->label('Change Type')
                         ->icon('heroicon-o-pencil-square')
                         ->color('success')
                         ->form([
-                            Forms\Components\Select::make('type')
+                            Select::make('type')
                                 ->label('Question Type')
                                 ->options([
                                     'string' => 'String',
@@ -335,7 +368,7 @@ class QuestionsResource extends Resource
                         })
                         ->deselectRecordsAfterCompletion()
                         ->successNotificationTitle('Question type changed'),
-                    Tables\Actions\DeleteBulkAction::make()
+                    DeleteBulkAction::make()
                         ->after(function () {
                             Cache::forget('questions_count');
                         }),
@@ -343,7 +376,7 @@ class QuestionsResource extends Resource
                 ]),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
             ->emptyStateHeading('No questions yet')
             ->emptyStateDescription('Medical form questions will appear here.')
@@ -360,10 +393,10 @@ class QuestionsResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListQuestions::route('/'),
-            'create' => Pages\CreateQuestions::route('/create'),
-            'view' => Pages\ViewQuestions::route('/{record}'),
-            'edit' => Pages\EditQuestions::route('/{record}/edit'),
+            'index' => ListQuestions::route('/'),
+            'create' => CreateQuestions::route('/create'),
+            'view' => ViewQuestions::route('/{record}'),
+            'edit' => EditQuestions::route('/{record}/edit'),
         ];
     }
 }

@@ -3,10 +3,15 @@
 namespace App\Modules\Achievements\Filament\Resources\AchievementResource\Pages;
 
 use App\Modules\Achievements\Filament\Resources\AchievementResource;
-use Filament\Actions;
-use Filament\Infolists;
-use Filament\Infolists\Infolist;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
+use Filament\Infolists\Components\ImageEntry;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Support\Enums\TextSize;
 use Illuminate\Support\Facades\Cache;
 
 class ViewAchievement extends ViewRecord
@@ -16,29 +21,29 @@ class ViewAchievement extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make(),
-            Actions\DeleteAction::make()
+            EditAction::make(),
+            DeleteAction::make()
                 ->after(function () {
                     Cache::forget('achievements_count');
                 }),
         ];
     }
 
-    public function infolist(Infolist $infolist): Infolist
+    public function infolist(Schema $schema): Schema
     {
         return $infolist
             ->record($this->getRecord())
             ->schema([
-                Infolists\Components\Section::make('Achievement Information')
+                Section::make('Achievement Information')
                     ->schema([
-                        Infolists\Components\Grid::make(3)
+                        Grid::make(3)
                             ->schema([
-                                Infolists\Components\TextEntry::make('id')
+                                TextEntry::make('id')
                                     ->label('Achievement ID')
                                     ->badge()
                                     ->color('gray'),
 
-                                Infolists\Components\TextEntry::make('type')
+                                TextEntry::make('type')
                                     ->label('Type')
                                     ->badge()
                                     ->color(fn (string $state): string => match ($state) {
@@ -54,11 +59,11 @@ class ViewAchievement extends ViewRecord
                                         default => 'heroicon-o-star',
                                     }),
 
-                                Infolists\Components\TextEntry::make('score')
+                                TextEntry::make('score')
                                     ->label('Score')
                                     ->badge()
-                                    ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
-                                    ->color(fn ($state): string => match(true) {
+                                    ->size(TextSize::Large)
+                                    ->color(fn ($state): string => match (true) {
                                         $state >= 100 => 'success',
                                         $state >= 50 => 'warning',
                                         default => 'info',
@@ -66,22 +71,22 @@ class ViewAchievement extends ViewRecord
                                     ->icon('heroicon-o-star'),
                             ]),
 
-                        Infolists\Components\TextEntry::make('name')
+                        TextEntry::make('name')
                             ->label('Achievement Name')
                             ->columnSpanFull()
-                            ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
+                            ->size(TextSize::Large)
                             ->weight('bold'),
 
-                        Infolists\Components\ImageEntry::make('image')
+                        ImageEntry::make('image')
                             ->label('Achievement Image')
                             ->columnSpanFull()
                             ->height(300),
                     ])
                     ->columns(3),
 
-                Infolists\Components\Section::make('Description')
+                Section::make('Description')
                     ->schema([
-                        Infolists\Components\TextEntry::make('description')
+                        TextEntry::make('description')
                             ->label('')
                             ->columnSpanFull()
                             ->prose()
@@ -89,13 +94,13 @@ class ViewAchievement extends ViewRecord
                             ->placeholder('No description provided'),
                     ])
                     ->columns(1)
-                    ->visible(fn ($state, $record) => !empty($record->description)),
+                    ->visible(fn ($state, $record) => ! empty($record->description)),
 
-                Infolists\Components\Section::make('Statistics')
+                Section::make('Statistics')
                     ->schema([
-                        Infolists\Components\Grid::make(3)
+                        Grid::make(3)
                             ->schema([
-                                Infolists\Components\TextEntry::make('id')
+                                TextEntry::make('id')
                                     ->label('Users Earned')
                                     ->state(fn ($record) => $record->users ? $record->users->count() : 0)
                                     ->badge()
@@ -103,10 +108,10 @@ class ViewAchievement extends ViewRecord
                                     ->color('success')
                                     ->icon('heroicon-o-user-group'),
 
-                                Infolists\Components\TextEntry::make('score')
+                                TextEntry::make('score')
                                     ->label('Score Level')
                                     ->formatStateUsing(function ($state, $record) {
-                                        return match(true) {
+                                        return match (true) {
                                             $record->score >= 100 => 'High Value',
                                             $record->score >= 50 => 'Medium Value',
                                             default => 'Standard',
@@ -114,17 +119,17 @@ class ViewAchievement extends ViewRecord
                                     })
                                     ->badge()
                                     ->color(function ($state, $record) {
-                                        return match(true) {
+                                        return match (true) {
                                             $record->score >= 100 => 'success',
                                             $record->score >= 50 => 'warning',
                                             default => 'info',
                                         };
                                     }),
 
-                                Infolists\Components\TextEntry::make('type_label')
+                                TextEntry::make('type_label')
                                     ->label('Category')
                                     ->formatStateUsing(function ($state, $record) {
-                                        return match($record->type) {
+                                        return match ($record->type) {
                                             'patient' => 'Patient-Based Achievement',
                                             'score' => 'Score-Based Achievement',
                                             'outcome' => 'Outcome-Based Achievement',
@@ -138,35 +143,36 @@ class ViewAchievement extends ViewRecord
                     ->columns(3)
                     ->collapsible(),
 
-                Infolists\Components\Section::make('Timeline')
+                Section::make('Timeline')
                     ->schema([
-                        Infolists\Components\Grid::make(3)
+                        Grid::make(3)
                             ->schema([
-                                Infolists\Components\TextEntry::make('created_at')
+                                TextEntry::make('created_at')
                                     ->label('Created')
                                     ->dateTime()
                                     ->since()
                                     ->icon('heroicon-o-calendar')
                                     ->tooltip(fn ($state, $record) => $record->created_at?->format('M d, Y H:i:s')),
 
-                                Infolists\Components\TextEntry::make('updated_at')
+                                TextEntry::make('updated_at')
                                     ->label('Last Updated')
                                     ->dateTime()
                                     ->since()
                                     ->icon('heroicon-o-pencil')
                                     ->tooltip(fn ($state, $record) => $record->updated_at?->format('M d, Y H:i:s')),
 
-                                Infolists\Components\TextEntry::make('created_at')
+                                TextEntry::make('created_at')
                                     ->label('Age')
                                     ->formatStateUsing(function ($state, $record) {
                                         $diff = $record->created_at->diff(now());
                                         if ($diff->days > 0) {
-                                            return $diff->days . ' days old';
+                                            return $diff->days.' days old';
                                         }
                                         if ($diff->h > 0) {
-                                            return $diff->h . ' hours old';
+                                            return $diff->h.' hours old';
                                         }
-                                        return $diff->i . ' minutes old';
+
+                                        return $diff->i.' minutes old';
                                     })
                                     ->badge()
                                     ->color('info')

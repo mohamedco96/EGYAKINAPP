@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -76,7 +77,7 @@ class BrevoApiService
                 ];
             }
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Brevo API exception', [
                 'to' => $to,
                 'subject' => $subject,
@@ -117,7 +118,7 @@ class BrevoApiService
 
             // If no valid recipients after formatting, throw error
             if (empty($toRecipients)) {
-                throw new \Exception('No valid email recipients provided');
+                throw new Exception('No valid email recipients provided');
             }
 
             $payload = [
@@ -164,7 +165,7 @@ class BrevoApiService
                 ];
             }
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Brevo API multiple recipients exception', [
                 'recipients' => $recipients,
                 'subject' => $subject,
@@ -235,7 +236,7 @@ class BrevoApiService
                 ];
             }
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Brevo API template exception', [
                 'to' => $to,
                 'template_id' => $templateId,
@@ -274,7 +275,7 @@ class BrevoApiService
                 ];
             }
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return [
                 'success' => false,
                 'error' => $e->getMessage(),

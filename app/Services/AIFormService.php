@@ -3,10 +3,12 @@
 namespace App\Services;
 
 use App\Modules\Questions\Models\Questions;
+use Exception;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 
 class AIFormService
 {
@@ -56,7 +58,7 @@ class AIFormService
                 'request_id' => $response->header('x-request-id'),
                 'body' => config('app.debug') ? $body : null,
             ]));
-            throw new \Exception('Failed to transcribe audio.');
+            throw new Exception('Failed to transcribe audio.');
         }
 
         return trim($response->body());
@@ -89,29 +91,29 @@ class AIFormService
     {
         // --- Validation ---
         if (empty($imageFiles)) {
-            throw new \InvalidArgumentException('analyzeImage requires at least one file.');
+            throw new InvalidArgumentException('analyzeImage requires at least one file.');
         }
 
         if (count($imageFiles) > 10) {
-            throw new \InvalidArgumentException('analyzeImage accepts at most 10 files at a time.');
+            throw new InvalidArgumentException('analyzeImage accepts at most 10 files at a time.');
         }
 
         foreach ($imageFiles as $index => $imageFile) {
             if (! $imageFile instanceof UploadedFile) {
-                throw new \InvalidArgumentException("Item at index {$index} is not an UploadedFile instance.");
+                throw new InvalidArgumentException("Item at index {$index} is not an UploadedFile instance.");
             }
 
             $mime = $imageFile->getMimeType();
 
             if (! in_array($mime, self::ALLOWED_IMAGE_MIMES, true)) {
-                throw new \InvalidArgumentException(
+                throw new InvalidArgumentException(
                     "Unsupported MIME type \"{$mime}\" at index {$index}. Allowed: ".implode(', ', self::ALLOWED_IMAGE_MIMES).'.'
                 );
             }
 
             if ($imageFile->getSize() > self::MAX_IMAGE_BYTES) {
                 $maxMb = self::MAX_IMAGE_BYTES / 1024 / 1024;
-                throw new \InvalidArgumentException(
+                throw new InvalidArgumentException(
                     "File at index {$index} exceeds the {$maxMb} MB size limit."
                 );
             }
@@ -188,14 +190,14 @@ class AIFormService
                     'request_id' => $response->header('x-request-id'),
                     'body' => config('app.debug') ? $body : null,
                 ]));
-                throw new \Exception('Failed to analyze image.');
+                throw new Exception('Failed to analyze image.');
             }
 
             // Responses API: output[0].content[0].text
             $text = trim($response->json('output.0.content.0.text') ?? '');
 
             if (empty($text)) {
-                throw new \Exception('GPT-4o returned an empty response for the image.');
+                throw new Exception('GPT-4o returned an empty response for the image.');
             }
 
             return $text;
@@ -231,7 +233,7 @@ class AIFormService
                 'status' => $response->status(),
                 'body' => config('app.debug') ? $response->body() : null,
             ]);
-            throw new \Exception('Failed to upload PDF for processing.');
+            throw new Exception('Failed to upload PDF for processing.');
         }
 
         $fileId = $response->json('id');
@@ -263,7 +265,7 @@ class AIFormService
                     'body' => config('app.debug') ? $response->body() : null,
                 ]);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Non-critical — OpenAI auto-deletes files after a period
             Log::warning('Failed to delete OpenAI file', [
                 'file_id' => $fileId,
@@ -804,7 +806,7 @@ PROMPT;
                 'request_id' => $response->header('x-request-id'),
                 'body' => config('app.debug') ? $body : null,
             ]));
-            throw new \Exception('Failed to extract medical data from transcript.');
+            throw new Exception('Failed to extract medical data from transcript.');
         }
 
         $content = $response->json('choices.0.message.content');
@@ -817,7 +819,7 @@ PROMPT;
                 'content_hash' => substr(hash('sha256', (string) $content), 0, 12),
                 'content' => config('app.debug') ? $content : null,
             ]));
-            throw new \Exception('Failed to parse AI response.');
+            throw new Exception('Failed to parse AI response.');
         }
 
         return $decoded;

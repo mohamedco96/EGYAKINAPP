@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -39,7 +40,7 @@ class FileCleanupService
 
             return empty($errors);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error during model file cleanup', [
                 'model' => get_class($model),
                 'model_id' => $model->id ?? 'unknown',
@@ -148,7 +149,7 @@ class FileCleanupService
 
             return $deleted;
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to delete file', [
                 'file' => $filePath,
                 'disk' => $disk,
@@ -201,7 +202,7 @@ class FileCleanupService
 
             return $backed;
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::warning('Failed to backup file before deletion', [
                 'file' => $filePath,
                 'error' => $e->getMessage(),
@@ -253,7 +254,7 @@ class FileCleanupService
 
             return 0;
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::warning('Could not determine file age', [
                 'file' => $filePath,
                 'disk' => $disk,
@@ -275,4 +276,3 @@ class FileCleanupService
         return $fileAge >= $retentionDays;
     }
 }
-

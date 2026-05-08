@@ -7,6 +7,7 @@ use App\Modules\Notifications\Models\AppNotification;
 use App\Modules\Notifications\Models\FcmToken;
 use App\Traits\FormatsUserName;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Contract\Messaging as FirebaseMessaging;
 use Kreait\Firebase\Messaging\CloudMessage;
@@ -41,7 +42,7 @@ class NotificationService
             ]);
 
             return ['success' => true, 'message' => __('api.message_sent_successfully_service')];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to send single notification', [
                 'title' => $title,
                 'error' => $e->getMessage(),
@@ -86,7 +87,7 @@ class NotificationService
                 'status' => 'Message sent successfully to all tokens',
                 'tokens_count' => count($tokens),
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to send broadcast notification', [
                 'title' => $title,
                 'error' => $e->getMessage(),
@@ -140,7 +141,7 @@ class NotificationService
                 'status' => __('api.message_sent_successfully_service'),
                 'tokens_count' => count($validTokens),
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to send push notification', [
                 'title' => $title,
                 'tokens_count' => count($tokens),
@@ -161,7 +162,7 @@ class NotificationService
             $body = __('api.app_update_body');
 
             return $this->sendToAllTokens($title, $body);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to send pre-defined notification to all users', [
                 'error' => $e->getMessage(),
             ]);
@@ -196,7 +197,7 @@ class NotificationService
                 'unreadCount' => $unreadCount,
                 'data' => $localizedNotifications,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to fetch all notifications', [
                 'error' => $e->getMessage(),
             ]);
@@ -223,7 +224,7 @@ class NotificationService
                 'data' => $notification,
                 'message' => __('api.notification_created_successfully'),
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to create notification', [
                 'data' => $data,
                 'error' => $e->getMessage(),
@@ -263,7 +264,7 @@ class NotificationService
                 'value' => true,
                 'data' => $notificationData,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to fetch notification', [
                 'notification_id' => $id,
                 'error' => $e->getMessage(),
@@ -310,7 +311,7 @@ class NotificationService
                 'unreadCount' => $unreadCount,
                 'data' => $localizedNotifications,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to fetch user notifications', [
                 'doctor_id' => auth()->id(),
                 'error' => $e->getMessage(),
@@ -409,7 +410,7 @@ class NotificationService
                 'todayRecords' => $transformedTodayRecords,
                 'recentRecords' => $transformedPatientsPaginated,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to fetch new notifications', [
                 'doctor_id' => auth()->id(),
                 'error' => $e->getMessage(),
@@ -446,7 +447,7 @@ class NotificationService
                 'data' => $notification,
                 'message' => 'Notification updated successfully',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to update notification', [
                 'notification_id' => $id,
                 'data' => $data,
@@ -478,7 +479,7 @@ class NotificationService
                 'message' => 'All notifications marked as read',
                 'updated_count' => $updatedCount,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to mark all notifications as read', [
                 'doctor_id' => auth()->id(),
                 'error' => $e->getMessage(),
@@ -513,7 +514,7 @@ class NotificationService
                 'value' => true,
                 'message' => 'Notification deleted successfully',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to delete notification', [
                 'notification_id' => $id,
                 'error' => $e->getMessage(),
@@ -741,7 +742,7 @@ class NotificationService
                     'invalid_tokens_cleaned' => count($invalidTokens),
                 ]);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error handling Firebase sendAll result', [
                 'error' => $e->getMessage(),
             ]);
@@ -760,7 +761,7 @@ class NotificationService
                 'deleted_count' => $deletedCount,
                 'tokens_count' => count($invalidTokens),
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to cleanup invalid FCM tokens', [
                 'error' => $e->getMessage(),
                 'tokens_count' => count($invalidTokens),

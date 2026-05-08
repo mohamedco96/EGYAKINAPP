@@ -6,7 +6,9 @@ use App\Modules\Notifications\Models\AppNotification;
 use App\Modules\Notifications\Models\FcmToken;
 use App\Traits\FormatsUserName;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
@@ -44,7 +46,7 @@ class NotificationController extends Controller
     /**
      * Send a message to all FCM tokens.
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function send(Request $request)
     {
@@ -84,7 +86,7 @@ class NotificationController extends Controller
             ]);
 
             return response()->json(['status' => __('api.message_sent_to_all_tokens')], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Exception occurred while sending message.', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTrace(),
@@ -127,7 +129,7 @@ class NotificationController extends Controller
             ]);
 
             return response()->json(['status' => __('api.message_sent_to_all_tokens')], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Exception occurred while sending message.', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTrace(),
@@ -173,7 +175,7 @@ class NotificationController extends Controller
             ]);
 
             return response()->json(['status' => __('api.message_sent_to_all_tokens')], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Exception occurred while sending message.', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTrace(),
@@ -186,7 +188,7 @@ class NotificationController extends Controller
     /**
      * Store a newly created FCM token.
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function storeFCM(Request $request)
     {
@@ -194,8 +196,8 @@ class NotificationController extends Controller
 
         // Validate the request
         $request->validate([
-            //'doctor_id' => 'required|exists:users,id',
-            //'token' => 'required|unique:fcm_tokens,token',
+            // 'doctor_id' => 'required|exists:users,id',
+            // 'token' => 'required|unique:fcm_tokens,token',
         ]);
 
         try {
@@ -244,7 +246,7 @@ class NotificationController extends Controller
                 'value' => false,
                 'message' => __('api.failed_to_store_fcm_token'),
             ], 500);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log any other exceptions that occur
             Log::error('Exception occurred while storing FCM token.', [
                 'message' => $e->getMessage(),
@@ -276,7 +278,7 @@ class NotificationController extends Controller
             ];
 
             return response($response, 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error occurred while fetching notifications: '.$e->getMessage());
 
             return response()->json(['value' => false, 'message' => __('api.failed_to_fetch_notifications')], 500);
@@ -345,7 +347,7 @@ class NotificationController extends Controller
                 ->update(['read' => true]);
 
             return response()->json($response, 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log error
             Log::error('Error occurred while fetching new notifications: '.$e->getMessage());
 

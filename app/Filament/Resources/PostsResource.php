@@ -2,15 +2,35 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\PostsResource\Pages;
-use App\Models\User;
+use App\Filament\Resources\PostsResource\Pages\CreatePosts;
+use App\Filament\Resources\PostsResource\Pages\EditPosts;
+use App\Filament\Resources\PostsResource\Pages\ListPosts;
+use App\Filament\Resources\PostsResource\Pages\ViewPosts;
 use App\Modules\Posts\Models\Posts;
-use Filament\Forms;
+use Carbon\Carbon;
+use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Form;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Actions\Action;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -21,13 +41,13 @@ class PostsResource extends Resource
 {
     protected static ?string $model = Posts::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-document-text';
 
     protected static ?string $navigationLabel = 'Posts';
 
-    protected static ?string $navigationGroup = '📝 Content Management';
+    protected static string|\UnitEnum|null $navigationGroup = '📱 Community';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 6;
 
     public static function getNavigationBadge(): ?string
     {
@@ -36,26 +56,26 @@ class PostsResource extends Resource
         });
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make('Post Information')
+        return $schema
+            ->components([
+                Section::make('Post Information')
                     ->schema([
-                        Forms\Components\TextInput::make('title')
+                        TextInput::make('title')
                             ->required()
                             ->label('Title')
                             ->maxLength(255)
                             ->columnSpanFull(),
 
-                        Forms\Components\Select::make('doctor_id')
+                        Select::make('doctor_id')
                             ->relationship('doctor', 'name')
                             ->searchable()
                             ->preload()
                             ->required()
                             ->label('Doctor Name'),
 
-                        Forms\Components\Radio::make('hidden')
+                        Radio::make('hidden')
                             ->label('Visibility Status')
                             ->boolean()
                             ->required()
@@ -68,9 +88,9 @@ class PostsResource extends Resource
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Content')
+                Section::make('Content')
                     ->schema([
-                        Forms\Components\RichEditor::make('content')
+                        RichEditor::make('content')
                             ->required()
                             ->label('Post Content')
                             ->columnSpanFull()
@@ -88,13 +108,14 @@ class PostsResource extends Resource
                             ]),
                     ]),
 
-                Forms\Components\Section::make('Media')
+                Section::make('Media')
                     ->schema([
-                        Forms\Components\FileUpload::make('image')
+                        FileUpload::make('image')
                             ->label('Post Image')
                             ->image()
                             ->imageEditor()
                             ->directory('post_images')
+                            ->visibility('public')
                             ->required()
                             ->previewable(true)
                             ->imageCropAspectRatio('16:9')
@@ -109,7 +130,7 @@ class PostsResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['doctor']))
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID')
                     ->badge()
                     ->color('gray')
@@ -117,22 +138,23 @@ class PostsResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('title')
+                TextColumn::make('title')
                     ->label('Title')
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->searchable()
                     ->sortable()
                     ->limit(50)
-                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                    ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
                         if (strlen($state) > 50) {
                             return $state;
                         }
+
                         return null;
                     })
                     ->weight('bold'),
 
-                Tables\Columns\TextColumn::make('hidden')
+                TextColumn::make('hidden')
                     ->label('Status')
                     ->badge()
                     ->formatStateUsing(fn ($state) => $state ? 'Hidden' : 'Published')
@@ -141,37 +163,38 @@ class PostsResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('doctor.name')
+                TextColumn::make('doctor.name')
                     ->label('Doctor Name')
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->searchable(['users.name', 'users.lname'])
                     ->sortable()
-                    ->formatStateUsing(fn ($record) => $record->doctor ? $record->doctor->name . ' ' . $record->doctor->lname : 'N/A')
+                    ->formatStateUsing(fn ($record) => $record->doctor ? $record->doctor->name.' '.$record->doctor->lname : 'N/A')
                     ->description(fn ($record) => $record->doctor?->email),
 
-                Tables\Columns\ImageColumn::make('image')
+                ImageColumn::make('image')
                     ->label('Image')
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->circular()
                     ->size(50),
 
-                Tables\Columns\TextColumn::make('content')
+                TextColumn::make('content')
                     ->label('Content')
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->searchable()
                     ->sortable()
                     ->limit(100)
-                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                    ->tooltip(function (TextColumn $column): ?string {
                         $state = strip_tags($column->getState());
                         if (strlen($state) > 100) {
                             return $state;
                         }
+
                         return null;
                     })
                     ->html()
                     ->formatStateUsing(fn ($state) => strip_tags($state)),
 
-                Tables\Columns\TextColumn::make('postcomments_count')
+                TextColumn::make('postcomments_count')
                     ->label('Comments')
                     ->counts('postcomments')
                     ->badge()
@@ -180,7 +203,7 @@ class PostsResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime()
                     ->sortable()
@@ -188,7 +211,7 @@ class PostsResource extends Resource
                     ->since()
                     ->tooltip(fn ($record) => $record->created_at?->format('M d, Y H:i:s')),
 
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->label('Updated')
                     ->dateTime()
                     ->sortable()
@@ -197,11 +220,13 @@ class PostsResource extends Resource
                     ->tooltip(fn ($record) => $record->updated_at?->format('M d, Y H:i:s')),
             ])
             ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->striped()
             ->persistSearchInSession()
             ->persistColumnSearchesInSession()
             ->persistSortInSession()
             ->filters([
-                Tables\Filters\TernaryFilter::make('hidden')
+                TernaryFilter::make('hidden')
                     ->label('Visibility Status')
                     ->placeholder('All posts')
                     ->trueLabel('Hidden only')
@@ -211,14 +236,14 @@ class PostsResource extends Resource
                         false: fn (Builder $query) => $query->where('hidden', false),
                     ),
 
-                Tables\Filters\SelectFilter::make('doctor_id')
+                SelectFilter::make('doctor_id')
                     ->label('Doctor')
                     ->relationship('doctor', 'name')
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\Filter::make('created_at')
-                    ->form([
+                Filter::make('created_at')
+                    ->schema([
                         DatePicker::make('created_from')
                             ->label('From'),
                         DatePicker::make('created_until')
@@ -238,14 +263,15 @@ class PostsResource extends Resource
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
                         if ($data['created_from'] ?? null) {
-                            $indicators[] = 'From ' . \Carbon\Carbon::parse($data['created_from'])->toFormattedDateString();
+                            $indicators[] = 'From '.Carbon::parse($data['created_from'])->toFormattedDateString();
                         }
                         if ($data['created_until'] ?? null) {
-                            $indicators[] = 'Until ' . \Carbon\Carbon::parse($data['created_until'])->toFormattedDateString();
+                            $indicators[] = 'Until '.Carbon::parse($data['created_until'])->toFormattedDateString();
                         }
+
                         return $indicators;
                     }),
-            ], layout: Tables\Enums\FiltersLayout::AboveContent)
+            ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(3)
             ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action
@@ -253,33 +279,34 @@ class PostsResource extends Resource
                     ->label('Toggle columns'),
             )
             ->persistFiltersInSession()
+            ->deferFilters(false)
             ->deselectAllRecordsWhenFiltered(true)
             ->filtersTriggerAction(
                 fn (Action $action) => $action
                     ->button()
                     ->label('Filter'),
             )
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->modalHeading('Post Details')
                     ->modalWidth('4xl'),
-                Tables\Actions\Action::make('toggleVisibility')
+                Action::make('toggleVisibility')
                     ->label(fn ($record) => $record->hidden ? 'Publish' : 'Hide')
                     ->icon(fn ($record) => $record->hidden ? 'heroicon-o-eye' : 'heroicon-o-eye-slash')
                     ->color(fn ($record) => $record->hidden ? 'success' : 'warning')
                     ->action(function ($record) {
-                        $record->update(['hidden' => !$record->hidden]);
+                        $record->update(['hidden' => ! $record->hidden]);
                     })
                     ->successNotificationTitle(fn ($record) => $record->hidden ? 'Post hidden' : 'Post published'),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
+                EditAction::make(),
+                DeleteAction::make()
                     ->after(function () {
                         Cache::forget('posts_count');
                     }),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('publish')
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    BulkAction::make('publish')
                         ->label('Publish Posts')
                         ->icon('heroicon-o-eye')
                         ->color('success')
@@ -288,7 +315,7 @@ class PostsResource extends Resource
                         })
                         ->deselectRecordsAfterCompletion()
                         ->successNotificationTitle('Selected posts published'),
-                    Tables\Actions\BulkAction::make('hide')
+                    BulkAction::make('hide')
                         ->label('Hide Posts')
                         ->icon('heroicon-o-eye-slash')
                         ->color('warning')
@@ -297,7 +324,7 @@ class PostsResource extends Resource
                         })
                         ->deselectRecordsAfterCompletion()
                         ->successNotificationTitle('Selected posts hidden'),
-                    Tables\Actions\DeleteBulkAction::make()
+                    DeleteBulkAction::make()
                         ->after(function () {
                             Cache::forget('posts_count');
                         }),
@@ -305,7 +332,7 @@ class PostsResource extends Resource
                 ]),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
             ->emptyStateHeading('No posts yet')
             ->emptyStateDescription('Posts created by doctors will appear here.')
@@ -322,10 +349,10 @@ class PostsResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPosts::route('/'),
-            'create' => Pages\CreatePosts::route('/create'),
-            'view' => Pages\ViewPosts::route('/{record}'),
-            'edit' => Pages\EditPosts::route('/{record}/edit'),
+            'index' => ListPosts::route('/'),
+            'create' => CreatePosts::route('/create'),
+            'view' => ViewPosts::route('/{record}'),
+            'edit' => EditPosts::route('/{record}/edit'),
         ];
     }
 }

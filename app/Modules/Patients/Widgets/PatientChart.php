@@ -9,11 +9,14 @@ use Flowframe\Trend\TrendValue;
 
 class PatientChart extends ChartWidget
 {
-    protected static ?string $heading = 'Patient Registration Trends';
-    protected static ?string $description = 'Track patient registration patterns over time';
-    protected static string $color = 'info';
-    protected static ?string $pollingInterval = '15s';
-    
+    protected ?string $heading = 'Patient Registration Trends';
+
+    protected ?string $description = 'Track patient registration patterns over time';
+
+    protected string $color = 'info';
+
+    protected ?string $pollingInterval = '15s';
+
     public ?string $filter = 'month';
 
     protected function getData(): array

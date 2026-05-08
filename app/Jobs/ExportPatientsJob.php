@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Modules\Patients\Models\Patients;
 use App\Modules\Questions\Models\Questions;
+use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -16,6 +17,7 @@ use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Facades\Excel;
+use Throwable;
 
 class ExportPatientsJob implements ShouldQueue
 {
@@ -166,10 +168,10 @@ class ExportPatientsJob implements ShouldQueue
                 ], 3600);
 
             } else {
-                throw new \Exception('Export file was not created successfully');
+                throw new Exception('Export file was not created successfully');
             }
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Patient export job failed', [
                 'filename' => $this->filename,
                 'error' => $e->getMessage(),
@@ -197,7 +199,7 @@ class ExportPatientsJob implements ShouldQueue
         ], 3600);
     }
 
-    public function failed(\Throwable $exception): void
+    public function failed(Throwable $exception): void
     {
         Log::error('Patient export job failed completely', [
             'filename' => $this->filename,

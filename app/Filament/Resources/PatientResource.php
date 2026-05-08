@@ -2,12 +2,21 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\PatientResource\Pages;
+use App\Filament\Resources\PatientResource\Pages\CreatePatient;
+use App\Filament\Resources\PatientResource\Pages\EditPatient;
+use App\Filament\Resources\PatientResource\Pages\ListPatients;
 use App\Modules\Patients\Models\Patients;
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
@@ -16,11 +25,11 @@ class PatientResource extends Resource
 {
     protected static ?string $model = Patients::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-user-group';
 
     protected static ?string $navigationLabel = 'Patients';
 
-    protected static ?string $navigationGroup = '🏥 Patient Management';
+    protected static string|\UnitEnum|null $navigationGroup = '🏥 Patient Management';
 
     protected static ?int $navigationSort = 3;
 
@@ -31,17 +40,17 @@ class PatientResource extends Resource
         return static::getModel()::count();
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('doctor_id')
+        return $schema
+            ->components([
+                Select::make('doctor_id')
                     ->relationship('doctor', 'name')
                     ->required()
                     ->searchable()
                     ->preload(),
 
-                Forms\Components\Toggle::make('hidden')
+                Toggle::make('hidden')
                     ->label('Hidden')
                     ->default(false),
             ]);
@@ -52,40 +61,46 @@ class PatientResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['doctor']))
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID')
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('doctor.name')
+                TextColumn::make('doctor.name')
                     ->label('Doctor')
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\IconColumn::make('hidden')
+                IconColumn::make('hidden')
                     ->boolean()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultSort('created_at', 'desc')
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->filters([
-                Tables\Filters\TernaryFilter::make('hidden'),
+                TernaryFilter::make('hidden'),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+            ->persistFiltersInSession()
+            ->deferFilters(false)
+            ->recordActions([
+                ViewAction::make(),
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                     ExportBulkAction::make(),
                 ]),
             ]);
@@ -101,9 +116,9 @@ class PatientResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPatients::route('/'),
-            'create' => Pages\CreatePatient::route('/create'),
-            'edit' => Pages\EditPatient::route('/{record}/edit'),
+            'index' => ListPatients::route('/'),
+            'create' => CreatePatient::route('/create'),
+            'edit' => EditPatient::route('/{record}/edit'),
         ];
     }
 }

@@ -14,7 +14,7 @@ class PatientsStatsWidget extends BaseWidget
 {
     protected static ?int $sort = 1;
 
-    protected static ?string $pollingInterval = null;
+    protected ?string $pollingInterval = null;
 
     protected function getStats(): array
     {

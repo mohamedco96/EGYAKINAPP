@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\PostsResource\Pages;
 
 use App\Filament\Resources\PostsResource;
-use Filament\Actions;
+use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditPosts extends EditRecord
@@ -13,7 +13,7 @@ class EditPosts extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 }

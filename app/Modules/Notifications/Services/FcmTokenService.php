@@ -3,6 +3,7 @@
 namespace App\Modules\Notifications\Services;
 
 use App\Modules\Notifications\Models\FcmToken;
+use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -72,7 +73,7 @@ class FcmTokenService
                 'message' => 'FCM token stored successfully',
                 'data' => $fcmToken,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error storing FCM token', [
                 'doctor_id' => Auth::id(),
                 'device_id' => $deviceId,
@@ -102,7 +103,7 @@ class FcmTokenService
             ]);
 
             return $tokens;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to retrieve FCM tokens for doctors', [
                 'doctor_ids' => $doctorIds,
                 'error' => $e->getMessage(),
@@ -125,7 +126,7 @@ class FcmTokenService
             ]);
 
             return $tokens;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to retrieve all FCM tokens', [
                 'error' => $e->getMessage(),
             ]);
@@ -180,7 +181,7 @@ class FcmTokenService
                 'value' => false,
                 'message' => 'FCM token not found',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to remove FCM token', [
                 'doctor_id' => Auth::id(),
                 'token' => $token,
@@ -206,7 +207,7 @@ class FcmTokenService
             ]);
 
             return $deletedCount;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to cleanup FCM tokens', [
                 'error' => $e->getMessage(),
             ]);
@@ -253,7 +254,7 @@ class FcmTokenService
             ]);
 
             return $tokens;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to retrieve FCM tokens for device', [
                 'device_id' => $deviceId,
                 'error' => $e->getMessage(),
@@ -284,7 +285,7 @@ class FcmTokenService
             ]);
 
             return $devices;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to retrieve user devices', [
                 'user_id' => $userId,
                 'error' => $e->getMessage(),
@@ -317,7 +318,7 @@ class FcmTokenService
                     'remaining_count' => $maxTokens,
                 ]);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to limit user FCM tokens', [
                 'doctor_id' => $doctorId,
                 'error' => $e->getMessage(),
@@ -343,7 +344,7 @@ class FcmTokenService
             ]);
 
             return $deletedCount;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to remove invalid FCM tokens', [
                 'error' => $e->getMessage(),
                 'tokens_count' => count($invalidTokens),

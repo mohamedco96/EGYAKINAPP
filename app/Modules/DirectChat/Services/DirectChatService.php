@@ -19,6 +19,7 @@ use App\Modules\DirectChat\Resources\MessageResource;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class DirectChatService
 {
@@ -129,7 +130,7 @@ class DirectChatService
                 'data' => array_merge(['counts' => $counts], $paginatedData),
                 'status_code' => 200,
             ];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('DirectChat: getConversations failed', ['user_id' => $userId, 'error' => $e->getMessage()]);
 
             return ['value' => false, 'message' => 'Failed to retrieve conversations.', 'data' => null, 'status_code' => 500];
@@ -204,7 +205,7 @@ class DirectChatService
             Log::info('DirectChat: Conversation created', ['conversation_id' => $conversation->id, 'type' => $type, 'creator_id' => $creatorId]);
 
             return ['value' => true, 'message' => 'Conversation created successfully.', 'data' => new ConversationResource($conversation), 'status_code' => 201];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('DirectChat: createConversation failed', ['creator_id' => $creatorId, 'error' => $e->getMessage()]);
 
             return ['value' => false, 'message' => 'Failed to create conversation.', 'data' => null, 'status_code' => 500];
@@ -225,7 +226,7 @@ class DirectChatService
             }
 
             return ['value' => true, 'message' => 'Conversation retrieved successfully.', 'data' => new ConversationResource($conversation), 'status_code' => 200];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('DirectChat: getConversationDetails failed', ['conversation_id' => $conversationId, 'error' => $e->getMessage()]);
 
             return ['value' => false, 'message' => 'Failed to retrieve conversation.', 'data' => null, 'status_code' => 500];
@@ -257,7 +258,7 @@ class DirectChatService
             $conversation->load(['participants', 'creator']);
 
             return ['value' => true, 'message' => 'Conversation updated successfully.', 'data' => new ConversationResource($conversation), 'status_code' => 200];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('DirectChat: updateConversation failed', ['conversation_id' => $conversationId, 'error' => $e->getMessage()]);
 
             return ['value' => false, 'message' => 'Failed to update conversation.', 'data' => null, 'status_code' => 500];
@@ -295,7 +296,7 @@ class DirectChatService
                 'has_more' => $hasMore,
                 'status_code' => 200,
             ];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('DirectChat: getMessages failed', ['conversation_id' => $conversationId, 'error' => $e->getMessage()]);
 
             return ['value' => false, 'message' => 'Failed to retrieve messages.', 'data' => null, 'status_code' => 500];
@@ -355,7 +356,7 @@ class DirectChatService
             }
 
             return $this->sendMessage($conversation->id, $senderId, $data);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('DirectChat: sendDirectMessage failed', ['sender_id' => $senderId, 'recipient_id' => $recipientId, 'error' => $e->getMessage()]);
 
             return ['value' => false, 'message' => 'Failed to send message.', 'data' => null, 'status_code' => 500];
@@ -412,7 +413,7 @@ class DirectChatService
             // Broadcast to all participants in real-time (non-fatal if Reverb not running)
             try {
                 broadcast(new MessageSent($message))->toOthers();
-            } catch (\Throwable $broadcastException) {
+            } catch (Throwable $broadcastException) {
                 Log::warning('DirectChat: Broadcast failed (non-fatal)', [
                     'message_id' => $message->id,
                     'error' => $broadcastException->getMessage(),
@@ -430,7 +431,7 @@ class DirectChatService
                 if (! empty($recipientIds)) {
                     SendChatNotificationJob::dispatch($message, $recipientIds);
                 }
-            } catch (\Throwable $notifyException) {
+            } catch (Throwable $notifyException) {
                 Log::warning('DirectChat: Notification dispatch failed (non-fatal)', [
                     'message_id' => $message->id,
                     'error' => $notifyException->getMessage(),
@@ -440,7 +441,7 @@ class DirectChatService
             Log::info('DirectChat: Message sent', ['message_id' => $message->id, 'conversation_id' => $conversationId, 'sender_id' => $senderId]);
 
             return ['value' => true, 'message' => 'Message sent successfully.', 'data' => new MessageResource($message), 'status_code' => 201];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('DirectChat: sendMessage failed', [
                 'conversation_id' => $conversationId,
                 'sender_id' => $senderId,
@@ -481,7 +482,7 @@ class DirectChatService
 
             try {
                 broadcast(new MessageDeleted($messageId, $conversationId))->toOthers();
-            } catch (\Throwable $broadcastException) {
+            } catch (Throwable $broadcastException) {
                 Log::warning('DirectChat: MessageDeleted broadcast failed (non-fatal)', [
                     'message_id' => $messageId,
                     'error' => $broadcastException->getMessage(),
@@ -489,7 +490,7 @@ class DirectChatService
             }
 
             return ['value' => true, 'message' => 'Message deleted.', 'data' => null, 'status_code' => 200];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('DirectChat: deleteMessage failed', ['message_id' => $messageId, 'user_id' => $userId, 'error' => $e->getMessage()]);
 
             return ['value' => false, 'message' => 'Failed to delete message.', 'data' => null, 'status_code' => 500];
@@ -570,7 +571,7 @@ class DirectChatService
                     lastReadMessageId: $lastReadMessageId,
                     readAt: $now->toISOString()
                 ))->toOthers();
-            } catch (\Throwable $broadcastException) {
+            } catch (Throwable $broadcastException) {
                 Log::warning('DirectChat: MessageRead broadcast failed (non-fatal)', [
                     'conversation_id' => $conversationId,
                     'error' => $broadcastException->getMessage(),
@@ -578,7 +579,7 @@ class DirectChatService
             }
 
             return ['value' => true, 'message' => 'Messages marked as read.', 'data' => ['read_count' => $readCount], 'status_code' => 200];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('DirectChat: markAsRead failed', ['conversation_id' => $conversationId, 'user_id' => $userId, 'error' => $e->getMessage()]);
 
             return ['value' => false, 'message' => 'Failed to mark messages as read.', 'data' => null, 'status_code' => 500];
@@ -628,7 +629,7 @@ class DirectChatService
                     reaction: $reaction,
                     action: $action
                 ))->toOthers();
-            } catch (\Throwable $broadcastException) {
+            } catch (Throwable $broadcastException) {
                 Log::warning('DirectChat: Broadcast failed for reaction (non-fatal)', [
                     'message_id' => $messageId,
                     'conversation_id' => $conversationId,
@@ -647,7 +648,7 @@ class DirectChatService
                 ])->values();
 
             return ['value' => true, 'message' => "Reaction {$action}.", 'data' => ['reactions' => $updatedReactions], 'status_code' => 200];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('DirectChat: reactToMessage failed', ['message_id' => $messageId, 'error' => $e->getMessage()]);
 
             return ['value' => false, 'message' => 'Failed to process reaction.', 'data' => null, 'status_code' => 500];
@@ -684,7 +685,7 @@ class DirectChatService
             ]);
 
             return ['value' => true, 'message' => 'Joined conversation successfully.', 'data' => null, 'status_code' => 200];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('DirectChat: joinConversation failed', ['conversation_id' => $conversationId, 'error' => $e->getMessage()]);
 
             return ['value' => false, 'message' => 'Failed to join conversation.', 'data' => null, 'status_code' => 500];
@@ -734,7 +735,7 @@ class DirectChatService
             $participant->delete();
 
             return ['value' => true, 'message' => 'Left conversation successfully.', 'data' => null, 'status_code' => 200];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('DirectChat: leaveConversation failed', ['conversation_id' => $conversationId, 'error' => $e->getMessage()]);
 
             return ['value' => false, 'message' => 'Failed to leave conversation.', 'data' => null, 'status_code' => 500];
@@ -795,7 +796,7 @@ class DirectChatService
             Log::info('DirectChat: Participants added', ['conversation_id' => $conversationId, 'added' => $added]);
 
             return ['value' => true, 'message' => "{$added} participant(s) added.", 'data' => null, 'status_code' => 200];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('DirectChat: addParticipants failed', ['conversation_id' => $conversationId, 'error' => $e->getMessage()]);
 
             return ['value' => false, 'message' => 'Failed to add participants.', 'data' => null, 'status_code' => 500];
@@ -832,7 +833,7 @@ class DirectChatService
             }
 
             return ['value' => true, 'message' => 'Participant removed successfully.', 'data' => null, 'status_code' => 200];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('DirectChat: removeParticipant failed', ['conversation_id' => $conversationId, 'error' => $e->getMessage()]);
 
             return ['value' => false, 'message' => 'Failed to remove participant.', 'data' => null, 'status_code' => 500];
@@ -858,7 +859,7 @@ class DirectChatService
                 'data' => ['mute_notifications' => $mute],
                 'status_code' => 200,
             ];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('DirectChat: toggleMute failed', ['conversation_id' => $conversationId, 'user_id' => $userId, 'error' => $e->getMessage()]);
 
             return ['value' => false, 'message' => 'Failed to update mute setting.', 'data' => null, 'status_code' => 500];
@@ -883,7 +884,7 @@ class DirectChatService
                 ->get();
 
             return ['value' => true, 'message' => 'Users retrieved.', 'data' => $users, 'status_code' => 200];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('DirectChat: searchUsers failed', ['error' => $e->getMessage()]);
 
             return ['value' => false, 'message' => 'Search failed.', 'data' => null, 'status_code' => 500];

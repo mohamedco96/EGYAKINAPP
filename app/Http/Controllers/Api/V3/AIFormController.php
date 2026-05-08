@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ProcessAISectionRequest;
 use App\Models\PatientSectionAiLog;
 use App\Services\AIFormService;
+use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -99,7 +100,7 @@ class AIFormController extends Controller
 
             return response()->json($response, 200);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('AI form extraction error', [
                 'section_id' => $request->input('section_id'),
                 'doctor_id' => Auth::id(),

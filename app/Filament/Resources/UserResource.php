@@ -2,19 +2,39 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\UserResource\Pages;
+use App\Filament\Resources\UserResource\Pages\CreateUser;
+use App\Filament\Resources\UserResource\Pages\EditUser;
+use App\Filament\Resources\UserResource\Pages\ListUsers;
+use App\Filament\Resources\UserResource\Pages\ViewUser;
 use App\Models\User;
+use Carbon\Carbon;
 use Closure;
-use Filament\Forms;
+use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
+use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Actions\Action;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -27,11 +47,11 @@ class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-users';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-users';
 
     protected static ?string $navigationLabel = 'Doctors';
 
-    protected static ?string $navigationGroup = '👥 User Management';
+    protected static string|\UnitEnum|null $navigationGroup = '⚙️ Administration';
 
     protected static ?int $navigationSort = 1;
 
@@ -42,42 +62,42 @@ class UserResource extends Resource
         });
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Personal Information')
                     ->description('Basic user information')
                     ->schema([
-                        Forms\Components\TextInput::make('name')->required()->label('First Name'),
-                        Forms\Components\TextInput::make('lname')->required()->label('Last Name'),
-                        Forms\Components\TextInput::make('email')->required()->email()->label('Email address'),
-                        Forms\Components\TextInput::make('age'),
-                        Forms\Components\Select::make('gender')
+                        TextInput::make('name')->required()->label('First Name'),
+                        TextInput::make('lname')->required()->label('Last Name'),
+                        TextInput::make('email')->required()->email()->label('Email address'),
+                        TextInput::make('age'),
+                        Select::make('gender')
                             ->options([
                                 'Male' => 'Male',
                                 'Female' => 'Female',
                             ]),
-                        Forms\Components\TextInput::make('phone')->required()->tel(),
+                        TextInput::make('phone')->required()->tel(),
                     ])->columns(2),
 
                 Section::make('Professional Information')
                     ->description('Professional details')
                     ->schema([
-                        Forms\Components\TextInput::make('specialty')->required(),
-                        Forms\Components\TextInput::make('workingplace')->required()->label('Working place'),
-                        Forms\Components\TextInput::make('job')->required(),
-                        Forms\Components\TextInput::make('highestdegree')->required()->label('Highest degree'),
-                        Forms\Components\TextInput::make('registration_number')->required()->label('Registration Number'),
+                        TextInput::make('specialty')->required(),
+                        TextInput::make('workingplace')->required()->label('Working place'),
+                        TextInput::make('job')->required(),
+                        TextInput::make('highestdegree')->required()->label('Highest degree'),
+                        TextInput::make('registration_number')->required()->label('Registration Number'),
                     ])->columns(2),
 
                 Section::make('Account Status')
                     ->description('Account verification and status')
                     ->schema([
-                        Forms\Components\DateTimePicker::make('email_verified_at'),
-                        Forms\Components\Radio::make('blocked')->boolean(),
-                        Forms\Components\Radio::make('limited')->boolean(),
-                        Forms\Components\Select::make('isSyndicateCardRequired')
+                        DateTimePicker::make('email_verified_at'),
+                        Radio::make('blocked')->boolean(),
+                        Radio::make('limited')->boolean(),
+                        Select::make('isSyndicateCardRequired')
                             ->label('Is Syndicate Card Required')
                             ->options([
                                 'Not Required' => 'Not Required',
@@ -93,6 +113,7 @@ class UserResource extends Resource
                         FileUpload::make('image')
                             ->label('Profile Image')
                             ->directory('profile_images')
+                            ->visibility('public')
                             ->image()
                             ->imageEditor()
                             ->previewable(true)
@@ -102,6 +123,7 @@ class UserResource extends Resource
                         FileUpload::make('syndicate_card')
                             ->label('Syndicate Card')
                             ->directory('syndicate_card')
+                            ->visibility('public')
                             ->image()
                             ->imageEditor()
                             ->previewable(true)
@@ -168,13 +190,13 @@ class UserResource extends Resource
     {
         return [
             [
-                'a'       => ['view-all-patients', 'view-current-patients'],
-                'b'       => ['view-groups-in-home', 'view-trend-hashtags-in-home'],
+                'a' => ['view-all-patients', 'view-current-patients'],
+                'b' => ['view-groups-in-home', 'view-trend-hashtags-in-home'],
                 'message' => 'Patient management permissions and home content permissions are mutually exclusive.',
             ],
             [
-                'a'       => ['add-post-in-home'],
-                'b'       => ['add-patient-in-home'],
+                'a' => ['add-post-in-home'],
+                'b' => ['add-patient-in-home'],
                 'message' => 'add-post-in-home and add-patient-in-home cannot be assigned together.',
             ],
         ];
@@ -205,8 +227,8 @@ class UserResource extends Resource
 
             if ($matchA && $matchB) {
                 $fail(
-                    'Permission conflict: [' . implode(', ', $matchA) . '] cannot be combined with [' . implode(', ', $matchB) . ']. '
-                    . $pair['message']
+                    'Permission conflict: ['.implode(', ', $matchA).'] cannot be combined with ['.implode(', ', $matchB).']. '
+                    .$pair['message']
                 );
             }
         }
@@ -217,7 +239,7 @@ class UserResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['roles']))
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID')
                     ->badge()
                     ->color('gray')
@@ -225,46 +247,46 @@ class UserResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->label('Full Name')
                     ->searchable(['name', 'lname'])
                     ->sortable()
-                    ->formatStateUsing(fn ($record) => $record->name . ' ' . $record->lname)
+                    ->formatStateUsing(fn ($record) => $record->name.' '.$record->lname)
                     ->weight('bold')
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('email')
+                TextColumn::make('email')
                     ->searchable()
                     ->sortable()
                     ->copyable()
                     ->icon('heroicon-o-envelope')
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\ImageColumn::make('image')
+                ImageColumn::make('image')
                     ->label('Profile')
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->circular()
                     ->size(40),
 
-                Tables\Columns\TextColumn::make('specialty')
+                TextColumn::make('specialty')
                     ->searchable()
                     ->sortable()
                     ->badge()
                     ->color('info')
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('job')
+                TextColumn::make('job')
                     ->searchable()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('gender')
+                TextColumn::make('gender')
                     ->sortable()
                     ->badge()
                     ->color(fn ($state) => $state === 'Male' ? 'info' : 'success')
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\IconColumn::make('blocked')
+                IconColumn::make('blocked')
                     ->label('Blocked')
                     ->boolean()
                     ->trueIcon('heroicon-o-x-circle')
@@ -274,7 +296,7 @@ class UserResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\IconColumn::make('limited')
+                IconColumn::make('limited')
                     ->label('Limited')
                     ->boolean()
                     ->trueIcon('heroicon-o-exclamation-triangle')
@@ -284,7 +306,7 @@ class UserResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('patients_count')
+                TextColumn::make('patients_count')
                     ->label('Patients')
                     ->counts('patients')
                     ->badge()
@@ -293,7 +315,7 @@ class UserResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('posts_count')
+                TextColumn::make('posts_count')
                     ->label('Posts')
                     ->counts('posts')
                     ->badge()
@@ -302,10 +324,10 @@ class UserResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('isSyndicateCardRequired')
+                TextColumn::make('isSyndicateCardRequired')
                     ->label('Syndicate Card')
                     ->badge()
-                    ->color(fn ($state) => match($state) {
+                    ->color(fn ($state) => match ($state) {
                         'Verified' => 'success',
                         'Pending' => 'warning',
                         'Required' => 'danger',
@@ -314,47 +336,47 @@ class UserResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('phone')
+                TextColumn::make('phone')
                     ->searchable()
                     ->sortable()
                     ->icon('heroicon-o-phone')
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('age')
+                TextColumn::make('age')
                     ->sortable()
                     ->suffix(' yrs')
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('workingplace')
+                TextColumn::make('workingplace')
                     ->label('Working Place')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('highestdegree')
+                TextColumn::make('highestdegree')
                     ->label('Highest Degree')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('registration_number')
+                TextColumn::make('registration_number')
                     ->label('Registration #')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('roles.name')
+                TextColumn::make('roles.name')
                     ->label('Roles')
                     ->badge()
                     ->color('success')
                     ->formatStateUsing(fn (string $state): string => ucwords(str_replace(['-', '_'], ' ', $state)))
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('email_verified_at')
+                TextColumn::make('email_verified_at')
                     ->label('Verified')
                     ->dateTime()
                     ->since()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime()
                     ->sortable()
@@ -363,18 +385,20 @@ class UserResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: false),
             ])
             ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->striped()
             ->persistSearchInSession()
             ->persistColumnSearchesInSession()
             ->persistSortInSession()
             ->filters([
-                Tables\Filters\TernaryFilter::make('email_verified_at')
+                TernaryFilter::make('email_verified_at')
                     ->label('Email Verification')
                     ->nullable()
                     ->placeholder('All users')
                     ->trueLabel('Verified users')
                     ->falseLabel('Not verified users'),
 
-                Tables\Filters\TernaryFilter::make('blocked')
+                TernaryFilter::make('blocked')
                     ->label('Blocked Status')
                     ->placeholder('All users')
                     ->trueLabel('Blocked only')
@@ -384,7 +408,7 @@ class UserResource extends Resource
                         false: fn (Builder $query) => $query->where('blocked', false),
                     ),
 
-                Tables\Filters\TernaryFilter::make('limited')
+                TernaryFilter::make('limited')
                     ->label('Limited Status')
                     ->placeholder('All users')
                     ->trueLabel('Limited only')
@@ -394,7 +418,7 @@ class UserResource extends Resource
                         false: fn (Builder $query) => $query->where('limited', false),
                     ),
 
-                Tables\Filters\SelectFilter::make('specialty')
+                SelectFilter::make('specialty')
                     ->label('Specialty')
                     ->options(fn (): array => User::query()
                         ->whereNotNull('specialty')
@@ -403,14 +427,14 @@ class UserResource extends Resource
                         ->toArray())
                     ->searchable(),
 
-                Tables\Filters\SelectFilter::make('gender')
+                SelectFilter::make('gender')
                     ->label('Gender')
                     ->options([
                         'Male' => 'Male',
                         'Female' => 'Female',
                     ]),
 
-                Tables\Filters\SelectFilter::make('job')
+                SelectFilter::make('job')
                     ->label('Job')
                     ->options(fn (): array => User::query()
                         ->whereNotNull('job')
@@ -419,8 +443,8 @@ class UserResource extends Resource
                         ->toArray())
                     ->searchable(),
 
-                Tables\Filters\Filter::make('created_at')
-                    ->form([
+                Filter::make('created_at')
+                    ->schema([
                         DatePicker::make('created_from')
                             ->label('From'),
                         DatePicker::make('created_until')
@@ -440,14 +464,15 @@ class UserResource extends Resource
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
                         if ($data['created_from'] ?? null) {
-                            $indicators[] = 'From ' . \Carbon\Carbon::parse($data['created_from'])->toFormattedDateString();
+                            $indicators[] = 'From '.Carbon::parse($data['created_from'])->toFormattedDateString();
                         }
                         if ($data['created_until'] ?? null) {
-                            $indicators[] = 'Until ' . \Carbon\Carbon::parse($data['created_until'])->toFormattedDateString();
+                            $indicators[] = 'Until '.Carbon::parse($data['created_until'])->toFormattedDateString();
                         }
+
                         return $indicators;
                     }),
-            ], layout: Tables\Enums\FiltersLayout::AboveContent)
+            ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(5)
             ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action
@@ -455,25 +480,26 @@ class UserResource extends Resource
                     ->label('Toggle columns'),
             )
             ->persistFiltersInSession()
+            ->deferFilters(false)
             ->deselectAllRecordsWhenFiltered(true)
             ->filtersTriggerAction(
                 fn (Action $action) => $action
                     ->button()
                     ->label('Filter'),
             )
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->modalHeading('User Details')
                     ->modalWidth('4xl'),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
+                EditAction::make(),
+                DeleteAction::make()
                     ->after(function () {
                         Cache::forget('users_count');
                     }),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('block')
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    BulkAction::make('block')
                         ->label('Block Users')
                         ->icon('heroicon-o-lock-closed')
                         ->color('danger')
@@ -483,7 +509,7 @@ class UserResource extends Resource
                         })
                         ->deselectRecordsAfterCompletion()
                         ->successNotificationTitle('Selected users blocked'),
-                    Tables\Actions\BulkAction::make('unblock')
+                    BulkAction::make('unblock')
                         ->label('Unblock Users')
                         ->icon('heroicon-o-lock-open')
                         ->color('success')
@@ -492,12 +518,12 @@ class UserResource extends Resource
                         })
                         ->deselectRecordsAfterCompletion()
                         ->successNotificationTitle('Selected users unblocked'),
-                    Tables\Actions\BulkAction::make('assignRole')
+                    BulkAction::make('assignRole')
                         ->label('Assign Role')
                         ->icon('heroicon-o-user-group')
                         ->color('info')
                         ->form([
-                            Forms\Components\Select::make('role')
+                            Select::make('role')
                                 ->label('Select Role')
                                 ->options(fn (): array => Role::all()->pluck('name', 'name')->toArray())
                                 ->required()
@@ -511,7 +537,7 @@ class UserResource extends Resource
                         })
                         ->deselectRecordsAfterCompletion()
                         ->successNotificationTitle('Role assigned successfully'),
-                    Tables\Actions\DeleteBulkAction::make()
+                    DeleteBulkAction::make()
                         ->after(function () {
                             Cache::forget('users_count');
                         }),
@@ -519,7 +545,7 @@ class UserResource extends Resource
                 ]),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
             ->emptyStateHeading('No doctors yet')
             ->emptyStateDescription('Registered doctors will appear here.')
@@ -536,10 +562,10 @@ class UserResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListUsers::route('/'),
-            'create' => Pages\CreateUser::route('/create'),
-            'view' => Pages\ViewUser::route('/{record}'),
-            'edit' => Pages\EditUser::route('/{record}/edit'),
+            'index' => ListUsers::route('/'),
+            'create' => CreateUser::route('/create'),
+            'view' => ViewUser::route('/{record}'),
+            'edit' => EditUser::route('/{record}/edit'),
         ];
     }
 }

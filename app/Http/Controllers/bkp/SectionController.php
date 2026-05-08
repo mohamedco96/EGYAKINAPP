@@ -18,6 +18,7 @@ use App\Models\Section;
 use App\Models\SectionFieldMapping;
 use App\Models\SectionsInfo;
 use App\Notifications\ReachingSpecificPoints;
+use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -48,12 +49,9 @@ class SectionController extends Controller
 
     }
 
-    //@param \Illuminate\Http\Request $request
+    // @param \Illuminate\Http\Request $request
     // @return \Illuminate\Http\Response
-    public function store(StorePatientHistoryRequest $request)
-    {
-
-    }
+    public function store(StorePatientHistoryRequest $request) {}
 
     /**
      * Display the specified resource.
@@ -209,7 +207,7 @@ class SectionController extends Controller
             Log::info("Section updated successfully for section ID {$section_id} and patient ID {$patient_id}.");
 
             return response()->json($response, 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log any unexpected errors
             Log::error('Error updating section: '.$e->getMessage());
 

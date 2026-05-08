@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\ScoreResource\Pages;
 
 use App\Filament\Resources\ScoreResource;
-use Filament\Actions;
+use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListScores extends ListRecords
@@ -13,7 +13,7 @@ class ListScores extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            CreateAction::make(),
         ];
     }
 }

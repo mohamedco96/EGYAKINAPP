@@ -2,36 +2,55 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\DoseResource\Pages;
+use App\Filament\Resources\DoseResource\Pages\CreateDose;
+use App\Filament\Resources\DoseResource\Pages\EditDose;
+use App\Filament\Resources\DoseResource\Pages\ListDoses;
+use App\Filament\Resources\DoseResource\Pages\ViewDose;
 use App\Modules\Doses\Models\Dose;
-use Filament\Forms;
+use Carbon\Carbon;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ReplicateAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Tabs;
-use Filament\Forms\Form;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
-use Filament\Tables;
-use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\Layout\Stack;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class DoseResource extends Resource
 {
     protected static ?string $model = Dose::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-beaker';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-beaker';
 
     protected static ?string $navigationLabel = 'Dose Modifiers';
 
-    protected static ?string $navigationGroup = '📊 Medical Data';
+    protected static string|\UnitEnum|null $navigationGroup = '📊 Medical Data';
 
     protected static ?int $navigationSort = 30;
 
@@ -41,12 +60,12 @@ class DoseResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::count();
+        return Cache::remember('doses_filament_count', 300, fn () => static::getModel()::count());
     }
 
     public static function getGlobalSearchEloquentQuery(): Builder
     {
-        return parent::getGlobalSearchEloquentQuery()->with(['']);
+        return parent::getGlobalSearchEloquentQuery();
     }
 
     public static function getGloballySearchableAttributes(): array
@@ -54,7 +73,7 @@ class DoseResource extends Resource
         return ['title', 'description'];
     }
 
-    public static function getGlobalSearchResultDetails(\Illuminate\Database\Eloquent\Model $record): array
+    public static function getGlobalSearchResultDetails(Model $record): array
     {
         return [
             'Description' => $record->description ? strip_tags(str($record->description)->limit(100)) : 'No description',
@@ -62,13 +81,13 @@ class DoseResource extends Resource
         ];
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Tabs::make('Dose Information')
                     ->tabs([
-                        Tabs\Tab::make('Basic Information')
+                        Tab::make('Basic Information')
                             ->icon('heroicon-m-information-circle')
                             ->schema([
                                 Section::make('Dose Details')
@@ -77,7 +96,7 @@ class DoseResource extends Resource
                                     ->schema([
                                         Grid::make(2)
                                             ->schema([
-                                                Forms\Components\TextInput::make('title')
+                                                TextInput::make('title')
                                                     ->label('Dose Title')
                                                     ->required()
                                                     ->maxLength(255)
@@ -91,14 +110,14 @@ class DoseResource extends Resource
                                     ->persistCollapsed(),
                             ]),
 
-                        Tabs\Tab::make('Description')
+                        Tab::make('Description')
                             ->icon('heroicon-m-document-text')
                             ->schema([
                                 Section::make('Detailed Description')
                                     ->description('Provide comprehensive information about this dose modifier')
                                     ->icon('heroicon-m-document-text')
                                     ->schema([
-                                        Forms\Components\RichEditor::make('description')
+                                        RichEditor::make('description')
                                             ->label('Description')
                                             ->placeholder('Enter detailed description...')
                                             ->toolbarButtons([
@@ -124,14 +143,14 @@ class DoseResource extends Resource
                                     ->persistCollapsed(),
                             ]),
 
-                        Tabs\Tab::make('Dosage Information')
+                        Tab::make('Dosage Information')
                             ->icon('heroicon-m-calculator')
                             ->schema([
                                 Section::make('Dose Specifications')
                                     ->description('Enter specific dosage information and calculations')
                                     ->icon('heroicon-m-calculator')
                                     ->schema([
-                                        Forms\Components\RichEditor::make('dose')
+                                        RichEditor::make('dose')
                                             ->label('Dosage Details')
                                             ->required()
                                             ->placeholder('Enter specific dosage information...')
@@ -170,7 +189,7 @@ class DoseResource extends Resource
             ->columns([
                 Split::make([
                     Stack::make([
-                        Tables\Columns\TextColumn::make('title')
+                        TextColumn::make('title')
                             ->label('Dose Title')
                             ->searchable()
                             ->sortable()
@@ -182,7 +201,7 @@ class DoseResource extends Resource
                             ->tooltip('Click to copy')
                             ->limit(50),
 
-                        Tables\Columns\TextColumn::make('description')
+                        TextColumn::make('description')
                             ->label('Description')
                             ->html()
                             ->searchable()
@@ -194,7 +213,7 @@ class DoseResource extends Resource
                     ])->space(1),
 
                     Stack::make([
-                        Tables\Columns\TextColumn::make('dose')
+                        TextColumn::make('dose')
                             ->label('Dosage Information')
                             ->html()
                             ->limit(80)
@@ -203,7 +222,7 @@ class DoseResource extends Resource
                             ->color('success')
                             ->icon('heroicon-m-calculator'),
 
-                        Tables\Columns\TextColumn::make('created_at')
+                        TextColumn::make('created_at')
                             ->label('Created')
                             ->dateTime('M j, Y g:i A')
                             ->sortable()
@@ -218,7 +237,7 @@ class DoseResource extends Resource
 
                 // Mobile layout
                 Stack::make([
-                    Tables\Columns\TextColumn::make('title')
+                    TextColumn::make('title')
                         ->searchable()
                         ->sortable()
                         ->weight(FontWeight::Bold)
@@ -226,14 +245,14 @@ class DoseResource extends Resource
                         ->icon('heroicon-m-beaker')
                         ->limit(30),
 
-                    Tables\Columns\TextColumn::make('description')
+                    TextColumn::make('description')
                         ->html()
                         ->limit(60)
                         ->color('gray')
                         ->size('sm')
                         ->placeholder('No description'),
 
-                    Tables\Columns\TextColumn::make('created_at')
+                    TextColumn::make('created_at')
                         ->since()
                         ->color('gray')
                         ->size('xs')
@@ -252,7 +271,7 @@ class DoseResource extends Resource
             ->striped()
             ->filters([
                 Filter::make('created_at')
-                    ->form([
+                    ->schema([
                         Grid::make(2)
                             ->schema([
                                 DatePicker::make('created_from')
@@ -281,10 +300,10 @@ class DoseResource extends Resource
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
                         if ($data['created_from'] ?? null) {
-                            $indicators['created_from'] = 'Created from '.\Carbon\Carbon::parse($data['created_from'])->toFormattedDateString();
+                            $indicators['created_from'] = 'Created from '.Carbon::parse($data['created_from'])->toFormattedDateString();
                         }
                         if ($data['created_until'] ?? null) {
-                            $indicators['created_until'] = 'Created until '.\Carbon\Carbon::parse($data['created_until'])->toFormattedDateString();
+                            $indicators['created_until'] = 'Created until '.Carbon::parse($data['created_until'])->toFormattedDateString();
                         }
 
                         return $indicators;
@@ -329,6 +348,7 @@ class DoseResource extends Resource
                     ->color('gray'),
             )
             ->persistFiltersInSession()
+            ->deferFilters(false)
             ->deselectAllRecordsWhenFiltered(true)
             ->filtersTriggerAction(
                 fn (Action $action) => $action
@@ -338,19 +358,19 @@ class DoseResource extends Resource
                     ->color('gray')
                     ->size('sm'),
             )
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    ViewAction::make()
                         ->color('info')
                         ->icon('heroicon-m-eye'),
-                    Tables\Actions\EditAction::make()
+                    EditAction::make()
                         ->color('warning')
                         ->icon('heroicon-m-pencil-square'),
-                    Tables\Actions\ReplicateAction::make()
+                    ReplicateAction::make()
                         ->color('success')
                         ->icon('heroicon-m-square-2-stack')
-                        ->form([
-                            Forms\Components\TextInput::make('title')
+                        ->schema([
+                            TextInput::make('title')
                                 ->label('New Title')
                                 ->required()
                                 ->default(fn ($record) => $record->title.' (Copy)'),
@@ -358,7 +378,7 @@ class DoseResource extends Resource
                         ->beforeReplicaSaved(function (array $data, $record): void {
                             $data['title'] = $data['title'] ?? $record->title.' (Copy)';
                         }),
-                    Tables\Actions\DeleteAction::make()
+                    DeleteAction::make()
                         ->color('danger')
                         ->icon('heroicon-m-trash'),
                 ])
@@ -368,20 +388,20 @@ class DoseResource extends Resource
                     ->color('gray')
                     ->button(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
                         ->icon('heroicon-m-trash'),
                     ExportBulkAction::make()
                         ->icon('heroicon-m-arrow-down-tray'),
-                    Tables\Actions\BulkAction::make('mark_reviewed')
+                    BulkAction::make('mark_reviewed')
                         ->label('Mark as Reviewed')
                         ->icon('heroicon-m-check-circle')
                         ->color('success')
                         ->requiresConfirmation()
-                        ->action(function (\Illuminate\Database\Eloquent\Collection $records) {
+                        ->action(function (Collection $records) {
                             // Add your custom bulk action logic here
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Doses marked as reviewed')
                                 ->success()
                                 ->send();
@@ -390,7 +410,7 @@ class DoseResource extends Resource
                     ->label('Bulk Actions'),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make()
+                CreateAction::make()
                     ->icon('heroicon-m-plus')
                     ->label('Create First Dose Modifier'),
             ])
@@ -398,7 +418,7 @@ class DoseResource extends Resource
             ->emptyStateDescription('Create your first dose modifier to get started with medication dosing guidelines.')
             ->emptyStateIcon('heroicon-o-beaker')
             ->recordUrl(null)
-            ->recordAction(Tables\Actions\ViewAction::class)
+            ->recordAction(ViewAction::class)
             ->searchPlaceholder('Search doses by title or description...')
             ->paginationPageOptions([10, 25, 50, 100])
             ->defaultPaginationPageOption(25);
@@ -414,10 +434,10 @@ class DoseResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListDoses::route('/'),
-            'create' => Pages\CreateDose::route('/create'),
-            'view' => Pages\ViewDose::route('/{record}'),
-            'edit' => Pages\EditDose::route('/{record}/edit'),
+            'index' => ListDoses::route('/'),
+            'create' => CreateDose::route('/create'),
+            'view' => ViewDose::route('/{record}'),
+            'edit' => EditDose::route('/{record}/edit'),
         ];
     }
 }

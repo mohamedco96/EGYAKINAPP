@@ -2,12 +2,23 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\FeedPostCommentResource\Pages;
+use App\Filament\Resources\FeedPostCommentResource\Pages\CreateFeedPostComment;
+use App\Filament\Resources\FeedPostCommentResource\Pages\EditFeedPostComment;
+use App\Filament\Resources\FeedPostCommentResource\Pages\ListFeedPostComments;
+use App\Filament\Resources\FeedPostCommentResource\Pages\ViewFeedPostComment;
 use App\Models\FeedPostComment;
-use Filament\Forms;
-use Filament\Forms\Form;
+use App\Models\User;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -17,13 +28,13 @@ class FeedPostCommentResource extends Resource
 {
     protected static ?string $model = FeedPostComment::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-bottom-center-text';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-chat-bubble-bottom-center-text';
 
     protected static ?string $navigationLabel = 'Feed Comments';
 
-    protected static ?string $navigationGroup = '📱 Social Feed';
+    protected static string|\UnitEnum|null $navigationGroup = '📱 Community';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 2;
 
     public static function getNavigationBadge(): ?string
     {
@@ -32,45 +43,45 @@ class FeedPostCommentResource extends Resource
         });
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make('Comment Information')->schema([
-                Forms\Components\Select::make('feed_post_id')
+        return $schema->components([
+            Section::make('Comment Information')->schema([
+                Select::make('feed_post_id')
                     ->relationship('feedPost', 'id')
                     ->searchable()
                     ->preload()
                     ->required()
                     ->label('Feed Post')
-                    ->getOptionLabelUsing(fn ($value) => 'Post #' . $value),
+                    ->getOptionLabelUsing(fn ($value) => 'Post #'.$value),
 
-                Forms\Components\Select::make('doctor_id')
+                Select::make('doctor_id')
                     ->relationship('doctor', 'name')
                     ->searchable()
                     ->preload()
                     ->required()
                     ->label('Doctor')
-                    ->getSearchResultsUsing(fn (string $search) => \App\Models\User::where(function($query) use ($search) {
+                    ->getSearchResultsUsing(fn (string $search) => User::where(function ($query) use ($search) {
                         $query->where('name', 'like', "%{$search}%")
                             ->orWhere('lname', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%");
                     })->limit(50)->get()->pluck('full_name_with_email', 'id'))
-                    ->getOptionLabelUsing(fn ($value): ?string => \App\Models\User::find($value)?->full_name_with_email),
+                    ->getOptionLabelUsing(fn ($value): ?string => User::find($value)?->full_name_with_email),
 
-                Forms\Components\Textarea::make('comment')
+                Textarea::make('comment')
                     ->required()
                     ->rows(4)
                     ->columnSpanFull()
                     ->label('Comment Text'),
 
-                Forms\Components\Select::make('parent_id')
+                Select::make('parent_id')
                     ->relationship('parent', 'id')
                     ->searchable()
                     ->preload()
                     ->nullable()
                     ->label('Parent Comment (for replies)')
                     ->helperText('Leave empty for top-level comments')
-                    ->getOptionLabelUsing(fn ($value) => 'Comment #' . $value),
+                    ->getOptionLabelUsing(fn ($value) => 'Comment #'.$value),
             ])->columns(2),
         ]);
     }
@@ -80,55 +91,63 @@ class FeedPostCommentResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['doctor']))
             ->columns([
-                Tables\Columns\TextColumn::make('id')->label('ID')->badge()->color('gray')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('feed_post_id')
+                TextColumn::make('id')->label('ID')->badge()->color('gray')->searchable()->sortable(),
+                TextColumn::make('feed_post_id')
                     ->label('Feed Post')
                     ->badge()
                     ->color('info')
-                    ->formatStateUsing(fn ($state) => 'Post #' . $state)
+                    ->formatStateUsing(fn ($state) => 'Post #'.$state)
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('doctor.name')
+                TextColumn::make('doctor.name')
                     ->label('Doctor')
-                    ->formatStateUsing(fn ($record) => $record->doctor ? $record->doctor->name . ' ' . ($record->doctor->lname ?? '') : 'N/A')
+                    ->formatStateUsing(fn ($record) => $record->doctor ? $record->doctor->name.' '.($record->doctor->lname ?? '') : 'N/A')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('comment')
+                TextColumn::make('comment')
                     ->searchable()
                     ->limit(50)
                     ->wrap(),
-                Tables\Columns\TextColumn::make('parent_id')
+                TextColumn::make('parent_id')
                     ->label('Parent Comment')
                     ->badge()
                     ->color('gray')
-                    ->formatStateUsing(fn ($state) => $state ? 'Comment #' . $state : null)
+                    ->formatStateUsing(fn ($state) => $state ? 'Comment #'.$state : null)
                     ->placeholder('Top Level')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')->label('Created')->dateTime()->sortable()->since()->toggleable(),
+                TextColumn::make('created_at')->label('Created')->dateTime()->sortable()->since()->toggleable(),
             ])
             ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->striped()
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->filters([])
-            ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()->after(fn () => Cache::forget('feed_post_comments_count')),
+            ->recordActions([
+                ViewAction::make(),
+                EditAction::make(),
+                DeleteAction::make()->after(fn () => Cache::forget('feed_post_comments_count')),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()->after(fn () => Cache::forget('feed_post_comments_count')),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()->after(fn () => Cache::forget('feed_post_comments_count')),
                     ExportBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->emptyStateHeading('No feed comments')
+            ->emptyStateDescription('User comments on feed posts will appear here.')
+            ->emptyStateIcon('heroicon-o-chat-bubble-bottom-center-text');
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListFeedPostComments::route('/'),
-            'create' => Pages\CreateFeedPostComment::route('/create'),
-            'view' => Pages\ViewFeedPostComment::route('/{record}'),
-            'edit' => Pages\EditFeedPostComment::route('/{record}/edit'),
+            'index' => ListFeedPostComments::route('/'),
+            'create' => CreateFeedPostComment::route('/create'),
+            'view' => ViewFeedPostComment::route('/{record}'),
+            'edit' => EditFeedPostComment::route('/{record}/edit'),
         ];
     }
 }

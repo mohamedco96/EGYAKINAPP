@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 
@@ -48,7 +49,7 @@ class AppleSecretScheduler extends Command
                 } else {
                     $this->warn("⚠️  {$env} environment had issues");
                 }
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $this->error("❌ Error checking {$env}: ".$e->getMessage());
             }
         }

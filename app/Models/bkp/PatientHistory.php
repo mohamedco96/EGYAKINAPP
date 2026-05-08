@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -45,12 +46,12 @@ class PatientHistory extends Model
     ];
 
     protected $casts = [
-        //'id' => 'string', // Cast primary key to string
-        //'foreign_key' => 'string', // Cast foreign key to string
-        //'doctor_id' => 'string',
-       //'patient_id' => 'string',
+        // 'id' => 'string', // Cast primary key to string
+        // 'foreign_key' => 'string', // Cast foreign key to string
+        // 'doctor_id' => 'string',
+        // 'patient_id' => 'string',
         'special_habits_of_the_patient' => 'array',
-        'hidden' => 'boolean'
+        'hidden' => 'boolean',
     ];
 
     public function doctor(): BelongsTo
@@ -63,42 +64,42 @@ class PatientHistory extends Model
         return $this->hasMany(Treatment::class);
     }
 
-    public function sections(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function sections(): HasOne
     {
         return $this->hasOne(Section::class, 'patient_id');
     }
 
-    public function complaint(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function complaint(): HasOne
     {
         return $this->hasOne(Complaint::class, 'patient_id');
     }
 
-    public function cause(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function cause(): HasOne
     {
         return $this->hasOne(Cause::class, 'patient_id');
     }
 
-    public function risk(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function risk(): HasOne
     {
         return $this->hasOne(Risk::class, 'patient_id');
     }
 
-    public function assessment(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function assessment(): HasOne
     {
         return $this->hasOne(Assessment::class, 'patient_id');
     }
 
-    public function examination(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function examination(): HasOne
     {
         return $this->hasOne(Examination::class, 'patient_id');
     }
 
-    public function decision(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function decision(): HasOne
     {
         return $this->hasOne(Decision::class, 'patient_id');
     }
 
-    public function outcome(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function outcome(): HasOne
     {
         return $this->hasOne(Outcome::class, 'patient_id');
     }

@@ -3,7 +3,10 @@
 namespace App\Filament\Resources\DoseResource\Pages;
 
 use App\Filament\Resources\DoseResource;
-use Filament\Actions;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\ReplicateAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
@@ -14,19 +17,19 @@ class EditDose extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\ViewAction::make()
+            ViewAction::make()
                 ->color('info')
                 ->icon('heroicon-m-eye'),
-            Actions\DeleteAction::make()
+            DeleteAction::make()
                 ->color('danger')
                 ->icon('heroicon-m-trash')
                 ->requiresConfirmation()
                 ->modalDescription('Are you sure you want to delete this dose modifier? This action cannot be undone.'),
-            Actions\ReplicateAction::make()
+            ReplicateAction::make()
                 ->color('success')
                 ->icon('heroicon-m-square-2-stack')
-                ->form([
-                    \Filament\Forms\Components\TextInput::make('title')
+                ->schema([
+                    TextInput::make('title')
                         ->label('New Title')
                         ->required()
                         ->default(fn ($record) => $record->title.' (Copy)'),

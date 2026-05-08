@@ -8,7 +8,9 @@ use App\Models\User;
 use App\Modules\Achievements\Models\Achievement;
 use App\Modules\Posts\Models\Posts;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -162,7 +164,7 @@ class CleanupOrphanedFilesCommand extends Command
             $this->logCleanupResults($dryRun);
 
             return self::SUCCESS;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->error('Error during cleanup: '.$e->getMessage());
             Log::error('File cleanup failed', [
                 'error' => $e->getMessage(),
@@ -228,7 +230,7 @@ class CleanupOrphanedFilesCommand extends Command
     /**
      * Process root files (files not in any subdirectory)
      */
-    protected function processRootFiles(\Illuminate\Contracts\Filesystem\Filesystem $storage, bool $dryRun, int $batchSize): void
+    protected function processRootFiles(Filesystem $storage, bool $dryRun, int $batchSize): void
     {
         // Get all files in the root directory
         $allFiles = $storage->files();
@@ -333,7 +335,7 @@ class CleanupOrphanedFilesCommand extends Command
                     }
                 }
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->warn('Database connection failed: '.$e->getMessage());
             $this->warn('Proceeding with cleanup assuming no files are referenced in database.');
 
@@ -492,7 +494,7 @@ class CleanupOrphanedFilesCommand extends Command
                 }
             }
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->warn('Database connection failed for images: '.$e->getMessage());
         }
 
@@ -513,7 +515,7 @@ class CleanupOrphanedFilesCommand extends Command
 
             $this->warn('Medical reports cleanup: No specific model references found. Files will be preserved.');
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->warn('Database connection failed for medical reports: '.$e->getMessage());
         }
 
@@ -534,7 +536,7 @@ class CleanupOrphanedFilesCommand extends Command
 
             $this->warn('Reports cleanup: No specific model references found. Files will be preserved.');
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->warn('Database connection failed for reports: '.$e->getMessage());
         }
 
@@ -547,7 +549,7 @@ class CleanupOrphanedFilesCommand extends Command
     protected function extractFilePathFromUrl(string $url): ?string
     {
         // If already a relative path (not a full URL), use it directly
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        if (! filter_var($url, FILTER_VALIDATE_URL)) {
             // Remove leading slash if present and return
             return ltrim($url, '/');
         }
@@ -570,7 +572,7 @@ class CleanupOrphanedFilesCommand extends Command
     /**
      * Process a batch of files
      */
-    protected function processBatch(\Illuminate\Contracts\Filesystem\Filesystem $storage, array $batch, array $referencedFiles, bool $dryRun): void
+    protected function processBatch(Filesystem $storage, array $batch, array $referencedFiles, bool $dryRun): void
     {
         foreach ($batch as $filePath) {
             $fileName = basename($filePath);
@@ -596,7 +598,7 @@ class CleanupOrphanedFilesCommand extends Command
                             $this->errorCount++;
                             $this->error("Failed to delete: {$filePath}");
                         }
-                    } catch (\Exception $e) {
+                    } catch (Exception $e) {
                         $this->errorCount++;
                         $this->error("Error deleting {$filePath}: ".$e->getMessage());
                     }

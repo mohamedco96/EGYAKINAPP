@@ -2,18 +2,20 @@
 
 namespace App\Modules\Chat\Models;
 
+use App\Models\User;
+use App\Modules\Patients\Models\Patients;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 class AIConsultation extends Model
 {
     use HasApiTokens, HasFactory, Notifiable;
-    
+
     protected $table = 'ai_consultations'; // Explicitly set the table name
+
     protected $fillable = ['doctor_id', 'patient_id', 'question', 'response'];
 
     /**
@@ -31,7 +33,7 @@ class AIConsultation extends Model
      */
     public function doctor(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'doctor_id');
+        return $this->belongsTo(User::class, 'doctor_id');
     }
 
     /**
@@ -39,6 +41,6 @@ class AIConsultation extends Model
      */
     public function patient(): BelongsTo
     {
-        return $this->belongsTo(\App\Modules\Patients\Models\Patients::class, 'patient_id');
+        return $this->belongsTo(Patients::class, 'patient_id');
     }
 }

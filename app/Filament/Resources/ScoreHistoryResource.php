@@ -2,47 +2,61 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\ScoreHistoryResource\Pages;
+use App\Filament\Resources\ScoreHistoryResource\Pages\CreateScoreHistory;
+use App\Filament\Resources\ScoreHistoryResource\Pages\EditScoreHistory;
+use App\Filament\Resources\ScoreHistoryResource\Pages\ListScoreHistories;
 use App\Models\ScoreHistory;
-use Filament\Forms;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Form;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Actions\Action;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class ScoreHistoryResource extends Resource
 {
     protected static ?string $model = ScoreHistory::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-chart-bar';
 
     protected static ?string $navigationLabel = 'Score History';
 
-    protected static ?string $navigationGroup = '🏥 Patient Management';
+    protected static string|\UnitEnum|null $navigationGroup = '🏥 Patient Management';
 
-    protected static ?int $navigationSort = 80;
+    protected static ?int $navigationSort = 4;
 
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::count();
+        return Cache::remember('score_history_count', 300, function () {
+            return static::getModel()::count();
+        });
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('doctor_id')
+        return $schema
+            ->components([
+                Select::make('doctor_id')
                     ->relationship('doctor', 'name')
                     ->searchable()
                     ->preload()
                     ->label('Doctor Name'),
-                Forms\Components\TextInput::make('score')->required()->label('Score'),
-                Forms\Components\TextInput::make('action')->required()->label('Action'),
-                Forms\Components\DateTimePicker::make('timestamp'),
+                TextInput::make('score')->required()->label('Score'),
+                TextInput::make('action')->required()->label('Action'),
+                DateTimePicker::make('timestamp'),
             ]);
     }
 
@@ -51,22 +65,25 @@ class ScoreHistoryResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['doctor']))
             ->columns([
-                Tables\Columns\TextColumn::make('id')->toggleable(isToggledHiddenByDefault: false)->searchable(),
-                Tables\Columns\TextColumn::make('doctor.name')->toggleable(isToggledHiddenByDefault: false)->label('Doctor Name')->searchable(),
-                Tables\Columns\TextColumn::make('score')->toggleable(isToggledHiddenByDefault: false)->label('Score'),
-                Tables\Columns\TextColumn::make('action')->toggleable(isToggledHiddenByDefault: false)->label('Action'),
-                Tables\Columns\TextColumn::make('timestamp')->toggleable(isToggledHiddenByDefault: false)->label('Timestamp'),
-                Tables\Columns\TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false),
-                Tables\Columns\TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: false),
+                TextColumn::make('id')->toggleable(isToggledHiddenByDefault: false)->searchable(),
+                TextColumn::make('doctor.name')->toggleable(isToggledHiddenByDefault: false)->label('Doctor Name')->searchable(),
+                TextColumn::make('score')->toggleable(isToggledHiddenByDefault: false)->label('Score'),
+                TextColumn::make('action')->toggleable(isToggledHiddenByDefault: false)->label('Action'),
+                TextColumn::make('timestamp')->toggleable(isToggledHiddenByDefault: false)->label('Timestamp'),
+                TextColumn::make('created_at')->toggleable(isToggledHiddenByDefault: false),
+                TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: false),
             ])
+            ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->striped()
             ->persistSearchInSession()
             ->persistColumnSearchesInSession()
             ->persistSortInSession()
             ->filters([
-                Tables\Filters\SelectFilter::make('Doctor Name')
+                SelectFilter::make('Doctor Name')
                     ->relationship('doctor', 'name'),
-                Tables\Filters\Filter::make('created_at')
-                    ->form([
+                Filter::make('created_at')
+                    ->schema([
                         DatePicker::make('created_from'),
                         DatePicker::make('created_until'),
                     ])
@@ -88,24 +105,25 @@ class ScoreHistoryResource extends Resource
                     ->label('Toggle columns'),
             )
             ->persistFiltersInSession()
+            ->deferFilters(false)
             ->deselectAllRecordsWhenFiltered(true)
             ->filtersTriggerAction(
                 fn (Action $action) => $action
                     ->button()
                     ->label('Filter'),
             )
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                     ExportBulkAction::make(),
                 ]),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ]);
     }
 
@@ -119,9 +137,9 @@ class ScoreHistoryResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListScoreHistories::route('/'),
-            'create' => Pages\CreateScoreHistory::route('/create'),
-            'edit' => Pages\EditScoreHistory::route('/{record}/edit'),
+            'index' => ListScoreHistories::route('/'),
+            'create' => CreateScoreHistory::route('/create'),
+            'edit' => EditScoreHistory::route('/{record}/edit'),
         ];
     }
 }

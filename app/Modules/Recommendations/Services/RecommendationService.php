@@ -6,6 +6,7 @@ use App\Models\SectionsInfo;
 use App\Modules\Patients\Models\Patients;
 use App\Modules\Patients\Models\PatientStatus;
 use App\Modules\Recommendations\Models\Recommendation;
+use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -68,7 +69,7 @@ class RecommendationService
                 'data' => null,
                 'message' => 'Patient with ID '.$patientId.' not found.',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error fetching recommendations', ['patient_id' => $patientId, 'error' => $e->getMessage()]);
 
             return [
@@ -167,7 +168,7 @@ class RecommendationService
                 'data' => null,
                 'message' => 'Patient with ID '.$patientId.' not found.',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error creating recommendations', ['patient_id' => $patientId, 'error' => $e->getMessage()]);
 
             return [
@@ -266,7 +267,7 @@ class RecommendationService
                 'data' => null,
                 'message' => 'Patient with ID '.$patientId.' not found.',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error updating recommendations', ['patient_id' => $patientId, 'error' => $e->getMessage()]);
 
             return [
@@ -326,7 +327,7 @@ class RecommendationService
                 'data' => null,
                 'message' => 'Patient with ID '.$patientId.' not found.',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error deleting recommendations', ['patient_id' => $patientId, 'error' => $e->getMessage()]);
 
             return [

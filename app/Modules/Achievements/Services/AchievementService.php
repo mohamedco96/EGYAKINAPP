@@ -7,11 +7,14 @@ use App\Modules\Achievements\Models\Achievement;
 use App\Modules\Notifications\Models\AppNotification;
 use App\Services\NotificationService;
 use App\Traits\FormatsUserName;
+use Exception;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 
 class AchievementService
 {
     use FormatsUserName;
+
     protected $notificationService;
 
     public function __construct(NotificationService $notificationService)
@@ -33,7 +36,7 @@ class AchievementService
                 'data' => $achievements,
                 'message' => 'Achievements retrieved successfully',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error retrieving achievements', ['error' => $e->getMessage()]);
 
             return [
@@ -54,7 +57,7 @@ class AchievementService
             $achievement = new Achievement($data);
 
             // Handle image upload if present
-            if (isset($data['image']) && $data['image'] instanceof \Illuminate\Http\UploadedFile) {
+            if (isset($data['image']) && $data['image'] instanceof UploadedFile) {
                 $achievement->image = $data['image']->store('achievement_images', 'public');
                 Log::info('Image uploaded for achievement', ['image_path' => $achievement->image]);
             }
@@ -67,7 +70,7 @@ class AchievementService
                 'data' => $achievement,
                 'message' => 'Achievement created successfully',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error creating achievement', ['error' => $e->getMessage()]);
 
             return [
@@ -101,7 +104,7 @@ class AchievementService
                 'data' => $achievement,
                 'message' => 'Achievement retrieved successfully',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error retrieving achievement', [
                 'achievement_id' => $id,
                 'error' => $e->getMessage(),
@@ -132,7 +135,7 @@ class AchievementService
             }
 
             // Handle image upload if present
-            if (isset($data['image']) && $data['image'] instanceof \Illuminate\Http\UploadedFile) {
+            if (isset($data['image']) && $data['image'] instanceof UploadedFile) {
                 $data['image'] = $data['image']->store('achievement_images', 'public');
                 Log::info('New image uploaded for achievement', ['image_path' => $data['image']]);
             }
@@ -145,7 +148,7 @@ class AchievementService
                 'data' => $achievement->fresh(),
                 'message' => 'Achievement updated successfully',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error updating achievement', [
                 'achievement_id' => $id,
                 'error' => $e->getMessage(),
@@ -182,7 +185,7 @@ class AchievementService
                 'value' => true,
                 'message' => 'Achievement deleted successfully',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error deleting achievement', [
                 'achievement_id' => $id,
                 'error' => $e->getMessage(),
@@ -220,7 +223,7 @@ class AchievementService
                 'value' => true,
                 'message' => 'Achievements processed for all users successfully',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error processing achievements for all users', ['error' => $e->getMessage()]);
 
             return [
@@ -247,7 +250,7 @@ class AchievementService
                 'value' => true,
                 'message' => 'Achievements processed for user successfully',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error processing achievements for single user', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
@@ -298,7 +301,7 @@ class AchievementService
                 'data' => $transformedAchievements,
                 'message' => 'User achievements retrieved successfully',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error retrieving user achievements', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),

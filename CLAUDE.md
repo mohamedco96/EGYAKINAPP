@@ -10,7 +10,8 @@ The Laravel Boost guidelines are specifically curated by Laravel maintainers for
 This application is a Laravel application and its main Laravel ecosystems package & versions are below. You are an expert with them all. Ensure you abide by these specific packages & versions.
 
 - php - 8.3
-- filament/filament (FILAMENT) - v3
+- filament/filament (FILAMENT) - v4 (currently v4.11.2)
+- pxlrbt/filament-excel - v3 (currently v3.6.1)
 - laravel/framework (LARAVEL) - v11
 - laravel/prompts (PROMPTS) - v0
 - laravel/reverb (REVERB) - v1
@@ -209,5 +210,184 @@ This project has domain-specific skills available. You MUST activate the relevan
 - This project uses Pest for testing. Create tests: `php artisan make:test --pest {name}`.
 - Run tests: `php artisan test --compact` or filter: `php artisan test --compact --filter=testName`.
 - Do NOT delete tests without approval.
+
+=== filament/v4 rules ===
+
+# Filament v4
+
+This project upgraded from Filament v3 to v4. All resources, pages, and widgets use the v4 API. Never use v3 patterns.
+
+## Core API Changes from v3
+
+- `Form $form` → `Schema $schema`; `->schema([...])` → `->components([...])`
+- Import actions from `Filament\Actions\*`, NOT `Filament\Tables\Actions\*`
+- `protected static ?string $navigationIcon` → `protected static string|\BackedEnum|null $navigationIcon`
+- `protected static ?string $navigationGroup` → `protected static string|\UnitEnum|null $navigationGroup`
+- Actions listed via `->recordActions([...])` and `->toolbarActions([...])` instead of `->actions([...])` / `->bulkActions([...])`
+
+## Filters — Deferred by Default
+
+In v4 filters are deferred (user must click Apply). **All resources with filters must explicitly add `->deferFilters(false)`** to keep instant-apply behaviour. Place it after `->persistFiltersInSession()`.
+
+```php
+->persistFiltersInSession()
+->deferFilters(false)
+->deselectAllRecordsWhenFiltered(true)
+```
+
+## File Uploads — Private by Default
+
+In v4, `FileUpload` defaults to private storage. Any upload that must be publicly visible (e.g. profile images, syndicate cards) needs `->visibility('public')` explicitly.
+
+```php
+FileUpload::make('image')->directory('profile_images')->visibility('public')
+```
+
+## Client-Side Field Visibility — visibleJs / hiddenJs
+
+Use `->visibleJs(string $expression)` instead of `->visible(fn($get)=>...)` when visibility depends only on sibling field values. It runs client-side via Alpine `$get()` with zero Livewire roundtrips.
+
+**Critical rule:** If the field also has `->required()`, you MUST keep `->visible(fn($get)=>...)` alongside `->visibleJs()` so PHP skips required validation when the field is hidden.
+
+```php
+// Field without required — JS only, remove ->reactive() from the controlling field
+FileUpload::make('media_path')
+    ->visibleJs("$get('media_type') !== 'none'")
+
+// Field with required — keep PHP visible() AND add visibleJs()
+TagsInput::make('values')
+    ->visible(fn ($get) => in_array($get('type'), ['select', 'multiple']))
+    ->visibleJs("$get('type') === 'select' || $get('type') === 'multiple'")
+    ->required()
+```
+
+`->visibleJs()` cannot be used when visibility depends on `$livewire instanceof EditRecord` or `$record->someAttribute` — those require `->visible(fn()=>...)`.
+
+## After Filament Cache
+
+After any Filament change run:
+```bash
+php artisan filament:cache-components
+php artisan optimize:clear
+```
+
+=== project/filament-navigation rules ===
+
+# Admin Panel Navigation
+
+The admin panel uses exactly 5 navigation groups. Do not add new groups without approval.
+
+| Group | Purpose |
+|-------|---------|
+| `🏥 Patient Management` | Patients, statuses, scores, comments |
+| `📊 Medical Data` | Questionnaire sections, questions, answers, recommendations, doses |
+| `💬 AI & Consultations` | AI consultations, patient AI logs, consultations, consultation doctors/replies |
+| `📱 Community` | Feed posts, feed comments, groups, polls, hashtags, posts, post comments, notifications, contacts |
+| `⚙️ Administration` | Users, roles, permissions, settings, FCM tokens, user achievements |
+
+Junction/pivot resources (no independent CRUD value) are hidden from the sidebar using:
+```php
+public static function shouldRegisterNavigation(): bool { return false; }
+```
+Hidden resources: `FeedPostLikeResource`, `FeedPostCommentLikeResource`, `FeedSaveLikeResource`, `PollOptionResource`, `PollVoteResource`.
+
+=== project/filament-table-standards rules ===
+
+# Filament Table Standards
+
+Every visible resource table must include these three options for UX consistency:
+
+```php
+->defaultPaginationPageOption(25)
+->striped()
+->persistSearchInSession()
+```
+
+Secondary columns (`updated_at`, contextual-only fields) must be toggleable:
+
+```php
+TextColumn::make('updated_at')->toggleable(isToggledHiddenByDefault: true)
+TextColumn::make('created_at')->toggleable()  // visible by default, but user can hide
+```
+
+Tables that can be empty must have:
+```php
+->emptyStateHeading('...')
+->emptyStateDescription('...')
+->emptyStateIcon('heroicon-o-...')
+```
+
+Navigation badge counts must be cached:
+```php
+public static function getNavigationBadge(): ?string
+{
+    return Cache::remember('resource_name_count', 300, fn () => static::getModel()::count());
+}
+```
+
+=== project/n1-patterns rules ===
+
+# N+1 Prevention Patterns
+
+## Filament Tables
+
+Always use `->modifyQueryUsing()` to eager-load any relationship accessed in column formatters or dot-notation columns:
+
+```php
+->modifyQueryUsing(fn (Builder $query) => $query->with(['doctor', 'patient']))
+->columns([
+    TextColumn::make('doctor.name'),  // safe — eager-loaded above
+])
+```
+
+`->counts('relation')` is NOT an N+1. Filament automatically applies `withCount()`.
+
+## Form Select — getSearchResultsUsing
+
+Always add `->with('relation')` before `->get()` when the `mapWithKeys` callback accesses a relationship:
+
+```php
+// CORRECT
+->getSearchResultsUsing(function (string $search) {
+    return Patients::query()
+        ->with('doctor')          // eager-load before the loop
+        ->where(...)
+        ->limit(50)
+        ->get()
+        ->mapWithKeys(function ($patient) {
+            $name = $patient->doctor?->name;  // safe
+            ...
+        });
+})
+```
+
+## Form Select — getOptionLabelUsing
+
+Use `::with('relation')->find($value)` not bare `::find($value)` when the closure accesses a relationship on the result:
+
+```php
+// CORRECT
+->getOptionLabelUsing(function ($value) {
+    $patient = Patients::with('doctor')->find($value);
+    $name = $patient->doctor?->name;
+    ...
+})
+```
+
+## Widget Table Caching
+
+For dashboard `TableWidget` classes that use `->poll()`, cache the result IDs to avoid a full query on every poll cycle:
+
+```php
+protected function getRecentQuery(): Builder
+{
+    $ids = Cache::remember('widget_key', 60, fn () =>
+        Model::query()->latest()->limit(10)->pluck('id')->toArray()
+    );
+    return Model::query()->with(['relation'])->whereIn('id', $ids)->latest();
+}
+```
+
+Poll intervals: use `->poll('30s')` at minimum. Avoid `->poll('10s')` — it hits the DB 6 times per minute.
 
 </laravel-boost-guidelines>

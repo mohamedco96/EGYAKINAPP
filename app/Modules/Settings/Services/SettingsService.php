@@ -3,15 +3,13 @@
 namespace App\Modules\Settings\Services;
 
 use App\Modules\Settings\Models\Settings;
+use Exception;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class SettingsService
 {
     /**
      * Get the latest settings
-     *
-     * @return array
      */
     public function getLatestSettings(): array
     {
@@ -33,40 +31,37 @@ class SettingsService
                         'force_update' => $setting->force_update,
                         'updated_at' => $setting->updated_at,
                     ],
-                    'status_code' => 200
+                    'status_code' => 200,
                 ];
             }
 
             Log::warning('No settings found.');
-            
+
             return [
                 'success' => false,
                 'data' => [
                     'value' => false,
-                    'message' => 'No settings found.'
+                    'message' => 'No settings found.',
                 ],
-                'status_code' => 404
+                'status_code' => 404,
             ];
 
-        } catch (\Exception $e) {
-            Log::error('Error retrieving settings: ' . $e->getMessage());
-            
+        } catch (Exception $e) {
+            Log::error('Error retrieving settings: '.$e->getMessage());
+
             return [
                 'success' => false,
                 'data' => [
                     'value' => false,
-                    'message' => 'An error occurred while retrieving settings.'
+                    'message' => 'An error occurred while retrieving settings.',
                 ],
-                'status_code' => 500
+                'status_code' => 500,
             ];
         }
     }
 
     /**
      * Create a new setting
-     *
-     * @param array $data
-     * @return array
      */
     public function createSetting(array $data): array
     {
@@ -76,7 +71,7 @@ class SettingsService
             if ($setting) {
                 Log::info('Setting created successfully.', [
                     'setting_id' => $setting->id,
-                    'data' => $setting->toArray()
+                    'data' => $setting->toArray(),
                 ]);
 
                 return [
@@ -85,7 +80,7 @@ class SettingsService
                         'value' => true,
                         'data' => $setting,
                     ],
-                    'status_code' => 201
+                    'status_code' => 201,
                 ];
             }
 
@@ -97,36 +92,32 @@ class SettingsService
                     'value' => false,
                     'message' => 'Failed to create setting.',
                 ],
-                'status_code' => 400
+                'status_code' => 400,
             ];
 
-        } catch (\Exception $e) {
-            Log::error('Error creating setting: ' . $e->getMessage());
+        } catch (Exception $e) {
+            Log::error('Error creating setting: '.$e->getMessage());
 
             return [
                 'success' => false,
                 'data' => [
                     'value' => false,
-                    'message' => 'An error occurred while creating the setting.'
+                    'message' => 'An error occurred while creating the setting.',
                 ],
-                'status_code' => 500
+                'status_code' => 500,
             ];
         }
     }
 
     /**
      * Update an existing setting
-     *
-     * @param Settings $settings
-     * @param array $data
-     * @return array
      */
     public function updateSetting(Settings $settings, array $data): array
     {
         try {
             Log::info('Updating setting.', [
                 'setting_id' => $settings->id,
-                'incoming_data' => $data
+                'incoming_data' => $data,
             ]);
 
             // Manually update each field to avoid issues with mass assignment
@@ -137,7 +128,7 @@ class SettingsService
 
             Log::info('Setting updated successfully.', [
                 'setting_id' => $settings->id,
-                'updated_data' => $settings->toArray()
+                'updated_data' => $settings->toArray(),
             ]);
 
             return [
@@ -145,24 +136,24 @@ class SettingsService
                 'data' => [
                     'value' => true,
                     'data' => $settings,
-                    'message' => 'Setting updated successfully.'
+                    'message' => 'Setting updated successfully.',
                 ],
-                'status_code' => 200
+                'status_code' => 200,
             ];
 
-        } catch (\Exception $e) {
-            Log::error('Error updating setting: ' . $e->getMessage(), [
+        } catch (Exception $e) {
+            Log::error('Error updating setting: '.$e->getMessage(), [
                 'setting_id' => $settings->id,
-                'exception' => $e->getTraceAsString()
+                'exception' => $e->getTraceAsString(),
             ]);
 
             return [
                 'success' => false,
                 'data' => [
                     'value' => false,
-                    'message' => 'An error occurred while updating the setting.'
+                    'message' => 'An error occurred while updating the setting.',
                 ],
-                'status_code' => 500
+                'status_code' => 500,
             ];
         }
     }

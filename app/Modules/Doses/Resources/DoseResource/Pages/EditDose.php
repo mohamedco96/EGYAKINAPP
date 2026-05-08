@@ -3,7 +3,7 @@
 namespace App\Modules\Doses\Resources\DoseResource\Pages;
 
 use App\Modules\Doses\Resources\DoseResource;
-use Filament\Actions;
+use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditDose extends EditRecord
@@ -13,7 +13,7 @@ class EditDose extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 }

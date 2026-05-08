@@ -6,6 +6,8 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
+use RuntimeException;
 
 class ChatFileService
 {
@@ -32,7 +34,7 @@ class ChatFileService
      *
      * Returns metadata array: {original_name, disk_path, mime_type, size_bytes}
      *
-     * @throws \InvalidArgumentException when MIME type is not allowed
+     * @throws InvalidArgumentException when MIME type is not allowed
      */
     public function uploadFile(UploadedFile $file, string $messageType): array
     {
@@ -40,7 +42,7 @@ class ChatFileService
         $allowed = self::ALLOWED_TYPES[$messageType] ?? [];
 
         if (! in_array($mime, $allowed, true)) {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 "File type '{$mime}' is not allowed for message type '{$messageType}'."
             );
         }
@@ -51,7 +53,7 @@ class ChatFileService
         $diskPath = "{$subdir}/{$filename}";
 
         if (Storage::disk(self::DISK)->putFileAs($subdir, $file, $filename) === false) {
-            throw new \RuntimeException("Failed to store uploaded file '{$filename}'.");
+            throw new RuntimeException("Failed to store uploaded file '{$filename}'.");
         }
 
         return [

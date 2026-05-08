@@ -3,10 +3,12 @@
 namespace App\Filament\Widgets;
 
 use App\Modules\Consultations\Models\Consultation;
-use Filament\Tables;
+use Filament\Actions\ViewAction;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 
 class RecentConsultationsTable extends BaseWidget
 {
@@ -21,27 +23,27 @@ class RecentConsultationsTable extends BaseWidget
         return $table
             ->query($this->getRecentConsultationsQuery())
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('Consultation ID')
                     ->badge()
                     ->color('info')
                     ->prefix('#'),
 
-                Tables\Columns\TextColumn::make('doctor.name')
+                TextColumn::make('doctor.name')
                     ->label('Doctor')
                     ->searchable()
                     ->limit(25),
 
-                Tables\Columns\TextColumn::make('consult_message')
+                TextColumn::make('consult_message')
                     ->label('Message')
                     ->limit(40)
-                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                    ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
 
                         return strlen($state) > 40 ? $state : null;
                     }),
 
-                Tables\Columns\TextColumn::make('status')
+                TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'pending' => 'warning',
@@ -56,15 +58,15 @@ class RecentConsultationsTable extends BaseWidget
                         default => 'heroicon-m-question-mark-circle',
                     }),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime('M j, g:i A')
                     ->sortable()
                     ->since()
                     ->tooltip(fn ($state) => $state?->format('F j, Y \a\t g:i A')),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->url(fn (Consultation $record): string => "/admin/consultations/{$record->id}"),
             ])
             ->defaultSort('created_at', 'desc')
@@ -78,10 +80,14 @@ class RecentConsultationsTable extends BaseWidget
 
     protected function getRecentConsultationsQuery(): Builder
     {
-        return Consultation::query()
-            ->with(['doctor', 'patient'])
+        $ids = Cache::remember('widget_recent_consultations', 60, fn () => Consultation::query()
             ->whereDate('created_at', '>=', now()->subDays(7))
             ->latest()
-            ->limit(10);
+            ->limit(10)
+            ->pluck('id')
+            ->toArray()
+        );
+
+        return Consultation::query()->with(['doctor', 'patient'])->whereIn('id', $ids)->latest();
     }
 }

@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\PostCommentsResource\Pages;
 
 use App\Filament\Resources\PostCommentsResource;
-use Filament\Actions;
+use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewPostComments extends ViewRecord
@@ -13,7 +13,7 @@ class ViewPostComments extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make(),
+            EditAction::make(),
         ];
     }
 }

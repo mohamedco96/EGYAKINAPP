@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\UserAchievementResource\Pages;
 
 use App\Filament\Resources\UserAchievementResource;
-use Filament\Actions;
+use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewUserAchievement extends ViewRecord
@@ -13,7 +13,7 @@ class ViewUserAchievement extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make(),
+            EditAction::make(),
         ];
     }
 }

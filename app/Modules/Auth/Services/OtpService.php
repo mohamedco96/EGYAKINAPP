@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Notifications\EmailVerificationNotification;
 use App\Services\BrevoApiService;
 use Carbon\Carbon;
+use Exception;
 use Ichtrojan\Otp\Models\Otp as OtpModel;
 use Otp;
 
@@ -63,7 +64,7 @@ class OtpService
             ]);
 
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             logger()->error('Failed to send enhanced OTP email', [
                 'user' => $user->id,
                 'email' => $user->email,

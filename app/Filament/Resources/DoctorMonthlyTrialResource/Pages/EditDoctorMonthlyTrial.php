@@ -3,7 +3,8 @@
 namespace App\Filament\Resources\DoctorMonthlyTrialResource\Pages;
 
 use App\Filament\Resources\DoctorMonthlyTrialResource;
-use Filament\Actions;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\Cache;
 
@@ -14,8 +15,8 @@ class EditDoctorMonthlyTrial extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\ViewAction::make(),
-            Actions\DeleteAction::make()
+            ViewAction::make(),
+            DeleteAction::make()
                 ->after(function () {
                     Cache::forget('doctor_monthly_trials_count');
                 }),

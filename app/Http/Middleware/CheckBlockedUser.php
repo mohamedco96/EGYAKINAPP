@@ -2,9 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use App;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class CheckBlockedUser
@@ -12,7 +14,7 @@ class CheckBlockedUser
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request):Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -23,14 +25,14 @@ class CheckBlockedUser
             if ($user->blocked) {
                 // Set the locale based on user preference before returning the message
                 if ($user->locale && in_array($user->locale, ['en', 'ar'])) {
-                    \App::setLocale($user->locale);
+                    App::setLocale($user->locale);
                 }
 
                 // Revoke all tokens for this user
                 $user->tokens()->delete();
 
                 // Log the blocked user access attempt
-                \Log::warning('Blocked user attempted to access system', [
+                Log::warning('Blocked user attempted to access system', [
                     'user_id' => $user->id,
                     'email' => $user->email,
                     'url' => $request->url(),

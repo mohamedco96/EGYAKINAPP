@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Contract\Messaging as FirebaseMessaging;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
+use Throwable;
 
 class ChatNotificationService
 {
@@ -110,7 +111,7 @@ class ChatNotificationService
                 'success_count' => $successCount,
                 'failure_count' => $failureCount,
             ]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('DirectChat: Failed to send chat push notification', [
                 'message_id' => $message->id,
                 'error' => $e->getMessage(),

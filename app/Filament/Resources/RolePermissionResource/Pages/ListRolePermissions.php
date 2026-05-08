@@ -3,8 +3,9 @@
 namespace App\Filament\Resources\RolePermissionResource\Pages;
 
 use App\Filament\Resources\RolePermissionResource;
-use Filament\Actions;
+use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 
 class ListRolePermissions extends ListRecords
@@ -14,11 +15,11 @@ class ListRolePermissions extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            CreateAction::make(),
         ];
     }
 
-    protected function getTableQuery(): \Illuminate\Database\Eloquent\Builder
+    protected function getTableQuery(): Builder
     {
         return parent::getTableQuery()->orderBy('role_id')->orderBy('permission_id');
     }

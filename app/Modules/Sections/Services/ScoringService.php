@@ -5,6 +5,7 @@ namespace App\Modules\Sections\Services;
 use App\Models\Score;
 use App\Models\ScoreHistory;
 use App\Notifications\ReachingSpecificPoints;
+use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -54,7 +55,7 @@ class ScoringService
                 'new_total_score' => $score->score,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error processing final submit scoring', [
                 'patient_id' => $patientId,
                 'error' => $e->getMessage(),

@@ -2,12 +2,26 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\GroupResource\Pages;
+use App\Filament\Resources\GroupResource\Pages\CreateGroup;
+use App\Filament\Resources\GroupResource\Pages\EditGroup;
+use App\Filament\Resources\GroupResource\Pages\ListGroups;
+use App\Filament\Resources\GroupResource\Pages\ViewGroup;
 use App\Models\Group;
-use Filament\Forms;
-use Filament\Forms\Form;
+use App\Models\User;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -17,13 +31,13 @@ class GroupResource extends Resource
 {
     protected static ?string $model = Group::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-user-group';
 
     protected static ?string $navigationLabel = 'Groups';
 
-    protected static ?string $navigationGroup = '📱 Social Feed';
+    protected static string|\UnitEnum|null $navigationGroup = '📱 Community';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 3;
 
     public static function getNavigationBadge(): ?string
     {
@@ -32,28 +46,28 @@ class GroupResource extends Resource
         });
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make('Group Information')->schema([
-                Forms\Components\TextInput::make('name')
+        return $schema->components([
+            Section::make('Group Information')->schema([
+                TextInput::make('name')
                     ->required()
                     ->maxLength(255)
                     ->label('Group Name')
                     ->helperText('The name of the group'),
-                Forms\Components\Select::make('owner_id')
+                Select::make('owner_id')
                     ->relationship('owner', 'name')
                     ->searchable()
                     ->preload()
                     ->required()
                     ->label('Group Owner')
-                    ->getSearchResultsUsing(fn (string $search) => \App\Models\User::where(function($query) use ($search) {
+                    ->getSearchResultsUsing(fn (string $search) => User::where(function ($query) use ($search) {
                         $query->where('name', 'like', "%{$search}%")
                             ->orWhere('lname', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%");
                     })->limit(50)->get()->pluck('full_name_with_email', 'id'))
-                    ->getOptionLabelUsing(fn ($value): ?string => \App\Models\User::find($value)?->full_name_with_email),
-                Forms\Components\Select::make('privacy')
+                    ->getOptionLabelUsing(fn ($value): ?string => User::find($value)?->full_name_with_email),
+                Select::make('privacy')
                     ->options([
                         'public' => 'Public',
                         'private' => 'Private',
@@ -63,7 +77,7 @@ class GroupResource extends Resource
                     ->native(false)
                     ->label('Privacy Setting')
                     ->helperText('Public groups are visible to all, private groups require approval'),
-                Forms\Components\Textarea::make('description')
+                Textarea::make('description')
                     ->nullable()
                     ->rows(3)
                     ->columnSpanFull()
@@ -77,13 +91,13 @@ class GroupResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['owner']))
             ->columns([
-                Tables\Columns\TextColumn::make('id')->label('ID')->badge()->color('gray')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('id')->label('ID')->badge()->color('gray')->searchable()->sortable(),
+                TextColumn::make('name')
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->limit(40),
-                Tables\Columns\TextColumn::make('privacy')
+                TextColumn::make('privacy')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'public' => 'success',
@@ -97,47 +111,68 @@ class GroupResource extends Resource
                     })
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('owner.name')
+                TextColumn::make('owner.name')
                     ->label('Owner')
-                    ->formatStateUsing(fn ($record) => $record->owner ? $record->owner->name . ' ' . ($record->owner->lname ?? '') : 'N/A')
+                    ->formatStateUsing(fn ($record) => $record->owner ? $record->owner->name.' '.($record->owner->lname ?? '') : 'N/A')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('description')
+                TextColumn::make('description')
                     ->searchable()
                     ->limit(50)
                     ->wrap()
                     ->placeholder('No description')
                     ->toggleable(isToggledHiddenByDefault: false),
-                Tables\Columns\TextColumn::make('created_at')->label('Created')->dateTime()->sortable()->since()->toggleable(),
+                TextColumn::make('created_at')->label('Created')->dateTime()->sortable()->since()->toggleable(),
             ])
             ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->striped()
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->filters([
-                Tables\Filters\SelectFilter::make('privacy')
+                SelectFilter::make('privacy')
                     ->options([
                         'public' => 'Public',
                         'private' => 'Private',
                     ]),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()->after(fn () => Cache::forget('groups_count')),
+            ->toggleColumnsTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Toggle columns'),
+            )
+            ->persistFiltersInSession()
+            ->deferFilters(false)
+            ->deselectAllRecordsWhenFiltered(true)
+            ->filtersTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Filter'),
+            )
+            ->recordActions([
+                ViewAction::make(),
+                EditAction::make(),
+                DeleteAction::make()->after(fn () => Cache::forget('groups_count')),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()->after(fn () => Cache::forget('groups_count')),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()->after(fn () => Cache::forget('groups_count')),
                     ExportBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->emptyStateHeading('No groups yet')
+            ->emptyStateDescription('Community groups will appear here.')
+            ->emptyStateIcon('heroicon-o-user-group');
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListGroups::route('/'),
-            'create' => Pages\CreateGroup::route('/create'),
-            'view' => Pages\ViewGroup::route('/{record}'),
-            'edit' => Pages\EditGroup::route('/{record}/edit'),
+            'index' => ListGroups::route('/'),
+            'create' => CreateGroup::route('/create'),
+            'view' => ViewGroup::route('/{record}'),
+            'edit' => EditGroup::route('/{record}/edit'),
         ];
     }
 }

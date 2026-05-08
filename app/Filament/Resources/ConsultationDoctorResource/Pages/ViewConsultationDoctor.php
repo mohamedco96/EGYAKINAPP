@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\ConsultationDoctorResource\Pages;
 
 use App\Filament\Resources\ConsultationDoctorResource;
-use Filament\Actions;
+use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewConsultationDoctor extends ViewRecord
@@ -13,7 +13,7 @@ class ViewConsultationDoctor extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make(),
+            EditAction::make(),
         ];
     }
 }

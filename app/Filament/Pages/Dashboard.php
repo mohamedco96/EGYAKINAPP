@@ -11,13 +11,13 @@ use Filament\Pages\Dashboard as BaseDashboard;
 
 class Dashboard extends BaseDashboard
 {
-    protected static ?string $navigationIcon = 'heroicon-o-home';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-home';
 
-    protected static ?string $navigationGroup = null;
+    protected static string|\UnitEnum|null $navigationGroup = null;
 
     protected static ?int $navigationSort = -1;
 
-    protected static string $view = 'filament.pages.dashboard';
+    protected string $view = 'filament.pages.dashboard';
 
     public function getWidgets(): array
     {
@@ -30,7 +30,7 @@ class Dashboard extends BaseDashboard
         ];
     }
 
-    public function getColumns(): int|string|array
+    public function getColumns(): int|array
     {
         return [
             'sm' => 1,

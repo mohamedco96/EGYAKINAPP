@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use App\Modules\Doses\Models\Dose;
 use App\Modules\Patients\Models\Patients;
+use Illuminate\Support\Collection;
 
 class SearchService
 {
@@ -25,7 +26,7 @@ class SearchService
     /**
      * Search for doses by title
      */
-    private function searchDoses(string $query): \Illuminate\Support\Collection
+    private function searchDoses(string $query): Collection
     {
         if (empty($query)) {
             return collect();
@@ -40,7 +41,7 @@ class SearchService
     /**
      * Search for patients by doctor name or answer content
      */
-    private function searchPatients(string $query): \Illuminate\Support\Collection
+    private function searchPatients(string $query): Collection
     {
         if (empty($query)) {
             return collect();

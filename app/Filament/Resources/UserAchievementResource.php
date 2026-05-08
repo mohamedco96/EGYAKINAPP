@@ -2,12 +2,23 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\UserAchievementResource\Pages;
+use App\Filament\Resources\UserAchievementResource\Pages\CreateUserAchievement;
+use App\Filament\Resources\UserAchievementResource\Pages\EditUserAchievement;
+use App\Filament\Resources\UserAchievementResource\Pages\ListUserAchievements;
+use App\Filament\Resources\UserAchievementResource\Pages\ViewUserAchievement;
 use App\Models\UserAchievement;
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -17,11 +28,11 @@ class UserAchievementResource extends Resource
 {
     protected static ?string $model = UserAchievement::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-trophy';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-trophy';
 
     protected static ?string $navigationLabel = 'User Achievements';
 
-    protected static ?string $navigationGroup = 'App Data';
+    protected static string|\UnitEnum|null $navigationGroup = '⚙️ Administration';
 
     protected static ?int $navigationSort = 6;
 
@@ -32,12 +43,12 @@ class UserAchievementResource extends Resource
         });
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make('UserAchievement Information')->schema([                Forms\Components\Select::make('user_id')->relationship('user', 'name')->searchable()->preload()->required(),
-                Forms\Components\Select::make('achievement_id')->relationship('achievement', 'name')->searchable()->preload()->required(),
-                Forms\Components\Toggle::make('achieved')->default(false)
+        return $schema->components([
+            Section::make('UserAchievement Information')->schema([Select::make('user_id')->relationship('user', 'name')->searchable()->preload()->required(),
+                Select::make('achievement_id')->relationship('achievement', 'name')->searchable()->preload()->required(),
+                Toggle::make('achieved')->default(false),
             ])->columns(2),
         ]);
     }
@@ -47,34 +58,42 @@ class UserAchievementResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['user', 'achievement']))
             ->columns([
-                Tables\Columns\TextColumn::make('id')->label('ID')->badge()->color('gray')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('user.name')->label('User')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('achievement.name')->label('Achievement')->searchable()->sortable(),
-                Tables\Columns\IconColumn::make('achieved')->boolean()->sortable(),
-                Tables\Columns\TextColumn::make('created_at')->label('Created')->dateTime()->sortable()->since()->toggleable(),
+                TextColumn::make('id')->label('ID')->badge()->color('gray')->searchable()->sortable(),
+                TextColumn::make('user.name')->label('User')->searchable()->sortable(),
+                TextColumn::make('achievement.name')->label('Achievement')->searchable()->sortable(),
+                IconColumn::make('achieved')->boolean()->sortable(),
+                TextColumn::make('created_at')->label('Created')->dateTime()->sortable()->since()->toggleable(),
             ])
             ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->striped()
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->filters([])
-            ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()->after(fn () => Cache::forget('user_achievements_count')),
+            ->recordActions([
+                ViewAction::make(),
+                EditAction::make(),
+                DeleteAction::make()->after(fn () => Cache::forget('user_achievements_count')),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()->after(fn () => Cache::forget('user_achievements_count')),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()->after(fn () => Cache::forget('user_achievements_count')),
                     ExportBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->emptyStateHeading('No achievements recorded')
+            ->emptyStateDescription('User achievements will appear here.')
+            ->emptyStateIcon('heroicon-o-trophy');
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListUserAchievements::route('/'),
-            'create' => Pages\CreateUserAchievement::route('/create'),
-            'view' => Pages\ViewUserAchievement::route('/{record}'),
-            'edit' => Pages\EditUserAchievement::route('/{record}/edit'),
+            'index' => ListUserAchievements::route('/'),
+            'create' => CreateUserAchievement::route('/create'),
+            'view' => ViewUserAchievement::route('/{record}'),
+            'edit' => EditUserAchievement::route('/{record}/edit'),
         ];
     }
 }

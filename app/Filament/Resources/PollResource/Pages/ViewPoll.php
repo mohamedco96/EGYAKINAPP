@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\PollResource\Pages;
 
 use App\Filament\Resources\PollResource;
-use Filament\Actions;
+use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewPoll extends ViewRecord
@@ -13,7 +13,7 @@ class ViewPoll extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make(),
+            EditAction::make(),
         ];
     }
 }

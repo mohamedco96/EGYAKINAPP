@@ -4,7 +4,9 @@ namespace App\Modules\Patients\Resources\PatientsResource\Pages;
 
 use App\Modules\Patients\Resources\PatientsResource;
 use App\Modules\Questions\Models\Questions;
-use Filament\Actions;
+use Exception;
+use Filament\Actions\Action;
+use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Support\Facades\Cache;
 
@@ -12,13 +14,13 @@ class ViewPatient extends ViewRecord
 {
     protected static string $resource = PatientsResource::class;
 
-    protected static string $view = 'filament.patients.view-patient';
+    protected string $view = 'filament.patients.view-patient';
 
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make(),
-            Actions\Action::make('exportPatient')
+            EditAction::make(),
+            Action::make('exportPatient')
                 ->label('Export Patient')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('success')
@@ -76,7 +78,7 @@ class ViewPatient extends ViewRecord
                 'completionRate' => $completionRate,
                 'sectionsCount' => $answersBySection->count(),
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Fallback data if there's an error
             return [
                 'patient' => $this->record->load('doctor'),

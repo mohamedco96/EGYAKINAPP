@@ -2,6 +2,7 @@
 
 namespace App\Modules\Auth\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ResetPasswordRequest extends FormRequest
@@ -17,13 +18,13 @@ class ResetPasswordRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            //'email' => ['required', 'email', 'exists:users'],
-           // 'otp' => ['required', 'max:6'],
+            // 'email' => ['required', 'email', 'exists:users'],
+            // 'otp' => ['required', 'max:6'],
         ];
     }
 }

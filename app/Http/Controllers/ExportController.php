@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\ExportPatientsJob;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -38,7 +39,7 @@ class ExportController extends Controller
                 'message' => 'Export started successfully',
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to start patient export', [
                 'error' => $e->getMessage(),
             ]);
@@ -92,7 +93,7 @@ class ExportController extends Controller
                 'message' => 'Export not found',
             ], 404);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to check progress: '.$e->getMessage(),
@@ -113,7 +114,7 @@ class ExportController extends Controller
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to download export', [
                 'filename' => $filename,
                 'error' => $e->getMessage(),

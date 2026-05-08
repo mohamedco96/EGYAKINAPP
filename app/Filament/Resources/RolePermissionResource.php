@@ -2,12 +2,20 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\RolePermissionResource\Pages;
+use App\Filament\Resources\RolePermissionResource\Pages\CreateRolePermission;
+use App\Filament\Resources\RolePermissionResource\Pages\EditRolePermission;
+use App\Filament\Resources\RolePermissionResource\Pages\ListRolePermissions;
+use App\Filament\Resources\RolePermissionResource\Pages\ViewRolePermission;
 use App\Modules\RolePermission\Models\RolePermission;
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -17,11 +25,11 @@ class RolePermissionResource extends Resource
 {
     protected static ?string $model = RolePermission::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-shield-check';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-shield-check';
 
     protected static ?string $navigationLabel = 'Role Permissions';
 
-    protected static ?string $navigationGroup = '🔐 Access Control';
+    protected static string|\UnitEnum|null $navigationGroup = '🔐 Access Control';
 
     protected static ?int $navigationSort = 3;
 
@@ -39,12 +47,12 @@ class RolePermissionResource extends Resource
         return Cache::remember('role_permissions_count', 300, fn () => static::getModel()::count());
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make('Assignment')->schema([
-                Forms\Components\Select::make('role_id')->relationship('role', 'name')->searchable()->preload()->required(),
-                Forms\Components\Select::make('permission_id')->relationship('permission', 'name')->searchable()->preload()->required(),
+        return $schema->components([
+            Section::make('Assignment')->schema([
+                Select::make('role_id')->relationship('role', 'name')->searchable()->preload()->required(),
+                Select::make('permission_id')->relationship('permission', 'name')->searchable()->preload()->required(),
             ])->columns(2),
         ]);
     }
@@ -54,38 +62,43 @@ class RolePermissionResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['role', 'permission']))
             ->columns([
-                Tables\Columns\TextColumn::make('role.name')
+                TextColumn::make('role.name')
                     ->label('Role')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('permission.name')
+                TextColumn::make('permission.name')
                     ->label('Permission')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('permission.category')
+                TextColumn::make('permission.category')
                     ->label('Category')
                     ->badge()
                     ->color('info')
                     ->sortable(),
             ])
             ->defaultSort('role_id')
-            ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
+            ->recordActions([
+                ViewAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
-                ExportBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                    ExportBulkAction::make(),
+                ]),
             ]);
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListRolePermissions::route('/'),
-            'create' => Pages\CreateRolePermission::route('/create'),
-            'view' => Pages\ViewRolePermission::route('/{record}'),
-            'edit' => Pages\EditRolePermission::route('/{record}/edit'),
+            'index' => ListRolePermissions::route('/'),
+            'create' => CreateRolePermission::route('/create'),
+            'view' => ViewRolePermission::route('/{record}'),
+            'edit' => EditRolePermission::route('/{record}/edit'),
         ];
     }
 }

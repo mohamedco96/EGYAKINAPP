@@ -5,6 +5,7 @@ namespace App\Modules\DirectChat\Observers;
 use App\Modules\DirectChat\Models\Message;
 use App\Modules\DirectChat\Services\ChatFileService;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class MessageObserver
 {
@@ -37,7 +38,7 @@ class MessageObserver
 
         try {
             $this->fileService->deleteFile($metadata['disk_path']);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::warning('DirectChat: Failed to delete file on message deletion', [
                 'message_id' => $message->id,
                 'disk_path' => $metadata['disk_path'],

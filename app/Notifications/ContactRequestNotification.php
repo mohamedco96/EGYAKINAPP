@@ -6,6 +6,7 @@ use App\Services\MailListService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Log;
 
 class ContactRequestNotification extends Notification
 {
@@ -101,7 +102,7 @@ class ContactRequestNotification extends Notification
 
         // Log final recipients for debugging if needed
         if (config('app.debug')) {
-            \Log::debug('ContactRequestNotification recipients', [
+            Log::debug('ContactRequestNotification recipients', [
                 'final_recipients' => $recipients,
                 'count' => count($recipients),
             ]);

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Auth\Requests\ResetPasswordRequest;
 use App\Modules\Auth\Services\OtpService;
+use Exception;
 use Hash;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -50,7 +51,7 @@ class ResetPasswordController extends Controller
                 'value' => true,
                 'message' => 'Reset password OTP verified successfully',
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error verifying reset password OTP', ['error' => $e->getMessage()]);
 
             return response()->json([
@@ -92,7 +93,7 @@ class ResetPasswordController extends Controller
                 'value' => true,
                 'message' => 'Password reset successfully',
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error resetting password', ['error' => $e->getMessage()]);
 
             return response()->json([

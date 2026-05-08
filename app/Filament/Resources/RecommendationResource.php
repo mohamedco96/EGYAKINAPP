@@ -2,16 +2,31 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\RecommendationResource\Pages;
+use App\Filament\Resources\RecommendationResource\Pages\CreateRecommendation;
+use App\Filament\Resources\RecommendationResource\Pages\EditRecommendation;
+use App\Filament\Resources\RecommendationResource\Pages\ListRecommendations;
+use App\Filament\Resources\RecommendationResource\Pages\ViewRecommendation;
 use App\Modules\Patients\Models\Patients;
 use App\Modules\Recommendations\Models\Recommendation;
-use Filament\Forms;
+use Carbon\Carbon;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Form;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Actions\Action;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -21,13 +36,13 @@ class RecommendationResource extends Resource
 {
     protected static ?string $model = Recommendation::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
     protected static ?string $navigationLabel = 'Recommendations';
 
-    protected static ?string $navigationGroup = '📊 Medical Data';
+    protected static string|\UnitEnum|null $navigationGroup = '📊 Medical Data';
 
-    protected static ?int $navigationSort = 7;
+    protected static ?int $navigationSort = 4;
 
     public static function getNavigationBadge(): ?string
     {
@@ -36,17 +51,18 @@ class RecommendationResource extends Resource
         });
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Recommendation Information')
                     ->description('Medical recommendation details')
                     ->schema([
-                        Forms\Components\Select::make('patient_id')
+                        Select::make('patient_id')
                             ->relationship('patient', 'id')
                             ->getSearchResultsUsing(function (string $search) {
                                 return Patients::query()
+                                    ->with('doctor')
                                     ->where('id', 'like', "%{$search}%")
                                     ->orWhereHas('doctor', function ($query) use ($search) {
                                         $query->where('name', 'like', "%{$search}%")
@@ -55,14 +71,18 @@ class RecommendationResource extends Resource
                                     ->limit(50)
                                     ->get()
                                     ->mapWithKeys(function ($patient) {
-                                        $doctorName = $patient->doctor ? $patient->doctor->name . ' ' . ($patient->doctor->lname ?? '') : 'Unknown';
+                                        $doctorName = $patient->doctor ? $patient->doctor->name.' '.($patient->doctor->lname ?? '') : 'Unknown';
+
                                         return [$patient->id => "Patient #{$patient->id} (Doctor: {$doctorName})"];
                                     });
                             })
                             ->getOptionLabelUsing(function ($value) {
-                                $patient = Patients::find($value);
-                                if (!$patient) return "Patient #{$value}";
-                                $doctorName = $patient->doctor ? $patient->doctor->name . ' ' . ($patient->doctor->lname ?? '') : 'Unknown';
+                                $patient = Patients::with('doctor')->find($value);
+                                if (! $patient) {
+                                    return "Patient #{$value}";
+                                }
+                                $doctorName = $patient->doctor ? $patient->doctor->name.' '.($patient->doctor->lname ?? '') : 'Unknown';
+
                                 return "Patient #{$patient->id} (Doctor: {$doctorName})";
                             })
                             ->searchable()
@@ -71,7 +91,7 @@ class RecommendationResource extends Resource
                             ->label('Patient')
                             ->helperText('Select the patient for this recommendation'),
 
-                        Forms\Components\Select::make('type')
+                        Select::make('type')
                             ->options([
                                 'medication' => 'Medication',
                                 'procedure' => 'Procedure',
@@ -87,7 +107,7 @@ class RecommendationResource extends Resource
                             ->label('Recommendation Type')
                             ->reactive(),
 
-                        Forms\Components\Textarea::make('content')
+                        Textarea::make('content')
                             ->required()
                             ->label('Recommendation Content')
                             ->rows(4)
@@ -99,27 +119,27 @@ class RecommendationResource extends Resource
                 Section::make('Medication Details')
                     ->description('Specific medication information (if applicable)')
                     ->schema([
-                        Forms\Components\TextInput::make('dose_name')
+                        TextInput::make('dose_name')
                             ->label('Medication Name')
                             ->maxLength(255)
                             ->helperText('Name of the medication'),
 
-                        Forms\Components\TextInput::make('dose')
+                        TextInput::make('dose')
                             ->label('Dosage')
                             ->maxLength(255)
                             ->helperText('e.g., 500mg, 10ml'),
 
-                        Forms\Components\TextInput::make('route')
+                        TextInput::make('route')
                             ->label('Route of Administration')
                             ->maxLength(255)
                             ->helperText('e.g., Oral, IV, IM'),
 
-                        Forms\Components\TextInput::make('frequency')
+                        TextInput::make('frequency')
                             ->label('Frequency')
                             ->maxLength(255)
                             ->helperText('e.g., Twice daily, Every 8 hours'),
 
-                        Forms\Components\TextInput::make('duration')
+                        TextInput::make('duration')
                             ->label('Duration')
                             ->maxLength(255)
                             ->helperText('e.g., 7 days, 2 weeks'),
@@ -132,7 +152,7 @@ class RecommendationResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['patient.doctor']))
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID')
                     ->badge()
                     ->color('gray')
@@ -140,11 +160,14 @@ class RecommendationResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('patient_id')
+                TextColumn::make('patient_id')
                     ->label('Patient')
                     ->formatStateUsing(function ($record) {
-                        if (!$record->patient) return "Patient #{$record->patient_id}";
-                        $doctorName = $record->patient->doctor ? $record->patient->doctor->name . ' ' . ($record->patient->doctor->lname ?? '') : 'Unknown';
+                        if (! $record->patient) {
+                            return "Patient #{$record->patient_id}";
+                        }
+                        $doctorName = $record->patient->doctor ? $record->patient->doctor->name.' '.($record->patient->doctor->lname ?? '') : 'Unknown';
+
                         return "Patient #{$record->patient_id} (Doctor: {$doctorName})";
                     })
                     ->searchable(query: function ($query, string $search) {
@@ -158,7 +181,7 @@ class RecommendationResource extends Resource
                     ->weight('bold')
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('type')
+                TextColumn::make('type')
                     ->label('Type')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -187,21 +210,22 @@ class RecommendationResource extends Resource
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('content')
+                TextColumn::make('content')
                     ->label('Content')
                     ->searchable()
                     ->limit(50)
                     ->wrap()
-                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                    ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
                         if (strlen($state) > 50) {
                             return $state;
                         }
+
                         return null;
                     })
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('dose_name')
+                TextColumn::make('dose_name')
                     ->label('Medication')
                     ->searchable()
                     ->placeholder('N/A')
@@ -209,31 +233,31 @@ class RecommendationResource extends Resource
                     ->color('info')
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('dose')
+                TextColumn::make('dose')
                     ->label('Dosage')
                     ->searchable()
                     ->placeholder('N/A')
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('route')
+                TextColumn::make('route')
                     ->label('Route')
                     ->searchable()
                     ->placeholder('N/A')
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('frequency')
+                TextColumn::make('frequency')
                     ->label('Frequency')
                     ->searchable()
                     ->placeholder('N/A')
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('duration')
+                TextColumn::make('duration')
                     ->label('Duration')
                     ->searchable()
                     ->placeholder('N/A')
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime()
                     ->sortable()
@@ -241,7 +265,7 @@ class RecommendationResource extends Resource
                     ->tooltip(fn ($record) => $record->created_at?->format('M d, Y H:i:s'))
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->label('Updated')
                     ->dateTime()
                     ->sortable()
@@ -250,11 +274,13 @@ class RecommendationResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->striped()
             ->persistSearchInSession()
             ->persistColumnSearchesInSession()
             ->persistSortInSession()
             ->filters([
-                Tables\Filters\SelectFilter::make('type')
+                SelectFilter::make('type')
                     ->label('Recommendation Type')
                     ->options([
                         'medication' => 'Medication',
@@ -269,25 +295,28 @@ class RecommendationResource extends Resource
                     ->multiple()
                     ->searchable(),
 
-                Tables\Filters\SelectFilter::make('patient_id')
+                SelectFilter::make('patient_id')
                     ->label('Patient')
                     ->relationship('patient', 'id')
                     ->getOptionLabelUsing(function ($value) {
-                        $patient = Patients::find($value);
-                        if (!$patient) return "Patient #{$value}";
-                        $doctorName = $patient->doctor ? $patient->doctor->name . ' ' . ($patient->doctor->lname ?? '') : 'Unknown';
+                        $patient = Patients::with('doctor')->find($value);
+                        if (! $patient) {
+                            return "Patient #{$value}";
+                        }
+                        $doctorName = $patient->doctor ? $patient->doctor->name.' '.($patient->doctor->lname ?? '') : 'Unknown';
+
                         return "Patient #{$patient->id} (Doctor: {$doctorName})";
                     })
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\Filter::make('has_medication')
+                Filter::make('has_medication')
                     ->label('Has Medication Details')
                     ->toggle()
                     ->query(fn (Builder $query): Builder => $query->whereNotNull('dose_name')),
 
-                Tables\Filters\Filter::make('created_at')
-                    ->form([
+                Filter::make('created_at')
+                    ->schema([
                         DatePicker::make('created_from')
                             ->label('From'),
                         DatePicker::make('created_until')
@@ -307,14 +336,15 @@ class RecommendationResource extends Resource
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
                         if ($data['created_from'] ?? null) {
-                            $indicators[] = 'From ' . \Carbon\Carbon::parse($data['created_from'])->toFormattedDateString();
+                            $indicators[] = 'From '.Carbon::parse($data['created_from'])->toFormattedDateString();
                         }
                         if ($data['created_until'] ?? null) {
-                            $indicators[] = 'Until ' . \Carbon\Carbon::parse($data['created_until'])->toFormattedDateString();
+                            $indicators[] = 'Until '.Carbon::parse($data['created_until'])->toFormattedDateString();
                         }
+
                         return $indicators;
                     }),
-            ], layout: Tables\Enums\FiltersLayout::AboveContent)
+            ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(4)
             ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action
@@ -322,25 +352,26 @@ class RecommendationResource extends Resource
                     ->label('Toggle columns'),
             )
             ->persistFiltersInSession()
+            ->deferFilters(false)
             ->deselectAllRecordsWhenFiltered(true)
             ->filtersTriggerAction(
                 fn (Action $action) => $action
                     ->button()
                     ->label('Filter'),
             )
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->modalHeading('Recommendation Details')
                     ->modalWidth('4xl'),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
+                EditAction::make(),
+                DeleteAction::make()
                     ->after(function () {
                         Cache::forget('recommendations_count');
                     }),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
                         ->after(function () {
                             Cache::forget('recommendations_count');
                         }),
@@ -348,7 +379,7 @@ class RecommendationResource extends Resource
                 ]),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
             ->emptyStateHeading('No recommendations yet')
             ->emptyStateDescription('Medical recommendations will appear here.')
@@ -365,10 +396,10 @@ class RecommendationResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListRecommendations::route('/'),
-            'create' => Pages\CreateRecommendation::route('/create'),
-            'view' => Pages\ViewRecommendation::route('/{record}'),
-            'edit' => Pages\EditRecommendation::route('/{record}/edit'),
+            'index' => ListRecommendations::route('/'),
+            'create' => CreateRecommendation::route('/create'),
+            'view' => ViewRecommendation::route('/{record}'),
+            'edit' => EditRecommendation::route('/{record}/edit'),
         ];
     }
 }

@@ -3,7 +3,8 @@
 namespace App\Filament\Resources\FcmTokenResource\Pages;
 
 use App\Filament\Resources\FcmTokenResource;
-use Filament\Actions;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\Cache;
 
@@ -14,8 +15,8 @@ class EditFcmToken extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\ViewAction::make(),
-            Actions\DeleteAction::make()
+            ViewAction::make(),
+            DeleteAction::make()
                 ->after(function () {
                     Cache::forget('fcm_tokens_count');
                 }),

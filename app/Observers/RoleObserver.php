@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\User;
+use Exception;
 use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Models\Role;
 
@@ -26,12 +27,12 @@ class RoleObserver
     {
         try {
             $affectedCount = User::role($role->name)->update(['permissions_changed' => true]);
-            
+
             Log::info('Marked users as having permissions changed', [
                 'role_name' => $role->name,
                 'affected_users' => $affectedCount,
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error marking users permissions changed', [
                 'role_name' => $role->name,
                 'error' => $e->getMessage(),
@@ -39,5 +40,3 @@ class RoleObserver
         }
     }
 }
-
-

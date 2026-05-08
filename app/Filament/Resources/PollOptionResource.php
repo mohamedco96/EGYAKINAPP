@@ -2,12 +2,23 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\PollOptionResource\Pages;
+use App\Filament\Resources\PollOptionResource\Pages\CreatePollOption;
+use App\Filament\Resources\PollOptionResource\Pages\EditPollOption;
+use App\Filament\Resources\PollOptionResource\Pages\ListPollOptions;
+use App\Filament\Resources\PollOptionResource\Pages\ViewPollOption;
 use App\Models\PollOption;
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -16,36 +27,45 @@ use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 class PollOptionResource extends Resource
 {
     protected static ?string $model = PollOption::class;
-    protected static ?string $navigationIcon = 'heroicon-o-list-bullet';
+
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-list-bullet';
+
     protected static ?string $navigationLabel = 'Poll Options';
-    protected static ?string $navigationGroup = '📱 Social Feed';
+
+    protected static string|\UnitEnum|null $navigationGroup = '📱 Social Feed';
+
     protected static ?int $navigationSort = 9;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
 
     public static function getNavigationBadge(): ?string
     {
-        return Cache::remember('poll_options_count', 300, fn() => static::getModel()::count());
+        return Cache::remember('poll_options_count', 300, fn () => static::getModel()::count());
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make('Poll Option')->schema([
-                Forms\Components\Select::make('poll_id')
+        return $schema->components([
+            Section::make('Poll Option')->schema([
+                Select::make('poll_id')
                     ->relationship('poll', 'question')
                     ->searchable()
                     ->preload()
                     ->required()
                     ->label('Poll Question')
                     ->helperText('Select the poll for this option'),
-                Forms\Components\TextInput::make('option_text')
+                TextInput::make('option_text')
                     ->required()
                     ->maxLength(255)
                     ->label('Option Text')
                     ->helperText('The text for this poll option')
                     ->columnSpanFull(),
-                Forms\Components\Placeholder::make('votes_info')
+                Placeholder::make('votes_info')
                     ->label('Vote Count')
-                    ->content(fn ($record) => $record ? $record->votes()->count() . ' votes' : '0 votes (read-only)')
+                    ->content(fn ($record) => $record ? $record->votes()->count().' votes' : '0 votes (read-only)')
                     ->columnSpanFull(),
             ])->columns(2),
         ]);
@@ -56,24 +76,24 @@ class PollOptionResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['poll']))
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID')
                     ->badge()
                     ->color('gray')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('poll.question')
+                TextColumn::make('poll.question')
                     ->label('Poll Question')
                     ->limit(40)
                     ->searchable()
                     ->wrap()
                     ->weight('bold'),
-                Tables\Columns\TextColumn::make('option_text')
+                TextColumn::make('option_text')
                     ->label('Option')
                     ->searchable()
                     ->sortable()
                     ->limit(50)
                     ->wrap(),
-                Tables\Columns\TextColumn::make('votes.count')
+                TextColumn::make('votes.count')
                     ->label('Votes')
                     ->counts('votes')
                     ->badge()
@@ -81,23 +101,26 @@ class PollOptionResource extends Resource
                     ->icon('heroicon-o-hand-thumb-up')
                     ->sortable()
                     ->alignCenter(),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime()
                     ->since()
                     ->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->filters([])
-            ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
+            ->recordActions([
+                ViewAction::make(),
+                EditAction::make(),
+                DeleteAction::make()
                     ->after(fn () => Cache::forget('poll_options_count')),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
                         ->after(fn () => Cache::forget('poll_options_count')),
                     ExportBulkAction::make(),
                 ]),
@@ -107,10 +130,10 @@ class PollOptionResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPollOptions::route('/'),
-            'create' => Pages\CreatePollOption::route('/create'),
-            'view' => Pages\ViewPollOption::route('/{record}'),
-            'edit' => Pages\EditPollOption::route('/{record}/edit'),
+            'index' => ListPollOptions::route('/'),
+            'create' => CreatePollOption::route('/create'),
+            'view' => ViewPollOption::route('/{record}'),
+            'edit' => EditPollOption::route('/{record}/edit'),
         ];
     }
 }

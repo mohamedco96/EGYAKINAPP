@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Services\BrevoApiService;
+use Exception;
 use Illuminate\Support\Facades\Log;
 
 class BrevoApiManager
@@ -11,7 +12,7 @@ class BrevoApiManager
 
     public function __construct()
     {
-        $this->brevoService = new BrevoApiService();
+        $this->brevoService = new BrevoApiService;
     }
 
     /**
@@ -48,10 +49,10 @@ class BrevoApiManager
                     'error' => $result['error'],
                 ]);
 
-                throw new \Exception('Brevo API Error: '.$result['error']);
+                throw new Exception('Brevo API Error: '.$result['error']);
             }
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Brevo API Manager exception', [
                 'to' => $to,
                 'subject' => $subject,

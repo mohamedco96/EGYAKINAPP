@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +16,7 @@ class UserLocaleController extends Controller
     /**
      * Update user's language preference
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function updateLocale(Request $request)
     {
@@ -65,7 +67,7 @@ class UserLocaleController extends Controller
                 ],
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to update user locale', [
                 'user_id' => Auth::id(),
                 'requested_locale' => $request->input('locale'),
@@ -84,7 +86,7 @@ class UserLocaleController extends Controller
     /**
      * Get user's current language preference
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function getLocale(Request $request)
     {
@@ -105,7 +107,7 @@ class UserLocaleController extends Controller
                 ],
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to get user locale', [
                 'user_id' => Auth::id(),
                 'error' => $e->getMessage(),
@@ -121,7 +123,7 @@ class UserLocaleController extends Controller
     /**
      * Test endpoint to demonstrate locale switching
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function testLocaleResponse(Request $request)
     {

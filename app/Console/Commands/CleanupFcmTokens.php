@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Modules\Notifications\Services\FcmTokenService;
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -41,7 +42,7 @@ class CleanupFcmTokens extends Command
             ]);
 
             return self::SUCCESS;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->error('Failed to cleanup FCM tokens: '.$e->getMessage());
 
             Log::error('FCM token cleanup failed', [

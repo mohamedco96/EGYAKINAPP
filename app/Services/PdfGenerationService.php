@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Modules\Patients\Services\PatientQuestionService;
 use App\Modules\Recommendations\Models\Recommendation;
+use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use PDF;
@@ -54,7 +55,7 @@ class PdfGenerationService
                 'pdf_url' => $pdfUrl,
                 'data' => $pdfData,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error generating PDF for patient {$patientId}: ".$e->getMessage());
 
             return [

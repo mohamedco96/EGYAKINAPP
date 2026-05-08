@@ -3,43 +3,56 @@
 namespace App\Modules\Doses\Resources;
 
 use App\Modules\Doses\Models\Dose;
-use App\Modules\Doses\Resources\DoseResource\Pages;
-use Filament\Forms;
-use Filament\Forms\Form;
+use App\Modules\Doses\Resources\DoseResource\Pages\CreateDose;
+use App\Modules\Doses\Resources\DoseResource\Pages\EditDose;
+use App\Modules\Doses\Resources\DoseResource\Pages\ListDoses;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Actions\Action;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class DoseResource extends Resource
 {
     protected static ?string $model = Dose::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    protected static ?string $navigationLabel = 'Dose modifier';
+    protected static ?string $navigationLabel = 'Dose Modifiers';
 
-    protected static ?string $navigationGroup = 'App Data';
+    protected static string|\UnitEnum|null $navigationGroup = '📊 Medical Data';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 5;
 
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::count();
+        return Cache::remember('doses_count', 300, function () {
+            return static::getModel()::count();
+        });
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('title')
+        return $schema
+            ->components([
+                TextInput::make('title')
                     ->label('Title')
                     ->required()
                     ->maxLength(255),
 
-                Forms\Components\RichEditor::make('description')
+                RichEditor::make('description')
                     ->label('Description')
                     ->toolbarButtons([
                         'blockquote',
@@ -58,7 +71,7 @@ class DoseResource extends Resource
                     ])
                     ->columnSpanFull(),
 
-                Forms\Components\TextInput::make('dose')
+                TextInput::make('dose')
                     ->label('Dose')
                     ->required()
                     ->maxLength(255),
@@ -69,92 +82,99 @@ class DoseResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('title')
+                TextColumn::make('title')
                     ->label('Title')
                     ->searchable()
                     ->sortable()
                     ->limit(50),
 
-                Tables\Columns\TextColumn::make('description')
+                TextColumn::make('description')
                     ->label('Description')
                     ->html()
                     ->limit(100)
-                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                    ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
-                        
+
                         if (strlen($state) <= $column->getCharacterLimit()) {
                             return null;
                         }
-                
+
                         return $state;
                     }),
 
-                Tables\Columns\TextColumn::make('dose')
+                TextColumn::make('dose')
                     ->label('Dose')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime('M j, Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->label('Updated')
                     ->dateTime('M j, Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\Filter::make('created_at')
-                    ->form([
-                        Forms\Components\DatePicker::make('created_from')
+                Filter::make('created_at')
+                    ->schema([
+                        DatePicker::make('created_from')
                             ->label('Created from'),
-                        Forms\Components\DatePicker::make('created_until')
+                        DatePicker::make('created_until')
                             ->label('Created until'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
                             ->when(
                                 $data['created_from'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
                             )
                             ->when(
                                 $data['created_until'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
             ])
+            ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->striped()
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->toggleColumnsTriggerAction(
-                fn(Action $action) => $action
+                fn (Action $action) => $action
                     ->button()
                     ->label('Toggle columns'),
             )
             ->persistFiltersInSession()
+            ->deferFilters(false)
             ->deselectAllRecordsWhenFiltered(true)
             ->filtersTriggerAction(
-                fn(Action $action) => $action
+                fn (Action $action) => $action
                     ->button()
                     ->label('Filter'),
             )
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                     ExportBulkAction::make(),
                 ]),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ]);
     }
 
@@ -168,9 +188,9 @@ class DoseResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListDoses::route('/'),
-            'create' => Pages\CreateDose::route('/create'),
-            'edit' => Pages\EditDose::route('/{record}/edit'),
+            'index' => ListDoses::route('/'),
+            'create' => CreateDose::route('/create'),
+            'edit' => EditDose::route('/{record}/edit'),
         ];
     }
 }

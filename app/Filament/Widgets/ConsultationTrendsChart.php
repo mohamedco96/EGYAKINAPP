@@ -9,11 +9,11 @@ use Illuminate\Support\Facades\DB;
 
 class ConsultationTrendsChart extends ChartWidget
 {
-    protected static ?string $heading = 'Consultation Trends';
+    protected ?string $heading = 'Consultation Trends';
 
-    protected static ?string $description = 'Daily consultation activity over the past 30 days';
+    protected ?string $description = 'Daily consultation activity over the past 30 days';
 
-    protected static string $color = 'info';
+    protected string $color = 'info';
 
     protected static ?int $sort = 2;
 

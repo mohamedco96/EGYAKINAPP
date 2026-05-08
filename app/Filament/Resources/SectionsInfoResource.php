@@ -2,15 +2,30 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\SectionsInfoResource\Pages;
+use App\Filament\Resources\SectionsInfoResource\Pages\CreateSectionsInfo;
+use App\Filament\Resources\SectionsInfoResource\Pages\EditSectionsInfo;
+use App\Filament\Resources\SectionsInfoResource\Pages\ListSectionsInfos;
+use App\Filament\Resources\SectionsInfoResource\Pages\ViewSectionsInfo;
 use App\Models\SectionsInfo;
 use Carbon\Carbon;
-use Filament\Forms;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Form;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Actions\Action;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -20,13 +35,13 @@ class SectionsInfoResource extends Resource
 {
     protected static ?string $model = SectionsInfo::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-squares-2x2';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-squares-2x2';
 
-    protected static ?string $navigationLabel = 'Section Information';
+    protected static ?string $navigationLabel = 'Questionnaire Sections';
 
-    protected static ?string $navigationGroup = '📊 Medical Data';
+    protected static string|\UnitEnum|null $navigationGroup = '📊 Medical Data';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 1;
 
     public static function getNavigationBadge(): ?string
     {
@@ -35,16 +50,16 @@ class SectionsInfoResource extends Resource
         });
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('section_name')->label('Section Name')->required(),
-                Forms\Components\TextInput::make('section_description')->label('Section Description'),
+        return $schema
+            ->components([
+                TextInput::make('section_name')->label('Section Name')->required(),
+                TextInput::make('section_description')->label('Section Description'),
 
-                Forms\Components\Section::make('AI Settings')
+                Section::make('AI Settings')
                     ->schema([
-                        Forms\Components\Select::make('ai_mode')
+                        Select::make('ai_mode')
                             ->label('AI Mode')
                             ->options([
                                 'voice' => 'Voice',
@@ -53,7 +68,7 @@ class SectionsInfoResource extends Resource
                             ->nullable()
                             ->placeholder('None'),
 
-                        Forms\Components\TextInput::make('ai_voice_time')
+                        TextInput::make('ai_voice_time')
                             ->label('AI Voice Time (seconds)')
                             ->numeric()
                             ->minValue(1)
@@ -61,7 +76,7 @@ class SectionsInfoResource extends Resource
                             ->suffix('sec')
                             ->helperText('Recording duration shown to the user in the frontend.'),
 
-                        Forms\Components\RichEditor::make('ai_hint')
+                        RichEditor::make('ai_hint')
                             ->label('AI Hint Content')
                             ->nullable()
                             ->columnSpanFull(),
@@ -75,7 +90,7 @@ class SectionsInfoResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID')
                     ->badge()
                     ->color('gray')
@@ -83,7 +98,7 @@ class SectionsInfoResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('section_name')
+                TextColumn::make('section_name')
                     ->label('Section Name')
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->searchable()
@@ -91,13 +106,13 @@ class SectionsInfoResource extends Resource
                     ->weight('bold')
                     ->icon('heroicon-o-folder'),
 
-                Tables\Columns\TextColumn::make('section_description')
+                TextColumn::make('section_description')
                     ->label('Description')
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->searchable()
                     ->sortable()
                     ->limit(100)
-                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                    ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
                         if (strlen($state) > 100) {
                             return $state;
@@ -107,7 +122,7 @@ class SectionsInfoResource extends Resource
                     })
                     ->placeholder('No description'),
 
-                Tables\Columns\TextColumn::make('ai_mode')
+                TextColumn::make('ai_mode')
                     ->label('AI Mode')
                     ->badge()
                     ->color(fn (?string $state) => match ($state) {
@@ -118,14 +133,14 @@ class SectionsInfoResource extends Resource
                     ->placeholder('None')
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('ai_voice_time')
+                TextColumn::make('ai_voice_time')
                     ->label('Hint Duration')
                     ->suffix(' sec')
                     ->placeholder('—')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('questions_count')
+                TextColumn::make('questions_count')
                     ->label('Questions')
                     ->counts('questions')
                     ->badge()
@@ -134,7 +149,7 @@ class SectionsInfoResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime()
                     ->sortable()
@@ -142,7 +157,7 @@ class SectionsInfoResource extends Resource
                     ->since()
                     ->tooltip(fn ($record) => $record->created_at?->format('M d, Y H:i:s')),
 
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->label('Updated')
                     ->dateTime()
                     ->sortable()
@@ -151,12 +166,22 @@ class SectionsInfoResource extends Resource
                     ->tooltip(fn ($record) => $record->updated_at?->format('M d, Y H:i:s')),
             ])
             ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->striped()
             ->persistSearchInSession()
             ->persistColumnSearchesInSession()
             ->persistSortInSession()
             ->filters([
-                Tables\Filters\Filter::make('created_at')
-                    ->form([
+                SelectFilter::make('ai_mode')
+                    ->label('AI Mode')
+                    ->options([
+                        'voice' => 'Voice',
+                        'image' => 'Image',
+                    ])
+                    ->placeholder('All modes'),
+
+                Filter::make('created_at')
+                    ->schema([
                         DatePicker::make('created_from')
                             ->label('From'),
                         DatePicker::make('created_until')
@@ -184,7 +209,7 @@ class SectionsInfoResource extends Resource
 
                         return $indicators;
                     }),
-            ], layout: Tables\Enums\FiltersLayout::AboveContent)
+            ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(1)
             ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action
@@ -192,25 +217,26 @@ class SectionsInfoResource extends Resource
                     ->label('Toggle columns'),
             )
             ->persistFiltersInSession()
+            ->deferFilters(false)
             ->deselectAllRecordsWhenFiltered(true)
             ->filtersTriggerAction(
                 fn (Action $action) => $action
                     ->button()
                     ->label('Filter'),
             )
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->modalHeading('Section Details')
                     ->modalWidth('3xl'),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
+                EditAction::make(),
+                DeleteAction::make()
                     ->after(function () {
                         Cache::forget('sections_info_count');
                     }),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
                         ->after(function () {
                             Cache::forget('sections_info_count');
                         }),
@@ -218,7 +244,7 @@ class SectionsInfoResource extends Resource
                 ]),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
             ->emptyStateHeading('No sections yet')
             ->emptyStateDescription('Medical form sections will appear here.')
@@ -235,10 +261,10 @@ class SectionsInfoResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListSectionsInfos::route('/'),
-            'create' => Pages\CreateSectionsInfo::route('/create'),
-            'view' => Pages\ViewSectionsInfo::route('/{record}'),
-            'edit' => Pages\EditSectionsInfo::route('/{record}/edit'),
+            'index' => ListSectionsInfos::route('/'),
+            'create' => CreateSectionsInfo::route('/create'),
+            'view' => ViewSectionsInfo::route('/{record}'),
+            'edit' => EditSectionsInfo::route('/{record}/edit'),
         ];
     }
 }

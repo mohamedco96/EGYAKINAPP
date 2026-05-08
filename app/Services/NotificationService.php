@@ -2,8 +2,9 @@
 
 namespace App\Services;
 
-use App\Modules\Notifications\Models\FcmToken;
 use App\Http\Controllers\NotificationController;
+use App\Modules\Notifications\Models\FcmToken;
+use Exception;
 use Illuminate\Support\Facades\Log;
 
 class NotificationService
@@ -23,19 +24,20 @@ class NotificationService
         try {
             if (empty($tokens)) {
                 Log::info('No FCM tokens found for push notification');
+
                 return;
             }
 
             $this->notificationController->sendPushNotification($title, $body, $tokens);
-            
+
             Log::info('Push notification sent successfully', [
                 'title' => $title,
-                'token_count' => count($tokens)
+                'token_count' => count($tokens),
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to send push notification', [
                 'title' => $title,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }

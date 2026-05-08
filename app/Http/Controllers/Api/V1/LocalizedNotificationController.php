@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Modules\Notifications\Models\AppNotification;
 use App\Services\LocalizedNotificationService;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -34,7 +35,7 @@ class LocalizedNotificationController extends Controller
                 'locale' => $locale,
                 'data' => $result,
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => __('api.failed_to_fetch_notifications'),
@@ -59,7 +60,7 @@ class LocalizedNotificationController extends Controller
                 'locale' => $locale,
                 'data' => $result,
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => __('api.failed_to_fetch_new_notifications'),
@@ -87,7 +88,7 @@ class LocalizedNotificationController extends Controller
                     'message' => __('api.notification_not_found'),
                 ], 404);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => __('api.failed_to_mark_notification_as_read'),
@@ -115,7 +116,7 @@ class LocalizedNotificationController extends Controller
                     'message' => __('api.no_notifications_to_mark'),
                 ]);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => __('api.failed_to_mark_all_notifications_as_read'),
@@ -157,7 +158,7 @@ class LocalizedNotificationController extends Controller
                     'localization_params' => $notification->localization_params,
                 ],
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => __('api.failed_to_create_test_notification'),

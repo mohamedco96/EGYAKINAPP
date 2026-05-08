@@ -4,7 +4,8 @@ namespace App\Modules\Patients\Resources\PatientStatusesResource\Pages;
 
 use App\Filament\Widgets\SectionStatusStatsWidget;
 use App\Modules\Patients\Resources\PatientStatusesResource;
-use Filament\Actions;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\Cache;
 
@@ -15,7 +16,7 @@ class ListPatientStatuses extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('clearCache')
+            Action::make('clearCache')
                 ->label('Clear Cache')
                 ->icon('heroicon-o-arrow-path')
                 ->color('warning')
@@ -23,7 +24,7 @@ class ListPatientStatuses extends ListRecords
                     Cache::forget('section_status_stats');
                     Cache::flush();
 
-                    \Filament\Notifications\Notification::make()
+                    Notification::make()
                         ->success()
                         ->title('Cache Cleared')
                         ->body('Section status cache has been cleared successfully.')

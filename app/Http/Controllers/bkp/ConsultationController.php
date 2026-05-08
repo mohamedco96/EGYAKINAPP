@@ -10,6 +10,7 @@ use App\Modules\Notifications\Models\AppNotification;
 use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Notifications\Services\NotificationService;
 use App\Modules\Patients\Models\Patients;
+use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -138,7 +139,7 @@ class ConsultationController extends Controller
 
     public function receivedRequests()
     {
-        //$consultations = ConsultationDoctor::where('consult_doctor_id', Auth::id())->with('consultation')->get();
+        // $consultations = ConsultationDoctor::where('consult_doctor_id', Auth::id())->with('consultation')->get();
         // Fetch consultations with associated doctor and patient data
         $ConsultationDoctor = ConsultationDoctor::where('consult_doctor_id', Auth::id())
             ->with('consultation')
@@ -220,7 +221,7 @@ class ConsultationController extends Controller
             ])
             ->whereHas('consultationDoctors', function ($query) {
                 // Only include Consultations where the authenticated user has a record
-                //$query->where('consult_doctor_id', Auth::id());
+                // $query->where('consult_doctor_id', Auth::id());
             })
             ->get();
 
@@ -386,7 +387,7 @@ class ConsultationController extends Controller
             return response()->json([
                 'message' => 'Consultation doctor not found for the provided consultation ID.',
             ], 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Handle any other exceptions that might occur
             Log::error('An error occurred while updating the consultation request.', [
                 'consultation_id' => $id,
@@ -444,7 +445,7 @@ class ConsultationController extends Controller
                 'value' => true,
                 'data' => $users,
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error searching for data.', ['exception' => $e]);
 
             return response()->json([

@@ -2,9 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use App;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class CheckBlockedUserWithHomeAccess
@@ -12,7 +14,7 @@ class CheckBlockedUserWithHomeAccess
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request):Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -23,7 +25,7 @@ class CheckBlockedUserWithHomeAccess
             if ($user->blocked) {
                 // Set the locale based on user preference before checking access
                 if ($user->locale && in_array($user->locale, ['en', 'ar'])) {
-                    \App::setLocale($user->locale);
+                    App::setLocale($user->locale);
                 }
 
                 $routeUri = $request->getPathInfo();
@@ -39,7 +41,7 @@ class CheckBlockedUserWithHomeAccess
 
                 if (! $isHomeNewEndpoint) {
                     // Log the blocked user access attempt to non-home endpoint
-                    \Log::warning('Blocked user attempted to access restricted endpoint', [
+                    Log::warning('Blocked user attempted to access restricted endpoint', [
                         'user_id' => $user->id,
                         'email' => $user->email,
                         'url' => $request->url(),
@@ -57,7 +59,7 @@ class CheckBlockedUserWithHomeAccess
                 }
 
                 // Log successful access to allowed endpoint for blocked user
-                \Log::info('Blocked user accessed allowed home endpoint', [
+                Log::info('Blocked user accessed allowed home endpoint', [
                     'user_id' => $user->id,
                     'email' => $user->email,
                     'url' => $request->url(),

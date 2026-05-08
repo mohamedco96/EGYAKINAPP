@@ -2,6 +2,7 @@
 
 namespace App\Modules\Patients\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -42,6 +43,6 @@ class PatientStatus extends Model
 
     public function doctor(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'doctor_id');
+        return $this->belongsTo(User::class, 'doctor_id');
     }
 }

@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Notifications\JobMonitoringAlert;
 use App\Services\JobMonitoringService;
 use App\Services\MailListService;
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -31,7 +32,7 @@ class MonitorJobs extends Command
     {
         $this->info('🔍 Starting Job Queue Monitoring...');
 
-        $monitoringService = new JobMonitoringService();
+        $monitoringService = new JobMonitoringService;
 
         try {
             // Get job statistics
@@ -73,7 +74,7 @@ class MonitorJobs extends Command
 
             return Command::SUCCESS;
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->error('❌ Job monitoring failed: '.$e->getMessage());
 
             Log::error('Job monitoring command failed', [
@@ -174,7 +175,7 @@ class MonitorJobs extends Command
 
             $this->info('✅ Alerts sent to '.count($adminEmails).' administrators');
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->error('❌ Failed to send alerts: '.$e->getMessage());
             Log::error('Failed to send job monitoring alerts', [
                 'error' => $e->getMessage(),

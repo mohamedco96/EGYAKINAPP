@@ -4,8 +4,8 @@ namespace App\Filament\Resources\PermissionResource\Pages;
 
 use App\Filament\Resources\PermissionResource;
 use App\Filament\Widgets\RolePermissionChartWidget;
-use Filament\Actions;
 use Filament\Actions\Action;
+use Filament\Actions\CreateAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Spatie\Permission\Models\Permission;
@@ -70,7 +70,7 @@ class ListPermissions extends ListRecords
                 ->modalHeading('Create Default Permissions')
                 ->modalDescription('This will create standard CRUD permissions for users, roles, permissions, posts, and system access.'),
 
-            Actions\CreateAction::make()
+            CreateAction::make()
                 ->label('New Permission')
                 ->icon('heroicon-o-plus')
                 ->color('success'),

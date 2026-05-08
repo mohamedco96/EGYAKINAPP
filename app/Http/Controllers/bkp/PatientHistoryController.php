@@ -4,12 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePatientHistoryRequest;
 use App\Http\Requests\UpdatePatientHistoryRequest;
+use App\Models\AppNotification;
 use App\Models\Assessment;
 use App\Models\Cause;
 use App\Models\Complaint;
 use App\Models\Decision;
 use App\Models\Examination;
-use App\Models\AppNotification;
 use App\Models\Outcome;
 use App\Models\PatientHistory;
 use App\Models\Posts;
@@ -18,12 +18,14 @@ use App\Models\Score;
 use App\Models\ScoreHistory;
 use App\Models\Section;
 use App\Models\User;
+use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use PDF;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use PDF;
 
 class PatientHistoryController extends Controller
 {
@@ -77,7 +79,7 @@ class PatientHistoryController extends Controller
         // Generate the PDF using the blade view and data
         $pdf = PDF::loadView('patient_pdf', $data);
 
-        //$pdf = PDF::loadHTML('<h1>Hello, this is a New PDF!</h1>');
+        // $pdf = PDF::loadHTML('<h1>Hello, this is a New PDF!</h1>');
 
         // Ensure the 'pdfs' directory exists in the public disk
         Storage::disk('public')->makeDirectory('pdfs');
@@ -86,11 +88,11 @@ class PatientHistoryController extends Controller
         $pdfFileName = 'filename2.pdf';
 
         // Save the PDF file to the public disk
-        Storage::disk('public')->put('pdfs/' . $pdfFileName, $pdf->output());
+        Storage::disk('public')->put('pdfs/'.$pdfFileName, $pdf->output());
 
         // Generate the URL for downloading the PDF file
-       // $pdfUrl = Storage::disk('public')->url('pdfs/' . $pdfFileName);
-        $pdfUrl = config('app.url') . '/' . 'storage/app/public/pdfs/' . $pdfFileName;
+        // $pdfUrl = Storage::disk('public')->url('pdfs/' . $pdfFileName);
+        $pdfUrl = config('app.url').'/'.'storage/app/public/pdfs/'.$pdfFileName;
 
         // Return the URL to download the PDF file
         return response()->json(['pdf_url' => $pdfUrl]);
@@ -108,7 +110,7 @@ class PatientHistoryController extends Controller
             }])
             ->latest('updated_at')
             ->get();
-        //->paginate(10);
+        // ->paginate(10);
 
         if ($Patient->isNotEmpty()) {
             $response = [
@@ -165,7 +167,6 @@ class PatientHistoryController extends Controller
             ->limit(5) // Add limit here
             ->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
 
-
         // Get patient count and score value
         $userPatientCount = $user->patients() ? $user->patients()->count() : 0;
         $allPatientCount = PatientHistory::count() ? PatientHistory::count() : 0;
@@ -181,8 +182,7 @@ class PatientHistoryController extends Controller
             ->get();
 
         $unreadCount = AppNotification::where('doctor_id', $user->id)
-        ->where('read', false)->count();
-
+            ->where('read', false)->count();
 
         // Prepare response data
         $response = [
@@ -203,7 +203,6 @@ class PatientHistoryController extends Controller
         return response($response, 200);
     }
 
-
     public function doctorPatientGetAll()
     {
         $Patient = PatientHistory::with('doctor:id,name,lname')
@@ -212,19 +211,18 @@ class PatientHistoryController extends Controller
                 $query->select('patient_id', 'submit_status', 'outcome_status');
             }])
             ->latest('updated_at')
-            //->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
+            // ->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
             ->select('id', 'doctor_id', 'name', 'hospital', 'updated_at')
             ->paginate(10);
 
-            $response = [
-                'value' => true,
-                'data' => $Patient,
-            ];
+        $response = [
+            'value' => true,
+            'data' => $Patient,
+        ];
 
-            return response($response, 200);
+        return response($response, 200);
 
     }
-
 
     public function doctorPatientGet()
     {
@@ -236,13 +234,13 @@ class PatientHistoryController extends Controller
         /** @var TYPE_NAME $Patient */
         $Patient = $user->patients()
             ->where('hidden', false)
-                        //->with('sections:patient_id,submit_status,outcome_status')
+                        // ->with('sections:patient_id,submit_status,outcome_status')
             ->with('doctor:id,name,lname')
             ->with(['sections' => function ($query) {
                 $query->select('patient_id', 'submit_status', 'outcome_status');
             }])
             ->latest('updated_at')
-            //->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
+            // ->get(['id', 'doctor_id', 'name', 'hospital', 'updated_at']);
             ->select('id', 'doctor_id', 'name', 'hospital', 'updated_at')
             ->paginate(10);
 
@@ -257,9 +255,9 @@ class PatientHistoryController extends Controller
         }
 
         if ($user->email_verified_at) {
-            $verify= true;
+            $verify = true;
         } else {
-            $verify= false;
+            $verify = false;
         }
 
         $count = strval($count); // Convert count to a string
@@ -270,13 +268,13 @@ class PatientHistoryController extends Controller
             'patient_count' => $count,
             'score_value' => $score,
             'data' => $Patient,
-            //'sections' => $sections
+            // 'sections' => $sections
         ];
 
         return response($response, 200);
     }
 
-    //@param \Illuminate\Http\Request $request
+    // @param \Illuminate\Http\Request $request
     // @return \Illuminate\Http\Response
     public function storebkp(StorePatientHistoryRequest $request)
     {
@@ -419,7 +417,7 @@ class PatientHistoryController extends Controller
                 $this->assessment->create($relatedData);
                 $this->examination->create($relatedData);
                 $this->decision->create($relatedData);
-                //$this->outcome->create($relatedData);
+                // $this->outcome->create($relatedData);
 
                 /*
                 //scoring system
@@ -475,7 +473,7 @@ class PatientHistoryController extends Controller
             ];
 
             return response($response, 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $response = [
                 'value' => false,
                 'message' => 'Error: '.$e->getMessage(),
@@ -485,16 +483,16 @@ class PatientHistoryController extends Controller
         }
     }
 
-    //@param \Illuminate\Http\Request $request
-// @return \Illuminate\Http\Response
+    // @param \Illuminate\Http\Request $request
+    // @return \Illuminate\Http\Response
     public function store(Request $request)
     {
         try {
             $doctor_id = Auth::id();
             // Validating request data
             $request->validate([
-                //'1' => 'required', // Assuming '0' represents the 'name' field
-               // '2' => 'required', // Assuming '1' represents the 'hospital' field
+                // '1' => 'required', // Assuming '0' represents the 'name' field
+                // '2' => 'required', // Assuming '1' represents the 'hospital' field
                 // Add validation rules for other fields if necessary
             ]);
 
@@ -518,7 +516,7 @@ class PatientHistoryController extends Controller
                 17 => 'DM_duration',
                 18 => 'HTN',
                 19 => 'HTN_duration',
-                20 => 'other'
+                20 => 'other',
                 // Add mappings for other fields if necessary
             ];
 
@@ -542,9 +540,9 @@ class PatientHistoryController extends Controller
                 $relatedData = ['doctor_id' => $doctor_id, 'patient_id' => $patient->id];
                 $sections = ['section_1', 'complaint', 'cause', 'risk', 'assessment', 'examination', 'decision'];
                 foreach ($sections as $section) {
-                    if ($section=='section_1'){
+                    if ($section == 'section_1') {
                         $this->section->create(array_merge($relatedData, ['section_1' => true]));
-                    }else{
+                    } else {
                         $this->$section->create(array_merge($relatedData));
 
                     }
@@ -580,14 +578,14 @@ class PatientHistoryController extends Controller
             ];
 
             return response()->json($response, 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Logging error
             Log::error('Error creating patient', ['error' => $e->getMessage()]);
 
             // Building error response
             $response = [
                 'value' => false,
-                'message' => 'Error: ' . $e->getMessage(),
+                'message' => 'Error: '.$e->getMessage(),
             ];
 
             return response()->json($response, 500);
@@ -759,19 +757,19 @@ class PatientHistoryController extends Controller
      * Search for product by name
      *
      * @param  string  $name
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function search($name)
     {
         $Patient = PatientHistory::where('hidden', false)
             ->where(function ($query) use ($name) {
-            $query->where('name', 'like', '%'.$name.'%')
-                ->orWhere('hospital', 'like', '%'.$name.'%')
-                ->orWhere('NID', 'like', '%'.$name.'%')
-                ->orWhereHas('doctor', function ($query) use ($name) {
-                    $query->where('name', 'like', '%'.$name.'%');
-                });
-        })
+                $query->where('name', 'like', '%'.$name.'%')
+                    ->orWhere('hospital', 'like', '%'.$name.'%')
+                    ->orWhere('NID', 'like', '%'.$name.'%')
+                    ->orWhereHas('doctor', function ($query) use ($name) {
+                        $query->where('name', 'like', '%'.$name.'%');
+                    });
+            })
             ->with('doctor:id,name,lname')
             ->with(['sections' => function ($query) {
                 $query->select('patient_id', 'submit_status', 'outcome_status');

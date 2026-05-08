@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 
@@ -11,7 +12,7 @@ class LocalizationTestController extends Controller
     /**
      * Test localization functionality
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function test(Request $request)
     {
@@ -49,7 +50,7 @@ class LocalizationTestController extends Controller
     /**
      * Test API response with localized messages
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function login(Request $request)
     {
@@ -93,7 +94,7 @@ class LocalizationTestController extends Controller
     /**
      * Test patient creation with localized response
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function createPatient(Request $request)
     {
@@ -126,7 +127,7 @@ class LocalizationTestController extends Controller
     /**
      * Test scoring system with localized achievement message
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function awardPoints(Request $request)
     {

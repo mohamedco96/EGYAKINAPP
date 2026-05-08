@@ -2,9 +2,11 @@
 
 namespace App\Modules\Auth\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class UpdateProfileRequest extends FormRequest
 {
@@ -19,7 +21,7 @@ class UpdateProfileRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>
+     * @return array<string, ValidationRule|array|string>
      */
     public function rules(): array
     {
@@ -27,7 +29,7 @@ class UpdateProfileRequest extends FormRequest
 
         return [
             'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|unique:users,email,' . $userId,
+            'email' => 'sometimes|email|unique:users,email,'.$userId,
             'password' => 'nullable|string|min:8',
             'user_type' => 'nullable|string|in:normal,medical_statistics',
             'lname' => 'nullable|string|max:255',
@@ -47,12 +49,11 @@ class UpdateProfileRequest extends FormRequest
     /**
      * Handle a failed validation attempt.
      *
-     * @param  \Illuminate\Contracts\Validation\Validator  $validator
      * @return void
      *
-     * @throws \Illuminate\Validation\ValidationException
+     * @throws ValidationException
      */
-    protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
+    protected function failedValidation(Validator $validator)
     {
         $exception = new ValidationException($validator);
         $exception->status = 422;

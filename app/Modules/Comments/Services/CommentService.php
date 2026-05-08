@@ -5,6 +5,7 @@ namespace App\Modules\Comments\Services;
 use App\Modules\Comments\Models\Comment;
 use App\Modules\Patients\Models\Patients;
 use App\Traits\NotificationCleanup;
+use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -45,7 +46,7 @@ class CommentService
                 ],
                 'status_code' => 200,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error retrieving all comments: '.$e->getMessage());
             throw $e;
         }
@@ -90,7 +91,7 @@ class CommentService
                     ],
                     'status_code' => 200,
                 ];
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 Log::error('Error creating comment: '.$e->getMessage());
                 throw $e;
             }
@@ -115,7 +116,7 @@ class CommentService
                 ],
                 'status_code' => 200,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error retrieving comments for patient ID {$patientId}: ".$e->getMessage());
             throw $e;
         }
@@ -155,7 +156,7 @@ class CommentService
                 ],
                 'status_code' => 200,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error updating comment ID {$commentId}: ".$e->getMessage());
             throw $e;
         }
@@ -199,7 +200,7 @@ class CommentService
                 ],
                 'status_code' => 200,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error deleting comment ID {$commentId}: ".$e->getMessage());
             throw $e;
         }
@@ -208,14 +209,14 @@ class CommentService
     /**
      * Validate that patient exists
      *
-     * @throws \Exception
+     * @throws Exception
      */
     private function validatePatientExists(int $patientId): Patients
     {
         $patient = Patients::find($patientId);
 
         if (! $patient) {
-            throw new \Exception('Patient not found', 404);
+            throw new Exception('Patient not found', 404);
         }
 
         return $patient;

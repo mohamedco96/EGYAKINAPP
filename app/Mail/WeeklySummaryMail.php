@@ -7,11 +7,14 @@ use App\Models\FeedPostComment;
 use App\Models\FeedPostLike;
 use App\Models\Group;
 use App\Models\User;
+use App\Modules\Chat\Models\AIConsultation;
 use App\Modules\Consultations\Models\Consultation;
 use App\Modules\Patients\Models\Patients;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -59,7 +62,7 @@ class WeeklySummaryMail extends Mailable
     /**
      * Get the attachments for the message.
      *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
+     * @return array<int, Attachment>
      */
     public function attachments(): array
     {
@@ -111,12 +114,12 @@ class WeeklySummaryMail extends Mailable
                     'total_doctors' => User::where('isSyndicateCardRequired', 'Verified')->count(),
                     'total_patients' => Patients::count(),
                     'total_consultations' => Consultation::count(),
-                    'total_ai_consultations' => \App\Modules\Chat\Models\AIConsultation::count(),
+                    'total_ai_consultations' => AIConsultation::count(),
                     'total_posts' => FeedPost::count(),
                     'total_groups' => Group::count(),
                 ],
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error generating weekly summary data: '.$e->getMessage());
 
             return [
@@ -136,7 +139,7 @@ class WeeklySummaryMail extends Mailable
             'new_doctors' => User::where('isSyndicateCardRequired', 'Verified')->whereBetween('created_at', [$start, $end])->count(),
             'new_patients' => Patients::whereBetween('created_at', [$start, $end])->count(),
             'new_consultations' => Consultation::whereBetween('created_at', [$start, $end])->count(),
-            'new_ai_consultations' => \App\Modules\Chat\Models\AIConsultation::whereBetween('created_at', [$start, $end])->count(),
+            'new_ai_consultations' => AIConsultation::whereBetween('created_at', [$start, $end])->count(),
             'new_posts' => FeedPost::whereBetween('created_at', [$start, $end])->count(),
             'new_groups' => Group::whereBetween('created_at', [$start, $end])->count(),
             'total_likes' => FeedPostLike::whereBetween('created_at', [$start, $end])->count(),
@@ -183,7 +186,7 @@ class WeeklySummaryMail extends Mailable
                     ];
                 })
                 ->toArray();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error getting most active doctors: '.$e->getMessage());
 
             return [];
@@ -211,7 +214,7 @@ class WeeklySummaryMail extends Mailable
                     ];
                 })
                 ->toArray();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error getting popular posts: '.$e->getMessage());
 
             return [];
@@ -240,7 +243,7 @@ class WeeklySummaryMail extends Mailable
                     ];
                 })
                 ->toArray();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error getting most active groups: '.$e->getMessage());
 
             return [];
@@ -319,7 +322,7 @@ class WeeklySummaryMail extends Mailable
                     ];
                 })
                 ->toArray();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error getting doctors with patients: '.$e->getMessage());
 
             return [];
@@ -346,7 +349,7 @@ class WeeklySummaryMail extends Mailable
                     ];
                 })
                 ->toArray();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error getting doctors with posts: '.$e->getMessage());
 
             return [];

@@ -2,14 +2,32 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\ContactResource\Pages;
+use App\Filament\Resources\ContactResource\Pages\CreateContact;
+use App\Filament\Resources\ContactResource\Pages\EditContact;
+use App\Filament\Resources\ContactResource\Pages\ListContacts;
+use App\Filament\Resources\ContactResource\Pages\ViewContact;
 use App\Modules\Contacts\Models\Contact;
-use Filament\Forms;
+use Carbon\Carbon;
+use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Form;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Actions\Action;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -20,13 +38,13 @@ class ContactResource extends Resource
 {
     protected static ?string $model = Contact::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-phone';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-phone';
 
     protected static ?string $navigationLabel = 'Contact Requests';
 
-    protected static ?string $navigationGroup = '📢 Communications';
+    protected static string|\UnitEnum|null $navigationGroup = '📱 Community';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 9;
 
     public static function getNavigationBadge(): ?string
     {
@@ -44,22 +62,22 @@ class ContactResource extends Resource
         return $pendingCount > 0 ? 'warning' : 'success';
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make('Contact Information')
+        return $schema
+            ->components([
+                Section::make('Contact Information')
                     ->schema([
-                        Forms\Components\Grid::make(2)
+                        Grid::make(2)
                             ->schema([
-                                Forms\Components\Select::make('doctor_id')
+                                Select::make('doctor_id')
                                     ->relationship('doctor', 'name')
                                     ->searchable()
                                     ->preload()
                                     ->required()
                                     ->label('Doctor Name'),
 
-                                Forms\Components\Select::make('status')
+                                Select::make('status')
                                     ->options([
                                         'pending' => 'Pending',
                                         'in-progress' => 'In Progress',
@@ -70,7 +88,7 @@ class ContactResource extends Resource
                                     ->label('Status')
                                     ->native(false),
 
-                                Forms\Components\Select::make('priority')
+                                Select::make('priority')
                                     ->options([
                                         'low' => 'Low',
                                         'medium' => 'Medium',
@@ -82,7 +100,7 @@ class ContactResource extends Resource
                                     ->native(false),
                             ]),
 
-                        Forms\Components\Textarea::make('message')
+                        Textarea::make('message')
                             ->required()
                             ->label('Message')
                             ->rows(5)
@@ -97,7 +115,7 @@ class ContactResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['doctor']))
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID')
                     ->badge()
                     ->color('gray')
@@ -105,7 +123,7 @@ class ContactResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('priority')
+                TextColumn::make('priority')
                     ->label('Priority')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -124,7 +142,7 @@ class ContactResource extends Resource
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('status')
+                TextColumn::make('status')
                     ->label('Status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -143,37 +161,39 @@ class ContactResource extends Resource
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('doctor.name')
+                TextColumn::make('doctor.name')
                     ->label('Doctor Name')
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->searchable(['users.name', 'users.lname'])
                     ->sortable()
-                    ->formatStateUsing(fn ($record) => $record->doctor ? $record->doctor->name . ' ' . $record->doctor->lname : 'N/A')
+                    ->formatStateUsing(fn ($record) => $record->doctor ? $record->doctor->name.' '.$record->doctor->lname : 'N/A')
                     ->description(fn ($record) => $record->doctor?->email),
 
-                Tables\Columns\TextColumn::make('message')
+                TextColumn::make('message')
                     ->label('Message')
                     ->toggleable(isToggledHiddenByDefault: false)
                     ->searchable()
                     ->sortable()
                     ->limit(50)
-                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                    ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
                         if (strlen($state) > 50) {
                             return $state;
                         }
+
                         return null;
                     })
                     ->wrap(),
 
-                Tables\Columns\TextColumn::make('message')
+                TextColumn::make('message_length')
                     ->label('Message Length')
                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->formatStateUsing(fn ($state) => strlen($state) . ' chars')
+                    ->getStateUsing(fn ($record) => strlen($record->message))
+                    ->formatStateUsing(fn ($state) => $state.' chars')
                     ->badge()
-                    ->color(fn ($state) => strlen($state) > 500 ? 'warning' : 'success'),
+                    ->color(fn ($state) => $state > 500 ? 'warning' : 'success'),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime()
                     ->sortable()
@@ -181,7 +201,7 @@ class ContactResource extends Resource
                     ->since()
                     ->tooltip(fn ($record) => $record->created_at?->format('M d, Y H:i:s')),
 
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->label('Updated')
                     ->dateTime()
                     ->sortable()
@@ -190,11 +210,13 @@ class ContactResource extends Resource
                     ->tooltip(fn ($record) => $record->updated_at?->format('M d, Y H:i:s')),
             ])
             ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->striped()
             ->persistSearchInSession()
             ->persistColumnSearchesInSession()
             ->persistSortInSession()
             ->filters([
-                Tables\Filters\SelectFilter::make('status')
+                SelectFilter::make('status')
                     ->label('Status')
                     ->options([
                         'pending' => 'Pending',
@@ -204,7 +226,7 @@ class ContactResource extends Resource
                     ->multiple()
                     ->searchable(),
 
-                Tables\Filters\SelectFilter::make('priority')
+                SelectFilter::make('priority')
                     ->label('Priority')
                     ->options([
                         'low' => 'Low',
@@ -214,22 +236,22 @@ class ContactResource extends Resource
                     ->multiple()
                     ->searchable(),
 
-                Tables\Filters\SelectFilter::make('doctor_id')
+                SelectFilter::make('doctor_id')
                     ->label('Doctor')
                     ->relationship('doctor', 'name')
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\Filter::make('message_length')
+                Filter::make('message_length')
                     ->label('Message Length')
-                    ->form([
-                        Forms\Components\Grid::make(2)
+                    ->schema([
+                        Grid::make(2)
                             ->schema([
-                                Forms\Components\TextInput::make('min_length')
+                                TextInput::make('min_length')
                                     ->label('Min Characters')
                                     ->numeric()
                                     ->minValue(0),
-                                Forms\Components\TextInput::make('max_length')
+                                TextInput::make('max_length')
                                     ->label('Max Characters')
                                     ->numeric()
                                     ->minValue(0),
@@ -239,18 +261,16 @@ class ContactResource extends Resource
                         return $query
                             ->when(
                                 $data['min_length'],
-                                fn (Builder $query, $length): Builder =>
-                                    $query->whereRaw('LENGTH(message) >= ?', [$length])
+                                fn (Builder $query, $length): Builder => $query->whereRaw('LENGTH(message) >= ?', [$length])
                             )
                             ->when(
                                 $data['max_length'],
-                                fn (Builder $query, $length): Builder =>
-                                    $query->whereRaw('LENGTH(message) <= ?', [$length])
+                                fn (Builder $query, $length): Builder => $query->whereRaw('LENGTH(message) <= ?', [$length])
                             );
                     }),
 
-                Tables\Filters\Filter::make('created_at')
-                    ->form([
+                Filter::make('created_at')
+                    ->schema([
                         DatePicker::make('created_from')
                             ->label('From'),
                         DatePicker::make('created_until')
@@ -270,14 +290,15 @@ class ContactResource extends Resource
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
                         if ($data['created_from'] ?? null) {
-                            $indicators[] = 'From ' . \Carbon\Carbon::parse($data['created_from'])->toFormattedDateString();
+                            $indicators[] = 'From '.Carbon::parse($data['created_from'])->toFormattedDateString();
                         }
                         if ($data['created_until'] ?? null) {
-                            $indicators[] = 'Until ' . \Carbon\Carbon::parse($data['created_until'])->toFormattedDateString();
+                            $indicators[] = 'Until '.Carbon::parse($data['created_until'])->toFormattedDateString();
                         }
+
                         return $indicators;
                     }),
-            ], layout: Tables\Enums\FiltersLayout::AboveContent)
+            ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(5)
             ->toggleColumnsTriggerAction(
                 fn (Action $action) => $action
@@ -285,18 +306,19 @@ class ContactResource extends Resource
                     ->label('Toggle columns'),
             )
             ->persistFiltersInSession()
+            ->deferFilters(false)
             ->deselectAllRecordsWhenFiltered(true)
             ->filtersTriggerAction(
                 fn (Action $action) => $action
                     ->button()
                     ->label('Filter'),
             )
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->modalHeading('Contact Request Details')
                     ->modalWidth('3xl'),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('markAsResolved')
+                EditAction::make(),
+                Action::make('markAsResolved')
                     ->label('Resolve')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
@@ -306,7 +328,7 @@ class ContactResource extends Resource
                         Cache::forget('contacts_pending_count');
                     })
                     ->successNotificationTitle('Contact marked as resolved'),
-                Tables\Actions\Action::make('markAsInProgress')
+                Action::make('markAsInProgress')
                     ->label('In Progress')
                     ->icon('heroicon-o-arrow-path')
                     ->color('info')
@@ -316,16 +338,16 @@ class ContactResource extends Resource
                         Cache::forget('contacts_pending_count');
                     })
                     ->successNotificationTitle('Contact marked as in progress'),
-                Tables\Actions\DeleteAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('changeStatus')
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    BulkAction::make('changeStatus')
                         ->label('Change Status')
                         ->icon('heroicon-o-arrow-path')
                         ->color('info')
                         ->form([
-                            Forms\Components\Select::make('status')
+                            Select::make('status')
                                 ->label('New Status')
                                 ->options([
                                     'pending' => 'Pending',
@@ -341,12 +363,12 @@ class ContactResource extends Resource
                         })
                         ->deselectRecordsAfterCompletion()
                         ->successNotificationTitle('Status updated for selected contacts'),
-                    Tables\Actions\BulkAction::make('changePriority')
+                    BulkAction::make('changePriority')
                         ->label('Change Priority')
                         ->icon('heroicon-o-exclamation-triangle')
                         ->color('warning')
                         ->form([
-                            Forms\Components\Select::make('priority')
+                            Select::make('priority')
                                 ->label('New Priority')
                                 ->options([
                                     'low' => 'Low',
@@ -361,7 +383,7 @@ class ContactResource extends Resource
                         })
                         ->deselectRecordsAfterCompletion()
                         ->successNotificationTitle('Priority updated for selected contacts'),
-                    Tables\Actions\BulkAction::make('markAsResolved')
+                    BulkAction::make('markAsResolved')
                         ->label('Mark as Resolved')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
@@ -371,7 +393,7 @@ class ContactResource extends Resource
                         })
                         ->deselectRecordsAfterCompletion()
                         ->successNotificationTitle('Selected contacts marked as resolved'),
-                    Tables\Actions\DeleteBulkAction::make()
+                    DeleteBulkAction::make()
                         ->after(function () {
                             Cache::forget('contacts_count');
                             Cache::forget('contacts_pending_count');
@@ -380,7 +402,7 @@ class ContactResource extends Resource
                 ]),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
             ->emptyStateHeading('No contact requests yet')
             ->emptyStateDescription('Contact requests from doctors will appear here.')
@@ -397,10 +419,10 @@ class ContactResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListContacts::route('/'),
-            'create' => Pages\CreateContact::route('/create'),
-            'view' => Pages\ViewContact::route('/{record}'),
-            'edit' => Pages\EditContact::route('/{record}/edit'),
+            'index' => ListContacts::route('/'),
+            'create' => CreateContact::route('/create'),
+            'view' => ViewContact::route('/{record}'),
+            'edit' => EditContact::route('/{record}/edit'),
         ];
     }
 }

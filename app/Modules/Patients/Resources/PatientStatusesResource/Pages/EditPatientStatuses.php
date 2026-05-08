@@ -3,7 +3,7 @@
 namespace App\Modules\Patients\Resources\PatientStatusesResource\Pages;
 
 use App\Modules\Patients\Resources\PatientStatusesResource;
-use Filament\Actions;
+use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditPatientStatuses extends EditRecord
@@ -13,7 +13,7 @@ class EditPatientStatuses extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 }

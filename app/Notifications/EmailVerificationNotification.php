@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -41,7 +42,7 @@ class EmailVerificationNotification extends Notification // implements ShouldQue
                 'brevo_api_configured' => config('services.brevo.api_key') ? 'Yes' : 'No',
                 'mail_from_config' => config('mail.from.address'),
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('EmailVerificationNotification Construction Error:', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -68,7 +69,7 @@ class EmailVerificationNotification extends Notification // implements ShouldQue
             try {
                 $otp = $this->otp->generate($notifiable->email, 'numeric', 4, 10);
                 $otpToken = $otp->token;
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 // Fallback for testing when database is not available
                 Log::warning('OTP generation failed, using fallback for testing', [
                     'email' => $notifiable->email,
@@ -95,7 +96,7 @@ class EmailVerificationNotification extends Notification // implements ShouldQue
                     'email' => config('mail.from.address'),
                 ],
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error preparing Brevo API verification email:', [
                 'email' => $notifiable->email,
                 'error' => $e->getMessage(),

@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\User;
 use App\Modules\Achievements\Services\AchievementService;
 use App\Modules\Patients\Models\Patients;
+use Exception;
 use Illuminate\Support\Facades\Log;
 
 class PatientObserver
@@ -48,7 +49,7 @@ class PatientObserver
 
                 $this->achievementService->checkAndAssignAchievementsForUser($user);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error checking achievements after patient change', [
                 'patient_id' => $patient->id,
                 'doctor_id' => $patient->doctor_id,

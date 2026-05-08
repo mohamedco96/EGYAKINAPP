@@ -7,11 +7,13 @@ use App\Models\Group;
 use App\Modules\Consultations\Models\Consultation;
 use App\Modules\Patients\Models\Patients;
 use App\Traits\FormatsUserName;
+use Exception;
 use Illuminate\Support\Facades\Log;
 
 class ShareUrlService
 {
     use FormatsUserName;
+
     /**
      * Generate shareable URL for a post
      */
@@ -21,7 +23,7 @@ class ShareUrlService
             $post = FeedPost::find($postId);
 
             if (! $post) {
-                throw new \Exception('Post not found');
+                throw new Exception('Post not found');
             }
 
             return [
@@ -31,7 +33,7 @@ class ShareUrlService
                 'type' => 'post',
                 'id' => $postId,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error generating post share URL', [
                 'post_id' => $postId,
                 'error' => $e->getMessage(),
@@ -53,7 +55,7 @@ class ShareUrlService
             $patient = Patients::find($patientId);
 
             if (! $patient) {
-                throw new \Exception('Patient not found');
+                throw new Exception('Patient not found');
             }
 
             return [
@@ -63,7 +65,7 @@ class ShareUrlService
                 'type' => 'patient',
                 'id' => $patientId,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error generating patient share URL', [
                 'patient_id' => $patientId,
                 'error' => $e->getMessage(),
@@ -85,7 +87,7 @@ class ShareUrlService
             $group = Group::find($groupId);
 
             if (! $group) {
-                throw new \Exception('Group not found');
+                throw new Exception('Group not found');
             }
 
             return [
@@ -95,7 +97,7 @@ class ShareUrlService
                 'type' => 'group',
                 'id' => $groupId,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error generating group share URL', [
                 'group_id' => $groupId,
                 'error' => $e->getMessage(),
@@ -117,7 +119,7 @@ class ShareUrlService
             $consultation = Consultation::find($consultationId);
 
             if (! $consultation) {
-                throw new \Exception('Consultation not found');
+                throw new Exception('Consultation not found');
             }
 
             return [
@@ -127,7 +129,7 @@ class ShareUrlService
                 'type' => 'consultation',
                 'id' => $consultationId,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error generating consultation share URL', [
                 'consultation_id' => $consultationId,
                 'error' => $e->getMessage(),
@@ -195,9 +197,9 @@ class ShareUrlService
                 case 'consultation':
                     return $this->getConsultationPreviewData($id);
                 default:
-                    throw new \Exception("Unknown content type: $type");
+                    throw new Exception("Unknown content type: $type");
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error getting preview data', [
                 'type' => $type,
                 'id' => $id,
@@ -220,7 +222,7 @@ class ShareUrlService
             ->find($postId);
 
         if (! $post) {
-            throw new \Exception('Post not found');
+            throw new Exception('Post not found');
         }
 
         return [
@@ -245,7 +247,7 @@ class ShareUrlService
         ])->find($patientId);
 
         if (! $patient) {
-            throw new \Exception('Patient not found');
+            throw new Exception('Patient not found');
         }
 
         $patientName = optional($patient->answers->where('question_id', 1)->first())->answer ?? 'Patient';
@@ -270,7 +272,7 @@ class ShareUrlService
             ->find($groupId);
 
         if (! $group) {
-            throw new \Exception('Group not found');
+            throw new Exception('Group not found');
         }
 
         return [
@@ -296,7 +298,7 @@ class ShareUrlService
         ])->find($consultationId);
 
         if (! $consultation) {
-            throw new \Exception('Consultation not found');
+            throw new Exception('Consultation not found');
         }
 
         $patientName = optional($consultation->patient->answers->first())->answer ?? 'Patient';

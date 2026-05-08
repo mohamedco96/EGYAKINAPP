@@ -2,6 +2,13 @@
 
 namespace App\Modules\Patients\Models;
 
+use App\Models\Answers;
+use App\Models\Comment;
+use App\Models\SectionsInfo;
+use App\Models\User;
+use App\Modules\Chat\Models\AIConsultation;
+use App\Modules\Notifications\Models\AppNotification;
+use App\Modules\Recommendations\Models\Recommendation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -32,17 +39,17 @@ class Patients extends Model
 
     public function doctor(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'doctor_id');
+        return $this->belongsTo(User::class, 'doctor_id');
     }
 
     public function recommendations(): HasMany
     {
-        return $this->hasMany(\App\Modules\Recommendations\Models\Recommendation::class, 'patient_id');
+        return $this->hasMany(Recommendation::class, 'patient_id');
     }
 
     public function answers(): HasMany
     {
-        return $this->hasMany(\App\Models\Answers::class, 'patient_id');
+        return $this->hasMany(Answers::class, 'patient_id');
     }
 
     public function status(): HasMany
@@ -53,21 +60,21 @@ class Patients extends Model
     // Define the sections relationship
     public function sections(): HasMany
     {
-        return $this->hasMany(\App\Models\SectionsInfo::class);
+        return $this->hasMany(SectionsInfo::class);
     }
 
     public function comments()
     {
-        return $this->hasMany(\App\Models\Comment::class);
+        return $this->hasMany(Comment::class);
     }
 
     public function notification()
     {
-        return $this->hasMany(\App\Modules\Notifications\Models\AppNotification::class, 'doctor_id');
+        return $this->hasMany(AppNotification::class, 'doctor_id');
     }
 
     public function consultations()
     {
-        return $this->hasMany(\App\Modules\Chat\Models\AIConsultation::class);
+        return $this->hasMany(AIConsultation::class);
     }
 }

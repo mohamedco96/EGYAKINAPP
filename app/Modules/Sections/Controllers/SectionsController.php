@@ -9,6 +9,8 @@ use App\Modules\Sections\Requests\UpdateFinalSubmitRequest;
 use App\Modules\Sections\Services\GfrCalculationService;
 use App\Modules\Sections\Services\ScoringService;
 use App\Modules\Sections\Services\SectionManagementService;
+use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -33,7 +35,7 @@ class SectionsController extends Controller
     /**
      * Update the final submit status for a patient.
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function updateFinalSubmit(UpdateFinalSubmitRequest $request, int $patientId)
     {
@@ -69,7 +71,7 @@ class SectionsController extends Controller
                 'message' => 'Final Submit Updated Successfully',
             ], 201);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error updating final submit for patient ID: $patientId. Error: ".$e->getMessage());
 
             return response()->json([
@@ -82,7 +84,7 @@ class SectionsController extends Controller
     /**
      * Show questions and answers for a specific section and patient.
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function showQuestionsAnswers(int $sectionId, int $patientId)
     {
@@ -110,7 +112,7 @@ class SectionsController extends Controller
 
             return response()->json($response, 200);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error while fetching questions and answers: '.$e->getMessage());
 
             return response()->json([
@@ -123,7 +125,7 @@ class SectionsController extends Controller
     /**
      * Show sections and their statuses for a patient (Legacy format for backward compatibility).
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function showSections(int $patientId)
     {
@@ -179,7 +181,7 @@ class SectionsController extends Controller
                 'data' => $sectionsData,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error while showing sections for patient ID: $patientId. Error: ".$e->getMessage());
 
             return response()->json([
@@ -192,7 +194,7 @@ class SectionsController extends Controller
     /**
      * Show sections and their statuses for a patient (V1 format with localization).
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function showSectionsV1(int $patientId)
     {
@@ -248,7 +250,7 @@ class SectionsController extends Controller
                 'data' => $sectionsData,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error while showing sections for patient ID: $patientId (V1). Error: ".$e->getMessage());
 
             return response()->json([

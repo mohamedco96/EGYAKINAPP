@@ -4,7 +4,7 @@ namespace App\Filament\Resources\DoseResource\Pages;
 
 use App\Filament\Resources\DoseResource;
 use App\Filament\Widgets\DoseStatsWidget;
-use Filament\Actions;
+use Filament\Actions\CreateAction;
 use Filament\Pages\Concerns\ExposesTableToWidgets;
 use Filament\Resources\Pages\ListRecords;
 
@@ -17,7 +17,7 @@ class ListDoses extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()
+            CreateAction::make()
                 ->label('New Dose Modifier')
                 ->icon('heroicon-m-plus')
                 ->color('primary')

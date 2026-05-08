@@ -8,6 +8,7 @@ use App\Modules\Notifications\Requests\StoreNotificationRequest;
 use App\Modules\Notifications\Requests\UpdateNotificationRequest;
 use App\Modules\Notifications\Services\FcmTokenService;
 use App\Modules\Notifications\Services\NotificationService;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -39,7 +40,7 @@ class NotificationController extends Controller
             );
 
             return response()->json(['status' => 'Message sent successfully']);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to send single notification', [
                 'error' => $e->getMessage(),
                 'request' => $request->all(),
@@ -61,7 +62,7 @@ class NotificationController extends Controller
             );
 
             return response()->json($result, $result['success'] ? 200 : 500);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to send notification to all', [
                 'error' => $e->getMessage(),
                 'request' => $request->validated(),
@@ -78,7 +79,7 @@ class NotificationController extends Controller
     {
         try {
             return $this->notificationService->sendPushNotification($title, $body, $tokens);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to send push notification', [
                 'title' => $title,
                 'tokens_count' => count($tokens),
@@ -98,7 +99,7 @@ class NotificationController extends Controller
             $result = $this->notificationService->sendAllPushNotification();
 
             return response()->json($result, $result['success'] ? 200 : 500);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to send notification to all users', [
                 'error' => $e->getMessage(),
             ]);
@@ -121,7 +122,7 @@ class NotificationController extends Controller
             );
 
             return response()->json($result, $result['value'] ? 201 : 409);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to store FCM token', [
                 'error' => $e->getMessage(),
                 'doctor_id' => auth()->id(),
@@ -144,7 +145,7 @@ class NotificationController extends Controller
             $result = $this->notificationService->getAllNotifications();
 
             return response()->json($result, 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error occurred while fetching notifications', [
                 'error' => $e->getMessage(),
             ]);
@@ -165,7 +166,7 @@ class NotificationController extends Controller
             $result = $this->notificationService->createNotification($request->validated());
 
             return response()->json($result, $result['value'] ? 201 : 400);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to create notification', [
                 'error' => $e->getMessage(),
                 'request' => $request->validated(),
@@ -192,7 +193,7 @@ class NotificationController extends Controller
             }
 
             return response()->json($result, $result['value'] ? 200 : 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error occurred while fetching notification', [
                 'id' => $id,
                 'error' => $e->getMessage(),
@@ -214,7 +215,7 @@ class NotificationController extends Controller
             $result = $this->notificationService->getNewNotifications();
 
             return response()->json($result, 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error occurred while fetching new notifications', [
                 'error' => $e->getMessage(),
             ]);
@@ -235,7 +236,7 @@ class NotificationController extends Controller
             $result = $this->notificationService->updateNotification($id, $request->validated());
 
             return response()->json($result, $result['value'] ? 200 : 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to update notification', [
                 'id' => $id,
                 'error' => $e->getMessage(),
@@ -258,7 +259,7 @@ class NotificationController extends Controller
             $result = $this->notificationService->markAllNotificationsAsRead();
 
             return response()->json($result, 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to mark all notifications as read', [
                 'error' => $e->getMessage(),
                 'doctor_id' => auth()->id(),
@@ -280,7 +281,7 @@ class NotificationController extends Controller
             $result = $this->notificationService->deleteNotification($id);
 
             return response()->json($result, $result['value'] ? 200 : 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to delete notification', [
                 'id' => $id,
                 'error' => $e->getMessage(),

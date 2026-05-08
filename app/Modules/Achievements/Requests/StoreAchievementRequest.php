@@ -2,6 +2,7 @@
 
 namespace App\Modules\Achievements\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreAchievementRequest extends FormRequest
@@ -17,7 +18,7 @@ class StoreAchievementRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -26,14 +27,12 @@ class StoreAchievementRequest extends FormRequest
             'description' => 'nullable|string',
             'score' => 'required|integer|min:1',
             'type' => 'required|string|in:score,patient',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ];
     }
 
     /**
      * Get custom messages for validator errors.
-     *
-     * @return array
      */
     public function messages(): array
     {
@@ -45,7 +44,7 @@ class StoreAchievementRequest extends FormRequest
             'type.in' => 'Achievement type must be either score or patient',
             'image.image' => 'The file must be an image',
             'image.mimes' => 'The image must be a file of type: jpeg, png, jpg, gif',
-            'image.max' => 'The image may not be greater than 2048 kilobytes'
+            'image.max' => 'The image may not be greater than 2048 kilobytes',
         ];
     }
 }

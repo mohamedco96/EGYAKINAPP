@@ -12,6 +12,7 @@ use App\Models\PatientHistory;
 use App\Models\Risk;
 use App\Models\SectionFieldMapping;
 use App\Modules\Questions\Models\Questions;
+use Exception;
 use Illuminate\Support\Facades\Log;
 
 class QuestionService
@@ -74,7 +75,7 @@ class QuestionService
                 ],
                 'status_code' => 201,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to store question: '.$e->getMessage(), [
                 'data' => $data,
                 'error' => $e->getMessage(),
@@ -282,7 +283,7 @@ class QuestionService
                 ],
                 'status_code' => 200,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to update question: '.$e->getMessage(), [
                 'id' => $id,
                 'data' => $data,

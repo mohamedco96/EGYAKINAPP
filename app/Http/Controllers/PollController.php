@@ -2,23 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\FeedPost;
-use App\Models\FeedPostComment;
-use App\Models\FeedPostCommentLike;
-use App\Models\FeedPostLike;
-use App\Models\FeedSaveLike;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\MainController;
-use App\Models\Hashtag;
-use App\Models\Group;
-use App\Models\AppNotification;
-use App\Models\User;
 use App\Models\Poll;
-use App\Models\PollOption; // If you have a separate PollOption model
+use App\Models\PollOption;
 use App\Models\PollVote;
+use App\Models\User;
+use Exception;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Request; // If you have a separate PollOption model
+use Illuminate\Support\Facades\Auth;
 
 class PollController extends Controller
 {
@@ -40,11 +31,12 @@ class PollController extends Controller
         if ($existingVote) {
             // Unvote (remove vote)
             $existingVote->delete();
+
             return response()->json(['message' => 'Vote removed successfully']);
         }
 
         // If multiple choices are not allowed, remove previous votes
-        if (!$poll->allow_multiple_choice) {
+        if (! $poll->allow_multiple_choice) {
             PollVote::where('poll_id', $pollId)->where('doctor_id', $userId)->delete();
         }
 
@@ -57,7 +49,6 @@ class PollController extends Controller
 
         return response()->json(['message' => 'Vote submitted successfully']);
     }
-
 
     public function getVotersByOption($pollId, $optionId)
     {
@@ -74,23 +65,22 @@ class PollController extends Controller
             return response()->json([
                 'value' => true,
                 'data' => $voters,
-                'message' => 'Voters retrieved successfully'
+                'message' => 'Voters retrieved successfully',
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'Poll option not found'
+                'message' => 'Poll option not found',
             ], 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while retrieving voters'
+                'message' => 'An error occurred while retrieving voters',
             ], 500);
         }
     }
-
 
     public function addPollOption(Request $request, $pollId)
     {
@@ -102,10 +92,10 @@ class PollController extends Controller
             $poll = Poll::findOrFail($pollId);
 
             // Check if the poll allows adding new options
-            if (!$poll->allow_add_options) {
+            if (! $poll->allow_add_options) {
                 return response()->json([
                     'value' => false,
-                    'message' => 'Adding new options is not allowed for this poll'
+                    'message' => 'Adding new options is not allowed for this poll',
                 ], 403);
             }
 
@@ -117,32 +107,32 @@ class PollController extends Controller
             if ($existingOption) {
                 return response()->json([
                     'value' => false,
-                    'message' => 'This option already exists for the poll'
+                    'message' => 'This option already exists for the poll',
                 ], 400);
             }
 
             // Create new poll option
             $option = PollOption::create([
                 'poll_id' => $pollId,
-                'option_text' => $request->option_text
+                'option_text' => $request->option_text,
             ]);
 
             return response()->json([
                 'value' => true,
                 'data' => $option,
-                'message' => 'Option added successfully'
+                'message' => 'Option added successfully',
             ], 201);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'Poll not found'
+                'message' => 'Poll not found',
             ], 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'value' => false,
                 'data' => [],
-                'message' => 'An error occurred while adding the option'
+                'message' => 'An error occurred while adding the option',
             ], 500);
         }
     }

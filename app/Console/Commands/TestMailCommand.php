@@ -6,6 +6,7 @@ use App\Mail\BrevoApiMail;
 use App\Mail\BrevoMail;
 use App\Mail\DailyReportMail;
 use App\Mail\VerifyEmail;
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -99,7 +100,7 @@ class TestMailCommand extends Command
 
             return 0;
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->error('❌ Failed to send email!');
             $this->error('Error: '.$e->getMessage());
 
@@ -164,7 +165,7 @@ class TestMailCommand extends Command
         $result = $brevoMail->sendViaBrevoApi();
 
         if (! $result['success']) {
-            throw new \Exception('Brevo API Error: '.($result['error'] ?? 'Unknown error'));
+            throw new Exception('Brevo API Error: '.($result['error'] ?? 'Unknown error'));
         }
 
         $this->info('📡 Brevo API Response:');
@@ -176,7 +177,7 @@ class TestMailCommand extends Command
      */
     private function sendDailyReportTest($email)
     {
-        $dailyReport = new DailyReportMail();
+        $dailyReport = new DailyReportMail;
 
         // Get the email content from the mailable
         $envelope = $dailyReport->envelope();
@@ -192,7 +193,7 @@ class TestMailCommand extends Command
         $result = $brevoMail->sendViaBrevoApi();
 
         if (! $result['success']) {
-            throw new \Exception('Brevo API Error: '.($result['error'] ?? 'Unknown error'));
+            throw new Exception('Brevo API Error: '.($result['error'] ?? 'Unknown error'));
         }
 
         $this->info('📡 Brevo API Response:');
@@ -221,7 +222,7 @@ class TestMailCommand extends Command
         $result = $brevoMail->sendViaBrevoApi();
 
         if (! $result['success']) {
-            throw new \Exception('Brevo API Error: '.($result['error'] ?? 'Unknown error'));
+            throw new Exception('Brevo API Error: '.($result['error'] ?? 'Unknown error'));
         }
 
         $this->info('📡 Brevo API Response:');
@@ -242,7 +243,7 @@ class TestMailCommand extends Command
         $result = $brevoMail->sendViaBrevoApi();
 
         if (! $result['success']) {
-            throw new \Exception('Brevo API Error: '.($result['error'] ?? 'Unknown error'));
+            throw new Exception('Brevo API Error: '.($result['error'] ?? 'Unknown error'));
         }
 
         $this->info('📡 Brevo API Response:');

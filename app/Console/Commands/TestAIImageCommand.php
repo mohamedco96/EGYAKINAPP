@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\AIFormService;
 use Dompdf\Dompdf;
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Http\UploadedFile;
 
@@ -32,6 +33,7 @@ class TestAIImageCommand extends Command
             $apiKey = config('services.openai.api_key');
             if (empty($apiKey)) {
                 $this->error('OPENAI_API_KEY is not set in .env');
+
                 return 1;
             }
             $this->info('Mode: REAL API (using OpenAI)');
@@ -41,11 +43,12 @@ class TestAIImageCommand extends Command
         }
 
         // Build files array
-        if (!empty($customFiles)) {
+        if (! empty($customFiles)) {
             $files = [];
             foreach ($customFiles as $path) {
-                if (!file_exists($path)) {
+                if (! file_exists($path)) {
                     $this->error("File not found: {$path}");
+
                     return 1;
                 }
                 $files[] = new UploadedFile($path, basename($path), mime_content_type($path), null, true);
@@ -66,7 +69,7 @@ class TestAIImageCommand extends Command
         }
 
         $this->newLine();
-        $this->info("Processing {$sectionId} with " . count($files) . " file(s)...");
+        $this->info("Processing {$sectionId} with ".count($files).' file(s)...');
         $this->newLine();
 
         // Step 1: Analyze images
@@ -74,8 +77,9 @@ class TestAIImageCommand extends Command
         try {
             $extractedText = $service->analyzeImage($files);
             $this->line($extractedText);
-        } catch (\Exception $e) {
-            $this->error('Image analysis failed: ' . $e->getMessage());
+        } catch (Exception $e) {
+            $this->error('Image analysis failed: '.$e->getMessage());
+
             return 1;
         }
 
@@ -85,13 +89,15 @@ class TestAIImageCommand extends Command
         $this->info("--- Step 2: Extract structured data (section {$sectionId}) ---");
         try {
             $result = $service->processSection($extractedText, $sectionId);
-        } catch (\Exception $e) {
-            $this->error('Section processing failed: ' . $e->getMessage());
+        } catch (Exception $e) {
+            $this->error('Section processing failed: '.$e->getMessage());
+
             return 1;
         }
 
         if (empty($result['data'])) {
-            $this->warn('No questions found for section ' . $sectionId);
+            $this->warn('No questions found for section '.$sectionId);
+
             return 0;
         }
 
@@ -114,16 +120,23 @@ class TestAIImageCommand extends Command
 
         $filled = count(array_filter($result['data'], function ($item) {
             $a = $item['answer'] ?? null;
-            if ($a === null) return false;
-            if (is_array($a) && isset($a['answers']) && $a['answers'] === null) return false;
-            if (is_array($a) && isset($a['answers']) && empty($a['answers'])) return false;
+            if ($a === null) {
+                return false;
+            }
+            if (is_array($a) && isset($a['answers']) && $a['answers'] === null) {
+                return false;
+            }
+            if (is_array($a) && isset($a['answers']) && empty($a['answers'])) {
+                return false;
+            }
+
             return true;
         }));
 
         $this->newLine();
-        $this->info("Total questions: " . count($result['data']));
+        $this->info('Total questions: '.count($result['data']));
         $this->info("Filled answers: {$filled}");
-        $this->info("Empty/null: " . (count($result['data']) - $filled));
+        $this->info('Empty/null: '.(count($result['data']) - $filled));
 
         // Cleanup generated sample
         if (empty($customFiles) && isset($samplePath)) {
@@ -138,17 +151,17 @@ class TestAIImageCommand extends Command
      */
     private function generateSampleLabReport(): string
     {
-        $width  = 800;
+        $width = 800;
         $height = 1100;
-        $img    = imagecreatetruecolor($width, $height);
+        $img = imagecreatetruecolor($width, $height);
 
         // Colors
-        $white     = imagecolorallocate($img, 255, 255, 255);
-        $black     = imagecolorallocate($img, 0, 0, 0);
-        $darkGray  = imagecolorallocate($img, 60, 60, 60);
+        $white = imagecolorallocate($img, 255, 255, 255);
+        $black = imagecolorallocate($img, 0, 0, 0);
+        $darkGray = imagecolorallocate($img, 60, 60, 60);
         $lightGray = imagecolorallocate($img, 200, 200, 200);
-        $blue      = imagecolorallocate($img, 0, 70, 140);
-        $red       = imagecolorallocate($img, 180, 0, 0);
+        $blue = imagecolorallocate($img, 0, 70, 140);
+        $red = imagecolorallocate($img, 180, 0, 0);
 
         imagefill($img, 0, 0, $white);
 
@@ -230,14 +243,16 @@ class TestAIImageCommand extends Command
         foreach ($labs as $row) {
             if (empty($row[0])) {
                 $y += 5;
+
                 continue;
             }
 
             // Section headers
-            if (empty($row[1]) && !empty($row[0])) {
+            if (empty($row[1]) && ! empty($row[0])) {
                 $y += 5;
                 imagestring($img, 4, 30, $y, $row[0], $blue);
                 $y += 20;
+
                 continue;
             }
 
@@ -274,7 +289,7 @@ class TestAIImageCommand extends Command
         }
 
         // Save
-        $path = sys_get_temp_dir() . '/sample_lab_report_' . uniqid() . '.jpg';
+        $path = sys_get_temp_dir().'/sample_lab_report_'.uniqid().'.jpg';
         imagejpeg($img, $path, 95);
         imagedestroy($img);
 
@@ -390,12 +405,12 @@ class TestAIImageCommand extends Command
 </html>
 HTML;
 
-        $dompdf = new Dompdf();
+        $dompdf = new Dompdf;
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        $path = sys_get_temp_dir() . '/sample_lab_report_' . uniqid() . '.pdf';
+        $path = sys_get_temp_dir().'/sample_lab_report_'.uniqid().'.pdf';
         file_put_contents($path, $dompdf->output());
 
         return $path;

@@ -4,14 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\FeedPost;
 use App\Models\Group;
+use App\Modules\Consultations\Models\Consultation;
 use App\Modules\Patients\Models\Patients;
 use App\Traits\FormatsUserName;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class DeepLinkController extends Controller
 {
     use FormatsUserName;
+
     /**
      * Handle post deeplink with preview
      */
@@ -50,7 +53,7 @@ class DeepLinkController extends Controller
                 ],
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error handling post deeplink', [
                 'post_id' => $id,
                 'error' => $e->getMessage(),
@@ -108,7 +111,7 @@ class DeepLinkController extends Controller
                 ],
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error handling patient deeplink', [
                 'patient_id' => $id,
                 'error' => $e->getMessage(),
@@ -155,7 +158,7 @@ class DeepLinkController extends Controller
                 ],
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error handling group deeplink', [
                 'group_id' => $id,
                 'error' => $e->getMessage(),
@@ -171,7 +174,7 @@ class DeepLinkController extends Controller
     public function consultation(Request $request, $id)
     {
         try {
-            $consultation = \App\Modules\Consultations\Models\Consultation::with([
+            $consultation = Consultation::with([
                 'doctor:id,name,lname,image,isSyndicateCardRequired',
                 'patient.answers' => function ($query) {
                     $query->where('question_id', 1); // patient name
@@ -208,7 +211,7 @@ class DeepLinkController extends Controller
                 ],
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error handling consultation deeplink', [
                 'consultation_id' => $id,
                 'error' => $e->getMessage(),

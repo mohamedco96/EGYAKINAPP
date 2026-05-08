@@ -17,10 +17,15 @@ use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Notifications\Services\NotificationService;
 use App\Traits\FormatsUserName;
 use App\Traits\NotificationCleanup;
+use Exception;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth; // If you have a separate PollOption model
-use Illuminate\Support\Facades\DB;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB; // If you have a separate PollOption model
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class FeedPostController extends Controller
 {
@@ -65,7 +70,7 @@ class FeedPostController extends Controller
                 'data' => $posts,
                 'message' => __('api.feed_posts_retrieved_successfully'),
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error fetching feed posts: '.$e->getMessage());
 
             return response()->json([
@@ -159,7 +164,7 @@ class FeedPostController extends Controller
                 'data' => $feedPosts,
                 'message' => __('api.feed_posts_retrieved_successfully'),
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error fetching feed posts for doctor ID $doctorId: ".$e->getMessage());
 
             return response()->json([
@@ -173,7 +178,7 @@ class FeedPostController extends Controller
     public function getDoctorPosts($doctorId)
     {
         try {
-            //$doctorId = auth()->id(); // Get the authenticated doctor's ID
+            // $doctorId = auth()->id(); // Get the authenticated doctor's ID
 
             // Fetch posts with necessary relationships and counts
             $feedPosts = FeedPost::with([
@@ -236,7 +241,7 @@ class FeedPostController extends Controller
                 'data' => $feedPosts,
                 'message' => __('api.feed_posts_retrieved_successfully'),
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error fetching Doctor posts for doctor ID $doctorId: ".$e->getMessage());
 
             return response()->json([
@@ -334,7 +339,7 @@ class FeedPostController extends Controller
                 'data' => $feedPosts,
                 'message' => __('api.feed_posts_retrieved_successfully'),
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error fetching saved posts for doctor ID $doctorId: ".$e->getMessage());
 
             return response()->json([
@@ -402,7 +407,7 @@ class FeedPostController extends Controller
                 'data' => $post,
                 'message' => __('api.feed_posts_retrieved_successfully'),
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             Log::warning("Post ID $id not found");
 
             return response()->json([
@@ -410,7 +415,7 @@ class FeedPostController extends Controller
                 'data' => [],
                 'message' => __('api.post_not_found'),
             ], 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error fetching post ID $id: ".$e->getMessage());
 
             return response()->json([
@@ -445,12 +450,12 @@ class FeedPostController extends Controller
             });
 
             // Paginate the doctor data
-            $paginatedDoctorData = new \Illuminate\Pagination\LengthAwarePaginator(
+            $paginatedDoctorData = new LengthAwarePaginator(
                 $doctorData,
                 $likes->total(),
                 $likes->perPage(),
                 $likes->currentPage(),
-                ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath()]
+                ['path' => Paginator::resolveCurrentPath()]
             );
 
             Log::info("Likes retrieved for post ID $postId");
@@ -460,7 +465,7 @@ class FeedPostController extends Controller
                 'data' => $paginatedDoctorData,
                 'message' => __('api.feed_posts_retrieved_successfully'),
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error fetching likes for post ID $postId: ".$e->getMessage());
 
             return response()->json([
@@ -544,7 +549,7 @@ class FeedPostController extends Controller
             }
 
             // Create a new paginator instance with the transformed data
-            $paginatedResponse = new \Illuminate\Pagination\LengthAwarePaginator(
+            $paginatedResponse = new LengthAwarePaginator(
                 $paginatedComments->values(), // Ensure we're passing a collection with sequential keys
                 $comments->count(), // Total items count
                 $perPage,
@@ -559,7 +564,7 @@ class FeedPostController extends Controller
                 'data' => $paginatedResponse,
                 'message' => __('api.post_comments_retrieved_successfully'),
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error fetching comments for post ID $postId: ".$e->getMessage());
 
             return response()->json([
@@ -595,8 +600,8 @@ class FeedPostController extends Controller
             // Handle group validation with proper error handling
             try {
                 $this->handleGroupValidation($validatedData);
-            } catch (\Exception $e) {
-                throw new \Illuminate\Validation\ValidationException(
+            } catch (Exception $e) {
+                throw new ValidationException(
                     validator(['group_id' => [$e->getMessage()]], ['group_id' => 'required'])
                 );
             }
@@ -606,8 +611,8 @@ class FeedPostController extends Controller
             if ($request->hasFile('media_path')) {
                 try {
                     $mediaPaths = $this->uploadMultipleImages($request);
-                } catch (\Exception $e) {
-                    throw new \Illuminate\Validation\ValidationException(
+                } catch (Exception $e) {
+                    throw new ValidationException(
                         validator(['media_path' => ['Failed to upload media: '.$e->getMessage()]], ['media_path' => 'required'])
                     );
                 }
@@ -616,14 +621,14 @@ class FeedPostController extends Controller
             // Create Feed Post with proper error handling
             try {
                 $post = $this->createFeedPost($validatedData, $mediaPaths);
-            } catch (\Exception $e) {
-                throw new \Exception('Failed to create post: '.$e->getMessage());
+            } catch (Exception $e) {
+                throw new Exception('Failed to create post: '.$e->getMessage());
             }
 
             // Attach hashtags with error handling
             try {
                 $this->attachHashtags($post, $request->input('content'));
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 Log::error('Hashtag attachment failed: '.$e->getMessage());
                 // Continue execution as hashtag failure shouldn't prevent post creation
             }
@@ -644,8 +649,8 @@ class FeedPostController extends Controller
                             $poll->options()->create(['option_text' => $optionText]);
                         }
                     }
-                } catch (\Exception $e) {
-                    throw new \Exception('Failed to create poll: '.$e->getMessage());
+                } catch (Exception $e) {
+                    throw new Exception('Failed to create poll: '.$e->getMessage());
                 }
             }
 
@@ -654,7 +659,7 @@ class FeedPostController extends Controller
             // Create notifications with error handling
             try {
                 $notifications = $this->notifyDoctors($post);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 Log::error('Notification creation failed: '.$e->getMessage());
                 // Continue execution as notification failure shouldn't prevent post creation
             }
@@ -664,14 +669,14 @@ class FeedPostController extends Controller
                 'data' => $post->load('poll.options'),
                 'message' => __('api.post_created_successfully'),
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             DB::rollBack();
 
             return response()->json([
                 'value' => false,
                 'message' => $e->getMessage(),
             ], 422);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error creating post: '.$e->getMessage());
 
@@ -768,7 +773,7 @@ class FeedPostController extends Controller
                     $this->attachHashtags($post, $request->input('content'));
 
                     DB::commit();
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     DB::rollBack();
                     throw $e;
                 }
@@ -831,7 +836,7 @@ class FeedPostController extends Controller
                 'data' => $post->load('poll.options'),
                 'message' => __('api.post_updated_successfully'),
             ], 200);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             DB::rollBack();
             Log::warning("Post ID $id not found for update");
 
@@ -839,7 +844,7 @@ class FeedPostController extends Controller
                 'value' => false,
                 'message' => __('api.post_not_found'),
             ], 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error("Error updating post ID $id: ".$e->getMessage());
 
@@ -887,11 +892,11 @@ class FeedPostController extends Controller
             $group = Group::with('doctors')->find($validatedData['group_id']);
 
             if (! $group) {
-                throw new \Exception(__('api.group_not_found'), 404);
+                throw new Exception(__('api.group_not_found'), 404);
             }
 
             if ($group->privacy === 'private' && ! $group->doctors->contains(Auth::id())) {
-                throw new \Exception('You cannot post in this private group', 403);
+                throw new Exception('You cannot post in this private group', 403);
             }
 
             $validatedData['group_name'] = $group->name;
@@ -912,7 +917,7 @@ class FeedPostController extends Controller
                         Log::info('Media Paths: ', $mediaPaths);
                     }
                 } else {
-                    throw new \Exception(__('api.media_upload_failed'), 500);
+                    throw new Exception(__('api.media_upload_failed'), 500);
                 }
             }
 
@@ -928,7 +933,7 @@ class FeedPostController extends Controller
         $files = [];
 
         // Handle both Request object and array of files
-        if ($requestOrFiles instanceof \Illuminate\Http\Request) {
+        if ($requestOrFiles instanceof Request) {
             if (! $requestOrFiles->hasFile('media_path')) {
                 return [];
             }
@@ -974,7 +979,7 @@ class FeedPostController extends Controller
         ]);
 
         if (! $post) {
-            throw new \Exception(__('api.post_creation_failed'));
+            throw new Exception(__('api.post_creation_failed'));
         }
 
         return $post;
@@ -1060,7 +1065,7 @@ class FeedPostController extends Controller
                 'created_count' => count($hashtagsToCreate),
                 'updated_count' => count($hashtagsToUpdate),
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error attaching hashtags', [
                 'post_id' => $post->id,
                 'error' => $e->getMessage(),
@@ -1182,18 +1187,18 @@ class FeedPostController extends Controller
                     'value' => true,
                     'message' => __('api.post_deleted_successfully'),
                 ]);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 DB::rollBack();
                 throw $e;
             }
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             Log::warning("Post ID $id not found for deletion");
 
             return response()->json([
                 'value' => false,
                 'message' => __('api.post_not_found'),
             ], 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error deleting post ID $id: ".$e->getMessage());
 
             return response()->json([
@@ -1285,7 +1290,7 @@ class FeedPostController extends Controller
                         'data' => $newLike,
                         'message' => __('api.post_liked_successfully'),
                     ]);
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     DB::rollBack();
                     throw $e;
                 }
@@ -1314,21 +1319,21 @@ class FeedPostController extends Controller
                 ], 404);
             }
 
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             Log::warning("Post ID $postId not found for like/unlike");
 
             return response()->json([
                 'value' => false,
                 'message' => __('api.post_not_found'),
             ], 404);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             Log::warning('Invalid input for like/unlike: '.json_encode($e->errors()));
 
             return response()->json([
                 'value' => false,
                 'message' => __('api.validation_failed'),
             ], 422);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error processing like/unlike for post ID $postId: ".$e->getMessage());
 
             return response()->json([
@@ -1403,14 +1408,14 @@ class FeedPostController extends Controller
                     'message' => __('api.validation_failed'),
                 ], 400);
             }
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             Log::warning("Post ID $postId not found for save/unsave");
 
             return response()->json([
                 'value' => false,
                 'message' => __('api.post_not_found'),
             ], 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error processing save/unsave for post ID $postId: ".$e->getMessage());
 
             return response()->json([
@@ -1474,7 +1479,7 @@ class FeedPostController extends Controller
                 'data' => $comment,
                 'message' => __('api.comment_added_successfully'),
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error adding comment to post ID $postId: ".$e->getMessage());
 
             return response()->json([
@@ -1510,14 +1515,14 @@ class FeedPostController extends Controller
                 'value' => true,
                 'message' => __('api.comment_added_successfully'),
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             Log::warning("Comment ID $commentId not found for deletion");
 
             return response()->json([
                 'value' => false,
                 'message' => __('api.resource_not_found'),
             ], 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error deleting comment ID $commentId: ".$e->getMessage());
 
             return response()->json([
@@ -1636,7 +1641,7 @@ class FeedPostController extends Controller
                     'message' => __('api.validation_failed'),
                 ], 400);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error processing like/unlike for comment ID $commentId: ".$e->getMessage());
 
             return response()->json([
@@ -1687,7 +1692,7 @@ class FeedPostController extends Controller
                 'data' => $hashtags,
                 'message' => __('api.feed_posts_retrieved_successfully'),
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error searching hashtags for query $query: ".$e->getMessage());
 
             return response()->json([
@@ -1776,7 +1781,7 @@ class FeedPostController extends Controller
                 'data' => $posts,
                 'message' => __('api.feed_posts_retrieved_successfully'),
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error fetching posts for hashtag ID $hashtagId: ".$e->getMessage());
 
             return response()->json([
@@ -1794,7 +1799,7 @@ class FeedPostController extends Controller
 
         if (! $query) {
             // Create an empty paginated response with the same structure
-            $emptyPaginator = new \Illuminate\Pagination\LengthAwarePaginator(
+            $emptyPaginator = new LengthAwarePaginator(
                 [], // Empty data array
                 0,  // Total items
                 10, // Items per page
@@ -1902,7 +1907,7 @@ class FeedPostController extends Controller
                 'data' => $posts,
                 'message' => __('api.feed_posts_retrieved_successfully'),
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Error searching posts for query $query: ".$e->getMessage());
 
             return response()->json([

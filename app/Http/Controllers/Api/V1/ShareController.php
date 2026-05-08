@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Services\ShareUrlService;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -64,7 +65,7 @@ class ShareController extends Controller
                 ],
             ], 200);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error generating share URL', [
                 'request' => $request->all(),
                 'error' => $e->getMessage(),
@@ -122,7 +123,7 @@ class ShareController extends Controller
                 }, $results),
             ], 200);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error generating bulk share URLs', [
                 'request' => $request->all(),
                 'error' => $e->getMessage(),
@@ -177,7 +178,7 @@ class ShareController extends Controller
                 ],
             ], 200);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error getting preview data', [
                 'request' => $request->all(),
                 'error' => $e->getMessage(),

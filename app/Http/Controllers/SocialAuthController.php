@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Modules\Auth\Services\AuthService;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
 
@@ -20,7 +22,7 @@ class SocialAuthController extends Controller
     {
         try {
             return Socialite::driver('google')->redirect();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Google OAuth redirect failed: '.$e->getMessage());
 
             return response()->json([
@@ -49,7 +51,7 @@ class SocialAuthController extends Controller
             $socialUser = Socialite::driver('google')->user();
 
             return $this->handleSocialCallback('google', $socialUser);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Google OAuth callback failed: '.$e->getMessage());
 
             return response()->json([
@@ -66,7 +68,7 @@ class SocialAuthController extends Controller
     {
         try {
             return Socialite::driver('apple')->redirect();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Apple OAuth redirect failed: '.$e->getMessage());
 
             return response()->json([
@@ -95,7 +97,7 @@ class SocialAuthController extends Controller
             $socialUser = Socialite::driver('apple')->user();
 
             return $this->handleSocialCallback('apple', $socialUser);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Apple OAuth callback failed: '.$e->getMessage());
 
             return response()->json([
@@ -231,7 +233,7 @@ class SocialAuthController extends Controller
                 ],
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Social authentication callback failed for {$provider}: ".$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -251,22 +253,22 @@ class SocialAuthController extends Controller
         try {
             $request->validate([
                 'access_token' => 'required|string',
-                'fcmToken'     => 'nullable|string',
-                'deviceId'     => 'nullable|string',
-                'deviceType'   => 'nullable|string',
-                'appVersion'   => 'nullable|string',
+                'fcmToken' => 'nullable|string',
+                'deviceId' => 'nullable|string',
+                'deviceType' => 'nullable|string',
+                'appVersion' => 'nullable|string',
             ]);
 
             $googleUser = Socialite::driver('google')->userFromToken($request->input('access_token'));
 
             return $this->handleSocialCallback('google', $googleUser, $request);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $e->errors(),
             ], 422);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Google API authentication failed: '.$e->getMessage());
 
             return response()->json([
@@ -284,10 +286,10 @@ class SocialAuthController extends Controller
         try {
             $request->validate([
                 'identity_token' => 'required|string',
-                'fcmToken'       => 'nullable|string',
-                'deviceId'       => 'nullable|string',
-                'deviceType'     => 'nullable|string',
-                'appVersion'     => 'nullable|string',
+                'fcmToken' => 'nullable|string',
+                'deviceId' => 'nullable|string',
+                'deviceType' => 'nullable|string',
+                'appVersion' => 'nullable|string',
             ]);
 
             // For Apple, we need to handle the identity token
@@ -304,13 +306,13 @@ class SocialAuthController extends Controller
             }
 
             return $this->handleSocialCallback('apple', $appleUser, $request);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $e->errors(),
             ], 422);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Apple API authentication failed: '.$e->getMessage());
 
             return response()->json([
@@ -358,7 +360,7 @@ class SocialAuthController extends Controller
             ]);
 
             return $appleUser;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Apple token verification failed: '.$e->getMessage());
 
             return null;

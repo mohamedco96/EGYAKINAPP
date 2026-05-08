@@ -2,13 +2,27 @@
 
 namespace App\Modules\Patients\Resources;
 
+use App\Models\Answers;
 use App\Models\SectionsInfo;
+use App\Modules\Patients\Models\Patients;
 use App\Modules\Patients\Models\PatientStatus;
-use App\Modules\Patients\Resources\PatientStatusesResource\Pages;
-use Filament\Forms;
-use Filament\Forms\Form;
+use App\Modules\Patients\Resources\PatientStatusesResource\Pages\CreatePatientStatuses;
+use App\Modules\Patients\Resources\PatientStatusesResource\Pages\EditPatientStatuses;
+use App\Modules\Patients\Resources\PatientStatusesResource\Pages\ListPatientStatuses;
+use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -18,13 +32,13 @@ class PatientStatusesResource extends Resource
 {
     protected static ?string $model = PatientStatus::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
-    protected static ?string $navigationGroup = '🏥 Patient Management';
+    protected static string|\UnitEnum|null $navigationGroup = '🏥 Patient Management';
 
-    protected static ?string $navigationLabel = 'Sections Status';
+    protected static ?string $navigationLabel = 'Patient Statuses';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 2;
 
     // Cache for preloaded data to avoid N+1 queries
     protected static ?array $patientNamesCache = null;
@@ -53,7 +67,7 @@ class PatientStatusesResource extends Resource
 
         // Preload patient names from answers
         if (static::$patientNamesCache === null) {
-            static::$patientNamesCache = \App\Models\Answers::whereIn('patient_id', $patientIds)
+            static::$patientNamesCache = Answers::whereIn('patient_id', $patientIds)
                 ->where('question_id', 1)
                 ->pluck('answer', 'patient_id')
                 ->map(fn ($name) => is_string($name) ? trim($name, '"') : null)
@@ -62,7 +76,7 @@ class PatientStatusesResource extends Resource
 
         // Preload patient doctors
         if (static::$patientDoctorsCache === null) {
-            static::$patientDoctorsCache = \App\Modules\Patients\Models\Patients::whereIn('id', $patientIds)
+            static::$patientDoctorsCache = Patients::whereIn('id', $patientIds)
                 ->with('doctor:id,name')
                 ->get()
                 ->mapWithKeys(fn ($patient) => [$patient->id => $patient->doctor?->name ?? 'Unassigned'])
@@ -124,10 +138,10 @@ class PatientStatusesResource extends Resource
         return static::$patientSectionsCache[$patientId] ?? [];
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 //
             ]);
     }
@@ -136,7 +150,7 @@ class PatientStatusesResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('patient_id')
+                TextColumn::make('patient_id')
                     ->label('Patient ID')
                     ->getStateUsing(fn ($record) => (string) $record->patient_id)
                     ->searchable()
@@ -146,12 +160,12 @@ class PatientStatusesResource extends Resource
                     ->prefix('#')
                     ->weight('bold'),
 
-                Tables\Columns\TextColumn::make('patient_name')
+                TextColumn::make('patient_name')
                     ->label('Patient Name')
                     ->getStateUsing(fn ($record) => static::getPatientName($record->patient_id))
                     ->searchable()
                     ->limit(30)
-                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                    ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
 
                         return strlen($state) > 30 ? $state : null;
@@ -159,20 +173,20 @@ class PatientStatusesResource extends Resource
                     ->icon('heroicon-m-user')
                     ->weight('medium'),
 
-                Tables\Columns\TextColumn::make('doctor_name')
+                TextColumn::make('doctor_name')
                     ->label('Assigned Doctor')
                     ->getStateUsing(fn ($record) => static::getDoctorName($record->patient_id))
                     ->searchable()
                     ->sortable()
                     ->limit(25)
-                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                    ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
 
                         return strlen($state) > 25 ? $state : null;
                     })
                     ->icon('heroicon-m-user-circle'),
 
-                Tables\Columns\TextColumn::make('all_sections_status')
+                TextColumn::make('all_sections_status')
                     ->label('All Sections Status')
                     ->getStateUsing(function ($record) {
                         if (! isset($record->patient_id) || ! $record->patient_id) {
@@ -205,7 +219,7 @@ class PatientStatusesResource extends Resource
                     ->html()
                     ->wrap(),
 
-                Tables\Columns\TextColumn::make('completion_summary')
+                TextColumn::make('completion_summary')
                     ->label('Summary')
                     ->getStateUsing(function ($record) {
                         $sections = static::getPatientSections($record->patient_id);
@@ -228,7 +242,7 @@ class PatientStatusesResource extends Resource
                     ->html()
                     ->alignCenter(),
 
-                Tables\Columns\TextColumn::make('last_activity')
+                TextColumn::make('last_activity')
                     ->label('Last Activity')
                     ->getStateUsing(function ($record) {
                         $sections = static::getPatientSections($record->patient_id);
@@ -255,11 +269,11 @@ class PatientStatusesResource extends Resource
                     }),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('patient_id')
+                SelectFilter::make('patient_id')
                     ->label('Patient')
                     ->searchable()
                     ->getSearchResultsUsing(function (string $search): array {
-                        return \App\Modules\Patients\Models\Patients::with('doctor')
+                        return Patients::with('doctor')
                             ->whereHas('answers', function ($query) use ($search) {
                                 $query->where('question_id', 1)
                                     ->where('answer', 'LIKE', "%{$search}%");
@@ -268,7 +282,7 @@ class PatientStatusesResource extends Resource
                             ->limit(20)
                             ->get()
                             ->mapWithKeys(function ($patient) {
-                                $name = \App\Models\Answers::where('patient_id', $patient->id)
+                                $name = Answers::where('patient_id', $patient->id)
                                     ->where('question_id', 1)
                                     ->value('answer');
                                 $name = $name ? trim($name, '"') : "Patient #{$patient->id}";
@@ -278,21 +292,21 @@ class PatientStatusesResource extends Resource
                             ->toArray();
                     })
                     ->getOptionLabelUsing(function ($value): ?string {
-                        $name = \App\Models\Answers::where('patient_id', $value)
+                        $name = Answers::where('patient_id', $value)
                             ->where('question_id', 1)
                             ->value('answer');
 
                         return $name ? trim($name, '"') : "Patient #{$value}";
                     }),
 
-                Tables\Filters\SelectFilter::make('doctor_id')
+                SelectFilter::make('doctor_id')
                     ->label('Doctor')
                     ->relationship('doctor', 'name')
                     ->searchable(),
 
-                Tables\Filters\Filter::make('section_type')
-                    ->form([
-                        Forms\Components\Select::make('section')
+                Filter::make('section_type')
+                    ->schema([
+                        Select::make('section')
                             ->label('Section Type')
                             ->options(function () {
                                 return Cache::remember('sections_filter_options', 3600, function () {
@@ -308,15 +322,15 @@ class PatientStatusesResource extends Resource
                         );
                     }),
 
-                Tables\Filters\TernaryFilter::make('status')
+                TernaryFilter::make('status')
                     ->label('Status')
                     ->placeholder('All statuses')
                     ->trueLabel('Completed')
                     ->falseLabel('Pending'),
 
-                Tables\Filters\Filter::make('recent_activity')
-                    ->form([
-                        Forms\Components\Select::make('period')
+                Filter::make('recent_activity')
+                    ->schema([
+                        Select::make('period')
                             ->label('Activity Period')
                             ->options([
                                 'today' => 'Today',
@@ -340,26 +354,42 @@ class PatientStatusesResource extends Resource
                         );
                     }),
             ])
-            ->actions([
-                Tables\Actions\Action::make('viewPatient')
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
+            ->toggleColumnsTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Toggle columns'),
+            )
+            ->persistFiltersInSession()
+            ->deferFilters(false)
+            ->deselectAllRecordsWhenFiltered(true)
+            ->filtersTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Filter'),
+            )
+            ->recordActions([
+                Action::make('viewPatient')
                     ->label('View Patient')
                     ->icon('heroicon-o-eye')
                     ->color('info')
                     ->url(fn ($record) => route('filament.admin.resources.patients.view', ['record' => $record->patient_id]))
                     ->openUrlInNewTab(),
 
-                Tables\Actions\Action::make('manageSections')
+                Action::make('manageSections')
                     ->label('Manage Sections')
                     ->icon('heroicon-o-cog-6-tooth')
                     ->color('warning')
-                    ->form([
-                        Forms\Components\Repeater::make('sections')
+                    ->schema([
+                        Repeater::make('sections')
                             ->label('Patient Sections')
                             ->schema([
-                                Forms\Components\TextInput::make('section_name')
+                                TextInput::make('section_name')
                                     ->label('Section')
                                     ->disabled(),
-                                Forms\Components\Toggle::make('status')
+                                Toggle::make('status')
                                     ->label('Completed')
                                     ->inline(false),
                             ])
@@ -406,7 +436,7 @@ class PatientStatusesResource extends Resource
                         // Reset static caches so next page load gets fresh data
                         static::$patientSectionsCache = null;
 
-                        \Filament\Notifications\Notification::make()
+                        Notification::make()
                             ->success()
                             ->title('Sections Updated')
                             ->body('Patient sections have been updated successfully.')
@@ -414,7 +444,7 @@ class PatientStatusesResource extends Resource
                     })
                     ->modalWidth('2xl'),
 
-                Tables\Actions\Action::make('markAllCompleted')
+                Action::make('markAllCompleted')
                     ->label('Complete All')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
@@ -426,7 +456,7 @@ class PatientStatusesResource extends Resource
                         // Reset static cache
                         static::$patientSectionsCache = null;
 
-                        \Filament\Notifications\Notification::make()
+                        Notification::make()
                             ->success()
                             ->title('All Sections Completed')
                             ->body('All sections for this patient have been marked as completed.')
@@ -436,9 +466,9 @@ class PatientStatusesResource extends Resource
                     ->modalHeading('Complete All Sections')
                     ->modalDescription('Are you sure you want to mark all sections as completed for this patient?'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('markAllPatientsCompleted')
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    BulkAction::make('markAllPatientsCompleted')
                         ->label('Complete All Sections for Selected Patients')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
@@ -452,7 +482,7 @@ class PatientStatusesResource extends Resource
                             // Reset static cache
                             static::$patientSectionsCache = null;
 
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->success()
                                 ->title('Patients Updated')
                                 ->body('All sections for selected patients have been marked as completed.')
@@ -461,7 +491,7 @@ class PatientStatusesResource extends Resource
                         ->requiresConfirmation()
                         ->deselectRecordsAfterCompletion(),
 
-                    Tables\Actions\BulkAction::make('markAllPatientsPending')
+                    BulkAction::make('markAllPatientsPending')
                         ->label('Mark All Sections as Pending for Selected Patients')
                         ->icon('heroicon-o-clock')
                         ->color('warning')
@@ -475,7 +505,7 @@ class PatientStatusesResource extends Resource
                             // Reset static cache
                             static::$patientSectionsCache = null;
 
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->success()
                                 ->title('Patients Updated')
                                 ->body('All sections for selected patients have been marked as pending.')
@@ -486,6 +516,7 @@ class PatientStatusesResource extends Resource
                 ]),
             ])
             ->defaultSort('updated_at', 'desc')
+            ->defaultKeySort(false)
             ->striped()
             ->paginated([10, 25, 50, 100])
             ->defaultPaginationPageOption(25)
@@ -528,9 +559,9 @@ class PatientStatusesResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPatientStatuses::route('/'),
-            'create' => Pages\CreatePatientStatuses::route('/create'),
-            'edit' => Pages\EditPatientStatuses::route('/{record}/edit'),
+            'index' => ListPatientStatuses::route('/'),
+            'create' => CreatePatientStatuses::route('/create'),
+            'edit' => EditPatientStatuses::route('/{record}/edit'),
         ];
     }
 }

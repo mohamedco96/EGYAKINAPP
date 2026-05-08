@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\OutcomeResource\Pages;
 
 use App\Filament\Resources\OutcomeResource;
-use Filament\Actions;
+use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListOutcomes extends ListRecords
@@ -13,7 +13,7 @@ class ListOutcomes extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            CreateAction::make(),
         ];
     }
 }

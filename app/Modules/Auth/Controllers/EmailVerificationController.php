@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\Auth\Requests\EmailVerificationRequest;
 use App\Modules\Auth\Services\OtpService;
 use App\Notifications\EmailVerificationNotification;
+use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -45,7 +46,7 @@ class EmailVerificationController extends Controller
                 'message' => 'Verification email sent successfully',
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to send verification email', [
                 'error' => $e->getMessage(),
                 'email' => $user->email ?? null,
@@ -68,7 +69,7 @@ class EmailVerificationController extends Controller
             $user = Auth::user() ?? User::where('email', $request->email)->first();
 
             if (! $user) {
-                throw new \Exception('User not found');
+                throw new Exception('User not found');
             }
 
             $otpValidation = $this->otpService->validateByIdentifier($user->email, $request->otp);
@@ -98,7 +99,7 @@ class EmailVerificationController extends Controller
                 'message' => 'Email verified successfully',
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Email verification failed', [
                 'error' => $e->getMessage(),
                 'email' => $request->email ?? null,

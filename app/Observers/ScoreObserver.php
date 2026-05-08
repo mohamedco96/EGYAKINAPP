@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\Score;
 use App\Models\User;
 use App\Modules\Achievements\Services\AchievementService;
+use Exception;
 use Illuminate\Support\Facades\Log;
 
 class ScoreObserver
@@ -51,7 +52,7 @@ class ScoreObserver
 
                 $this->achievementService->checkAndAssignAchievementsForUser($user);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error checking achievements after score update', [
                 'score_id' => $score->id,
                 'doctor_id' => $score->doctor_id,

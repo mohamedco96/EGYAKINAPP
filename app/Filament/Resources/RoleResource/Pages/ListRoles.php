@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\RoleResource\Pages;
 
 use App\Filament\Resources\RoleResource;
-use Filament\Actions;
 use Filament\Actions\Action;
+use Filament\Actions\CreateAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Spatie\Permission\Models\Role;
@@ -45,7 +45,7 @@ class ListRoles extends ListRecords
                 ->modalHeading('Create Default Roles')
                 ->modalDescription('This will create standard roles: Super Admin, Admin, Editor, and User (if they don\'t exist).'),
 
-            Actions\CreateAction::make()
+            CreateAction::make()
                 ->label('New Role')
                 ->icon('heroicon-o-plus')
                 ->color('success'),

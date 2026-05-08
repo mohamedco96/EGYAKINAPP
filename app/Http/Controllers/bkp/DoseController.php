@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Modules\Doses\Models\Dose;
-use Illuminate\Http\Request;
 use App\Http\Requests\StoreDoseRequest;
 use App\Http\Requests\UpdateDoseRequest;
-use Illuminate\Support\Facades\DB;
+use App\Modules\Doses\Models\Dose;
+use Exception;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class DoseController extends Controller
@@ -14,7 +15,7 @@ class DoseController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function index()
     {
@@ -25,10 +26,10 @@ class DoseController extends Controller
             // Return success response with doses
             return response()->json([
                 'value' => true,
-                //'message' => 'Doses retrieved successfully',
+                // 'message' => 'Doses retrieved successfully',
                 'doses' => $doses,
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log any exceptions that occur
             Log::error('Exception occurred while retrieving doses.', [
                 'message' => $e->getMessage(),
@@ -46,7 +47,7 @@ class DoseController extends Controller
     /**
      * Show the form for creating a new resource.
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function create()
     {
@@ -56,7 +57,7 @@ class DoseController extends Controller
                 'value' => true,
                 'message' => 'Show create form',
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log any exceptions that occur
             Log::error('Exception occurred while showing create form.', [
                 'message' => $e->getMessage(),
@@ -74,8 +75,7 @@ class DoseController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \App\Http\Requests\StoreDoseRequest  $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function store(StoreDoseRequest $request)
     {
@@ -88,7 +88,7 @@ class DoseController extends Controller
             ]);
 
             // Check if dose creation was successful
-            if (!$dose) {
+            if (! $dose) {
                 // Log an error if dose creation failed
                 Log::error('Failed to create dose in store method.');
 
@@ -106,9 +106,9 @@ class DoseController extends Controller
                 'value' => true,
                 'data' => $dose,
                 'message' => 'Dose created successfully',
-                //'dose' => $dose, // Optionally return the created dose object
+                // 'dose' => $dose, // Optionally return the created dose object
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log any exceptions that occur
             Log::error('Exception occurred while storing dose.', [
                 'message' => $e->getMessage(),
@@ -126,19 +126,20 @@ class DoseController extends Controller
     /**
      * Display the specified resource.
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function show($id)
     {
         try {
             $dose = Dose::findorfail($id);
+
             // Return specific dose
             return response()->json([
                 'value' => true,
-                //'message' => 'Dose retrieved successfully',
+                // 'message' => 'Dose retrieved successfully',
                 'dose' => $dose,
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log any exceptions that occur
             Log::error('Exception occurred while retrieving dose.', [
                 'message' => $e->getMessage(),
@@ -156,8 +157,7 @@ class DoseController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  \App\Modules\Doses\Models\Dose  $dose
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function edit(Dose $dose)
     {
@@ -168,7 +168,7 @@ class DoseController extends Controller
                 'message' => 'Show edit form',
                 'dose' => $dose,
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log any exceptions that occur
             Log::error('Exception occurred while showing edit form.', [
                 'message' => $e->getMessage(),
@@ -211,7 +211,7 @@ class DoseController extends Controller
 
                 return response($response, 404);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log any exceptions that occur
             Log::error('Exception occurred while updating dose.', [
                 'message' => $e->getMessage(),
@@ -255,7 +255,7 @@ class DoseController extends Controller
 
                 return response($response, 404);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log any exceptions that occur
             Log::error('Exception occurred while deleting dose.', [
                 'message' => $e->getMessage(),
@@ -275,7 +275,7 @@ class DoseController extends Controller
         try {
             // Decode the query parameter in case it's URL encoded
             $query = urldecode($query);
-            
+
             // Validate that query is not empty
             if (empty(trim($query))) {
                 return response()->json([
@@ -283,14 +283,14 @@ class DoseController extends Controller
                     'message' => 'Search query cannot be empty',
                 ], 400);
             }
-            
+
             $perPage = $request->input('per_page', 10); // Default to 15 items per page
-    
+
             // Log the incoming query
             Log::info('Starting dose search', ['query' => $query, 'per_page' => $perPage]);
-    
+
             $doses = Dose::where('title', 'like', "%$query%")->paginate($perPage);
-    
+
             // Log the number of results found
             Log::info('Dose search completed', [
                 'query' => $query,
@@ -298,24 +298,23 @@ class DoseController extends Controller
                 'current_page' => $doses->currentPage(),
                 'per_page' => $doses->perPage(),
             ]);
-    
+
             return response()->json([
                 'value' => true,
                 'data' => $doses,
                 'message' => 'Dose retrieved successfully',
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Exception occurred while searching for doses.', [
                 'query' => $query ?? 'N/A',
                 'message' => $e->getMessage(),
                 'trace' => $e->getTrace(),
             ]);
-    
+
             return response()->json([
                 'value' => false,
                 'message' => 'Failed to search for doses. Please try again later.',
             ], 500);
         }
     }
-    
 }

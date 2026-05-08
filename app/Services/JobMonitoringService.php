@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -36,7 +37,7 @@ class JobMonitoringService
     {
         try {
             return DB::table('failed_jobs')->count();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::warning('Failed to get failed jobs count', ['error' => $e->getMessage()]);
 
             return 0;
@@ -50,7 +51,7 @@ class JobMonitoringService
     {
         try {
             return DB::table('jobs')->count();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::warning('Failed to get pending jobs count', ['error' => $e->getMessage()]);
 
             return 0;
@@ -82,7 +83,7 @@ class JobMonitoringService
                 ->toArray();
 
             return $failures;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::warning('Failed to get recent failures', ['error' => $e->getMessage()]);
 
             return [];
@@ -105,7 +106,7 @@ class JobMonitoringService
             }
 
             return round(($failedJobs / $totalJobs) * 100, 2);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::warning('Failed to calculate job failure rate', ['error' => $e->getMessage()]);
 
             return 0.0;
@@ -154,7 +155,7 @@ class JobMonitoringService
                 ->toArray();
 
             return $failures;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::warning('Failed to get critical failures', ['error' => $e->getMessage()]);
 
             return [];
@@ -246,7 +247,7 @@ class JobMonitoringService
                 ->delete();
 
             Log::info('Job monitoring cleanup completed');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Job monitoring cleanup failed', ['error' => $e->getMessage()]);
         }
     }

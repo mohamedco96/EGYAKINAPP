@@ -3,11 +3,11 @@
 namespace App\Modules\Auth\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Modules\Auth\Requests\ForgetPasswordRequest;
-use Otp;
 use App\Models\User;
+use App\Modules\Auth\Requests\ForgetPasswordRequest;
 use App\Notifications\ResetPasswordVerificationNotification;
+use Exception;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 
 class ForgetPasswordController extends Controller
@@ -16,7 +16,7 @@ class ForgetPasswordController extends Controller
      * Send reset password notification to user's email.
      *
      * @param  \App\Http\Requests\ForgetPasswordRequest  $request
-     * @return \Illuminate\Http\Response
+     * @return Response
      */
     public function forgotPassword(ForgetPasswordRequest $request)
     {
@@ -24,15 +24,16 @@ class ForgetPasswordController extends Controller
             $email = $request->input('email');
             $user = User::where('email', $email)->first();
 
-            if (!$user) {
+            if (! $user) {
                 Log::warning('User with email not found for password reset', ['email' => $email]);
+
                 return response()->json([
                     'value' => false,
                     'message' => 'User not found with this email address',
                 ], 404);
             }
 
-            $user->notify(new ResetPasswordVerificationNotification());
+            $user->notify(new ResetPasswordVerificationNotification);
 
             Log::info('Reset password mail sent successfully', ['email' => $email]);
 
@@ -40,8 +41,9 @@ class ForgetPasswordController extends Controller
                 'value' => true,
                 'message' => 'Reset password Mail sent successfully to user',
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error sending reset password mail', ['error' => $e->getMessage()]);
+
             return response()->json([
                 'value' => false,
                 'message' => 'Error sending reset password mail',

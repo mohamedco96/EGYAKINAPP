@@ -2,9 +2,11 @@
 
 namespace App\Notifications;
 
+use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Log;
 use Otp;
 
 class ResetPasswordVerificationNotification extends Notification
@@ -55,7 +57,7 @@ class ResetPasswordVerificationNotification extends Notification
             ->subject($this->subject)
             ->greeting('Hello '.$notifiable->name)
             ->line($this->message)
-        //->action('Verify', url('/'))
+        // ->action('Verify', url('/'))
             ->line('Thank you for using our application!')
             ->line('Code: '.$otp->token);
     }
@@ -70,9 +72,9 @@ class ResetPasswordVerificationNotification extends Notification
             try {
                 $otp = $this->otp->generate($notifiable->email, 'numeric', 4, 10);
                 $otpToken = $otp->token;
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 // Fallback for testing when database is not available
-                \Log::warning('OTP generation failed for password reset, using fallback for testing', [
+                Log::warning('OTP generation failed for password reset, using fallback for testing', [
                     'email' => $notifiable->email,
                     'error' => $e->getMessage(),
                 ]);
@@ -92,8 +94,8 @@ class ResetPasswordVerificationNotification extends Notification
                     'email' => config('mail.from.address'),
                 ],
             ];
-        } catch (\Exception $e) {
-            \Log::error('Error preparing Brevo API password reset email:', [
+        } catch (Exception $e) {
+            Log::error('Error preparing Brevo API password reset email:', [
                 'email' => $notifiable->email,
                 'error' => $e->getMessage(),
             ]);

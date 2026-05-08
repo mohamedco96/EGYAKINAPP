@@ -2,12 +2,27 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\FcmTokenResource\Pages;
+use App\Filament\Resources\FcmTokenResource\Pages\CreateFcmToken;
+use App\Filament\Resources\FcmTokenResource\Pages\EditFcmToken;
+use App\Filament\Resources\FcmTokenResource\Pages\ListFcmTokens;
+use App\Filament\Resources\FcmTokenResource\Pages\ViewFcmToken;
 use App\Modules\Notifications\Models\FcmToken;
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -16,23 +31,27 @@ use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 class FcmTokenResource extends Resource
 {
     protected static ?string $model = FcmToken::class;
-    protected static ?string $navigationIcon = 'heroicon-o-device-phone-mobile';
+
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-device-phone-mobile';
+
     protected static ?string $navigationLabel = 'FCM Tokens';
-    protected static ?string $navigationGroup = '🔒 System Administration';
-    protected static ?int $navigationSort = 2;
+
+    protected static string|\UnitEnum|null $navigationGroup = '⚙️ Administration';
+
+    protected static ?int $navigationSort = 5;
 
     public static function getNavigationBadge(): ?string
     {
-        return Cache::remember('fcm_tokens_count', 300, fn() => static::getModel()::count());
+        return Cache::remember('fcm_tokens_count', 300, fn () => static::getModel()::count());
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make('Token Information')
+        return $schema->components([
+            Section::make('Token Information')
                 ->description('FCM (Firebase Cloud Messaging) token details')
                 ->schema([
-                    Forms\Components\Select::make('doctor_id')
+                    Select::make('doctor_id')
                         ->relationship('doctor', 'name')
                         ->searchable()
                         ->preload()
@@ -40,7 +59,7 @@ class FcmTokenResource extends Resource
                         ->label('Doctor')
                         ->helperText('Select the doctor/user who owns this token'),
 
-                    Forms\Components\Textarea::make('token')
+                    Textarea::make('token')
                         ->required()
                         ->rows(4)
                         ->columnSpanFull()
@@ -48,12 +67,12 @@ class FcmTokenResource extends Resource
                         ->helperText('Firebase Cloud Messaging token for push notifications')
                         ->placeholder('Enter the FCM token...'),
 
-                    Forms\Components\TextInput::make('device_id')
+                    TextInput::make('device_id')
                         ->label('Device ID')
                         ->maxLength(50)
                         ->helperText('Unique device identifier'),
 
-                    Forms\Components\Select::make('device_type')
+                    Select::make('device_type')
                         ->label('Device Type')
                         ->options([
                             'ios' => 'iOS',
@@ -63,7 +82,7 @@ class FcmTokenResource extends Resource
                         ->native(false)
                         ->helperText('Type of device'),
 
-                    Forms\Components\TextInput::make('app_version')
+                    TextInput::make('app_version')
                         ->label('App Version')
                         ->maxLength(20)
                         ->helperText('Application version'),
@@ -76,44 +95,45 @@ class FcmTokenResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['doctor']))
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID')
                     ->badge()
                     ->color('gray')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('doctor.name')
+                TextColumn::make('doctor.name')
                     ->label('Doctor')
                     ->searchable(['users.name', 'users.lname'])
                     ->sortable()
-                    ->formatStateUsing(fn ($record) => $record->doctor ? $record->doctor->name . ' ' . ($record->doctor->lname ?? '') : 'N/A')
+                    ->formatStateUsing(fn ($record) => $record->doctor ? $record->doctor->name.' '.($record->doctor->lname ?? '') : 'N/A')
                     ->description(fn ($record) => $record->doctor?->email)
                     ->weight('bold')
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('token')
+                TextColumn::make('token')
                     ->label('FCM Token')
                     ->limit(40)
                     ->copyable()
-                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                    ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
                         if (strlen($state) > 40) {
                             return $state;
                         }
+
                         return null;
                     })
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('device_id')
+                TextColumn::make('device_id')
                     ->label('Device ID')
                     ->limit(20)
                     ->copyable()
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('device_type')
+                TextColumn::make('device_type')
                     ->label('Device')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -126,14 +146,14 @@ class FcmTokenResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('app_version')
+                TextColumn::make('app_version')
                     ->label('App Version')
                     ->badge()
                     ->color('gray')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime()
                     ->sortable()
@@ -141,7 +161,7 @@ class FcmTokenResource extends Resource
                     ->tooltip(fn ($record) => $record->created_at?->format('M d, Y H:i:s'))
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->label('Last Updated')
                     ->dateTime()
                     ->sortable()
@@ -150,17 +170,19 @@ class FcmTokenResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: false),
             ])
             ->defaultSort('updated_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->striped()
             ->persistSearchInSession()
             ->persistColumnSearchesInSession()
             ->persistSortInSession()
             ->filters([
-                Tables\Filters\SelectFilter::make('doctor_id')
+                SelectFilter::make('doctor_id')
                     ->label('Doctor')
                     ->relationship('doctor', 'name')
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\SelectFilter::make('device_type')
+                SelectFilter::make('device_type')
                     ->label('Device Type')
                     ->options([
                         'ios' => 'iOS',
@@ -169,19 +191,32 @@ class FcmTokenResource extends Resource
                     ])
                     ->multiple()
                     ->searchable(),
-            ], layout: Tables\Enums\FiltersLayout::AboveContent)
+            ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(2)
-            ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
+            ->toggleColumnsTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Toggle columns'),
+            )
+            ->persistFiltersInSession()
+            ->deferFilters(false)
+            ->deselectAllRecordsWhenFiltered(true)
+            ->filtersTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Filter'),
+            )
+            ->recordActions([
+                ViewAction::make(),
+                EditAction::make(),
+                DeleteAction::make()
                     ->after(function () {
                         Cache::forget('fcm_tokens_count');
                     }),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
                         ->after(function () {
                             Cache::forget('fcm_tokens_count');
                         }),
@@ -189,7 +224,7 @@ class FcmTokenResource extends Resource
                 ]),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
             ->emptyStateHeading('No FCM tokens registered')
             ->emptyStateDescription('Device FCM tokens for push notifications will appear here.')
@@ -199,10 +234,10 @@ class FcmTokenResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListFcmTokens::route('/'),
-            'create' => Pages\CreateFcmToken::route('/create'),
-            'view' => Pages\ViewFcmToken::route('/{record}'),
-            'edit' => Pages\EditFcmToken::route('/{record}/edit'),
+            'index' => ListFcmTokens::route('/'),
+            'create' => CreateFcmToken::route('/create'),
+            'view' => ViewFcmToken::route('/{record}'),
+            'edit' => EditFcmToken::route('/{record}/edit'),
         ];
     }
 }

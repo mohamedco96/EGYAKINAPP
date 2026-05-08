@@ -3,9 +3,11 @@
 namespace App\Console\Commands;
 
 use App\Models\Answers;
+use App\Models\User;
 use App\Modules\Patients\Models\Patients;
 use App\Modules\Patients\Models\PatientStatus;
 use App\Notifications\ReminderNotification;
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -87,7 +89,7 @@ class TestReminderEmails extends Command
                         $remindersSkipped++;
                         $this->warn("⚠️  Reminder skipped: {$result['reason']}");
                     }
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     $remindersSkipped++;
                     $this->error("❌ Failed to process reminder for Patient ID: {$submitStatus->patient_id} - {$e->getMessage()}");
                 }
@@ -104,7 +106,7 @@ class TestReminderEmails extends Command
                 $this->warn('🔍 This was a DRY RUN - no actual emails were sent');
             }
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->error("❌ Error in test reminder email job: {$e->getMessage()}");
 
             return Command::FAILURE;
@@ -122,7 +124,7 @@ class TestReminderEmails extends Command
 
         try {
             // Find or create a test doctor (first user)
-            $doctor = \App\Models\User::first();
+            $doctor = User::first();
             if (! $doctor) {
                 $this->error('❌ No users found in database. Please create a user first.');
 
@@ -181,7 +183,7 @@ class TestReminderEmails extends Command
             $this->info("   ⏰ Created: {$submitTime->format('Y-m-d H:i:s')} ({$submitTime->diffForHumans()})");
             $this->info('   📝 Key: submit_status, Status: true');
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->error("❌ Failed to create test data: {$e->getMessage()}");
         }
     }
@@ -257,7 +259,7 @@ class TestReminderEmails extends Command
 
         // Create a temporary user object with test email if needed
         if ($testEmail) {
-            $notifiableUser = new \App\Models\User();
+            $notifiableUser = new User;
             $notifiableUser->email = $testEmail;
             $notifiableUser->name = 'Test User';
             $notifiableUser->id = $submitStatus->doctor_id;

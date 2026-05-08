@@ -3,6 +3,8 @@
 namespace App\Modules\Patients\Services;
 
 use App\Modules\Patients\Models\Patients;
+use Exception;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -45,7 +47,7 @@ class MarkedPatientService
                 'success' => true,
                 'message' => 'Patient marked successfully.',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error marking patient: '.$e->getMessage(), [
                 'user_id' => Auth::id(),
                 'patient_id' => $patientId,
@@ -86,7 +88,7 @@ class MarkedPatientService
                 'success' => true,
                 'message' => 'Patient unmarked successfully.',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error unmarking patient: '.$e->getMessage(), [
                 'user_id' => Auth::id(),
                 'patient_id' => $patientId,
@@ -106,7 +108,7 @@ class MarkedPatientService
     {
         try {
             return Auth::user()->markedPatients()->count();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error getting marked patients count: '.$e->getMessage(), [
                 'user_id' => Auth::id(),
             ]);
@@ -161,13 +163,13 @@ class MarkedPatientService
             })->values()->all();
 
             // Create a new paginator with the transformed data
-            $result = new \Illuminate\Pagination\LengthAwarePaginator(
+            $result = new LengthAwarePaginator(
                 $transformedData,
                 $paginatedPatients->total(),
                 $perPage,
                 $paginatedPatients->currentPage(),
                 [
-                    'path' => \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPath(),
+                    'path' => LengthAwarePaginator::resolveCurrentPath(),
                     'pageName' => 'page',
                 ]
             );
@@ -184,7 +186,7 @@ class MarkedPatientService
                 'status_code' => 200,
             ];
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error getting marked patients: '.$e->getMessage(), [
                 'user_id' => Auth::id(),
             ]);

@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\FeedPostLikeResource\Pages;
 
 use App\Filament\Resources\FeedPostLikeResource;
-use Filament\Actions;
+use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewFeedPostLike extends ViewRecord
@@ -13,7 +13,7 @@ class ViewFeedPostLike extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make(),
+            EditAction::make(),
         ];
     }
 }

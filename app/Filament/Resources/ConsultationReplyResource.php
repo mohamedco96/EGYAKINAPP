@@ -2,12 +2,17 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\ConsultationReplyResource\Pages;
+use App\Filament\Resources\ConsultationReplyResource\Pages\ListConsultationReplies;
+use App\Filament\Resources\ConsultationReplyResource\Pages\ViewConsultationReply;
 use App\Modules\Consultations\Models\ConsultationReply;
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -16,22 +21,26 @@ use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 class ConsultationReplyResource extends Resource
 {
     protected static ?string $model = ConsultationReply::class;
-    protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-left-ellipsis';
+
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-chat-bubble-left-ellipsis';
+
     protected static ?string $navigationLabel = 'Consultation Replies';
-    protected static ?string $navigationGroup = '💬 AI & Consultations';
-    protected static ?int $navigationSort = 4;
+
+    protected static string|\UnitEnum|null $navigationGroup = '💬 AI & Consultations';
+
+    protected static ?int $navigationSort = 5;
 
     public static function getNavigationBadge(): ?string
     {
-        return Cache::remember('consultation_replies_count', 300, fn() => static::getModel()::count());
+        return Cache::remember('consultation_replies_count', 300, fn () => static::getModel()::count());
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make('Reply')->schema([
-                Forms\Components\Select::make('consultation_doctor_id')->relationship('consultationDoctor', 'id')->searchable()->preload()->required(),
-                Forms\Components\Textarea::make('reply')->required()->rows(5)->columnSpanFull(),
+        return $schema->components([
+            Section::make('Reply')->schema([
+                Select::make('consultation_doctor_id')->relationship('consultationDoctor', 'id')->searchable()->preload()->required(),
+                Textarea::make('reply')->required()->rows(5)->columnSpanFull(),
             ])->columns(2),
         ]);
     }
@@ -41,26 +50,35 @@ class ConsultationReplyResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['consultationDoctor']))
             ->columns([
-                Tables\Columns\TextColumn::make('id')->badge()->color('gray'),
-                Tables\Columns\TextColumn::make('consultationDoctor.id')->label('Consultation Doctor')->sortable(),
-                Tables\Columns\TextColumn::make('reply')->limit(60)->wrap(),
-                Tables\Columns\TextColumn::make('created_at')->dateTime()->since(),
+                TextColumn::make('id')->badge()->color('gray'),
+                TextColumn::make('consultationDoctor.id')->label('Consultation Doctor')->sortable(),
+                TextColumn::make('reply')->limit(60)->wrap(),
+                TextColumn::make('created_at')->dateTime()->since()->toggleable(),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make(),
+            ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->striped()
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
+            ->recordActions([
+                ViewAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
+            ->toolbarActions([
+                BulkActionGroup::make([
                     ExportBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->emptyStateHeading('No consultation replies')
+            ->emptyStateDescription('Doctor consultation replies will appear here.')
+            ->emptyStateIcon('heroicon-o-chat-bubble-left-ellipsis');
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListConsultationReplies::route('/'),
-            'view' => Pages\ViewConsultationReply::route('/{record}'),
+            'index' => ListConsultationReplies::route('/'),
+            'view' => ViewConsultationReply::route('/{record}'),
         ];
     }
 

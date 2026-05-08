@@ -14,10 +14,14 @@ use App\Modules\Notifications\Services\NotificationService;
 use App\Modules\Patients\Models\Patients;
 use App\Modules\Patients\Models\PatientStatus;
 use App\Modules\Questions\Models\Questions;
+use App\Notifications\ReachingSpecificPoints;
+use App\Services\FileUploadService;
+use Exception;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class PatientService
 {
@@ -408,7 +412,7 @@ class PatientService
         if ($newThreshold >= 50) {
             $user = User::find($doctorId);
             if ($user) {
-                $user->notify(new \App\Notifications\ReachingSpecificPoints($score->score));
+                $user->notify(new ReachingSpecificPoints($score->score));
             }
             $score->threshold = 0;
         }
@@ -453,14 +457,14 @@ class PatientService
             Log::info('Processing file upload for question', [
                 'question_id' => $questionId,
                 'value_type' => gettype($value),
-                'value' => $value
+                'value' => $value,
             ]);
 
             $fileUrls = $this->handleFileUploads($value);
 
             Log::info('File upload result', [
                 'question_id' => $questionId,
-                'file_urls' => $fileUrls
+                'file_urls' => $fileUrls,
             ]);
 
             $this->updateAnswer($questionId, json_encode($fileUrls), $patientId, false, $sectionId, $questionTypes);
@@ -483,14 +487,14 @@ class PatientService
             Log::info('Processing file upload for new question', [
                 'question_id' => $questionId,
                 'value_type' => gettype($value),
-                'value' => $value
+                'value' => $value,
             ]);
 
             $fileUrls = $this->handleFileUploads($value);
 
             Log::info('File upload result for new question', [
                 'question_id' => $questionId,
-                'file_urls' => $fileUrls
+                'file_urls' => $fileUrls,
             ]);
 
             $this->saveAnswer($doctorId, $questionId, json_encode($fileUrls), $patientId, false, $sectionId, $questionTypes);
@@ -525,11 +529,11 @@ class PatientService
      */
     private function handleFileUploads($files): array
     {
-        if (empty($files) || !is_array($files)) {
+        if (empty($files) || ! is_array($files)) {
             return [];
         }
 
-        $fileUploadService = app(\App\Services\FileUploadService::class);
+        $fileUploadService = app(FileUploadService::class);
         $filePaths = [];
 
         try {
@@ -540,6 +544,7 @@ class PatientService
                     $fileContent = base64_decode($file['file_data'], true);
                     if ($fileContent === false) {
                         Log::warning('Invalid base64 file data, skipping', ['file_name' => $file['file_name']]);
+
                         continue;
                     }
 
@@ -555,19 +560,20 @@ class PatientService
                             'file_name' => $fileName,
                             'extension' => $ext,
                         ]);
+
                         continue;
                     }
 
                     // Generate unique filename
-                    $uniqueFileName = random_int(500, 10000000000) . '_' . $fileName;
-                    $filePath = 'medical_reports/' . $uniqueFileName;
+                    $uniqueFileName = random_int(500, 10000000000).'_'.$fileName;
+                    $filePath = 'medical_reports/'.$uniqueFileName;
 
-                    \Illuminate\Support\Facades\Storage::disk('public')->put($filePath, $fileContent);
+                    Storage::disk('public')->put($filePath, $fileContent);
                     $filePaths[] = $filePath;
 
-                    Log::info("File uploaded successfully for patient question", [
+                    Log::info('File uploaded successfully for patient question', [
                         'file_name' => $fileName,
-                        'file_path' => $filePath
+                        'file_path' => $filePath,
                     ]);
                 } elseif (is_string($file)) {
                     // File path already exists, just add it
@@ -576,11 +582,12 @@ class PatientService
             }
 
             return $filePaths;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error handling file uploads in PatientService', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return [];
         }
     }

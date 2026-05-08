@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\FeedPost;
 use App\Models\Group;
 use App\Models\User;
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 
@@ -166,7 +167,7 @@ class ValidateCleanupCommand extends Command
                 ->count();
             $this->line("   🖼️  Group images: {$groupGroupImages} records");
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->error('   ❌ Database connection failed: '.$e->getMessage());
         }
 

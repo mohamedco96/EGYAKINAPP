@@ -3,6 +3,7 @@
 namespace App\Modules\Patients\Services;
 
 use App\Modules\Patients\Models\Patients;
+use DateTime;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Facades\Auth;
 
@@ -97,7 +98,7 @@ class PatientFilterService
     /**
      * Get patients for doctor with pagination
      */
-    public function getDoctorPatients(bool $allPatients = false): \Illuminate\Pagination\LengthAwarePaginator
+    public function getDoctorPatients(bool $allPatients = false): Paginator
     {
         $user = Auth::user();
         $isAdminOrTester = $user->hasRole('admin') || $user->hasRole('tester');
@@ -267,7 +268,7 @@ class PatientFilterService
      */
     private function isValidDate(string $date): bool
     {
-        $d = \DateTime::createFromFormat('Y-m-d', $date);
+        $d = DateTime::createFromFormat('Y-m-d', $date);
 
         return $d && $d->format('Y-m-d') === $date;
     }

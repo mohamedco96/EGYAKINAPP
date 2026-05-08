@@ -2,6 +2,7 @@
 
 namespace App\Modules\Comments\Models;
 
+use App\Models\Likes;
 use App\Models\User;
 use App\Modules\Patients\Models\Patients;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -71,7 +72,7 @@ class Comment extends Model
      */
     public function likes(): HasMany
     {
-        return $this->hasMany(\App\Models\Likes::class);
+        return $this->hasMany(Likes::class);
     }
 
     /**

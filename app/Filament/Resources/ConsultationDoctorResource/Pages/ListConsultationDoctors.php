@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\ConsultationDoctorResource\Pages;
 
 use App\Filament\Resources\ConsultationDoctorResource;
-use Filament\Actions;
+use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\Cache;
 
@@ -14,7 +14,7 @@ class ListConsultationDoctors extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            CreateAction::make(),
         ];
     }
 

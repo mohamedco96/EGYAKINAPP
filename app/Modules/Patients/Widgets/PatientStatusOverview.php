@@ -8,10 +8,13 @@ use Illuminate\Support\Facades\DB;
 
 class PatientStatusOverview extends ChartWidget
 {
-    protected static ?string $heading = 'Patient Status Distribution';
-    protected static ?string $description = 'Overview of patient statuses across the system';
-    protected static string $color = 'warning';
-    protected static ?string $pollingInterval = '15s';
+    protected ?string $heading = 'Patient Status Distribution';
+
+    protected ?string $description = 'Overview of patient statuses across the system';
+
+    protected string $color = 'warning';
+
+    protected ?string $pollingInterval = '15s';
 
     protected function getData(): array
     {
@@ -53,4 +56,4 @@ class PatientStatusOverview extends ChartWidget
             ],
         ];
     }
-} 
+}

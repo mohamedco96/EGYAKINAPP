@@ -10,6 +10,7 @@ use App\Modules\Notifications\Models\AppNotification;
 use App\Modules\Patients\Models\Patients;
 use App\Modules\Patients\Services\PatientService;
 use App\Modules\Posts\Models\Posts;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -61,7 +62,7 @@ class HomeDataService
     /**
      * Get feed posts for user with content and images only
      */
-    private function getFeedPosts(User $user): \Illuminate\Support\Collection
+    private function getFeedPosts(User $user): Collection
     {
         return FeedPost::with([
             'doctor:id,name,lname,image,email,syndicate_card,isSyndicateCardRequired',
@@ -179,7 +180,7 @@ class HomeDataService
     /**
      * Get all posts with image and content only
      */
-    private function getPosts(): \Illuminate\Support\Collection
+    private function getPosts(): Collection
     {
         return Posts::select('id', 'title', 'image', 'content', 'hidden', 'post_type', 'webinar_date', 'url', 'doctor_id', 'updated_at')
             ->where('hidden', false)
@@ -232,7 +233,7 @@ class HomeDataService
     /**
      * Get top doctors
      */
-    private function getTopDoctors(): \Illuminate\Support\Collection
+    private function getTopDoctors(): Collection
     {
         return User::select(
             'users.id',
@@ -268,7 +269,7 @@ class HomeDataService
     /**
      * Get pending syndicate card users
      */
-    private function getPendingSyndicateCard(bool $isAdminOrTester): \Illuminate\Support\Collection
+    private function getPendingSyndicateCard(bool $isAdminOrTester): Collection
     {
         return $isAdminOrTester
             ? User::select('id', 'name', 'image', 'syndicate_card', 'isSyndicateCardRequired')

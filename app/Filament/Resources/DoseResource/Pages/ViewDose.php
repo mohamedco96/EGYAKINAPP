@@ -3,12 +3,13 @@
 namespace App\Filament\Resources\DoseResource\Pages;
 
 use App\Filament\Resources\DoseResource;
-use Filament\Actions;
-use Filament\Infolists\Components\Grid;
-use Filament\Infolists\Components\Section;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Infolist;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 
 class ViewDose extends ViewRecord
@@ -18,10 +19,10 @@ class ViewDose extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make()
+            EditAction::make()
                 ->color('warning')
                 ->icon('heroicon-m-pencil-square'),
-            Actions\DeleteAction::make()
+            DeleteAction::make()
                 ->color('danger')
                 ->icon('heroicon-m-trash')
                 ->requiresConfirmation()
@@ -29,7 +30,7 @@ class ViewDose extends ViewRecord
         ];
     }
 
-    public function infolist(Infolist $infolist): Infolist
+    public function infolist(Schema $schema): Schema
     {
         return $infolist
             ->record($this->getRecord())

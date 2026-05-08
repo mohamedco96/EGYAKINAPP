@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\User;
+use Filament\Actions\Action;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -11,11 +12,11 @@ use Spatie\Permission\Models\Role;
 
 class RolePermissionChartWidget extends ChartWidget
 {
-    protected static ?string $heading = 'Role & Permission Overview';
+    protected ?string $heading = 'Role & Permission Overview';
 
-    protected static ?string $description = 'Distribution of roles and permissions across the system';
+    protected ?string $description = 'Distribution of roles and permissions across the system';
 
-    protected static string $color = 'primary';
+    protected string $color = 'primary';
 
     protected static ?int $sort = 1;
 
@@ -160,14 +161,14 @@ class RolePermissionChartWidget extends ChartWidget
     protected function getExtraFooterActions(): array
     {
         return [
-            \Filament\Actions\Action::make('view_permissions')
+            Action::make('view_permissions')
                 ->label('View All Permissions')
                 ->icon('heroicon-o-key')
                 ->color('gray')
                 ->url(fn () => route('filament.admin.resources.permissions.index'))
                 ->openUrlInNewTab(false),
 
-            \Filament\Actions\Action::make('view_roles')
+            Action::make('view_roles')
                 ->label('View All Roles')
                 ->icon('heroicon-o-shield-check')
                 ->color('gray')

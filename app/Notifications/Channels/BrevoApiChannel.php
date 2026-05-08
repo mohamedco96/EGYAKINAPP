@@ -3,6 +3,7 @@
 namespace App\Notifications\Channels;
 
 use App\Services\BrevoApiService;
+use Exception;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 
@@ -12,7 +13,7 @@ class BrevoApiChannel
 
     public function __construct()
     {
-        $this->brevoService = new BrevoApiService();
+        $this->brevoService = new BrevoApiService;
     }
 
     /**
@@ -71,10 +72,10 @@ class BrevoApiChannel
                     'notification' => get_class($notification),
                 ]);
 
-                throw new \Exception('Brevo API Error: '.$result['error']);
+                throw new Exception('Brevo API Error: '.$result['error']);
             }
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Brevo API channel exception', [
                 'notification' => get_class($notification),
                 'notifiable' => get_class($notifiable),

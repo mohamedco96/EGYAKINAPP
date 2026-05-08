@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
 use Illuminate\Http\Request;
 
 class MainController extends Controller
 {
-
     public function uploadImageAndVideo($media, $path)
     {
         try {
@@ -17,13 +17,13 @@ class MainController extends Controller
             $timestamp = time();
 
             // Create a unique file name using the user's name and timestamp
-            $fileName = "{$name}_media_{$timestamp}." . $media->getClientOriginalExtension();
+            $fileName = "{$name}_media_{$timestamp}.".$media->getClientOriginalExtension();
 
             // Store the media in the specified path (image or video directory)
             $storedPath = $media->storeAs($path, $fileName, 'public');
 
             // Construct the full URL for the uploaded media
-            $mediaUrl = config('app.url') . '/storage/' . $storedPath;
+            $mediaUrl = config('app.url').'/storage/'.$storedPath;
 
             // Return success response with media URL
             return response()->json([
@@ -31,9 +31,9 @@ class MainController extends Controller
                 'message' => 'Media uploaded successfully.',
                 'image' => $mediaUrl,  // This could be image or video URL
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log any exception during the upload process
-            Log::error("Error uploading media: " . $e->getMessage());
+            Log::error('Error uploading media: '.$e->getMessage());
 
             // Return error response
             return response()->json([
@@ -57,13 +57,13 @@ class MainController extends Controller
             $timestamp = time(); // Get the current timestamp
 
             // Create a unique file name using the username, 'video', and the timestamp
-            $fileName = "{$name}_video_{$timestamp}." . $video->getClientOriginalExtension();
+            $fileName = "{$name}_video_{$timestamp}.".$video->getClientOriginalExtension();
 
             // Store the video in the 'media_videos' directory in the 'public' disk
             $path = $video->storeAs('media_videos', $fileName, 'public');
 
             // Construct the full URL for the uploaded video
-            $videoUrl = config('app.url') . '/storage/' . $path;
+            $videoUrl = config('app.url').'/storage/'.$path;
 
             // Return success response
             return response()->json([

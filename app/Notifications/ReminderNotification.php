@@ -3,9 +3,11 @@
 namespace App\Notifications;
 
 use App\Models\Answers;
+use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Log;
 
 class ReminderNotification extends Notification
 {
@@ -30,7 +32,7 @@ class ReminderNotification extends Notification
      */
     public function __construct($patient, $events)
     {
-        //$this->message = 'Use the below code for verification process';
+        // $this->message = 'Use the below code for verification process';
         $this->subject = __('api.reminder_from_egyakin');
         $this->fromEmail = 'noreply@egyakin.com';
         $this->mailer = 'brevo-api';
@@ -503,9 +505,9 @@ Visit: https://test.egyakin.com
             }
 
             return __('api.unknown_patient');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error but don't fail the notification
-            \Log::warning('Failed to get patient name from answers', [
+            Log::warning('Failed to get patient name from answers', [
                 'patient_id' => $patientId ?? null,
                 'error' => $e->getMessage(),
             ]);

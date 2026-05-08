@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Notifications\Services\FcmTokenService;
 use App\Modules\Notifications\Services\NotificationService;
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -75,7 +76,7 @@ class TestPushNotifications extends Command
             // Default: Interactive menu
             return $this->showInteractiveMenu();
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->error('❌ Test failed: '.$e->getMessage());
             Log::error('Push notification test failed', [
                 'error' => $e->getMessage(),
@@ -394,7 +395,7 @@ class TestPushNotifications extends Command
                 return self::FAILURE;
             }
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->error("   ❌ Exception: {$e->getMessage()}");
 
             return self::FAILURE;

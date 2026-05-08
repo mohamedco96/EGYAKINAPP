@@ -2,6 +2,7 @@
 
 namespace App\Modules\Auth\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UploadSyndicateCardRequest extends FormRequest
@@ -17,12 +18,12 @@ class UploadSyndicateCardRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>
+     * @return array<string, ValidationRule|array|string>
      */
     public function rules(): array
     {
         return [
-            'syndicate_card' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120'
+            'syndicate_card' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120',
         ];
     }
 }

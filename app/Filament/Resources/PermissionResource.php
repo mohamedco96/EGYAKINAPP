@@ -2,38 +2,49 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\PermissionResource\Pages;
+use App\Filament\Resources\PermissionResource\Pages\CreatePermission;
+use App\Filament\Resources\PermissionResource\Pages\EditPermission;
+use App\Filament\Resources\PermissionResource\Pages\ListPermissions;
+use App\Filament\Resources\PermissionResource\Pages\ViewPermission;
 use App\Models\Permission;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
+use Filament\Notifications\Notification;
+use Filament\Resources\Pages\EditRecord;
 use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Actions\Action;
-use Filament\Tables\Actions\ActionGroup;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\ViewAction;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\Models\Role;
 
 class PermissionResource extends Resource
 {
     protected static ?string $model = Permission::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-key';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-key';
 
-    protected static ?string $navigationGroup = '👥 User Management';
+    protected static ?string $navigationLabel = 'Permissions';
 
-    protected static ?int $navigationSort = 2;
+    protected static string|\UnitEnum|null $navigationGroup = '⚙️ Administration';
+
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -41,10 +52,12 @@ class PermissionResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::count();
+        return Cache::remember('permissions_count', 300, function () {
+            return static::getModel()::count();
+        });
     }
 
-    public static function getGlobalSearchResultTitle(\Illuminate\Database\Eloquent\Model $record): string
+    public static function getGlobalSearchResultTitle(Model $record): string
     {
         return ucwords(str_replace(['-', '_'], ' ', $record->name));
     }
@@ -54,10 +67,10 @@ class PermissionResource extends Resource
         return ['name', 'guard_name'];
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Permission Information')
                     ->description('Define the permission details and scope')
                     ->icon('heroicon-o-key')
@@ -101,7 +114,7 @@ class PermissionResource extends Resource
                                 'New permission - usage statistics will be available after creation'
                             )
                             ->columnSpanFull()
-                            ->visible(fn ($livewire) => $livewire instanceof \Filament\Resources\Pages\EditRecord),
+                            ->visible(fn ($livewire) => $livewire instanceof EditRecord),
                     ])->columns(2),
 
                 Section::make('Assign to Roles')
@@ -183,8 +196,14 @@ class PermissionResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultSort('name')
+            ->defaultPaginationPageOption(25)
+            ->striped()
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->filters([
-                Tables\Filters\SelectFilter::make('guard_name')
+                SelectFilter::make('guard_name')
                     ->label('Guard')
                     ->options([
                         'web' => 'Web Guard',
@@ -192,7 +211,7 @@ class PermissionResource extends Resource
                     ])
                     ->placeholder('All Guards'),
 
-                Tables\Filters\SelectFilter::make('category')
+                SelectFilter::make('category')
                     ->label('Category')
                     ->options(Permission::getCategories())
                     ->placeholder('All Categories'),
@@ -207,7 +226,7 @@ class PermissionResource extends Resource
                     ->query(fn (Builder $query): Builder => $query->has('users'))
                     ->toggle(),
 
-                Tables\Filters\SelectFilter::make('roles')
+                SelectFilter::make('roles')
                     ->label('Assigned to Role')
                     ->relationship('roles', 'name')
                     ->multiple()
@@ -215,7 +234,20 @@ class PermissionResource extends Resource
                     ->searchable(),
             ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(5)
-            ->actions([
+            ->toggleColumnsTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Toggle columns'),
+            )
+            ->persistFiltersInSession()
+            ->deferFilters(false)
+            ->deselectAllRecordsWhenFiltered(true)
+            ->filtersTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('Filter'),
+            )
+            ->recordActions([
                 ActionGroup::make([
                     ViewAction::make()
                         ->color('info'),
@@ -225,7 +257,7 @@ class PermissionResource extends Resource
                         ->label('Quick Assign to Role')
                         ->icon('heroicon-o-shield-check')
                         ->color('success')
-                        ->form([
+                        ->schema([
                             CheckboxList::make('roles')
                                 ->label('Select Roles')
                                 ->options(Role::all()->pluck('name', 'id'))
@@ -234,7 +266,7 @@ class PermissionResource extends Resource
                         ])
                         ->action(function (Permission $record, array $data) {
                             $record->roles()->sync($data['roles'] ?? []);
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Permission assigned to roles successfully')
                                 ->success()
                                 ->send();
@@ -251,9 +283,9 @@ class PermissionResource extends Resource
                     ->color('gray')
                     ->button(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
                         ->requiresConfirmation()
                         ->modalHeading('Delete Selected Permissions')
                         ->modalDescription('Are you sure you want to delete the selected permissions? This action cannot be undone.')
@@ -275,10 +307,10 @@ class PermissionResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPermissions::route('/'),
-            'create' => Pages\CreatePermission::route('/create'),
-            'view' => Pages\ViewPermission::route('/{record}'),
-            'edit' => Pages\EditPermission::route('/{record}/edit'),
+            'index' => ListPermissions::route('/'),
+            'create' => CreatePermission::route('/create'),
+            'view' => ViewPermission::route('/{record}'),
+            'edit' => EditPermission::route('/{record}/edit'),
         ];
     }
 

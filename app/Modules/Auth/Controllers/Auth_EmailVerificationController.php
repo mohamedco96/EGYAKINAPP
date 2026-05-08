@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\VerifyEmail;
 use App\Models\User;
 use App\Services\BrevoApiService;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\URL;
@@ -43,7 +44,7 @@ class EmailVerificationController extends Controller
                 'status' => 'success',
                 'message' => __('api.verification_email_sent_successfully'),
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => __('api.failed_to_send_verification_email'),
@@ -81,7 +82,7 @@ class EmailVerificationController extends Controller
      */
     protected function sendViaBrevoApi($user, $verificationUrl)
     {
-        $brevoService = new BrevoApiService();
+        $brevoService = new BrevoApiService;
 
         // Create the VerifyEmail mailable to get content
         $verifyEmail = new VerifyEmail($verificationUrl);
@@ -106,7 +107,7 @@ class EmailVerificationController extends Controller
         );
 
         if (! $result['success']) {
-            throw new \Exception('Brevo API Error: '.($result['error'] ?? 'Unknown error'));
+            throw new Exception('Brevo API Error: '.($result['error'] ?? 'Unknown error'));
         }
     }
 }

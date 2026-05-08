@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\RolePermissionResource\Pages;
 
 use App\Filament\Resources\RolePermissionResource;
-use Filament\Actions;
+use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewRolePermission extends ViewRecord
@@ -13,7 +13,7 @@ class ViewRolePermission extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make(),
+            EditAction::make(),
         ];
     }
 }

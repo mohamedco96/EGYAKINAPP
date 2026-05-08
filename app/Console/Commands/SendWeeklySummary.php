@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Mail\WeeklySummaryMail;
 use App\Services\BrevoApiService;
 use App\Services\MailListService;
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -45,7 +46,7 @@ class SendWeeklySummary extends Command
             $this->info('📧 Preparing to send weekly summary to '.count($recipients).' recipient(s)');
 
             // Create the mailable to get the content
-            $mailable = new WeeklySummaryMail();
+            $mailable = new WeeklySummaryMail;
 
             $this->info('📊 Generating summary data and insights...');
 
@@ -60,7 +61,7 @@ class SendWeeklySummary extends Command
             $textContent = $this->generateTextContent($mailable);
 
             // Send via Brevo API
-            $brevoService = new BrevoApiService();
+            $brevoService = new BrevoApiService;
 
             $this->info('📡 Sending via Brevo API...');
             $this->info('📧 Recipients: '.implode(', ', $recipients));
@@ -100,7 +101,7 @@ class SendWeeklySummary extends Command
                 return Command::FAILURE;
             }
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->error('❌ Failed to send weekly summary: '.$e->getMessage());
 
             Log::error('Weekly summary failed', [

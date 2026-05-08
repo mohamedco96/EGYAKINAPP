@@ -5,11 +5,15 @@ namespace App\Mail;
 use App\Models\FeedPost;
 use App\Models\Group;
 use App\Models\User;
+use App\Modules\Chat\Models\AIConsultation;
 use App\Modules\Consultations\Models\Consultation;
 use App\Modules\Patients\Models\Patients;
+use App\Modules\Patients\Models\PatientStatus;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -55,7 +59,7 @@ class DailyReportMail extends Mailable
     /**
      * Get the attachments for the message.
      *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
+     * @return array<int, Attachment>
      */
     public function attachments(): array
     {
@@ -90,8 +94,8 @@ class DailyReportMail extends Mailable
                     'new_patients' => Patients::whereBetween('created_at', [$today, $now])->count(),
                     'total_patients' => Patients::count(),
                     'hidden_patients' => Patients::where('hidden', true)->count(),
-                    'submitted_patients' => \App\Modules\Patients\Models\PatientStatus::where('key', 'submit_status')->where('status', true)->count(),
-                    'outcome_patients' => \App\Modules\Patients\Models\PatientStatus::where('key', 'outcome_status')->where('status', true)->count(),
+                    'submitted_patients' => PatientStatus::where('key', 'submit_status')->where('status', true)->count(),
+                    'outcome_patients' => PatientStatus::where('key', 'outcome_status')->where('status', true)->count(),
                 ],
 
                 // Consultation Statistics
@@ -100,8 +104,8 @@ class DailyReportMail extends Mailable
                     'pending_consultations' => Consultation::where('status', 'pending')->count(),
                     'completed_consultations' => Consultation::where('status', 'completed')->count(),
                     'open_consultations' => Consultation::where('is_open', true)->count(),
-                    'ai_consultations' => \App\Modules\Chat\Models\AIConsultation::count(),
-                    'new_ai_consultations' => \App\Modules\Chat\Models\AIConsultation::whereBetween('created_at', [$today, $now])->count(),
+                    'ai_consultations' => AIConsultation::count(),
+                    'new_ai_consultations' => AIConsultation::whereBetween('created_at', [$today, $now])->count(),
                 ],
 
                 // Feed Activity
@@ -126,7 +130,7 @@ class DailyReportMail extends Mailable
                     'doctors_with_posts' => $this->getDoctorsWithPosts($today, $now),
                 ],
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error generating daily report data: '.$e->getMessage());
 
             return [
@@ -159,7 +163,7 @@ class DailyReportMail extends Mailable
                     ];
                 })
                 ->toArray();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error getting doctors with patients: '.$e->getMessage());
 
             return [];
@@ -188,7 +192,7 @@ class DailyReportMail extends Mailable
                     ];
                 })
                 ->toArray();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error getting doctors with posts: '.$e->getMessage());
 
             return [];

@@ -9,10 +9,14 @@ use App\Modules\Notifications\Models\AppNotification;
 use App\Modules\Notifications\Models\FcmToken;
 use App\Modules\Notifications\Services\NotificationService;
 use App\Traits\FormatsUserName;
+use Exception;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class GroupController extends Controller
 {
@@ -78,7 +82,7 @@ class GroupController extends Controller
      *
      * @param  string  $action
      * @param  int|null  $userId
-     * @return \Illuminate\Http\JsonResponse|null
+     * @return JsonResponse|null
      */
     protected function validatePrivateGroupAccess(Group $group, $action = 'access', $userId = null)
     {
@@ -104,7 +108,7 @@ class GroupController extends Controller
     /**
      * Create a new group.
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function create(Request $request)
     {
@@ -185,7 +189,7 @@ class GroupController extends Controller
                 'data' => $group,
                 'message' => __('api.group_created_successfully'),
             ], 201);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
 
             // Log the error
@@ -205,7 +209,7 @@ class GroupController extends Controller
      * Update an existing group.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function update(Request $request, $id)
     {
@@ -214,7 +218,7 @@ class GroupController extends Controller
             $group = Group::findOrFail($id);
 
             // Check if the authenticated user is the group owner
-            //$this->authorizeOwner($group);
+            // $this->authorizeOwner($group);
 
             // Validate the incoming request data with stricter rules
             $validated = $request->validate([
@@ -241,7 +245,7 @@ class GroupController extends Controller
                     if ($uploadResponse->getData()->value) {
                         $headerPicturePath = $uploadResponse->getData()->image;  // Update the uploaded image URL
                     } else {
-                        throw new \Exception(__('api.header_picture_upload_failed'));
+                        throw new Exception(__('api.header_picture_upload_failed'));
                     }
                 }
 
@@ -254,7 +258,7 @@ class GroupController extends Controller
                     if ($uploadResponse->getData()->value) {
                         $groupImagePath = $uploadResponse->getData()->image;  // Update the uploaded image URL
                     } else {
-                        throw new \Exception(__('api.group_image_upload_failed'));
+                        throw new Exception(__('api.group_image_upload_failed'));
                     }
                 }
 
@@ -282,11 +286,11 @@ class GroupController extends Controller
                     'data' => $group,
                     'message' => __('api.group_updated_successfully'),
                 ], 200);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 DB::rollBack();
                 throw $e;
             }
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             // Log the error
             Log::error('Group not found', [
                 'group_id' => $id,
@@ -298,7 +302,7 @@ class GroupController extends Controller
                 'value' => false,
                 'message' => __('api.group_not_found'),
             ], 404);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             // Log validation errors
             Log::warning('Group update validation failed', [
                 'group_id' => $id,
@@ -311,7 +315,7 @@ class GroupController extends Controller
                 'message' => __('api.validation_failed'),
                 'errors' => $e->errors(),
             ], 422);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error
             Log::error('Error updating group', [
                 'group_id' => $id,
@@ -330,7 +334,7 @@ class GroupController extends Controller
      * Delete a group.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function delete($id)
     {
@@ -339,7 +343,7 @@ class GroupController extends Controller
             $group = Group::findOrFail($id);
 
             // Check if the authenticated user is the group owner
-            //$this->authorizeOwner($group);
+            // $this->authorizeOwner($group);
 
             // Delete the group
             $group->delete();
@@ -358,7 +362,7 @@ class GroupController extends Controller
                 'value' => true,
                 'message' => __('api.group_deleted_successfully'),
             ], 200);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             // Log the error
             Log::error('Group not found', [
                 'group_id' => $id,
@@ -377,7 +381,7 @@ class GroupController extends Controller
      * Invite a member to the group.
      *
      * @param  int  $groupId
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function inviteMember(Request $request, $groupId)
     {
@@ -398,7 +402,7 @@ class GroupController extends Controller
         }
 
         // Check if the authenticated user is the group owner
-        //$this->authorizeOwner($group);
+        // $this->authorizeOwner($group);
 
         // For private groups, only owners and existing members can invite others
         if ($group->privacy === 'private') {
@@ -529,7 +533,7 @@ class GroupController extends Controller
                 'value' => true,
                 'message' => __('api.invitations_processed'),
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
 
             // Log the error
@@ -550,7 +554,7 @@ class GroupController extends Controller
      * Accept or decline a group invitation.
      *
      * @param  int  $groupId
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function handleInvitation(Request $request, $groupId)
     {
@@ -645,12 +649,12 @@ class GroupController extends Controller
                     'value' => true,
                     'message' => __('api.invitation_status_updated', ['status' => $validated['status']]),
                 ], 200);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 DB::rollBack();
                 throw $e;
             }
 
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             Log::error('Group not found', [
                 'group_id' => $groupId,
                 'user_id' => Auth::id(),
@@ -660,7 +664,7 @@ class GroupController extends Controller
                 'value' => false,
                 'message' => __('api.group_not_found'),
             ], 404);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             Log::warning('Invitation handling validation failed', [
                 'group_id' => $groupId,
                 'errors' => $e->errors(),
@@ -672,7 +676,7 @@ class GroupController extends Controller
                 'message' => __('api.validation_failed'),
                 'errors' => $e->errors(),
             ], 422);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error handling invitation', [
                 'group_id' => $groupId,
                 'user_id' => Auth::id(),
@@ -690,7 +694,7 @@ class GroupController extends Controller
      * Get group details, including members and privacy settings.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function show($id)
     {
@@ -745,7 +749,7 @@ class GroupController extends Controller
                 'data' => $group,
                 'message' => __('api.group_details_retrieved_successfully'),
             ], 200);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             // Log the error
             Log::error('Group not found', [
                 'group_id' => $id,
@@ -764,7 +768,7 @@ class GroupController extends Controller
      * Remove a member from the group.
      *
      * @param  int  $groupId
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function removeMember(Request $request, $groupId)
     {
@@ -780,7 +784,7 @@ class GroupController extends Controller
             $group = Group::findOrFail($groupId);
 
             // Check if the authenticated user is the group owner
-            //$this->authorizeOwner($group);
+            // $this->authorizeOwner($group);
 
             // For private groups, only owners and existing members can remove members
             if ($group->privacy === 'private') {
@@ -821,7 +825,7 @@ class GroupController extends Controller
                 'value' => true,
                 'message' => __('api.member_removed_successfully'),
             ], 200);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             // Log the error
             Log::error('Group not found', [
                 'group_id' => $groupId,
@@ -840,7 +844,7 @@ class GroupController extends Controller
      * Search for members in a group.
      *
      * @param  int  $groupId
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function searchMembers(Request $request, $groupId)
     {
@@ -892,7 +896,7 @@ class GroupController extends Controller
                 'data' => $members,
                 'message' => __('api.members_search_results'),
             ], 200);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             // Log the error
             Log::error('Group not found', [
                 'group_id' => $groupId,
@@ -911,7 +915,7 @@ class GroupController extends Controller
      * Fetch community members with pagination.
      *
      * @param  int  $groupId
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function fetchMembers($groupId)
     {
@@ -988,7 +992,7 @@ class GroupController extends Controller
                 'message' => __('api.community_members_fetched_successfully'),
             ], 200);
 
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             // Log the error
             Log::error('Group not found', [
                 'group_id' => $groupId,
@@ -999,7 +1003,7 @@ class GroupController extends Controller
                 'value' => false,
                 'message' => __('api.group_not_found'),
             ], 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error
             Log::error('Error fetching community members and invitations', [
                 'group_id' => $groupId,
@@ -1018,7 +1022,7 @@ class GroupController extends Controller
      * Fetch group details along with paginated posts.
      *
      * @param  int  $groupId
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function fetchGroupDetailsWithPosts($groupId)
     {
@@ -1137,7 +1141,7 @@ class GroupController extends Controller
                 ],
                 'message' => __('api.group_details_posts_fetched_successfully'),
             ], 200);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             // Log the error
             Log::error('Group not found', [
                 'group_id' => $groupId,
@@ -1156,7 +1160,7 @@ class GroupController extends Controller
      * Join a group.
      *
      * @param  int  $groupId
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function joinGroup($groupId)
     {
@@ -1247,7 +1251,7 @@ class GroupController extends Controller
                     : __('api.join_request_sent'),
             ], 200);
 
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             Log::error('Group not found', [
                 'group_id' => $groupId,
                 'user_id' => Auth::id(),
@@ -1295,7 +1299,7 @@ class GroupController extends Controller
      * Approve or decline join requests by group owner.
      *
      * @param  int  $groupId
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function handleJoinRequest(Request $request, $groupId)
     {
@@ -1375,12 +1379,12 @@ class GroupController extends Controller
                         : __('api.join_request_declined'),
                 ], 200);
 
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 DB::rollBack();
                 throw $e;
             }
 
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             Log::error('Group not found for join request handling', [
                 'group_id' => $groupId,
                 'user_id' => Auth::id(),
@@ -1390,7 +1394,7 @@ class GroupController extends Controller
                 'value' => false,
                 'message' => __('api.group_not_found'),
             ], 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error handling join request', [
                 'error' => $e->getMessage(),
                 'group_id' => $groupId,
@@ -1453,7 +1457,7 @@ class GroupController extends Controller
                 'owner_id' => $owner->id,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error sending join request response notification: '.$e->getMessage());
         }
     }
@@ -1499,7 +1503,7 @@ class GroupController extends Controller
                 'remover_id' => $remover->id,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error sending member removed notification: '.$e->getMessage());
         }
     }
@@ -1508,7 +1512,7 @@ class GroupController extends Controller
      * Leave a group.
      *
      * @param  int  $groupId
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function leaveGroup($groupId)
     {
@@ -1545,7 +1549,7 @@ class GroupController extends Controller
                 'value' => true,
                 'message' => __('api.left_group_successfully'),
             ], 200);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             // Log the error
             Log::error('Group not found', [
                 'group_id' => $groupId,
@@ -1563,7 +1567,7 @@ class GroupController extends Controller
     /**
      * Fetch groups owned by the authenticated user with pagination.
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function fetchMyGroups()
     {
@@ -1607,7 +1611,7 @@ class GroupController extends Controller
     /**
      * Fetch all groups with pagination.
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function fetchAllGroups()
     {
@@ -1650,7 +1654,7 @@ class GroupController extends Controller
     /**
      * Fetch the latest three groups with user status and a paginated list of random posts from random groups.
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function fetchLatestGroupsWithRandomPosts()
     {
@@ -1781,7 +1785,7 @@ class GroupController extends Controller
                 ],
                 'message' => __('api.latest_groups_posts_fetched_successfully'),
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error
             Log::error('Error fetching latest groups and random posts', [
                 'error' => $e->getMessage(),
@@ -1800,7 +1804,7 @@ class GroupController extends Controller
      * Get group invitations for a specific doctor.
      *
      * @param  int  $doctorId
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function getDoctorInvitations($doctorId)
     {
@@ -1854,7 +1858,7 @@ class GroupController extends Controller
                 'message' => __('api.group_invitations_fetched_successfully'),
             ], 200);
 
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             // Log the error
             Log::error('Doctor not found', [
                 'doctor_id' => $doctorId,
@@ -1864,7 +1868,7 @@ class GroupController extends Controller
                 'value' => false,
                 'message' => __('api.doctor_not_found'),
             ], 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error
             Log::error('Error fetching group invitations', [
                 'doctor_id' => $doctorId,
@@ -1882,7 +1886,7 @@ class GroupController extends Controller
      * Get all invitations for a specific group.
      *
      * @param  int  $groupId
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function getGroupInvitations($groupId)
     {
@@ -1930,7 +1934,7 @@ class GroupController extends Controller
                 'message' => __('api.group_invitations_fetched_successfully'),
             ], 200);
 
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             // Log the error
             Log::error('Group not found', [
                 'group_id' => $groupId,
@@ -1940,7 +1944,7 @@ class GroupController extends Controller
                 'value' => false,
                 'message' => __('api.group_not_found'),
             ], 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Log the error
             Log::error('Error fetching group invitations', [
                 'group_id' => $groupId,

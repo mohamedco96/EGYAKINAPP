@@ -3,9 +3,11 @@
 namespace App\Modules\Sections\Services;
 
 use App\Models\Answers;
-use App\Modules\Questions\Models\Questions;
 use App\Models\SectionsInfo;
+use App\Modules\Patients\Models\Patients;
 use App\Modules\Patients\Models\PatientStatus;
+use App\Modules\Questions\Models\Questions;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -13,16 +15,12 @@ class SectionManagementService
 {
     /**
      * Get questions and answers for a specific section and patient.
-     *
-     * @param int $sectionId
-     * @param int $patientId
-     * @return array
      */
     public function getQuestionsAndAnswers(int $sectionId, int $patientId): array
     {
         // Check if the section exists
         $sectionExists = Questions::where('section_id', $sectionId)->exists();
-        if (!$sectionExists) {
+        if (! $sectionExists) {
             return [];
         }
 
@@ -42,6 +40,7 @@ class SectionManagementService
             // Skip questions flagged with 'skip'
             if ($question->skip) {
                 Log::info("Question with ID {$question->id} skipped as per skip flag.");
+
                 continue;
             }
 
@@ -49,8 +48,9 @@ class SectionManagementService
             $answer = $answers->where('question_id', $question->id)->first();
 
             // Skip hidden questions with no answer
-            if ($question->hidden && !$answer) {
+            if ($question->hidden && ! $answer) {
                 Log::info("Hidden question with ID {$question->id} skipped due to no answer.");
+
                 continue;
             }
 
@@ -77,9 +77,6 @@ class SectionManagementService
 
     /**
      * Get submitter information for section 8.
-     *
-     * @param int $patientId
-     * @return array
      */
     public function getSubmitterInfo(int $patientId): array
     {
@@ -93,10 +90,11 @@ class SectionManagementService
 
         if ($submitter && $submitter->doctor) {
             $doctor = $submitter->doctor;
+
             return [
                 'id' => (string) optional($submitter)->doctor_id,
                 'name' => (optional($doctor)->name && optional($doctor)->lname)
-                    ? optional($doctor)->name . ' ' . optional($doctor)->lname
+                    ? optional($doctor)->name.' '.optional($doctor)->lname
                     : null,
                 'image' => optional($doctor)->image,
                 'syndicateCard' => optional($doctor)->isSyndicateCardRequired,
@@ -111,9 +109,6 @@ class SectionManagementService
 
     /**
      * Get sections data for a patient.
-     *
-     * @param int $patientId
-     * @return array
      */
     public function getSectionsData(int $patientId): array
     {
@@ -132,7 +127,7 @@ class SectionManagementService
             $sectionName = $sectionInfo->section_name;
 
             // Find section data in $sections collection
-            $sectionData = $sections->firstWhere('key', 'section_' . $sectionId);
+            $sectionData = $sections->firstWhere('key', 'section_'.$sectionId);
 
             // Initialize variables for section status and updated_at value
             $sectionStatus = false;
@@ -157,9 +152,6 @@ class SectionManagementService
 
     /**
      * Get patient basic data for sections view.
-     *
-     * @param int $patientId
-     * @return array
      */
     public function getPatientBasicData(int $patientId): array
     {
@@ -174,7 +166,7 @@ class SectionManagementService
             ->value('answer');
 
         // Get doctor ID
-        $doctorId = \App\Modules\Patients\Models\Patients::where('id', $patientId)
+        $doctorId = Patients::where('id', $patientId)
             ->value('doctor_id');
 
         return [
@@ -186,9 +178,6 @@ class SectionManagementService
 
     /**
      * Get patient data needed for GFR calculations.
-     *
-     * @param int $patientId
-     * @return array
      */
     public function getPatientGfrData(int $patientId): array
     {
@@ -220,8 +209,8 @@ class SectionManagementService
     /**
      * Format answer based on question type.
      *
-     * @param object $question
-     * @param \Illuminate\Support\Collection $answers
+     * @param  object  $question
+     * @param  Collection  $answers
      * @return mixed
      */
     private function formatAnswerByType($question, $answers)
@@ -278,7 +267,7 @@ class SectionManagementService
 
             case 'files':
                 $answer = $questionAnswers->first();
-                if (!$answer) {
+                if (! $answer) {
                     return [];
                 }
 
@@ -295,6 +284,7 @@ class SectionManagementService
 
             default:
                 $answer = $questionAnswers->first();
+
                 return $answer ? $answer->answer : null;
         }
     }

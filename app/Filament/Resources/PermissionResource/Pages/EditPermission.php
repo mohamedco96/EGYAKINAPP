@@ -4,7 +4,8 @@ namespace App\Filament\Resources\PermissionResource\Pages;
 
 use App\Filament\Resources\PermissionResource;
 use App\Models\User;
-use Filament\Actions;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
@@ -15,8 +16,8 @@ class EditPermission extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\ViewAction::make(),
-            Actions\DeleteAction::make(),
+            ViewAction::make(),
+            DeleteAction::make(),
         ];
     }
 
@@ -48,7 +49,7 @@ class EditPermission extends EditRecord
     {
         $permission = $this->record;
         $permission->refresh(); // Refresh to get latest role assignments
-        
+
         // Mark all users with roles that have this permission as having permissions changed
         foreach ($permission->roles as $role) {
             User::role($role->name)->update(['permissions_changed' => true]);

@@ -14,6 +14,7 @@ use App\Notifications\ReminderNotification;
 use App\Notifications\ResetPasswordVerificationNotification;
 use App\Notifications\WelcomeMailNotification;
 use App\Services\BrevoApiService;
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
@@ -187,7 +188,7 @@ class TestAllMails extends Command
                         'method' => $useBrevo ? 'Brevo API' : 'Laravel Mail',
                     ];
                 }
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $results['failed']++;
                 $results['details'][] = [
                     'type' => 'Mailable',
@@ -251,7 +252,7 @@ class TestAllMails extends Command
                         'method' => $useBrevo ? 'Brevo API' : 'Laravel Mail',
                     ];
                 }
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $results['failed']++;
                 $results['details'][] = [
                     'type' => 'Notification',
@@ -332,7 +333,7 @@ class TestAllMails extends Command
                     'method' => $useBrevo ? 'Brevo API' : 'Laravel Mail',
                 ];
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $results['failed']++;
             $results['details'][] = [
                 'type' => 'Specific',
@@ -356,7 +357,7 @@ class TestAllMails extends Command
             if ($mailableClass === VerifyEmail::class) {
                 $mailable = new VerifyEmail('https://test.egyakin.com/verify?token=test123');
             } else {
-                $mailable = new $mailableClass();
+                $mailable = new $mailableClass;
             }
 
             $envelope = $mailable->envelope();
@@ -364,7 +365,7 @@ class TestAllMails extends Command
 
             $htmlContent = view($content->view, array_merge($content->with, ['data' => $mailable->reportData ?? []]))->render();
 
-            $brevoService = new BrevoApiService();
+            $brevoService = new BrevoApiService;
 
             $result = $brevoService->sendEmail(
                 $testUser->email,
@@ -382,7 +383,7 @@ class TestAllMails extends Command
                 'message_id' => $result['message_id'] ?? null,
                 'error' => $result['error'] ?? null,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -400,7 +401,7 @@ class TestAllMails extends Command
             if ($mailableClass === VerifyEmail::class) {
                 $mailable = new VerifyEmail('https://test.egyakin.com/verify?token=test123');
             } else {
-                $mailable = new $mailableClass();
+                $mailable = new $mailableClass;
             }
 
             Mail::to($testUser->email)->send($mailable);
@@ -409,7 +410,7 @@ class TestAllMails extends Command
                 'success' => true,
                 'message_id' => 'Laravel-Mail-'.now()->timestamp,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -439,13 +440,13 @@ class TestAllMails extends Command
                 $mockMessage = 'Test contact request message';
                 $notification = new $notificationClass($mockRecipientEmails, $mockMessage);
             } else {
-                $notification = new $notificationClass();
+                $notification = new $notificationClass;
             }
 
             if (method_exists($notification, 'toBrevoApi')) {
                 $data = $notification->toBrevoApi($testUser);
 
-                $brevoService = new BrevoApiService();
+                $brevoService = new BrevoApiService;
 
                 $result = $brevoService->sendEmail(
                     $data['to'],
@@ -466,7 +467,7 @@ class TestAllMails extends Command
                     'error' => 'Notification does not support Brevo API',
                 ];
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -496,7 +497,7 @@ class TestAllMails extends Command
                 $mockMessage = 'Test contact request message';
                 $notification = new $notificationClass($mockRecipientEmails, $mockMessage);
             } else {
-                $notification = new $notificationClass();
+                $notification = new $notificationClass;
             }
 
             Notification::send($testUser, $notification);
@@ -505,7 +506,7 @@ class TestAllMails extends Command
                 'success' => true,
                 'message_id' => 'Laravel-Notification-'.now()->timestamp,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -562,7 +563,7 @@ class TestAllMails extends Command
             if ($mailableClass === VerifyEmail::class) {
                 $mailable = new VerifyEmail('https://test.egyakin.com/verify?token=test123');
             } else {
-                $mailable = new $mailableClass();
+                $mailable = new $mailableClass;
             }
 
             // Validate that we can get the envelope and content
@@ -577,7 +578,7 @@ class TestAllMails extends Command
                 'message_id' => 'DRY-RUN-MAILABLE-'.now()->timestamp,
                 'validation' => 'Template structure and content validated successfully',
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -607,7 +608,7 @@ class TestAllMails extends Command
                 $mockMessage = 'Test contact request message';
                 $notification = new $notificationClass($mockRecipientEmails, $mockMessage);
             } else {
-                $notification = new $notificationClass();
+                $notification = new $notificationClass;
             }
 
             // Validate that we can get the Brevo API data
@@ -616,7 +617,7 @@ class TestAllMails extends Command
 
                 // Validate required fields
                 if (! isset($data['to']) || ! isset($data['subject']) || ! isset($data['htmlContent'])) {
-                    throw new \Exception('Missing required fields in toBrevoApi response');
+                    throw new Exception('Missing required fields in toBrevoApi response');
                 }
 
                 return [
@@ -630,7 +631,7 @@ class TestAllMails extends Command
                     'error' => 'Notification does not support Brevo API',
                 ];
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return [
                 'success' => false,
                 'error' => $e->getMessage(),

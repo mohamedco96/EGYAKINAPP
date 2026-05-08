@@ -2,12 +2,24 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\PollResource\Pages;
+use App\Filament\Resources\PollResource\Pages\CreatePoll;
+use App\Filament\Resources\PollResource\Pages\EditPoll;
+use App\Filament\Resources\PollResource\Pages\ListPolls;
+use App\Filament\Resources\PollResource\Pages\ViewPoll;
 use App\Models\Poll;
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Cache;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
@@ -16,13 +28,13 @@ class PollResource extends Resource
 {
     protected static ?string $model = Poll::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-chart-bar';
 
     protected static ?string $navigationLabel = 'Polls';
 
-    protected static ?string $navigationGroup = '📱 Social Feed';
+    protected static string|\UnitEnum|null $navigationGroup = '📱 Community';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
 
     public static function getNavigationBadge(): ?string
     {
@@ -31,28 +43,28 @@ class PollResource extends Resource
         });
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make('Poll Information')->schema([
-                Forms\Components\Select::make('feed_post_id')
+        return $schema->components([
+            Section::make('Poll Information')->schema([
+                Select::make('feed_post_id')
                     ->relationship('feedPost', 'id')
                     ->searchable()
                     ->preload()
                     ->required()
                     ->label('Feed Post')
-                    ->getOptionLabelUsing(fn ($value) => 'Post #' . $value)
+                    ->getOptionLabelUsing(fn ($value) => 'Post #'.$value)
                     ->helperText('Select the feed post for this poll'),
-                Forms\Components\TextInput::make('question')
+                TextInput::make('question')
                     ->required()
                     ->maxLength(255)
                     ->label('Poll Question')
                     ->columnSpanFull(),
-                Forms\Components\Toggle::make('allow_add_options')
+                Toggle::make('allow_add_options')
                     ->label('Allow Users to Add Options')
                     ->default(false)
                     ->inline(false),
-                Forms\Components\Toggle::make('allow_multiple_choice')
+                Toggle::make('allow_multiple_choice')
                     ->label('Allow Multiple Choice')
                     ->default(false)
                     ->inline(false),
@@ -64,20 +76,20 @@ class PollResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->label('ID')->badge()->color('gray')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('feed_post_id')
+                TextColumn::make('id')->label('ID')->badge()->color('gray')->searchable()->sortable(),
+                TextColumn::make('feed_post_id')
                     ->label('Feed Post')
                     ->badge()
                     ->color('info')
-                    ->formatStateUsing(fn ($state) => 'Post #' . $state)
+                    ->formatStateUsing(fn ($state) => 'Post #'.$state)
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('question')
+                TextColumn::make('question')
                     ->searchable()
                     ->limit(50)
                     ->wrap()
                     ->weight('bold'),
-                Tables\Columns\IconColumn::make('allow_add_options')
+                IconColumn::make('allow_add_options')
                     ->label('User Options')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
@@ -85,7 +97,7 @@ class PollResource extends Resource
                     ->trueColor('success')
                     ->falseColor('gray')
                     ->sortable(),
-                Tables\Columns\IconColumn::make('allow_multiple_choice')
+                IconColumn::make('allow_multiple_choice')
                     ->label('Multiple Choice')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
@@ -93,36 +105,44 @@ class PollResource extends Resource
                     ->trueColor('success')
                     ->falseColor('gray')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('options.count')
+                TextColumn::make('options.count')
                     ->label('Options')
                     ->counts('options')
                     ->badge()
                     ->color('primary')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')->label('Created')->dateTime()->sortable()->since()->toggleable(),
+                TextColumn::make('created_at')->label('Created')->dateTime()->sortable()->since()->toggleable(),
             ])
             ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->striped()
+            ->persistSearchInSession()
+            ->persistColumnSearchesInSession()
+            ->persistSortInSession()
             ->filters([])
-            ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()->after(fn () => Cache::forget('polls_count')),
+            ->recordActions([
+                ViewAction::make(),
+                EditAction::make(),
+                DeleteAction::make()->after(fn () => Cache::forget('polls_count')),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()->after(fn () => Cache::forget('polls_count')),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()->after(fn () => Cache::forget('polls_count')),
                     ExportBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->emptyStateHeading('No polls yet')
+            ->emptyStateDescription('Feed post polls will appear here.')
+            ->emptyStateIcon('heroicon-o-chart-bar');
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPolls::route('/'),
-            'create' => Pages\CreatePoll::route('/create'),
-            'view' => Pages\ViewPoll::route('/{record}'),
-            'edit' => Pages\EditPoll::route('/{record}/edit'),
+            'index' => ListPolls::route('/'),
+            'create' => CreatePoll::route('/create'),
+            'view' => ViewPoll::route('/{record}'),
+            'edit' => EditPoll::route('/{record}/edit'),
         ];
     }
 }

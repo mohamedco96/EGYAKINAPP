@@ -3,10 +3,16 @@
 namespace App\Filament\Resources\UserResource\Pages;
 
 use App\Filament\Resources\UserResource;
-use Filament\Actions;
-use Filament\Infolists;
-use Filament\Infolists\Infolist;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
+use Filament\Infolists\Components\ImageEntry;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Support\Enums\TextSize;
 use Illuminate\Support\Facades\Cache;
 
 class ViewUser extends ViewRecord
@@ -16,45 +22,45 @@ class ViewUser extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('block')
+            Action::make('block')
                 ->label(fn ($record) => $record->blocked ? 'Unblock' : 'Block')
                 ->icon(fn ($record) => $record->blocked ? 'heroicon-o-lock-open' : 'heroicon-o-lock-closed')
                 ->color(fn ($record) => $record->blocked ? 'success' : 'danger')
                 ->requiresConfirmation()
                 ->action(function ($record) {
-                    $record->update(['blocked' => !$record->blocked]);
+                    $record->update(['blocked' => ! $record->blocked]);
                 })
                 ->successNotificationTitle(fn ($record) => $record->blocked ? 'User blocked' : 'User unblocked'),
-            Actions\EditAction::make(),
-            Actions\DeleteAction::make()
+            EditAction::make(),
+            DeleteAction::make()
                 ->after(function () {
                     Cache::forget('users_count');
                 }),
         ];
     }
 
-    public function infolist(Infolist $infolist): Infolist
+    public function infolist(Schema $schema): Schema
     {
         return $infolist
             ->record($this->getRecord())
             ->schema([
-                Infolists\Components\Section::make('Personal Information')
+                Section::make('Personal Information')
                     ->schema([
-                        Infolists\Components\Grid::make(3)
+                        Grid::make(3)
                             ->schema([
-                                Infolists\Components\TextEntry::make('id')
+                                TextEntry::make('id')
                                     ->label('User ID')
                                     ->badge()
                                     ->color('gray'),
 
-                                Infolists\Components\TextEntry::make('blocked')
+                                TextEntry::make('blocked')
                                     ->label('Account Status')
                                     ->badge()
                                     ->formatStateUsing(fn ($state) => $state ? 'Blocked' : 'Active')
                                     ->color(fn ($state) => $state ? 'danger' : 'success')
                                     ->icon(fn ($state) => $state ? 'heroicon-o-lock-closed' : 'heroicon-o-check-circle'),
 
-                                Infolists\Components\TextEntry::make('limited')
+                                TextEntry::make('limited')
                                     ->label('Access Level')
                                     ->badge()
                                     ->formatStateUsing(fn ($state) => $state ? 'Limited' : 'Full Access')
@@ -62,48 +68,48 @@ class ViewUser extends ViewRecord
                                     ->icon(fn ($state) => $state ? 'heroicon-o-exclamation-triangle' : 'heroicon-o-check-circle'),
                             ]),
 
-                        Infolists\Components\Grid::make(2)
+                        Grid::make(2)
                             ->schema([
-                                Infolists\Components\ImageEntry::make('image')
+                                ImageEntry::make('image')
                                     ->label('Profile Image')
                                     ->circular()
                                     ->height(150),
 
-                                Infolists\Components\ImageEntry::make('syndicate_card')
+                                ImageEntry::make('syndicate_card')
                                     ->label('Syndicate Card')
                                     ->height(150)
-                                    ->visible(fn ($state, $record) => !empty($record->syndicate_card)),
+                                    ->visible(fn ($state, $record) => ! empty($record->syndicate_card)),
                             ]),
 
-                        Infolists\Components\Grid::make(2)
+                        Grid::make(2)
                             ->schema([
-                                Infolists\Components\TextEntry::make('name')
+                                TextEntry::make('name')
                                     ->label('Full Name')
-                                    ->formatStateUsing(fn ($state, $record) => $record->name . ' ' . $record->lname)
-                                    ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
+                                    ->formatStateUsing(fn ($state, $record) => $record->name.' '.$record->lname)
+                                    ->size(TextSize::Large)
                                     ->weight('bold')
                                     ->icon('heroicon-o-user'),
 
-                                Infolists\Components\TextEntry::make('email')
+                                TextEntry::make('email')
                                     ->label('Email')
                                     ->icon('heroicon-o-envelope')
                                     ->copyable()
                                     ->copyMessage('Email copied!')
                                     ->copyMessageDuration(1500),
 
-                                Infolists\Components\TextEntry::make('phone')
+                                TextEntry::make('phone')
                                     ->label('Phone')
                                     ->icon('heroicon-o-phone')
                                     ->copyable()
                                     ->placeholder('Not provided'),
 
-                                Infolists\Components\TextEntry::make('age')
+                                TextEntry::make('age')
                                     ->label('Age')
                                     ->suffix(' years')
                                     ->icon('heroicon-o-calendar')
                                     ->placeholder('Not provided'),
 
-                                Infolists\Components\TextEntry::make('gender')
+                                TextEntry::make('gender')
                                     ->label('Gender')
                                     ->badge()
                                     ->color(fn ($state) => $state === 'Male' ? 'info' : 'success')
@@ -112,48 +118,48 @@ class ViewUser extends ViewRecord
                     ])
                     ->columns(3),
 
-                Infolists\Components\Section::make('Professional Information')
+                Section::make('Professional Information')
                     ->schema([
-                        Infolists\Components\Grid::make(2)
+                        Grid::make(2)
                             ->schema([
-                                Infolists\Components\TextEntry::make('specialty')
+                                TextEntry::make('specialty')
                                     ->label('Specialty')
                                     ->badge()
                                     ->color('info')
                                     ->icon('heroicon-o-academic-cap')
                                     ->placeholder('Not specified'),
 
-                                Infolists\Components\TextEntry::make('job')
+                                TextEntry::make('job')
                                     ->label('Job Title')
                                     ->icon('heroicon-o-briefcase')
                                     ->placeholder('Not specified'),
 
-                                Infolists\Components\TextEntry::make('workingplace')
+                                TextEntry::make('workingplace')
                                     ->label('Working Place')
                                     ->icon('heroicon-o-building-office')
                                     ->placeholder('Not specified'),
 
-                                Infolists\Components\TextEntry::make('highestdegree')
+                                TextEntry::make('highestdegree')
                                     ->label('Highest Degree')
                                     ->icon('heroicon-o-academic-cap')
                                     ->placeholder('Not specified'),
 
-                                Infolists\Components\TextEntry::make('registration_number')
+                                TextEntry::make('registration_number')
                                     ->label('Registration Number')
                                     ->icon('heroicon-o-identification')
                                     ->copyable()
                                     ->placeholder('Not provided'),
 
-                                Infolists\Components\TextEntry::make('isSyndicateCardRequired')
+                                TextEntry::make('isSyndicateCardRequired')
                                     ->label('Syndicate Card Status')
                                     ->badge()
-                                    ->color(fn ($state) => match($state) {
+                                    ->color(fn ($state) => match ($state) {
                                         'Verified' => 'success',
                                         'Pending' => 'warning',
                                         'Required' => 'danger',
                                         default => 'gray',
                                     })
-                                    ->icon(fn ($state) => match($state) {
+                                    ->icon(fn ($state) => match ($state) {
                                         'Verified' => 'heroicon-o-check-circle',
                                         'Pending' => 'heroicon-o-clock',
                                         'Required' => 'heroicon-o-exclamation-triangle',
@@ -164,25 +170,25 @@ class ViewUser extends ViewRecord
                     ->columns(2)
                     ->collapsible(),
 
-                Infolists\Components\Section::make('Statistics')
+                Section::make('Statistics')
                     ->schema([
-                        Infolists\Components\Grid::make(3)
+                        Grid::make(3)
                             ->schema([
-                                Infolists\Components\TextEntry::make('id')
+                                TextEntry::make('id')
                                     ->label('Total Patients')
                                     ->state(fn ($record) => $record->patients->count())
                                     ->badge()
                                     ->color('primary')
                                     ->icon('heroicon-o-users'),
 
-                                Infolists\Components\TextEntry::make('id')
+                                TextEntry::make('id')
                                     ->label('Total Posts')
                                     ->state(fn ($record) => $record->posts->count())
                                     ->badge()
                                     ->color('success')
                                     ->icon('heroicon-o-document-text'),
 
-                                Infolists\Components\TextEntry::make('id')
+                                TextEntry::make('id')
                                     ->label('Score Records')
                                     ->state(fn ($record) => $record->score->count())
                                     ->badge()
@@ -193,16 +199,16 @@ class ViewUser extends ViewRecord
                     ->columns(3)
                     ->collapsible(),
 
-                Infolists\Components\Section::make('Roles & Permissions')
+                Section::make('Roles & Permissions')
                     ->schema([
-                        Infolists\Components\TextEntry::make('roles.name')
+                        TextEntry::make('roles.name')
                             ->label('Assigned Roles')
                             ->badge()
                             ->color('success')
                             ->formatStateUsing(fn (string $state): string => ucwords(str_replace(['-', '_'], ' ', $state)))
                             ->placeholder('No roles assigned'),
 
-                        Infolists\Components\TextEntry::make('permissions.name')
+                        TextEntry::make('permissions.name')
                             ->label('Direct Permissions')
                             ->badge()
                             ->color('info')
@@ -213,18 +219,18 @@ class ViewUser extends ViewRecord
                     ->collapsible()
                     ->collapsed(),
 
-                Infolists\Components\Section::make('Account Timeline')
+                Section::make('Account Timeline')
                     ->schema([
-                        Infolists\Components\Grid::make(3)
+                        Grid::make(3)
                             ->schema([
-                                Infolists\Components\TextEntry::make('created_at')
+                                TextEntry::make('created_at')
                                     ->label('Registered')
                                     ->dateTime()
                                     ->since()
                                     ->icon('heroicon-o-calendar')
                                     ->tooltip(fn ($state, $record) => $record->created_at?->format('M d, Y H:i:s')),
 
-                                Infolists\Components\TextEntry::make('email_verified_at')
+                                TextEntry::make('email_verified_at')
                                     ->label('Email Verified')
                                     ->dateTime()
                                     ->since()
@@ -232,7 +238,7 @@ class ViewUser extends ViewRecord
                                     ->placeholder('Not verified')
                                     ->tooltip(fn ($state, $record) => $record->email_verified_at?->format('M d, Y H:i:s')),
 
-                                Infolists\Components\TextEntry::make('updated_at')
+                                TextEntry::make('updated_at')
                                     ->label('Last Updated')
                                     ->dateTime()
                                     ->since()
@@ -240,23 +246,29 @@ class ViewUser extends ViewRecord
                                     ->tooltip(fn ($state, $record) => $record->updated_at?->format('M d, Y H:i:s')),
                             ]),
 
-                        Infolists\Components\TextEntry::make('created_at')
+                        TextEntry::make('created_at')
                             ->label('Account Age')
                             ->formatStateUsing(function ($state, $record) {
                                 $diff = $record->created_at->diff(now());
                                 if ($diff->days > 0) {
-                                    return $diff->days . ' days';
+                                    return $diff->days.' days';
                                 }
                                 if ($diff->h > 0) {
-                                    return $diff->h . ' hours';
+                                    return $diff->h.' hours';
                                 }
-                                return $diff->i . ' minutes';
+
+                                return $diff->i.' minutes';
                             })
                             ->badge()
                             ->color(function ($state, $record) {
                                 $days = $record->created_at->diffInDays(now());
-                                if ($days < 30) return 'success';
-                                if ($days < 365) return 'warning';
+                                if ($days < 30) {
+                                    return 'success';
+                                }
+                                if ($days < 365) {
+                                    return 'warning';
+                                }
+
                                 return 'info';
                             })
                             ->icon('heroicon-o-clock'),

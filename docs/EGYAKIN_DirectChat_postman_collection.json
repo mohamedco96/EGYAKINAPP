@@ -1,0 +1,1354 @@
+{
+  "info": {
+    "name": "EGYAKIN – Direct Chat",
+    "description": "Complete API collection for the DirectChat module. All endpoints in testing sequence.\n\nSetup:\n1. Set the {{base_url}} variable to your server (e.g. http://localhost:8000/api/v3)\n2. Run the Login request first — it auto-sets {{token}}, {{user_id}}, {{other_user_id}}\n3. Run requests top-to-bottom in each folder",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",        "value": "http://localhost:8000/api/v3" },
+    { "key": "token",           "value": "" },
+    { "key": "token_b",         "value": "" },
+    { "key": "user_id",         "value": "" },
+    { "key": "other_user_id",   "value": "" },
+    { "key": "conversation_id", "value": "" },
+    { "key": "message_id",      "value": "" },
+    { "key": "group_id",        "value": "" }
+  ],
+  "item": [
+
+    {
+      "name": "0 – Auth (get tokens)",
+      "item": [
+        {
+          "name": "Login – User A (main tester)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.token) {",
+                  "  pm.collectionVariables.set('token', json.token);",
+                  "  pm.collectionVariables.set('user_id', json.data ? json.data.id : '');",
+                  "  console.log('Token A saved:', json.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/login", "host": ["{{base_url}}"], "path": ["login"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"email\": \"userA@example.com\",\n  \"password\": \"password\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login – User B (second participant)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.token) {",
+                  "  pm.collectionVariables.set('token_b', json.token);",
+                  "  pm.collectionVariables.set('other_user_id', json.data ? json.data.id : '');",
+                  "  console.log('Token B saved:', json.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/login", "host": ["{{base_url}}"], "path": ["login"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"email\": \"userB@example.com\",\n  \"password\": \"password\"\n}"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "1 – User Search",
+      "item": [
+        {
+          "name": "Search users by name",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('value true', () => pm.expect(json.value).to.be.true);",
+                  "pm.test('data is array', () => pm.expect(json.data).to.be.an('array'));",
+                  "if (json.data && json.data.length > 0) {",
+                  "  pm.collectionVariables.set('other_user_id', json.data[0].id);",
+                  "  console.log('other_user_id set to', json.data[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/users/search?q=sara",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "users", "search"],
+              "query": [{ "key": "q", "value": "sara" }]
+            }
+          }
+        },
+        {
+          "name": "Search users – too short (expect 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('value false', () => pm.expect(pm.response.json().value).to.be.false);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/users/search?q=a",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "users", "search"],
+              "query": [{ "key": "q", "value": "a" }]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "2 – Private Chat (send direct)",
+      "item": [
+        {
+          "name": "Send direct text message (auto-creates private chat)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('value true', () => pm.expect(json.value).to.be.true);",
+                  "pm.test('has conversation_id', () => pm.expect(json.data.conversation_id).to.be.a('number'));",
+                  "pm.collectionVariables.set('conversation_id', json.data.conversation_id);",
+                  "pm.collectionVariables.set('message_id', json.data.id);",
+                  "console.log('Private conversation_id:', json.data.conversation_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/direct/{{other_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "direct", "{{other_user_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"type\": \"text\",\n  \"content\": \"Hello! This is the first message.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Send direct again (must reuse existing conversation)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('same conversation_id', () => {",
+                  "  pm.expect(json.data.conversation_id).to.equal(Number(pm.collectionVariables.get('conversation_id')));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/direct/{{other_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "direct", "{{other_user_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"type\": \"text\",\n  \"content\": \"Second message — same conversation.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Send direct to self (expect 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/direct/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "direct", "{{user_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"type\": \"text\",\n  \"content\": \"Self message\"\n}"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "3 – Conversation List",
+      "item": [
+        {
+          "name": "Get all conversations (with counts + embedded messages)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('value true', () => pm.expect(json.value).to.be.true);",
+                  "pm.test('has counts', () => {",
+                  "  pm.expect(json.data.counts).to.have.all.keys('all','private','case_group','social_group');",
+                  "});",
+                  "pm.test('has data array', () => pm.expect(json.data.data).to.be.an('array'));",
+                  "pm.test('has pagination meta', () => pm.expect(json.data.meta).to.exist);",
+                  "if (json.data.data.length > 0) {",
+                  "  var first = json.data.data[0];",
+                  "  pm.test('conversation has messages array', () => pm.expect(first.messages).to.be.an('array'));",
+                  "  pm.test('has unread_count', () => pm.expect(first.unread_count).to.be.a('number'));",
+                  "  pm.test('has messages_has_more', () => pm.expect(first.messages_has_more).to.be.a('boolean'));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations"]
+            }
+          }
+        },
+        {
+          "name": "Get conversations – filter by private",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations?type=private",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations"],
+              "query": [{ "key": "type", "value": "private" }]
+            }
+          }
+        },
+        {
+          "name": "Get conversations – page 2",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations?page=2",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations"],
+              "query": [{ "key": "page", "value": "2" }]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "4 – Conversation Detail",
+      "item": [
+        {
+          "name": "Get conversation details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('value true', () => pm.expect(json.value).to.be.true);",
+                  "pm.test('has participants', () => pm.expect(json.data.participants).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get conversation – non-member (expect 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403 or 404', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([403, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/999999",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "999999"]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "5 – Messages",
+      "item": [
+        {
+          "name": "Get messages (first page, auto-reads)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('data is array', () => pm.expect(json.data).to.be.an('array'));",
+                  "pm.test('has has_more', () => pm.expect(json.has_more).to.be.a('boolean'));",
+                  "if (json.data.length > 0) {",
+                  "  var oldest = json.data[0].id;",
+                  "  pm.collectionVariables.set('message_id', json.data[json.data.length - 1].id);",
+                  "  console.log('oldest message id for pagination:', oldest);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Get messages – paginate older (before cursor)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/messages?before={{message_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "messages"],
+              "query": [{ "key": "before", "value": "{{message_id}}" }]
+            }
+          }
+        },
+        {
+          "name": "Send text message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('value true', () => pm.expect(json.value).to.be.true);",
+                  "pm.test('type is text', () => pm.expect(json.data.type).to.equal('text'));",
+                  "pm.test('has sender', () => pm.expect(json.data.sender).to.exist);",
+                  "pm.collectionVariables.set('message_id', json.data.id);",
+                  "console.log('message_id saved:', json.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "messages"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"type\": \"text\",\n  \"content\": \"Hello from Postman!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Send text message with reply_to",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('has reply_to', () => pm.expect(json.data.reply_to).to.exist);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "messages"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"type\": \"text\",\n  \"content\": \"This is a reply!\",\n  \"reply_to_id\": {{message_id}}\n}"
+            }
+          }
+        },
+        {
+          "name": "Send image message (multipart)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('type is image', () => pm.expect(json.data.type).to.equal('image'));",
+                  "pm.test('has file_url', () => pm.expect(json.data.file_url).to.be.a('string'));",
+                  "pm.test('has file_metadata', () => pm.expect(json.data.file_metadata).to.exist);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "messages"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "type", "value": "image", "type": "text" },
+                { "key": "file", "type": "file", "src": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send file message (multipart)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "messages"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "type", "value": "file", "type": "text" },
+                { "key": "file", "type": "file", "src": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send text – empty content (expect 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "messages"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"type\": \"text\",\n  \"content\": \"\"\n}"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "6 – Reactions",
+      "item": [
+        {
+          "name": "Add reaction 👍",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('reaction added', () => pm.expect(json.message).to.include('added'));",
+                  "pm.test('has reactions array', () => pm.expect(json.data.reactions).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/reactions",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "reactions"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"message_id\": {{message_id}},\n  \"reaction\": \"👍\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Toggle reaction – remove 👍 (same emoji again)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('reaction removed', () => pm.expect(json.message).to.include('removed'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/reactions",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "reactions"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"message_id\": {{message_id}},\n  \"reaction\": \"👍\"\n}"
+            }
+          }
+        },
+        {
+          "name": "React to message in wrong conversation (expect 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/999999/reactions",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "999999", "reactions"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"message_id\": {{message_id}},\n  \"reaction\": \"❤️\"\n}"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "7 – Delete Message",
+      "item": [
+        {
+          "name": "Delete own message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('value true', () => pm.expect(json.value).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/messages/{{message_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "messages", "{{message_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete someone else's message (expect 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token_b}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/messages/{{message_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "messages", "{{message_id}}"]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "8 – Mute & Notifications",
+      "item": [
+        {
+          "name": "Mute conversation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('muted', () => pm.expect(json.data.mute_notifications).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/mute",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "mute"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"mute\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Unmute conversation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('unmuted', () => pm.expect(json.data.mute_notifications).to.be.false);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/mute",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "mute"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"mute\": false\n}"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "9 – Typing Indicator",
+      "item": [
+        {
+          "name": "Broadcast typing = true",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/typing",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "typing"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"is_typing\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Broadcast typing = false (stopped)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/typing",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "typing"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"is_typing\": false\n}"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "10 – Group Conversations",
+      "item": [
+        {
+          "name": "Create social group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('type is social_group', () => pm.expect(json.data.type).to.equal('social_group'));",
+                  "pm.collectionVariables.set('group_id', json.data.id);",
+                  "console.log('group_id saved:', json.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"type\": \"social_group\",\n  \"name\": \"Test Social Group\",\n  \"description\": \"Created from Postman\",\n  \"participant_ids\": [{{other_user_id}}]\n}"
+            }
+          }
+        },
+        {
+          "name": "Create group – missing name (expect 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"type\": \"social_group\",\n  \"participant_ids\": [{{other_user_id}}]\n}"
+            }
+          }
+        },
+        {
+          "name": "Update group name and description",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('name updated', () => pm.expect(pm.response.json().data.name).to.equal('Updated Group Name'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{group_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{group_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"name\": \"Updated Group Name\",\n  \"description\": \"Updated description\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update group – upload avatar (multipart)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{group_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{group_id}}"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name",  "value": "Group With Avatar", "type": "text" },
+                { "key": "image", "type": "file", "src": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update private conversation (expect 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"name\": \"Should fail\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Send message to group",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{group_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{group_id}}", "messages"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"type\": \"text\",\n  \"content\": \"Hello group!\"\n}"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "11 – Participants",
+      "item": [
+        {
+          "name": "Add participants to group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('participant added', () => pm.expect(pm.response.json().message).to.include('added'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{group_id}}/participants",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{group_id}}", "participants"]
+            },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"user_ids\": [{{other_user_id}}]\n}"
+            }
+          }
+        },
+        {
+          "name": "Remove participant from group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 or 404', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{group_id}}/participants/{{other_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{group_id}}", "participants", "{{other_user_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Join social group (as User B)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 or 422', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 422]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token_b}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{group_id}}/join",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{group_id}}", "join"]
+            }
+          }
+        },
+        {
+          "name": "Join private conversation (expect 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token_b}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/join",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "join"]
+            }
+          }
+        },
+        {
+          "name": "Leave group (as User B)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 or 404', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token_b}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{group_id}}/leave",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{group_id}}", "leave"]
+            }
+          }
+        },
+        {
+          "name": "Leave private conversation (expect 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/leave",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "leave"]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "12 – File Download",
+      "item": [
+        {
+          "name": "Download file via signed URL",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Paste the full file_url from any file message response into the request URL.",
+                  "// The signed URL is self-authenticating — no Authorization header needed."
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 or 403', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 403]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test('has content-disposition', () => {",
+                  "    pm.expect(pm.response.headers.get('Content-Disposition')).to.include('attachment');",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "PASTE_FULL_FILE_URL_HERE",
+              "host": ["PASTE_FULL_FILE_URL_HERE"]
+            },
+            "description": "Paste the complete file_url from a file/image/voice message response. No Authorization header needed — the URL is signed."
+          }
+        },
+        {
+          "name": "Download expired/tampered URL (expect 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/chat/files/1?signature=invalid&expires=0&user_id=1",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "files", "1"],
+              "query": [
+                { "key": "signature", "value": "invalid" },
+                { "key": "expires",   "value": "0" },
+                { "key": "user_id",   "value": "1" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "13 – User Profile with Chat",
+      "item": [
+        {
+          "name": "Get another user's profile (with chat context)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('value true', () => pm.expect(json.value).to.be.true);",
+                  "pm.test('has chat_id field', () => pm.expect(json).to.have.property('chat_id'));",
+                  "pm.test('has chat_messages field', () => pm.expect(json).to.have.property('chat_messages'));",
+                  "pm.test('has chat_has_more field', () => pm.expect(json).to.have.property('chat_has_more'));",
+                  "if (json.chat_id) {",
+                  "  console.log('Existing private chat_id:', json.chat_id);",
+                  "  pm.test('chat_messages is array', () => pm.expect(json.chat_messages).to.be.an('array'));",
+                  "} else {",
+                  "  console.log('No private conversation yet — use POST /chat/direct/{id} to start one');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/showAnotherProfile/{{other_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["showAnotherProfile", "{{other_user_id}}"]
+            }
+          }
+        }
+      ]
+    }
+
+  ]
+}

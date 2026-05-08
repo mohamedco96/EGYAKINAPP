@@ -1,0 +1,654 @@
+{
+  "info": {
+    "name": "EGYAKIN V3 — AI APIs",
+    "description": "All AI-related endpoints introduced or modified in API V3.\n\n**AI Endpoints covered:**\n1. `POST /api/v3/ai-form/process-section` — AI form extraction (audio OR images)\n2. `POST /api/v3/AIconsultation/{patientId}` — Send AI consultation for a patient\n3. `GET  /api/v3/AIconsultation-history/{patientId}` — Get AI consultation history\n4. `GET  /api/v3/questions/{section_id}` — V3 questions (includes `ai_mode` + `ai_hint`)\n5. `GET  /api/v3/patient/{section_id}/{patient_id}` — V3 patient section answers (includes `ai_mode` + `ai_hint`)\n6. `GET  /api/v3/showSections/{patient_id}` — V3 show sections (includes `ai_mode` + `ai_hint`)\n\n**Auth:** Bearer token via `{{token}}` variable. Set it after login.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost/api/v3",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string",
+      "description": "Sanctum bearer token — set after login"
+    },
+    {
+      "key": "patient_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "section_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (get token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "  pm.collectionVariables.set('token', json.token);",
+                  "  console.log('Token saved:', json.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"doctor@example.com\",\n  \"password\": \"password\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            },
+            "description": "Login and auto-save the token to `{{token}}` collection variable."
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI Form — Process Section",
+      "description": "POST /api/v3/ai-form/process-section\n\nExtracts structured form data from a voice recording OR 1–5 lab/radiology images.\n- Send EITHER `audio` OR `images[]` — never both.\n- `section_id` must exist in sections_infos table.\n- Mock mode: set AI_FORM_MOCK=true in .env to skip real OpenAI calls.",
+      "item": [
+        {
+          "name": "Process Section — Audio (voice recording)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "audio",
+                  "type": "file",
+                  "src": "",
+                  "description": "Audio file: mp3, wav, m4a, ogg, or webm. Max 25MB."
+                },
+                {
+                  "key": "section_id",
+                  "value": "{{section_id}}",
+                  "type": "text",
+                  "description": "ID of the section to extract data for (must exist in DB)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/ai-form/process-section",
+              "host": ["{{base_url}}"],
+              "path": ["ai-form", "process-section"]
+            },
+            "description": "Transcribes the audio using OpenAI Whisper, then extracts structured answers for all questions in the given section.\n\n**Expected response:**\n```json\n{\n  \"value\": true,\n  \"input_type\": \"audio\",\n  \"extracted_text\": \"Male patient, aged 64...\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"question\": \"Patient Name\",\n      \"type\": \"string\",\n      \"answer\": \"Ahmed Mohamed\",\n      ...\n    }\n  ]\n}\n```"
+          }
+        },
+        {
+          "name": "Process Section — Single Image (jpg/png/webp)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "images[]",
+                  "type": "file",
+                  "src": "",
+                  "description": "Lab report image: jpg, jpeg, png, or webp. Max 20MB per file."
+                },
+                {
+                  "key": "section_id",
+                  "value": "{{section_id}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/ai-form/process-section",
+              "host": ["{{base_url}}"],
+              "path": ["ai-form", "process-section"]
+            },
+            "description": "Analyzes a single lab report image using GPT-4o Vision, then extracts structured answers.\n\n**Expected response:**\n```json\n{\n  \"value\": true,\n  \"input_type\": \"image\",\n  \"image_count\": 1,\n  \"extracted_text\": \"Creatinine: 3.2, pH: 7.30...\",\n  \"data\": [...]\n}\n```"
+          }
+        },
+        {
+          "name": "Process Section — Multiple Images (up to 5)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "images[]",
+                  "type": "file",
+                  "src": "",
+                  "description": "First lab report image"
+                },
+                {
+                  "key": "images[]",
+                  "type": "file",
+                  "src": "",
+                  "description": "Second lab report image"
+                },
+                {
+                  "key": "section_id",
+                  "value": "6",
+                  "type": "text",
+                  "description": "Section 6 = Lab & Radiology results — good match for image input"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/ai-form/process-section",
+              "host": ["{{base_url}}"],
+              "path": ["ai-form", "process-section"]
+            },
+            "description": "Send 2–5 images in a single call. GPT-4o reads all images together and extracts a combined result.\n\n**Expected response:**\n```json\n{\n  \"value\": true,\n  \"input_type\": \"image\",\n  \"image_count\": 2,\n  \"extracted_text\": \"...\",\n  \"data\": [...]\n}\n```"
+          }
+        },
+        {
+          "name": "Process Section — PDF Lab Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "images[]",
+                  "type": "file",
+                  "src": "",
+                  "description": "PDF lab report. Max 20MB. PDFs are uploaded to OpenAI Files API, referenced, then deleted."
+                },
+                {
+                  "key": "section_id",
+                  "value": "6",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/ai-form/process-section",
+              "host": ["{{base_url}}"],
+              "path": ["ai-form", "process-section"]
+            },
+            "description": "Upload a PDF lab report. Internally, the PDF is uploaded to OpenAI Files API, used in a GPT-4o call, then immediately deleted."
+          }
+        },
+        {
+          "name": "Error — No file provided",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "section_id",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/ai-form/process-section",
+              "host": ["{{base_url}}"],
+              "path": ["ai-form", "process-section"]
+            },
+            "description": "**Expected 422:**\n```json\n{\n  \"message\": \"Either an audio or at least one image file is required.\",\n  \"errors\": {\n    \"audio\": [\"Either an audio or at least one image file is required.\"],\n    \"images\": [\"Either an audio or at least one image file is required.\"]\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Error — Audio and images sent together",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "audio",
+                  "type": "file",
+                  "src": "",
+                  "description": "Audio file"
+                },
+                {
+                  "key": "images[]",
+                  "type": "file",
+                  "src": "",
+                  "description": "Image file (should be rejected — can't send both)"
+                },
+                {
+                  "key": "section_id",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/ai-form/process-section",
+              "host": ["{{base_url}}"],
+              "path": ["ai-form", "process-section"]
+            },
+            "description": "**Expected 422:**\n```json\n{\n  \"errors\": {\n    \"audio\": [\"Audio and images cannot be sent together. Send one or the other.\"],\n    \"images\": [\"Audio and images cannot be sent together. Send one or the other.\"]\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Error — Invalid section_id",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "audio",
+                  "type": "file",
+                  "src": ""
+                },
+                {
+                  "key": "section_id",
+                  "value": "99999",
+                  "type": "text",
+                  "description": "Non-existent section ID"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/ai-form/process-section",
+              "host": ["{{base_url}}"],
+              "path": ["ai-form", "process-section"]
+            },
+            "description": "**Expected 422:**\n```json\n{\n  \"errors\": {\n    \"section_id\": [\"Section not found.\"]\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Error — Too many images (> 5)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "images[]", "type": "file", "src": "" },
+                { "key": "images[]", "type": "file", "src": "" },
+                { "key": "images[]", "type": "file", "src": "" },
+                { "key": "images[]", "type": "file", "src": "" },
+                { "key": "images[]", "type": "file", "src": "" },
+                { "key": "images[]", "type": "file", "src": "", "description": "6th image — should fail" },
+                {
+                  "key": "section_id",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/ai-form/process-section",
+              "host": ["{{base_url}}"],
+              "path": ["ai-form", "process-section"]
+            },
+            "description": "**Expected 422:** You can upload a maximum of 5 images per request."
+          }
+        },
+        {
+          "name": "Error — Unauthenticated",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "audio", "type": "file", "src": "" },
+                { "key": "section_id", "value": "1", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/ai-form/process-section",
+              "host": ["{{base_url}}"],
+              "path": ["ai-form", "process-section"]
+            },
+            "description": "**Expected 401:** No bearer token provided."
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI Consultation (ChatGPT)",
+      "description": "POST /api/v3/AIconsultation/{patientId}\nGET  /api/v3/AIconsultation-history/{patientId}\n\nSends the full patient data to ChatGPT and returns an AI clinical consultation.\nEach doctor gets 3 trials/month, auto-reset monthly.",
+      "item": [
+        {
+          "name": "Send AI Consultation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/AIconsultation/{{patient_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["AIconsultation", "{{patient_id}}"]
+            },
+            "description": "Sends the full patient dataset (all answered questions across all sections) to ChatGPT and returns a structured clinical consultation.\n\n**Authorization:**\n- Only the patient's owning doctor or an admin can trigger this.\n- Each doctor has 3 monthly trials. Each successful call decrements `trial_count`.\n\n**Expected 200:**\n```json\n{\n  \"value\": true,\n  \"message\": \"Consultation request sent successfully\",\n  \"response\": \"Based on the patient data...\",\n  \"trial_count\": 2\n}\n```"
+          }
+        },
+        {
+          "name": "Send AI Consultation — No trials left",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/AIconsultation/{{patient_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["AIconsultation", "{{patient_id}}"]
+            },
+            "description": "Call after exhausting all 3 monthly trials.\n\n**Expected 403:**\n```json\n{\n  \"value\": false,\n  \"message\": \"No trials left for this month\"\n}\n```"
+          }
+        },
+        {
+          "name": "Send AI Consultation — Not patient owner",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/AIconsultation/{{patient_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["AIconsultation", "{{patient_id}}"]
+            },
+            "description": "Login as a different doctor (not the patient owner, not admin) and attempt to consult.\n\n**Expected 403:**\n```json\n{\n  \"value\": false,\n  \"message\": \"...\"\n}\n```"
+          }
+        },
+        {
+          "name": "Send AI Consultation — Patient not found",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/AIconsultation/99999",
+              "host": ["{{base_url}}"],
+              "path": ["AIconsultation", "99999"]
+            },
+            "description": "**Expected 404:**\n```json\n{\n  \"value\": false,\n  \"message\": \"Patient not found\"\n}\n```"
+          }
+        },
+        {
+          "name": "Get AI Consultation History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/AIconsultation-history/{{patient_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["AIconsultation-history", "{{patient_id}}"]
+            },
+            "description": "Returns paginated consultation history (5 per page, newest first) for a patient.\nAlso returns the doctor's current `trial_count` and `reset_date`.\n\n**Expected 200:**\n```json\n{\n  \"value\": true,\n  \"message\": \"Consultation history retrieved successfully\",\n  \"trial_count\": 2,\n  \"reset_date\": \"2026-05-19T00:00:00.000000Z\",\n  \"history\": {\n    \"data\": [\n      {\n        \"id\": 1,\n        \"doctor_id\": 5,\n        \"patient_id\": 1,\n        \"response\": \"Based on the patient data...\",\n        \"created_at\": \"2026-04-19T...\"\n      }\n    ],\n    \"current_page\": 1,\n    \"total\": 1\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Get AI Consultation History — Patient not found",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/AIconsultation-history/99999",
+              "host": ["{{base_url}}"],
+              "path": ["AIconsultation-history", "99999"]
+            },
+            "description": "**Expected 404:**\n```json\n{\n  \"value\": false,\n  \"message\": \"Patient not found\"\n}\n```"
+          }
+        },
+        {
+          "name": "Get AI Consultation History — Unauthenticated",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/AIconsultation-history/{{patient_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["AIconsultation-history", "{{patient_id}}"]
+            },
+            "description": "**Expected 401:** No bearer token."
+          }
+        }
+      ]
+    },
+    {
+      "name": "V3 Questions (ai_mode + ai_hint)",
+      "description": "GET /api/v3/questions/{section_id}\n\nV3 enhances the questions response by injecting `ai_mode` and `ai_hint` from the section's record. These fields tell the client which AI input mode is available for this section (audio, image, or none).",
+      "item": [
+        {
+          "name": "Get Questions for Section — with ai_mode",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/questions/{{section_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["questions", "{{section_id}}"]
+            },
+            "description": "Returns all questions for a section, with the V3-added `ai_mode` and `ai_hint` fields at the top level.\n\n**Expected 200:**\n```json\n{\n  \"value\": true,\n  \"ai_mode\": \"audio\",\n  \"ai_hint\": \"Dictate the patient demographic data\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"question\": \"Patient Name\",\n      \"type\": \"string\",\n      ...\n    }\n  ]\n}\n```\n\n**Note:** `ai_mode` and `ai_hint` are `null` if the section does not have AI configured."
+          }
+        },
+        {
+          "name": "Get Questions — Section with ai_mode = null",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/questions/2",
+              "host": ["{{base_url}}"],
+              "path": ["questions", "2"]
+            },
+            "description": "Section that has no AI mode configured.\n\n**Expected 200:**\n```json\n{\n  \"value\": true,\n  \"ai_mode\": null,\n  \"ai_hint\": null,\n  \"data\": [...]\n}\n```"
+          }
+        },
+        {
+          "name": "Get Questions with Patient Answers (V3)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/questions/{{section_id}}/{{patient_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["questions", "{{section_id}}", "{{patient_id}}"]
+            },
+            "description": "Returns questions with the patient's existing answers populated. Delegates to V1 controller (no ai_mode injection on this sub-route)."
+          }
+        },
+        {
+          "name": "Get Questions — Section not found",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/questions/99999",
+              "host": ["{{base_url}}"],
+              "path": ["questions", "99999"]
+            },
+            "description": "Section ID does not exist.\n\n**Expected:** `ai_mode: null`, `ai_hint: null`, empty or 404 data depending on V1 behavior."
+          }
+        }
+      ]
+    },
+    {
+      "name": "V3 Patient Section (ai_mode + ai_hint)",
+      "description": "GET /api/v3/patient/{section_id}/{patient_id}\n\nV3 enhances the patient section answers response with `ai_mode` and `ai_hint` from the section.",
+      "item": [
+        {
+          "name": "Get Patient Section Answers — with ai_mode",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/patient/{{section_id}}/{{patient_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["patient", "{{section_id}}", "{{patient_id}}"]
+            },
+            "description": "Returns all questions for a section with the patient's saved answers, plus the V3 `ai_mode` and `ai_hint` fields.\n\n**Expected 200:**\n```json\n{\n  \"value\": true,\n  \"ai_mode\": \"image\",\n  \"ai_hint\": \"Upload lab report images\",\n  \"data\": [\n    {\n      \"id\": 71,\n      \"question\": \"Creatinine on admission\",\n      \"type\": \"string\",\n      \"answer\": \"3.2\",\n      ...\n    }\n  ]\n}\n```"
+          }
+        },
+        {
+          "name": "Get Patient Section Answers — Patient not found",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/patient/{{section_id}}/99999",
+              "host": ["{{base_url}}"],
+              "path": ["patient", "{{section_id}}", "99999"]
+            },
+            "description": "Patient does not exist.\n\n**Expected 404/error response from V1 handler.**"
+          }
+        }
+      ]
+    },
+    {
+      "name": "V3 Show Sections",
+      "description": "GET /api/v3/showSections/{patient_id}\n\nReturns all sections for a patient. V3 delegates to the V1 `showSectionsV1` method. Sections include `ai_mode` and `ai_hint` if set.",
+      "item": [
+        {
+          "name": "Show Sections for Patient",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/showSections/{{patient_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["showSections", "{{patient_id}}"]
+            },
+            "description": "Returns all form sections for a patient with completion status.\n\n**Expected 200:**\n```json\n{\n  \"value\": true,\n  \"data\": [\n    {\n      \"id\": 1,\n      \"section_name\": \"Patient Info\",\n      \"ai_mode\": \"audio\",\n      \"ai_hint\": \"Dictate patient demographics\",\n      \"completed\": true\n    }\n  ]\n}\n```"
+          }
+        },
+        {
+          "name": "Show Sections — Patient not found",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/showSections/99999",
+              "host": ["{{base_url}}"],
+              "path": ["showSections", "99999"]
+            },
+            "description": "**Expected 404/error from V1 handler.**"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Submit Patient Section (V3)",
+      "description": "PUT /api/v3/submitStatus/{patient_id}\n\nFinal submit for a patient's section. Delegates to V3 SectionsController → V1 updateFinalSubmit.",
+      "item": [
+        {
+          "name": "Submit Final Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"section_id\": {{section_id}},\n  \"status\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/submitStatus/{{patient_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["submitStatus", "{{patient_id}}"]
+            },
+            "description": "Marks a section as submitted/completed for the given patient."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,869 @@
+{
+  "info": {
+    "name": "EGYAKIN DirectChat — WebSocket Tests",
+    "_postman_id": "dc-ws-001",
+    "description": "Complete WebSocket test suite for the DirectChat Reverb/Pusher presence channels.\n\n## How to use\n1. Set collection variable `base_url` to your server (e.g. http://localhost:8000)\n2. Set `reverb_host` and `reverb_port` (default: localhost:8080)\n3. Run folder **0 – Auth** first to populate `token`, `token_b`, `socket_id_a`, `socket_id_b`\n4. Run folder **1 – Channel Auth** to get channel auth signatures\n5. Open two WebSocket tabs side-by-side (User A + User B) and run through folders 2–7\n\n## Architecture\n- Server: Laravel Reverb (Pusher-protocol compatible)\n- Channels: `presence-conversation.{id}` (requires auth)\n- All server-side events are triggered by REST calls in the companion REST collection\n- Typing is a server-sent event via POST /chat/conversations/{id}/typing",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",      "value": "http://localhost:8000/api/v3", "type": "string" },
+    { "key": "reverb_host",   "value": "localhost",                    "type": "string" },
+    { "key": "reverb_port",   "value": "8080",                        "type": "string" },
+    { "key": "reverb_app_key","value": "054d5cd586f42bbc529e880a574651d3", "type": "string" },
+    { "key": "token",         "value": "",  "type": "string", "description": "Bearer token for User A — set by folder 0" },
+    { "key": "token_b",       "value": "",  "type": "string", "description": "Bearer token for User B — set by folder 0" },
+    { "key": "socket_id_a",   "value": "",  "type": "string", "description": "WebSocket socket_id for User A — copy from WS connection_established event" },
+    { "key": "socket_id_b",   "value": "",  "type": "string", "description": "WebSocket socket_id for User B — copy from WS connection_established event" },
+    { "key": "channel_auth_a","value": "",  "type": "string", "description": "Channel auth string for User A — set by folder 1" },
+    { "key": "channel_auth_b","value": "",  "type": "string", "description": "Channel auth string for User B — set by folder 1" },
+    { "key": "channel_data_a","value": "",  "type": "string", "description": "Channel data JSON string for User A — set by folder 1" },
+    { "key": "channel_data_b","value": "",  "type": "string", "description": "Channel data JSON string for User B — set by folder 1" },
+    { "key": "conversation_id","value": "1","type": "string", "description": "Conversation ID to test — update after creating a conversation" },
+    { "key": "message_id",    "value": "",  "type": "string", "description": "Message ID — set after sending a message" }
+  ],
+  "item": [
+    {
+      "name": "0 – Auth (get tokens)",
+      "description": "Login as two users to get Bearer tokens. Tokens are saved to collection variables `token` and `token_b`.",
+      "item": [
+        {
+          "name": "Login as User A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.authorisation && res.authorisation.token) {",
+                  "    pm.collectionVariables.set('token', res.authorisation.token);",
+                  "    console.log('User A token saved:', res.authorisation.token.substring(0,20) + '...');",
+                  "}",
+                  "pm.test('Login successful', () => pm.response.to.have.status(200));",
+                  "pm.test('Token present', () => pm.expect(res.authorisation).to.have.property('token'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user_a@example.com\",\n  \"password\": \"password\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/login", "host": ["{{base_url}}"], "path": ["login"] }
+          }
+        },
+        {
+          "name": "Login as User B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.authorisation && res.authorisation.token) {",
+                  "    pm.collectionVariables.set('token_b', res.authorisation.token);",
+                  "    console.log('User B token saved:', res.authorisation.token.substring(0,20) + '...');",
+                  "}",
+                  "pm.test('Login successful', () => pm.response.to.have.status(200));",
+                  "pm.test('Token present', () => pm.expect(res.authorisation).to.have.property('token'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user_b@example.com\",\n  \"password\": \"password\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/login", "host": ["{{base_url}}"], "path": ["login"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1 – Channel Auth (get signatures)",
+      "description": "Authenticates both users for the presence channel. You must have `socket_id_a` and `socket_id_b` set from the WebSocket connection_established events before running these.\n\nThe `auth` and `channel_data` values returned here are what you paste into the pusher:subscribe message in the WebSocket tab.",
+      "item": [
+        {
+          "name": "Authenticate Channel — User A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Auth returned', () => pm.response.to.have.status(200));",
+                  "pm.test('Has auth field', () => pm.expect(res).to.have.property('auth'));",
+                  "pm.test('Has channel_data field', () => pm.expect(res).to.have.property('channel_data'));",
+                  "if (res.auth) {",
+                  "    pm.collectionVariables.set('channel_auth_a', res.auth);",
+                  "    pm.collectionVariables.set('channel_data_a', res.channel_data);",
+                  "    console.log('User A channel auth saved.');",
+                  "    console.log('Use this in pusher:subscribe message:');",
+                  "    console.log(JSON.stringify({ event: 'pusher:subscribe', data: { channel: 'presence-conversation.' + pm.collectionVariables.get('conversation_id'), auth: res.auth, channel_data: res.channel_data } }, null, 2));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"socket_id\": \"{{socket_id_a}}\",\n  \"channel_name\": \"presence-conversation.{{conversation_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/../broadcasting/auth",
+              "host": ["{{base_url}}"],
+              "path": ["..", "broadcasting", "auth"]
+            },
+            "description": "IMPORTANT: Set `socket_id_a` collection variable first.\n\nGet your socket_id by connecting to ws://{{reverb_host}}:{{reverb_port}}/app/{{reverb_app_key}} in a Postman WebSocket tab. The server immediately sends a `pusher:connection_established` event containing the socket_id."
+          }
+        },
+        {
+          "name": "Authenticate Channel — User B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Auth returned', () => pm.response.to.have.status(200));",
+                  "pm.test('Has auth field', () => pm.expect(res).to.have.property('auth'));",
+                  "if (res.auth) {",
+                  "    pm.collectionVariables.set('channel_auth_b', res.auth);",
+                  "    pm.collectionVariables.set('channel_data_b', res.channel_data);",
+                  "    console.log('User B channel auth saved.');",
+                  "    console.log('Use this in pusher:subscribe message:');",
+                  "    console.log(JSON.stringify({ event: 'pusher:subscribe', data: { channel: 'presence-conversation.' + pm.collectionVariables.get('conversation_id'), auth: res.auth, channel_data: res.channel_data } }, null, 2));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token_b}}" },
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"socket_id\": \"{{socket_id_b}}\",\n  \"channel_name\": \"presence-conversation.{{conversation_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/../broadcasting/auth",
+              "host": ["{{base_url}}"],
+              "path": ["..", "broadcasting", "auth"]
+            }
+          }
+        },
+        {
+          "name": "Authenticate Channel — Non-member (expect 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Non-member is rejected (403)', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer INVALID_OR_NON_MEMBER_TOKEN" },
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"socket_id\": \"000000.000\",\n  \"channel_name\": \"presence-conversation.{{conversation_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/../broadcasting/auth",
+              "host": ["{{base_url}}"],
+              "path": ["..", "broadcasting", "auth"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 – WebSocket Connection & Subscribe",
+      "description": "These are INSTRUCTIONS for your WebSocket tabs — not REST requests.\n\nPostman WebSocket requests are created manually (New → WebSocket). The requests in this folder document the exact messages to send in each WebSocket tab.",
+      "item": [
+        {
+          "name": "INSTRUCTION: Connect User A WebSocket",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "ws://{{reverb_host}}:{{reverb_port}}/app/{{reverb_app_key}}",
+              "protocol": "ws",
+              "host": ["{{reverb_host}}"],
+              "port": "{{reverb_port}}",
+              "path": ["app", "{{reverb_app_key}}"]
+            },
+            "description": "## How to create a WebSocket connection in Postman\n\n1. Click **New** (top left) → select **WebSocket**\n2. Enter URL: `ws://localhost:8080/app/054d5cd586f42bbc529e880a574651d3`\n3. Click **Connect**\n\n## Expected response immediately after connecting:\n```json\n{\n  \"event\": \"pusher:connection_established\",\n  \"data\": \"{\\\"socket_id\\\":\\\"123456.789\\\",\\\"activity_timeout\\\":120}\"\n}\n```\n\n**Copy the `socket_id` value** and save it as collection variable `socket_id_a`.\n\nThen run the **Channel Auth — User A** REST request in folder 1."
+          }
+        },
+        {
+          "name": "INSTRUCTION: Subscribe User A to Channel",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"pusher:subscribe\",\n  \"data\": {\n    \"channel\": \"presence-conversation.{{conversation_id}}\",\n    \"auth\": \"{{channel_auth_a}}\",\n    \"channel_data\": \"{{channel_data_a}}\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "ws://{{reverb_host}}:{{reverb_port}}/app/{{reverb_app_key}}",
+              "protocol": "ws",
+              "host": ["{{reverb_host}}"],
+              "port": "{{reverb_port}}",
+              "path": ["app", "{{reverb_app_key}}"]
+            },
+            "description": "## Send this message in the User A WebSocket tab\n\nAfter getting channel auth from folder 1, paste this JSON into the **Message** field of your WebSocket tab and click **Send**:\n\n```json\n{\n  \"event\": \"pusher:subscribe\",\n  \"data\": {\n    \"channel\": \"presence-conversation.1\",\n    \"auth\": \"<value from channel_auth_a variable>\",\n    \"channel_data\": \"<value from channel_data_a variable>\"\n  }\n}\n```\n\n## Expected response:\n```json\n{\n  \"event\": \"pusher_internal:subscription_succeeded\",\n  \"channel\": \"presence-conversation.1\",\n  \"data\": {\n    \"presence\": {\n      \"count\": 1,\n      \"ids\": [1],\n      \"hash\": { \"1\": { \"id\": 1, \"name\": \"Mohamed Ibrahim\", \"image\": \"...\" } }\n    }\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "INSTRUCTION: Connect & Subscribe User B",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"pusher:subscribe\",\n  \"data\": {\n    \"channel\": \"presence-conversation.{{conversation_id}}\",\n    \"auth\": \"{{channel_auth_b}}\",\n    \"channel_data\": \"{{channel_data_b}}\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "ws://{{reverb_host}}:{{reverb_port}}/app/{{reverb_app_key}}",
+              "protocol": "ws",
+              "host": ["{{reverb_host}}"],
+              "port": "{{reverb_port}}",
+              "path": ["app", "{{reverb_app_key}}"]
+            },
+            "description": "## Open a SECOND Postman WebSocket tab for User B\n\n1. Click **New** → **WebSocket**\n2. URL: `ws://localhost:8080/app/054d5cd586f42bbc529e880a574651d3`\n3. Connect → copy socket_id → save as `socket_id_b`\n4. Run **Channel Auth — User B** in folder 1\n5. Send the subscribe message:\n\n```json\n{\n  \"event\": \"pusher:subscribe\",\n  \"data\": {\n    \"channel\": \"presence-conversation.1\",\n    \"auth\": \"<value from channel_auth_b variable>\",\n    \"channel_data\": \"<value from channel_data_b variable>\"\n  }\n}\n```\n\n## When User B joins, User A's tab receives:\n```json\n{\n  \"event\": \"pusher_internal:member_added\",\n  \"channel\": \"presence-conversation.1\",\n  \"data\": {\n    \"user_id\": 2,\n    \"user_info\": { \"id\": 2, \"name\": \"User B\", \"image\": \"...\" }\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Ping — Keep Connection Alive",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"pusher:ping\",\n  \"data\": {}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "ws://{{reverb_host}}:{{reverb_port}}/app/{{reverb_app_key}}",
+              "protocol": "ws",
+              "host": ["{{reverb_host}}"],
+              "port": "{{reverb_port}}",
+              "path": ["app", "{{reverb_app_key}}"]
+            },
+            "description": "Send this in the WebSocket tab to keep the connection alive (Reverb/Pusher uses 120s activity timeout).\n\nExpected response:\n```json\n{ \"event\": \"pusher:pong\", \"data\": {} }\n```"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 – Test: message.sent event",
+      "description": "Trigger message.sent by sending a message via REST. Both User A and User B WebSocket tabs should receive the event.",
+      "item": [
+        {
+          "name": "Send Text Message (triggers message.sent)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Message sent (201)', () => pm.response.to.have.status(201));",
+                  "pm.test('Has message id', () => pm.expect(res.data).to.have.property('id'));",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('message_id', res.data.id);",
+                  "    console.log('message_id saved:', res.data.id);",
+                  "}",
+                  "console.log('');",
+                  "console.log('✅ CHECK WebSocket tabs now!');",
+                  "console.log('Both User A and User B tabs should receive:');",
+                  "console.log(JSON.stringify({",
+                  "    event: 'message.sent',",
+                  "    channel: 'presence-conversation.' + pm.collectionVariables.get('conversation_id'),",
+                  "    data: { message: { id: res.data && res.data.id, type: 'text', content: 'Hello from WebSocket test!', '...': '...' } }",
+                  "}, null, 2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"text\",\n  \"content\": \"Hello from WebSocket test!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "messages"]
+            },
+            "description": "## Expected WebSocket event on BOTH tabs:\n```json\n{\n  \"event\": \"message.sent\",\n  \"channel\": \"presence-conversation.1\",\n  \"data\": {\n    \"message\": {\n      \"id\": 42,\n      \"conversation_id\": 1,\n      \"sender\": { \"id\": 1, \"name\": \"Mohamed\", \"lname\": \"Ibrahim\", \"image\": \"...\", \"specialty\": \"...\" },\n      \"type\": \"text\",\n      \"content\": \"Hello from WebSocket test!\",\n      \"file_metadata\": null,\n      \"file_url\": null,\n      \"reply_to\": null,\n      \"reads\": [],\n      \"reads_count\": 0,\n      \"reactions\": [],\n      \"created_at\": \"2026-04-19T...\",\n      \"updated_at\": \"2026-04-19T...\"\n    }\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Send Reply Message (triggers message.sent with reply_to)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Reply sent (201)', () => pm.response.to.have.status(201));",
+                  "pm.test('Has reply_to in response', () => pm.expect(res.data).to.have.property('reply_to'));",
+                  "console.log('CHECK WebSocket: message.sent should include reply_to object');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token_b}}" },
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"text\",\n  \"content\": \"This is a reply!\",\n  \"reply_to_id\": {{message_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "messages"]
+            },
+            "description": "## Expected WebSocket event:\n```json\n{\n  \"event\": \"message.sent\",\n  \"data\": {\n    \"message\": {\n      \"id\": 43,\n      \"type\": \"text\",\n      \"content\": \"This is a reply!\",\n      \"reply_to\": {\n        \"id\": 42,\n        \"type\": \"text\",\n        \"content\": \"Hello from WebSocket test!\",\n        \"sender_id\": 1,\n        \"sender\": { \"id\": 1, \"name\": \"Mohamed\", \"lname\": \"Ibrahim\" }\n      },\n      \"...\": \"...\"\n    }\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Send Image Message (triggers message.sent with file_url)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Image message sent (201)', () => pm.response.to.have.status(201));",
+                  "pm.test('Type is image', () => pm.expect(res.data.type).to.equal('image'));",
+                  "pm.test('Has file_url', () => pm.expect(res.data.file_url).to.not.be.null);",
+                  "console.log('CHECK WebSocket: message.sent should have file_url (signed URL, 30min expiry)');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "type",  "value": "image", "type": "text" },
+                { "key": "file",  "type": "file",   "description": "Select any image file (jpg/png/webp, max 10MB)" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "messages"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 – Test: user.typing event",
+      "description": "Trigger user.typing via REST. The OTHER user's WebSocket tab should receive it (toOthers() excludes the sender).",
+      "item": [
+        {
+          "name": "User A is Typing (User B tab should receive event)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Typing broadcast sent (200)', () => pm.response.to.have.status(200));",
+                  "console.log('');",
+                  "console.log('✅ CHECK User B WebSocket tab!');",
+                  "console.log('User B should receive:');",
+                  "console.log(JSON.stringify({",
+                  "    event: 'user.typing',",
+                  "    channel: 'presence-conversation.' + pm.collectionVariables.get('conversation_id'),",
+                  "    data: { conversation_id: +pm.collectionVariables.get('conversation_id'), user_id: 'User A id', user_name: 'User A name', is_typing: true }",
+                  "}, null, 2));",
+                  "console.log('User A tab should NOT receive it (toOthers()).');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_typing\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/typing",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "typing"]
+            },
+            "description": "## Expected event on User B tab only:\n```json\n{\n  \"event\": \"user.typing\",\n  \"channel\": \"presence-conversation.1\",\n  \"data\": {\n    \"conversation_id\": 1,\n    \"user_id\": 1,\n    \"user_name\": \"Mohamed Ibrahim\",\n    \"is_typing\": true\n  }\n}\n```\n\n**User A tab should NOT receive this** — the service uses `broadcast(...)->toOthers()`."
+          }
+        },
+        {
+          "name": "User A Stopped Typing (is_typing: false)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Typing stopped broadcast sent (200)', () => pm.response.to.have.status(200));",
+                  "console.log('CHECK User B tab: is_typing should be false');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_typing\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/typing",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "typing"]
+            }
+          }
+        },
+        {
+          "name": "User B is Typing (User A tab should receive event)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Typing broadcast sent (200)', () => pm.response.to.have.status(200));",
+                  "console.log('CHECK User A tab for user.typing from User B');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token_b}}" },
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_typing\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/typing",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "typing"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 – Test: message.read event",
+      "description": "Trigger messages.read by marking messages as read. The sender's WebSocket tab receives the event so they can show read receipts.",
+      "item": [
+        {
+          "name": "User B Marks Messages as Read (User A tab receives event)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Mark as read succeeded (200)', () => pm.response.to.have.status(200));",
+                  "console.log('');",
+                  "console.log('✅ CHECK User A WebSocket tab!');",
+                  "console.log('User A should receive:');",
+                  "console.log(JSON.stringify({",
+                  "    event: 'message.read',",
+                  "    channel: 'presence-conversation.' + pm.collectionVariables.get('conversation_id'),",
+                  "    data: {",
+                  "        conversation_id: +pm.collectionVariables.get('conversation_id'),",
+                  "        user_id: 'User B id',",
+                  "        last_read_message_id: +pm.collectionVariables.get('message_id'),",
+                  "        read_at: '2026-04-19T...'",
+                  "    }",
+                  "}, null, 2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token_b}}" },
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"up_to_message_id\": {{message_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "messages"]
+            },
+            "description": "Sending GET to messages endpoint also marks messages as read internally. Or use a dedicated mark-as-read call if implemented.\n\n## Expected event on User A tab:\n```json\n{\n  \"event\": \"message.read\",\n  \"channel\": \"presence-conversation.1\",\n  \"data\": {\n    \"conversation_id\": 1,\n    \"user_id\": 2,\n    \"last_read_message_id\": 42,\n    \"read_at\": \"2026-04-19T20:00:00.000000Z\"\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Mark as Read — Specific Message ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Mark as read (200)', () => pm.response.to.have.status(200));",
+                  "console.log('CHECK User A tab for message.read event');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token_b}}" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "messages"]
+            },
+            "description": "Fetching messages marks all unread messages as read and fires `message.read` broadcast."
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 – Test: message.reacted event",
+      "description": "Add and remove reactions. Both tabs should receive the message.reacted event.",
+      "item": [
+        {
+          "name": "User B Adds Reaction (both tabs receive event)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Reaction added (200)', () => pm.response.to.have.status(200));",
+                  "console.log('');",
+                  "console.log('✅ CHECK BOTH WebSocket tabs!');",
+                  "console.log('Both should receive:');",
+                  "console.log(JSON.stringify({",
+                  "    event: 'message.reacted',",
+                  "    data: {",
+                  "        message_id: +pm.collectionVariables.get('message_id'),",
+                  "        conversation_id: +pm.collectionVariables.get('conversation_id'),",
+                  "        user_id: 'User B id',",
+                  "        user_name: 'User B name',",
+                  "        reaction: '👍',",
+                  "        action: 'added'",
+                  "    }",
+                  "}, null, 2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token_b}}" },
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message_id\": {{message_id}},\n  \"reaction\": \"👍\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/reactions",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "reactions"]
+            },
+            "description": "## Expected event on BOTH tabs:\n```json\n{\n  \"event\": \"message.reacted\",\n  \"channel\": \"presence-conversation.1\",\n  \"data\": {\n    \"message_id\": 42,\n    \"conversation_id\": 1,\n    \"user_id\": 2,\n    \"user_name\": \"User B\",\n    \"reaction\": \"👍\",\n    \"action\": \"added\"\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "User A Adds Different Reaction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Reaction added (200)', () => pm.response.to.have.status(200));",
+                  "console.log('CHECK BOTH tabs: action should be added, reaction should be ❤️');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message_id\": {{message_id}},\n  \"reaction\": \"❤️\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/reactions",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "reactions"]
+            }
+          }
+        },
+        {
+          "name": "User B Removes Reaction (toggle — same emoji again)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Reaction toggled (200)', () => pm.response.to.have.status(200));",
+                  "console.log('CHECK BOTH tabs: action should be removed this time');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token_b}}" },
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message_id\": {{message_id}},\n  \"reaction\": \"👍\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/reactions",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "reactions"]
+            },
+            "description": "Sending the same reaction again toggles it OFF.\n\n## Expected event:\n```json\n{\n  \"event\": \"message.reacted\",\n  \"data\": {\n    \"reaction\": \"👍\",\n    \"action\": \"removed\"\n  }\n}\n```"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7 – Test: message.deleted event",
+      "description": "Soft-delete a message. Both tabs should receive message.deleted so clients can remove it from the UI.",
+      "item": [
+        {
+          "name": "User A Deletes Own Message (both tabs receive event)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Message deleted (200)', () => pm.response.to.have.status(200));",
+                  "console.log('');",
+                  "console.log('✅ CHECK BOTH WebSocket tabs!');",
+                  "console.log('Both should receive:');",
+                  "console.log(JSON.stringify({",
+                  "    event: 'message.deleted',",
+                  "    channel: 'presence-conversation.' + pm.collectionVariables.get('conversation_id'),",
+                  "    data: {",
+                  "        message_id: +pm.collectionVariables.get('message_id'),",
+                  "        conversation_id: +pm.collectionVariables.get('conversation_id')",
+                  "    }",
+                  "}, null, 2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/messages/{{message_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "messages", "{{message_id}}"]
+            },
+            "description": "## Expected event on BOTH tabs:\n```json\n{\n  \"event\": \"message.deleted\",\n  \"channel\": \"presence-conversation.1\",\n  \"data\": {\n    \"message_id\": 42,\n    \"conversation_id\": 1\n  }\n}\n```\n\nClients should remove message 42 from their UI when they receive this."
+          }
+        },
+        {
+          "name": "User A Tries to Delete User B's Message (expect 403 — no WS event)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Cannot delete another user message (403)', () => pm.response.to.have.status(403));",
+                  "console.log('No WebSocket event should fire for rejected deletes.');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/chat/conversations/{{conversation_id}}/messages/{{message_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "conversations", "{{conversation_id}}", "messages", "{{message_id}}"]
+            },
+            "description": "Use a message_id that belongs to User B. Should return 403 and NO WebSocket event should be broadcast."
+          }
+        }
+      ]
+    },
+    {
+      "name": "8 – Test: Presence Events (member_added / member_removed)",
+      "description": "Presence channel events are fired automatically by Reverb when users connect/disconnect or subscribe/unsubscribe. These are Pusher internal events.",
+      "item": [
+        {
+          "name": "INSTRUCTION: Disconnect User B — observe member_removed",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"pusher:unsubscribe\",\n  \"data\": {\n    \"channel\": \"presence-conversation.{{conversation_id}}\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "ws://{{reverb_host}}:{{reverb_port}}/app/{{reverb_app_key}}",
+              "protocol": "ws",
+              "host": ["{{reverb_host}}"],
+              "port": "{{reverb_port}}",
+              "path": ["app", "{{reverb_app_key}}"]
+            },
+            "description": "## Send this in User B's WebSocket tab to unsubscribe:\n\n```json\n{\n  \"event\": \"pusher:unsubscribe\",\n  \"data\": {\n    \"channel\": \"presence-conversation.1\"\n  }\n}\n```\n\n## User A's tab should receive:\n```json\n{\n  \"event\": \"pusher_internal:member_removed\",\n  \"channel\": \"presence-conversation.1\",\n  \"data\": {\n    \"user_id\": 2\n  }\n}\n```\n\nAlternatively, just close the User B WebSocket tab — same member_removed event fires."
+          }
+        },
+        {
+          "name": "INSTRUCTION: Reconnect User B — observe member_added",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"pusher:subscribe\",\n  \"data\": {\n    \"channel\": \"presence-conversation.{{conversation_id}}\",\n    \"auth\": \"{{channel_auth_b}}\",\n    \"channel_data\": \"{{channel_data_b}}\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "ws://{{reverb_host}}:{{reverb_port}}/app/{{reverb_app_key}}",
+              "protocol": "ws",
+              "host": ["{{reverb_host}}"],
+              "port": "{{reverb_port}}",
+              "path": ["app", "{{reverb_app_key}}"]
+            },
+            "description": "Re-subscribe User B. User A's tab should receive:\n\n```json\n{\n  \"event\": \"pusher_internal:member_added\",\n  \"channel\": \"presence-conversation.1\",\n  \"data\": {\n    \"user_id\": 2,\n    \"user_info\": { \"id\": 2, \"name\": \"User B\", \"image\": \"...\" }\n  }\n}\n```\n\nThis is used by clients to show online/active status for conversation participants.\n\n**Note:** Re-subscribing requires a fresh channel auth if the old one has expired (they expire with the socket connection)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "9 – Verify: No Event Leakage (non-member)",
+      "description": "Verify that users not in the conversation cannot subscribe to its channel.",
+      "item": [
+        {
+          "name": "Non-member Channel Auth (expect 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Non-member channel auth rejected (403)', () => pm.response.to.have.status(403));",
+                  "console.log('Non-members cannot get a channel auth signature.');",
+                  "console.log('Without a valid signature, Reverb will reject their subscribe message.');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer SOME_OTHER_USER_TOKEN" },
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"socket_id\": \"111111.222\",\n  \"channel_name\": \"presence-conversation.{{conversation_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/../broadcasting/auth",
+              "host": ["{{base_url}}"],
+              "path": ["..", "broadcasting", "auth"]
+            },
+            "description": "The channel auth callback in `routes/channels.php` checks `ConversationParticipant` — if the user is not a participant, it returns `false`, which makes Laravel respond with 403.\n\nWithout a valid signed auth token, the Reverb server rejects the `pusher:subscribe` message."
+          }
+        }
+      ]
+    }
+  ]
+}

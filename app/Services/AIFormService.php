@@ -437,21 +437,26 @@ CRITICAL RULES — you MUST follow these exactly:
    - "AKI on top of CKD", "AKI on CKD", "acute on chronic" → "AKI on top of CKD"
    - Urine output: "urgent" (Whisper error), "oliguric", "oliguria", "low urine output", "decreased urine" → "Anuria/oliguria"; "no urine", "anuric", "anuria" → "Anuria/oliguria"; "high urine", "polyuric" → "Polyuria"
    - "emergency room", "ER", "A&E", "casualty" → "ER"; "outpatient", "OPD", "clinic" → "OPC"
-   - CRITICAL — WBCs vs Platelets: "WBC", "WBCs", "T.L.C", "TLC", "Total Leukocyte Count", "Total WBC" → WBCs count (absolute x10³). "PLT", "Platelet Count", "Platelets" → Platelets count (absolute x10³). These are COMPLETELY DIFFERENT tests — NEVER map PLT/Platelet values to WBCs count, and NEVER map WBC values to Platelets count.
-   - CBC absolute count labels → question mapping (use the absolute x10³ value):
-     * "NEUT No", "Segmented", "Segs", "PMN", "Polymorphonuclear" → Neutrophil count
-     * "LYMPH No", "Lymph count", "Lymphocytes" (when absolute count present) → Lymphocytes count
-     * "MONO No", "Mono count", "Monocytes" (when absolute count present) → Monocytes Count
-     * "Eos count", "EOS No", "Eosinophils", "Eosinophil" → Eosinophil count
-     * "Baso count", "BASO No", "Basophils", "Basophil" → Basophil count
-   - CBC percentage-only labels (use percentage value ONLY when NO absolute count exists for that cell type):
-     * "NEUT%" → Neutrophil count
-     * "LYMPH%", "LYMPH Per" → Lymphocytes count
-     * "MONO%", "MONO Per" → Monocytes Count
-     * "EO%", "EOS%" → Eosinophil count
-     * "Baso Per", "BASO%" → Basophil count
-   - When a CBC shows BOTH a percentage AND an absolute count for the same cell type, ALWAYS use the absolute count. Never use the percentage value when the absolute count is available.
-   - CRITICAL — do NOT cross-assign CBC values: each cell type's count/percentage belongs exclusively to that cell type's question. "MONO%" is Monocytes only — never map it to Lymphocytes. "Baso count" is Basophils only — never map it to Monocytes.
+   - CRITICAL — CBC label-to-question mapping table. Follow this table EXACTLY. Each label belongs to exactly ONE question. Never assign a label's value to any other question.
+     | Report label(s)                                          | Question to fill       | Priority rule                              |
+     |----------------------------------------------------------|------------------------|--------------------------------------------|
+     | WBC, WBCs, TLC, T.L.C, Total WBC, Total Leukocyte Count | WBCs count             | absolute x10³ only                         |
+     | PLT, Platelet Count, Platelets                           | Platelets count        | absolute x10³ only — NEVER map to WBCs    |
+     | HGB, Hgb, Hemoglobin, Haemoglobin                       | Hemoglobin gm/dl       |                                            |
+     | NEUT No, Segmented, Segs, PMN, Polymorphonuclear         | Neutrophil count       | prefer over NEUT%                          |
+     | NEUT%                                                    | Neutrophil count       | use ONLY if NEUT No is absent              |
+     | LYMPH No, Lymph count                                    | Lymphocytes count      | prefer over LYMPH%                         |
+     | LYMPH%, LYMPH Per                                        | Lymphocytes count      | use ONLY if LYMPH No is absent             |
+     | Mono count, MONO No                                      | Monocytes Count        | prefer over MONO%                          |
+     | MONO%, MONO Per                                          | Monocytes Count        | use ONLY if Mono count / MONO No is absent |
+     | Eos count, EOS No, Eosinophils, Eosinophil               | Eosinophil count       | prefer over EO%                            |
+     | EO%, EOS%                                                | Eosinophil count       | use ONLY if Eos count is absent            |
+     | Baso count, BASO No, Basophils, Basophil                 | Basophil count         | prefer over Baso Per                       |
+     | Baso Per, BASO%                                          | Basophil count         | use ONLY if Baso count is absent           |
+   - ENFORCEMENT: If the transcript contains "Baso count: 0.01" AND "Baso Per: 0.2", Basophil count = "0.01" (absolute wins). "0.2" is discarded — do NOT assign it to any other question.
+   - ENFORCEMENT: If the transcript contains "NEUT No: 3.35" AND "NEUT%: 57.4", Neutrophil count = "3.35". "57.4" is discarded.
+   - ENFORCEMENT: If the transcript contains "MONO%: 11.6" but NO "Mono count" or "MONO No", then Monocytes Count = "11.6" (percentage used as fallback). Do NOT assign 11.6 to Lymphocytes count.
+   - ENFORCEMENT: If WBC / TLC is absent from the transcript, WBCs count = null. Never fill WBCs count with a value from a different test (e.g. NEUT No, PLT).
    - "Calcium (Total)", "Ca", "Ca++", "Total Calcium", "Serum Calcium" → Calcium mg/dl (Q256). Note: if both ionized Ca++ and total Calcium appear, map the TOTAL calcium value to Q256, not the ionized value. Ionized calcium has no dedicated question field.
    - "Hgb", "Haemoglobin", "Hemoglobin" → Hemoglobin gm/dl. "Hct", "Hematocrit" → no dedicated field, put in Other laboratory findings if catch-all exists.
 10. Match allowed_values EXACTLY (case-sensitive) after synonym resolution.

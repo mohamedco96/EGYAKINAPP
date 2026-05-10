@@ -63,19 +63,15 @@ class AIFormController extends Controller
             // Run the input-agnostic extraction pipeline
             $result = $this->aiFormService->processSection($extractedText, $sectionId);
 
-            // Persist for AI training — only when a patient_id is provided
-            $patientId = (int) $request->input('patient_id');
-            if ($patientId) {
-                PatientSectionAiLog::create([
-                    'patient_id' => $patientId,
-                    'section_id' => $sectionId,
-                    'doctor_id' => Auth::id(),
-                    'input_type' => $inputType,
-                    'extracted_text' => $extractedText,
-                    'prompt' => $result['prompt'],
-                    'response' => $result['data'],
-                ]);
-            }
+            PatientSectionAiLog::create([
+                'patient_id' => $request->input('patient_id') ?: null,
+                'section_id' => $sectionId,
+                'doctor_id' => Auth::id(),
+                'input_type' => $inputType,
+                'extracted_text' => $extractedText,
+                'prompt' => $result['prompt'],
+                'response' => $result['data'],
+            ]);
 
             Log::info('AI form extraction completed', array_filter([
                 'input_type' => $inputType,

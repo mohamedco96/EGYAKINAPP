@@ -163,7 +163,29 @@ class AIFormService
 
             $content[] = [
                 'type' => 'input_text',
-                'text' => 'These are medical lab reports or radiology results ('.count($imageFiles).' file(s)). Extract ALL values you can read across all files and return them as a flat list, one entry per line, in this format: "Test name: value unit". Include every number, unit, and result visible. IMPORTANT: When the same test (e.g. Hemoglobin, WBCs, Platelets, Creatinine) appears more than once across different files, prefix the FULL test name of each occurrence with the file/report number — e.g. "Report1_Hemoglobin: 10.8 g/dL" on one line, "Report2_Hemoglobin: 9.40 g/dL" on the next line. The prefix must cover the entire test name up to the colon — never split a test name mid-way. For tests that appear only once across all files, no prefix is needed. Do not skip anything. Do not add explanations. Do not merge multiple values onto one line.',
+                'text' => implode("\n", [
+                    'These are medical lab reports or radiology results ('.count($imageFiles).' file(s)).',
+                    '',
+                    'CRITICAL: Extract EVERY single row visible in the report(s). Do NOT skip any row, even if the value looks like a percentage or a small decimal.',
+                    '',
+                    'For CBC / complete blood count reports, you MUST capture ALL of the following when present:',
+                    '  - Total white cell count (WBC / WBCs / TLC) — the absolute x10³ value',
+                    '  - Differential absolute counts: NEUT No / LYMPH No / MONO count / Eos count / Baso count / IG Count',
+                    '  - Differential percentages: NEUT% / LYMPH% / MONO% / EO% / Baso Per / MXD% / GRAN%',
+                    '  - Red cell indices: RBC, HGB/Hemoglobin, HCT, MCV, MCH, MCHC, RDW, RDW-SD, RDW-CV',
+                    '  - Platelet indices: PLT/Platelets, MPV, PDW, PCT',
+                    '',
+                    'Return a flat list, one entry per line, using this exact format:',
+                    '  Test name: value unit',
+                    '',
+                    'Rules:',
+                    '  - Use the EXACT label shown in the report (e.g. "NEUT No", "LYMPH No", "Mono count", "Baso Per", "WBC", "PLT")',
+                    '  - If a row has a blank value, skip it',
+                    '  - Do NOT add explanations or commentary',
+                    '  - Do NOT merge multiple values onto one line',
+                    '',
+                    'IMPORTANT — multiple files: When the same test appears in more than one file, prefix the FULL test name with the file number (e.g. "Report1_HGB: 10.8 g/dL", "Report2_HGB: 9.40 g/dL"). For tests that appear in only one file, no prefix is needed. The prefix must cover the entire test name up to the colon.',
+                ]),
             ];
 
             $response = Http::withHeaders([
@@ -177,7 +199,7 @@ class AIFormService
                         'content' => $content,
                     ],
                 ],
-                'max_output_tokens' => 2000,
+                'max_output_tokens' => 4000,
             ]);
 
             if (! $response->successful()) {
@@ -415,13 +437,21 @@ CRITICAL RULES — you MUST follow these exactly:
    - "AKI on top of CKD", "AKI on CKD", "acute on chronic" → "AKI on top of CKD"
    - Urine output: "urgent" (Whisper error), "oliguric", "oliguria", "low urine output", "decreased urine" → "Anuria/oliguria"; "no urine", "anuric", "anuria" → "Anuria/oliguria"; "high urine", "polyuric" → "Polyuria"
    - "emergency room", "ER", "A&E", "casualty" → "ER"; "outpatient", "OPD", "clinic" → "OPC"
-   - CBC differentials: "Segmented", "Segs", "PMN", "Polymorphonuclear" → Neutrophil count (use the absolute x10³ value, not the percentage)
-   - "T.L.C", "TLC", "Total Leukocyte Count", "Total WBC" → WBCs count (use the absolute x10³ value)
-   - "Lymphocytes" in CBC differential context → Lymphocytes count (use the absolute x10³ value, not the percentage)
-   - "Monocytes" in CBC differential context → Monocytes Count (use the absolute x10³ value, not the percentage)
-   - "Eosinophils" or "Eosinophil" in CBC → Eosinophil count (use the absolute x10³ value, not the percentage)
-   - "Basophils" or "Basophil" in CBC → Basophil count (use the absolute x10³ value, not the percentage)
-   - When a CBC differential shows both a percentage (e.g. "80 %") and an absolute count (e.g. "9.5 x10³/uL"), always use the absolute count value. If ONLY a percentage is available (no absolute count column), use the percentage value as the answer.
+   - CRITICAL — WBCs vs Platelets: "WBC", "WBCs", "T.L.C", "TLC", "Total Leukocyte Count", "Total WBC" → WBCs count (absolute x10³). "PLT", "Platelet Count", "Platelets" → Platelets count (absolute x10³). These are COMPLETELY DIFFERENT tests — NEVER map PLT/Platelet values to WBCs count, and NEVER map WBC values to Platelets count.
+   - CBC absolute count labels → question mapping (use the absolute x10³ value):
+     * "NEUT No", "Segmented", "Segs", "PMN", "Polymorphonuclear" → Neutrophil count
+     * "LYMPH No", "Lymph count", "Lymphocytes" (when absolute count present) → Lymphocytes count
+     * "MONO No", "Mono count", "Monocytes" (when absolute count present) → Monocytes Count
+     * "Eos count", "EOS No", "Eosinophils", "Eosinophil" → Eosinophil count
+     * "Baso count", "BASO No", "Basophils", "Basophil" → Basophil count
+   - CBC percentage-only labels (use percentage value ONLY when NO absolute count exists for that cell type):
+     * "NEUT%" → Neutrophil count
+     * "LYMPH%", "LYMPH Per" → Lymphocytes count
+     * "MONO%", "MONO Per" → Monocytes Count
+     * "EO%", "EOS%" → Eosinophil count
+     * "Baso Per", "BASO%" → Basophil count
+   - When a CBC shows BOTH a percentage AND an absolute count for the same cell type, ALWAYS use the absolute count. Never use the percentage value when the absolute count is available.
+   - CRITICAL — do NOT cross-assign CBC values: each cell type's count/percentage belongs exclusively to that cell type's question. "MONO%" is Monocytes only — never map it to Lymphocytes. "Baso count" is Basophils only — never map it to Monocytes.
    - "Calcium (Total)", "Ca", "Ca++", "Total Calcium", "Serum Calcium" → Calcium mg/dl (Q256). Note: if both ionized Ca++ and total Calcium appear, map the TOTAL calcium value to Q256, not the ionized value. Ionized calcium has no dedicated question field.
    - "Hgb", "Haemoglobin", "Hemoglobin" → Hemoglobin gm/dl. "Hct", "Hematocrit" → no dedicated field, put in Other laboratory findings if catch-all exists.
 10. Match allowed_values EXACTLY (case-sensitive) after synonym resolution.

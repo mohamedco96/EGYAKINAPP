@@ -453,7 +453,8 @@ CRITICAL RULES — you MUST follow these exactly:
      | Baso Per, BASO%                                          | Basophil count         | use ONLY if Baso count is absent           |
    - ENFORCEMENT: If the transcript contains "Baso count: 0.01" AND "Baso Per: 0.2", Basophil count = "0.01" (absolute wins). "0.2" is discarded — do NOT assign it to any other question.
    - ENFORCEMENT: If the transcript contains "NEUT No: 3.35" AND "NEUT%: 57.4", Neutrophil count = "3.35". "57.4" is discarded.
-   - ENFORCEMENT: If the transcript contains "MONO%: 11.6" but NO "Mono count" or "MONO No", then Monocytes Count = "11.6" (percentage used as fallback). Do NOT assign 11.6 to Lymphocytes count.
+   - ENFORCEMENT: "MONO%" stands for Monocyte Percentage — it maps EXCLUSIVELY to Monocytes Count, never to Lymphocytes count. If the transcript contains "MONO%: 11.6" but NO "Mono count" or "MONO No", then Monocytes Count = "11.6" (percentage fallback). The value 11.6 from MONO% must NOT appear as Lymphocytes count under any circumstance.
+   - ENFORCEMENT: Lymphocytes count must be filled ONLY from "LYMPH No" or "LYMPH%" / "LYMPH Per" labels. If NONE of these labels appear in the transcript, Lymphocytes count = null — even if other percentage values like MONO% are present.
    - ENFORCEMENT: If WBC / TLC is absent from the transcript, WBCs count = null. Never fill WBCs count with a value from a different test (e.g. NEUT No, PLT).
    - ENFORCEMENT: "Eos count" and "Eos" values belong EXCLUSIVELY to Eosinophil count. Never assign an Eos count value to Monocytes Count or any other question. Example: "Eos count: 0.16" → Eosinophil count = "0.16", Monocytes Count is NOT 0.16.
    - ENFORCEMENT: Every CBC label maps to exactly one question. If the transcript has "Eos count: 0.16" AND "MONO%: 11.6", then Eosinophil count = "0.16" AND Monocytes Count = "11.6". These are two separate values for two separate questions.

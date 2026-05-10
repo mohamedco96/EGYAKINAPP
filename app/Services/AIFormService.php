@@ -166,21 +166,19 @@ class AIFormService
                 'text' => implode("\n", [
                     'These are medical lab reports or radiology results ('.count($imageFiles).' file(s)).',
                     '',
-                    'CRITICAL: Extract EVERY single row visible in the report(s). Do NOT skip any row, even if the value looks like a percentage or a small decimal.',
+                    'CRITICAL: Read the report from TOP TO BOTTOM and extract EVERY row that has a numeric value. Do NOT skip any row.',
                     '',
-                    'For CBC / complete blood count reports, you MUST capture ALL of the following when present:',
-                    '  - Total white cell count (WBC / WBCs / TLC) — the absolute x10³ value',
-                    '  - Differential absolute counts: NEUT No / LYMPH No / MONO count / Eos count / Baso count / IG Count',
-                    '  - Differential percentages: NEUT% / LYMPH% / MONO% / EO% / Baso Per / MXD% / GRAN%',
-                    '  - Red cell indices: RBC, HGB/Hemoglobin, HCT, MCV, MCH, MCHC, RDW, RDW-SD, RDW-CV',
-                    '  - Platelet indices: PLT/Platelets, MPV, PDW, PCT',
-                    '',
-                    'Return a flat list, one entry per line, using this exact format:',
+                    'Step 1 — scan the ENTIRE table top-to-bottom. Output one line per row in this format:',
                     '  Test name: value unit',
                     '',
+                    'Step 2 — verify you have included ALL of these CBC parameters when visible:',
+                    '  WBC (or WBCs / TLC) | LYMPH% | LYMPH No | MXD% | GRAN% | RBC | HGB | HCT | MCV | MCH | MCHC | RDW | PLT | MPV',
+                    '  Baso count | Baso Per | Eos count | EO% | NEUT% | NEUT No | MONO% | Mono count | PCT | PDW | RDW-SD | RDW-CV | IG Count',
+                    'If any of these appear in the image but are missing from your output, add them before responding.',
+                    '',
                     'Rules:',
-                    '  - Use the EXACT label shown in the report (e.g. "NEUT No", "LYMPH No", "Mono count", "Baso Per", "WBC", "PLT")',
-                    '  - If a row has a blank value, skip it',
+                    '  - Use the EXACT label shown in the report (e.g. "WBC", "LYMPH No", "Mono count", "Baso count", "PLT")',
+                    '  - Skip a row ONLY if its value cell is completely blank or unreadable',
                     '  - Do NOT add explanations or commentary',
                     '  - Do NOT merge multiple values onto one line',
                     '',
@@ -457,6 +455,8 @@ CRITICAL RULES — you MUST follow these exactly:
    - ENFORCEMENT: If the transcript contains "NEUT No: 3.35" AND "NEUT%: 57.4", Neutrophil count = "3.35". "57.4" is discarded.
    - ENFORCEMENT: If the transcript contains "MONO%: 11.6" but NO "Mono count" or "MONO No", then Monocytes Count = "11.6" (percentage used as fallback). Do NOT assign 11.6 to Lymphocytes count.
    - ENFORCEMENT: If WBC / TLC is absent from the transcript, WBCs count = null. Never fill WBCs count with a value from a different test (e.g. NEUT No, PLT).
+   - ENFORCEMENT: "Eos count" and "Eos" values belong EXCLUSIVELY to Eosinophil count. Never assign an Eos count value to Monocytes Count or any other question. Example: "Eos count: 0.16" → Eosinophil count = "0.16", Monocytes Count is NOT 0.16.
+   - ENFORCEMENT: Every CBC label maps to exactly one question. If the transcript has "Eos count: 0.16" AND "MONO%: 11.6", then Eosinophil count = "0.16" AND Monocytes Count = "11.6". These are two separate values for two separate questions.
    - "Calcium (Total)", "Ca", "Ca++", "Total Calcium", "Serum Calcium" → Calcium mg/dl (Q256). Note: if both ionized Ca++ and total Calcium appear, map the TOTAL calcium value to Q256, not the ionized value. Ionized calcium has no dedicated question field.
    - "Hgb", "Haemoglobin", "Hemoglobin" → Hemoglobin gm/dl. "Hct", "Hematocrit" → no dedicated field, put in Other laboratory findings if catch-all exists.
 10. Match allowed_values EXACTLY (case-sensitive) after synonym resolution.

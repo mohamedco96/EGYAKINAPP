@@ -10,7 +10,7 @@ class FeedPostComment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'feed_post_id', 'doctor_id', 'comment', 'parent_id'
+        'feed_post_id', 'doctor_id', 'comment', 'parent_id',
     ];
 
     protected $casts = [
@@ -18,7 +18,7 @@ class FeedPostComment extends Model
         'replies_count' => 'integer',
         'doctor_id' => 'integer',
         'feed_post_id' => 'integer',
-        'parent_id' => 'integer'
+        'parent_id' => 'integer',
     ];
 
     public function post()
@@ -29,6 +29,11 @@ class FeedPostComment extends Model
     public function doctor()
     {
         return $this->belongsTo(User::class, 'doctor_id');
+    }
+
+    public function parent()
+    {
+        return $this->belongsTo(FeedPostComment::class, 'parent_id');
     }
 
     // Relationship to get child comments
@@ -42,5 +47,4 @@ class FeedPostComment extends Model
     {
         return $this->hasMany(FeedPostCommentLike::class, 'post_comment_id');
     }
-
 }

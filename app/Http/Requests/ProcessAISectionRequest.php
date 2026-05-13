@@ -14,7 +14,7 @@ class ProcessAISectionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'audio' => 'nullable|file|mimes:mp3,wav,m4a,ogg,webm|max:25600',
+            'audio' => 'nullable|file|mimes:mp3,wav,m4a,ogg,webm,aac,3gp,3gpp,mp4,mpeg,mpga,flac|max:25600',
             'images' => 'nullable|array|max:10',
             'images.*' => 'file|mimes:jpg,jpeg,png,webp|max:20480',
             'files' => 'nullable|array|max:10',
@@ -51,7 +51,7 @@ class ProcessAISectionRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'audio.mimes' => 'Audio must be mp3, wav, m4a, ogg, or webm.',
+            'audio.mimes' => 'Audio format not supported. Please use mp3, wav, m4a, aac, ogg, webm, or mp4.',
             'audio.max' => 'Audio file must not exceed 25MB.',
             'images.max' => 'You can upload a maximum of 10 files per request.',
             'images.*.mimes' => 'Each image must be jpg, jpeg, png, or webp.',

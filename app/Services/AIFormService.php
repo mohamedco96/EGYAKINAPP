@@ -29,6 +29,16 @@ class AIFormService
      *
      * Set AI_FORM_MOCK=true in .env to bypass the API call during local testing.
      */
+    /** Formats Whisper accepts natively (by file extension). */
+    private const WHISPER_SUPPORTED_EXTENSIONS = ['flac', 'mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'ogg', 'wav', 'webm'];
+
+    /** Maps unsupported extensions to the closest Whisper-compatible one. */
+    private const EXTENSION_REMAP = [
+        'aac' => 'm4a',
+        '3gp' => 'mp4',
+        '3gpp' => 'mp4',
+    ];
+
     public function transcribeAudio(UploadedFile $audioFile, string $language = 'en'): string
     {
         if (config('services.ai_form.mock')) {
@@ -37,12 +47,14 @@ class AIFormService
             return 'Male patient, aged 64 years old, from Agha, Daqahliya, admitted to Mansoura University Hospital with serum creatinine 2.5, the primary cause is sepsis for ICU admission.';
         }
 
+        [$filePath, $fileName] = $this->prepareAudioForWhisper($audioFile);
+
         $response = Http::withHeaders([
             'Authorization' => 'Bearer '.$this->apiKey,
         ])->timeout(120)->attach(
             'file',
-            fopen($audioFile->getRealPath(), 'r'),
-            $audioFile->getClientOriginalName()
+            fopen($filePath, 'r'),
+            $fileName
         )->post('https://api.openai.com/v1/audio/transcriptions', [
             'model' => 'whisper-1',
             'language' => $language,
@@ -62,6 +74,22 @@ class AIFormService
         }
 
         return trim($response->body());
+    }
+
+    /**
+     * Prepare audio for Whisper by remapping the file extension to the nearest
+     * format Whisper natively supports. This avoids any server-side conversion
+     * and works on shared hosting where shell functions are disabled.
+     *
+     * Returns [$filePath, $fileName].
+     */
+    private function prepareAudioForWhisper(UploadedFile $audioFile): array
+    {
+        $ext = strtolower($audioFile->getClientOriginalExtension() ?: $audioFile->guessExtension() ?: 'mp4');
+        $remappedExt = self::EXTENSION_REMAP[$ext] ?? (in_array($ext, self::WHISPER_SUPPORTED_EXTENSIONS, true) ? $ext : 'mp4');
+        $fileName = pathinfo($audioFile->getClientOriginalName(), PATHINFO_FILENAME).'.'.$remappedExt;
+
+        return [$audioFile->getRealPath(), $fileName];
     }
 
     /**

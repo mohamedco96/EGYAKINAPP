@@ -159,10 +159,64 @@ class AIFormService
         // PDFs are uploaded to the Files API (purpose: user_data) and referenced by file_id.
         // Images are sent inline as base64 data URLs via input_image.
         // try/finally ensures uploaded PDF IDs are cleaned up on both success and failure.
+        //
+        // IMPORTANT: The instruction text block is placed FIRST in the content array,
+        // before all images. This ensures the model reads the instructions before
+        // examining the image — critical for top-of-table rows (WBC etc.) not being skipped.
         $content = [];
         $uploadedIds = [];
 
         try {
+            // Instruction block comes FIRST so the model reads it before processing the images.
+            $content[] = [
+                'type' => 'input_text',
+                'text' => implode("\n", [
+                    'READ THESE INSTRUCTIONS BEFORE LOOKING AT THE IMAGE.',
+                    '',
+                    'You are a medical lab report OCR. Your ONLY job is to read every single row from the lab table and output it as "Label: value unit" — one row per line.',
+                    '',
+                    '=== CRITICAL: START FROM THE VERY FIRST ROW ===',
+                    'Look at the TOP of the table. Find the first data row — it is often WBC or Total WBC in a CBC report.',
+                    'Your FIRST output line MUST be that very first row. Do NOT skip it. Do NOT start from RBC or any middle row.',
+                    '',
+                    '=== REQUIRED LABELS — output ALL that are visible in the image ===',
+                    'WBC (or Total WBC)   ← typically ROW 1 — MUST appear first in your output if visible',
+                    'LYMPH%',
+                    'LYMPH No',
+                    'Mono count',
+                    'MONO%',
+                    'RBC',
+                    'HGB',
+                    'HCT',
+                    'MCV',
+                    'MCH',
+                    'MCHC',
+                    'PLT',
+                    'MPV',
+                    'Baso count',
+                    'Baso Per',
+                    'Eos count',
+                    'EO%',
+                    'NEUT%',
+                    'NEUT No',
+                    'PCT',
+                    'PDW',
+                    'RDW-SD',
+                    'RDW-CV',
+                    'IG Count',
+                    '',
+                    '=== RULES ===',
+                    '1. Scan from TOP to BOTTOM. Output rows in the order they appear in the image.',
+                    '2. Use the EXACT label text from the image.',
+                    '3. Skip a row ONLY if its value cell is completely blank.',
+                    '4. Do NOT add explanations, headers, or commentary.',
+                    '5. Do NOT merge multiple rows onto one line.',
+                    count($imageFiles) > 1 ? 'Multiple files: prefix duplicate test names with Report1_, Report2_, etc.' : '',
+                    '',
+                    'Now examine the image(s) below and extract every row:',
+                ]),
+            ];
+
             foreach ($imageFiles as $imageFile) {
                 $mime = $imageFile->getMimeType();
 
@@ -189,56 +243,12 @@ class AIFormService
                 }
             }
 
-            $content[] = [
-                'type' => 'input_text',
-                'text' => implode("\n", [
-                    'These are medical lab reports or radiology results ('.count($imageFiles).' file(s)).',
-                    '',
-                    'YOUR TASK: Extract every row from the lab table. Output one line per row, format: "Label: value unit".',
-                    '',
-                    'MANDATORY STARTING RULE: Your very first output line MUST be the first row of the table as it appears in the image — do NOT start from the middle. In a CBC report the first row is typically WBC or Total WBC. Output it first, then continue down row by row.',
-                    '',
-                    'REQUIRED — you MUST include ALL of the following if visible (do NOT omit any):',
-                    '  WBC: <value>          ← MUST be first if it appears first in the table',
-                    '  LYMPH%: <value>',
-                    '  LYMPH No: <value>',
-                    '  RBC: <value>',
-                    '  HGB: <value>',
-                    '  HCT: <value>',
-                    '  MCV: <value>',
-                    '  MCH: <value>',
-                    '  MCHC: <value>',
-                    '  PLT: <value>',
-                    '  MPV: <value>',
-                    '  Baso count: <value>',
-                    '  Baso Per: <value>',
-                    '  Eos count: <value>',
-                    '  EO%: <value>',
-                    '  NEUT%: <value>',
-                    '  NEUT No: <value>',
-                    '  MONO%: <value>',
-                    '  Mono count: <value>',
-                    '  PCT: <value>',
-                    '  PDW: <value>',
-                    '  RDW-SD: <value>',
-                    '  RDW-CV: <value>',
-                    '  IG Count: <value>',
-                    '',
-                    'Rules:',
-                    '  - Use the EXACT label as shown in the image',
-                    '  - Skip a row ONLY if its value cell is completely blank',
-                    '  - Do NOT add explanations or commentary',
-                    '  - Do NOT merge multiple values onto one line',
-                    '',
-                    'IMPORTANT — multiple files: When the same test appears in more than one file, prefix with the file number (e.g. "Report1_HGB: 10.8 g/dL"). For tests in only one file, no prefix needed.',
-                ]),
-            ];
-
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer '.$this->apiKey,
                 'Content-Type' => 'application/json',
             ])->timeout(90)->post('https://api.openai.com/v1/responses', [
                 'model' => 'gpt-4o',
+                'instructions' => 'You are a medical lab report OCR assistant. Extract every row from the lab table in top-to-bottom order. The first row in a CBC report is typically WBC — output it first. Never skip rows. Output format: "Label: value unit" one per line. No commentary.',
                 'input' => [
                     [
                         'role' => 'user',
@@ -246,7 +256,7 @@ class AIFormService
                     ],
                 ],
                 'max_output_tokens' => 4000,
-                'temperature' => 0.1,
+                'temperature' => 0,
             ]);
 
             if (! $response->successful()) {

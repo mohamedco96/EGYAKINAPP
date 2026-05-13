@@ -155,123 +155,184 @@ class AIFormService
             return 'Lab report: Creatinine on admission 3.2, basal creatinine 1.1, day 2 creatinine 2.8, day 3 creatinine 2.1. pH 7.30, HCO3 18, pCO2 35. Serum Na 138, K 5.2. SGOT 45, SGPT 38, Albumin 3.0, Total Bilirubin 1.2, Direct Bilirubin 0.4. PT 14, PTT 32, INR 1.2. HCV Ab Negative, HBs Ag Negative, HIV Ab Negative. Hemoglobin 9.5, WBCs 11000, Platelets 180000, Neutrophils 7500, Lymphocytes 2500, Monocytes 800, Eosinophil 200, Basophil 50. Urea 80, BUN 37, CRP 48. Urine: specific gravity 1.018, turbid, epithelial cells few, granular casts, WBCs 8, RBCs 4, proteinuria 2+. Renal US: nephromegaly bilateral.';
         }
 
-        // Build the content array for the Responses API.
-        // PDFs are uploaded to the Files API (purpose: user_data) and referenced by file_id.
-        // Images are sent inline as base64 data URLs via input_image.
+        // Route to the appropriate API:
+        //   - Image-only uploads  → Chat Completions API with vision (more reliable for images)
+        //   - Any PDF in the set  → Responses API with Files API (PDFs require file_id upload)
         // try/finally ensures uploaded PDF IDs are cleaned up on both success and failure.
-        //
-        // IMPORTANT: The instruction text block is placed FIRST in the content array,
-        // before all images. This ensures the model reads the instructions before
-        // examining the image — critical for top-of-table rows (WBC etc.) not being skipped.
-        $content = [];
         $uploadedIds = [];
+        $hasPdfs = collect($imageFiles)->contains(fn ($f) => $f->getMimeType() === 'application/pdf');
+
+        // Shared extraction instruction used by both API paths.
+        $instructionText = implode("\n", [
+            'You are extracting lab test values from a medical lab report image.',
+            '',
+            '=== IMPORTANT: CBC PRINTOUT LAYOUT ===',
+            'Most CBC analyzer printouts (Mindray, Sysmex, Abbott) have multiple sections:',
+            '  • TOP area: patient info + WBC/PLT/RBC histograms or scatterplots.',
+            '    The WBC TOTAL count (e.g. "WBC 5.84 10^3/uL") is displayed HERE as a',
+            '    large prominent number near the WBC histogram — NOT in the table below.',
+            '  • DIFFERENTIAL section: shows LYMPH%, LYMPH No, MONO%, Mono count, etc.',
+            '    These may be laid out in a two-column format beside the histogram.',
+            '  • MAIN TABLE: RBC panel (RBC, HGB, HCT, MCV, MCH, MCHC) + PLT panel + more.',
+            '',
+            'You MUST read ALL sections of the image, not just the table.',
+            '',
+            '=== TASK ===',
+            'Output every lab value visible anywhere in the image.',
+            'Format: "Label: value unit" — one value per line.',
+            '',
+            '=== REQUIRED: search the entire image for each of these ===',
+            'WBC / Total WBC   ← LOOK IN THE HISTOGRAM AREA AT THE TOP',
+            'LYMPH%            ← may be near histogram or in differential section',
+            'LYMPH No          ← may be near histogram or in differential section',
+            'Mono count        ← monocyte absolute count in differential section',
+            'MONO%             ← monocyte percentage',
+            'RBC, HGB, HCT, MCV, MCH, MCHC',
+            'PLT, MPV, PCT, PDW',
+            'Baso count, Baso Per',
+            'Eos count, EO%',
+            'NEUT%, NEUT No',
+            'RDW-SD, RDW-CV, IG Count',
+            '',
+            'Also output any other lab values visible in the image.',
+            '',
+            '=== RULES ===',
+            '- Use the exact label as it appears in the image',
+            '- Output every value that has a number — never skip one',
+            '- No commentary, no headers, no explanations',
+            count($imageFiles) > 1 ? '- Multiple files: prefix duplicate test names with Report1_, Report2_ etc.' : '',
+        ]);
 
         try {
-            // Instruction block comes FIRST so the model reads it before processing the images.
-            $content[] = [
-                'type' => 'input_text',
-                'text' => implode("\n", [
-                    'You are a medical lab report value extractor.',
-                    '',
-                    'TASK: For each test name listed below, search the ENTIRE image for that test and output its value.',
-                    'Search every column, every row, every section of the image — do NOT skip any area.',
-                    'Output format (one per line): TestName: value unit',
-                    'If a test is not found anywhere in the image, do NOT output that line.',
-                    '',
-                    'SEARCH FOR THESE TESTS (look for the exact label or its common abbreviations):',
-                    '1.  WBC / Total WBC / WBCs / TLC — the total white blood cell count',
-                    '2.  LYMPH% — lymphocyte percentage',
-                    '3.  LYMPH No — lymphocyte absolute count',
-                    '4.  Mono count / MONO No — monocyte absolute count',
-                    '5.  MONO% — monocyte percentage',
-                    '6.  RBC — red blood cell count',
-                    '7.  HGB / Hgb — hemoglobin',
-                    '8.  HCT — hematocrit',
-                    '9.  MCV — mean corpuscular volume',
-                    '10. MCH — mean corpuscular hemoglobin',
-                    '11. MCHC — mean corpuscular hemoglobin concentration',
-                    '12. PLT / Platelet Count — platelet count',
-                    '13. MPV — mean platelet volume',
-                    '14. Baso count / BASO No — basophil absolute count',
-                    '15. Baso Per / BASO% — basophil percentage',
-                    '16. Eos count / EOS No — eosinophil absolute count',
-                    '17. EO% / EOS% — eosinophil percentage',
-                    '18. NEUT% — neutrophil percentage',
-                    '19. NEUT No — neutrophil absolute count',
-                    '20. PCT — plateletcrit',
-                    '21. PDW — platelet distribution width',
-                    '22. RDW-SD — red cell distribution width (SD)',
-                    '23. RDW-CV — red cell distribution width (CV)',
-                    '24. IG Count — immature granulocyte count',
-                    '',
-                    'Also output any OTHER lab values visible in the image that are not in the list above.',
-                    '',
-                    'RULES:',
-                    '- Use the exact label as it appears in the image',
-                    '- Output every test that has a numeric value — do not skip any',
-                    '- Do NOT add commentary, explanations, or headers',
-                    '- Do NOT merge multiple tests onto one line',
-                    count($imageFiles) > 1 ? '- Multiple files: prefix each value with Report1_, Report2_ etc. if the same test appears in more than one file' : '',
-                ]),
-            ];
+            if (! $hasPdfs) {
+                // ── Chat Completions API with vision (image-only uploads) ──────────────
+                // Images are sent FIRST, then the text instruction.
+                $chatContent = [];
 
-            foreach ($imageFiles as $imageFile) {
-                $mime = $imageFile->getMimeType();
-
-                if ($mime === 'application/pdf') {
-                    $fileId = $this->uploadFileToOpenAI($imageFile);
-                    $uploadedIds[] = $fileId;
-
-                    $content[] = [
-                        'type' => 'input_file',
-                        'file_id' => $fileId,
-                    ];
-                } else {
+                foreach ($imageFiles as $imageFile) {
+                    $mime = $imageFile->getMimeType();
                     $mediaType = match ($mime) {
                         'image/png' => 'image/png',
                         'image/webp' => 'image/webp',
                         default => 'image/jpeg',
                     };
 
-                    $content[] = [
-                        'type' => 'input_image',
-                        'image_url' => "data:{$mediaType};base64,".base64_encode(file_get_contents($imageFile->getRealPath())),
-                        'detail' => 'high',
+                    $chatContent[] = [
+                        'type' => 'image_url',
+                        'image_url' => [
+                            'url' => 'data:'.$mediaType.';base64,'.base64_encode(file_get_contents($imageFile->getRealPath())),
+                            'detail' => 'high',
+                        ],
                     ];
                 }
-            }
 
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer '.$this->apiKey,
-                'Content-Type' => 'application/json',
-            ])->timeout(90)->post('https://api.openai.com/v1/responses', [
-                'model' => 'gpt-4o',
-                'instructions' => 'You are a medical lab report value extractor. Search the entire image for each named test and output its value as "Label: value unit". Never skip a test that has a value visible in the image. Search every column, row, and section.',
-                'input' => [
-                    [
-                        'role' => 'user',
-                        'content' => $content,
+                $chatContent[] = [
+                    'type' => 'text',
+                    'text' => $instructionText,
+                ];
+
+                $response = Http::withHeaders([
+                    'Authorization' => 'Bearer '.$this->apiKey,
+                    'Content-Type' => 'application/json',
+                ])->timeout(90)->post('https://api.openai.com/v1/chat/completions', [
+                    'model' => 'gpt-4o',
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => 'You are a medical lab report OCR assistant. Extract every visible lab value from the image — including values displayed in header areas, near histograms/scatterplots, and in tables. Output format: "Label: value unit" one per line. Never skip a value.',
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => $chatContent,
+                        ],
                     ],
-                ],
-                'max_output_tokens' => 4000,
-                'temperature' => 0,
-            ]);
+                    'max_tokens' => 4000,
+                    'temperature' => 0,
+                ]);
 
-            if (! $response->successful()) {
-                $body = $response->body();
-                Log::error('GPT-4o Vision API Error', array_filter([
-                    'status' => $response->status(),
-                    'file_count' => count($imageFiles),
-                    'response_bytes' => strlen($body),
-                    'response_hash' => substr(hash('sha256', $body), 0, 12),
-                    'request_id' => $response->header('x-request-id'),
-                    'body' => config('app.debug') ? $body : null,
-                ]));
-                throw new Exception('Failed to analyze image.');
+                if (! $response->successful()) {
+                    $body = $response->body();
+                    Log::error('GPT-4o Vision API Error', array_filter([
+                        'status' => $response->status(),
+                        'file_count' => count($imageFiles),
+                        'response_bytes' => strlen($body),
+                        'response_hash' => substr(hash('sha256', $body), 0, 12),
+                        'request_id' => $response->header('x-request-id'),
+                        'body' => config('app.debug') ? $body : null,
+                    ]));
+                    throw new Exception('Failed to analyze image.');
+                }
+
+                // Chat Completions: choices[0].message.content
+                $text = trim($response->json('choices.0.message.content') ?? '');
+            } else {
+                // ── Responses API (PDF-containing uploads) ────────────────────────────
+                // PDFs are uploaded to the Files API and referenced by file_id.
+                $content = [];
+
+                $content[] = [
+                    'type' => 'input_text',
+                    'text' => $instructionText,
+                ];
+
+                foreach ($imageFiles as $imageFile) {
+                    $mime = $imageFile->getMimeType();
+
+                    if ($mime === 'application/pdf') {
+                        $fileId = $this->uploadFileToOpenAI($imageFile);
+                        $uploadedIds[] = $fileId;
+
+                        $content[] = [
+                            'type' => 'input_file',
+                            'file_id' => $fileId,
+                        ];
+                    } else {
+                        $mediaType = match ($mime) {
+                            'image/png' => 'image/png',
+                            'image/webp' => 'image/webp',
+                            default => 'image/jpeg',
+                        };
+
+                        $content[] = [
+                            'type' => 'input_image',
+                            'image_url' => 'data:'.$mediaType.';base64,'.base64_encode(file_get_contents($imageFile->getRealPath())),
+                            'detail' => 'high',
+                        ];
+                    }
+                }
+
+                $response = Http::withHeaders([
+                    'Authorization' => 'Bearer '.$this->apiKey,
+                    'Content-Type' => 'application/json',
+                ])->timeout(90)->post('https://api.openai.com/v1/responses', [
+                    'model' => 'gpt-4o',
+                    'instructions' => 'You are a medical lab report OCR assistant. Extract every visible lab value, including values near histograms and in header areas. Output "Label: value unit" one per line.',
+                    'input' => [
+                        [
+                            'role' => 'user',
+                            'content' => $content,
+                        ],
+                    ],
+                    'max_output_tokens' => 4000,
+                    'temperature' => 0,
+                ]);
+
+                if (! $response->successful()) {
+                    $body = $response->body();
+                    Log::error('GPT-4o Vision API Error', array_filter([
+                        'status' => $response->status(),
+                        'file_count' => count($imageFiles),
+                        'response_bytes' => strlen($body),
+                        'response_hash' => substr(hash('sha256', $body), 0, 12),
+                        'request_id' => $response->header('x-request-id'),
+                        'body' => config('app.debug') ? $body : null,
+                    ]));
+                    throw new Exception('Failed to analyze image.');
+                }
+
+                // Responses API: output[0].content[0].text
+                $text = trim($response->json('output.0.content.0.text') ?? '');
             }
-
-            // Responses API: output[0].content[0].text
-            $text = trim($response->json('output.0.content.0.text') ?? '');
 
             if (empty($text)) {
                 throw new Exception('GPT-4o returned an empty response for the image.');

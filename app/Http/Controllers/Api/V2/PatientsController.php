@@ -5,15 +5,19 @@ namespace App\Http\Controllers\Api\V2;
 use App\Http\Controllers\Api\V1\PatientsController as V1PatientsController;
 use App\Http\Controllers\Controller;
 use App\Modules\Patients\Requests\UpdatePatientsRequest;
+use App\Services\PdfGenerationService;
 use Illuminate\Http\Request;
 
 class PatientsController extends Controller
 {
     protected $patientsController;
 
-    public function __construct(V1PatientsController $patientsController)
+    protected $pdfGenerationService;
+
+    public function __construct(V1PatientsController $patientsController, PdfGenerationService $pdfGenerationService)
     {
         $this->patientsController = $patientsController;
+        $this->pdfGenerationService = $pdfGenerationService;
     }
 
     public function storePatient(Request $request)
@@ -88,7 +92,13 @@ class PatientsController extends Controller
 
     public function generatePatientPDF($patient_id)
     {
-        return $this->patientsController->generatePatientPDF($patient_id);
+        $result = $this->pdfGenerationService->generatePatientPdf($patient_id);
+
+        if ($result['success']) {
+            return response()->json(['pdf_url' => $result['pdf_url']]);
+        }
+
+        return response()->json(['value' => false, 'message' => $result['message']], 500);
     }
 
     public function markPatient($patientId)

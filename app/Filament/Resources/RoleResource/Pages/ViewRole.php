@@ -22,9 +22,8 @@ class ViewRole extends ViewRecord
 
     public function infolist(Schema $schema): Schema
     {
-        return $infolist
-            ->record($this->getRecord())
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Role Information')
                     ->icon('heroicon-o-identification')
                     ->description('Basic role details and metadata')

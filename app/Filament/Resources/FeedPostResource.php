@@ -128,7 +128,7 @@ class FeedPostResource extends Resource
                             ->reorderable()
                             ->appendFiles()
                             ->helperText('Upload up to 5 images or videos')
-                            ->visibleJs("$get('media_type') !== 'none'")
+                            ->visibleJs('$get(\'media_type\') !== \'none\'')
                             ->columnSpanFull(),
                     ])->columns(2)->collapsible(),
 

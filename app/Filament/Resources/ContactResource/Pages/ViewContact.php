@@ -51,9 +51,8 @@ class ViewContact extends ViewRecord
 
     public function infolist(Schema $schema): Schema
     {
-        return $infolist
-            ->record($this->getRecord())
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Contact Request Information')
                     ->schema([
                         Grid::make(3)

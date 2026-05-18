@@ -30,9 +30,8 @@ class ViewSectionsInfo extends ViewRecord
 
     public function infolist(Schema $schema): Schema
     {
-        return $infolist
-            ->record($this->getRecord())
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Section Information')
                     ->schema([
                         Grid::make(2)

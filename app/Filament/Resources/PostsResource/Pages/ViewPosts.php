@@ -40,9 +40,8 @@ class ViewPosts extends ViewRecord
 
     public function infolist(Schema $schema): Schema
     {
-        return $infolist
-            ->record($this->getRecord())
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Post Information')
                     ->schema([
                         Grid::make(3)

@@ -100,7 +100,7 @@ class QuestionsResource extends Resource
                     ->label('Values')
                     ->placeholder('Enter question options')
                     ->visible(fn ($get) => in_array($get('type'), ['select', 'multiple']))
-                    ->visibleJs("$get('type') === 'select' || $get('type') === 'multiple'")
+                    ->visibleJs('$get(\'type\') === \'select\' || $get(\'type\') === \'multiple\'')
                     ->required(),
 
                 Select::make('keyboard_type')

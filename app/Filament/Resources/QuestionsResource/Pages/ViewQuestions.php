@@ -30,9 +30,8 @@ class ViewQuestions extends ViewRecord
 
     public function infolist(Schema $schema): Schema
     {
-        return $infolist
-            ->record($this->getRecord())
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Question Information')
                     ->schema([
                         Grid::make(3)
